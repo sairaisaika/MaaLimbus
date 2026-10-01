@@ -3,7 +3,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -11,6 +11,8 @@ import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/'src'))
+from maalimbus.archives import extract_checked
 ARCHIVES = {
     'mxu': ('A2375C171EEB360B7D3E7762FB30CDFB452860D8485FBB5D542AE8A053BE8E7D',
             'https://github.com/MistEO/MXU/releases/download/v2.5.1/MXU-win-x86_64-v2.5.1.zip'),
@@ -29,29 +31,6 @@ def digest(path):
 def verify(path, expected):
     if digest(path).upper() != expected:
         raise ValueError(f'Unreviewed archive: {path}')
-
-
-def extract_checked(archive, destination):
-    """Validate the complete archive before creating any member on disk."""
-    seen, total = set(), 0
-    with zipfile.ZipFile(archive) as source:
-        for member in source.infolist():
-            # Windows ZipInfo normalizes backslashes on read. Validate the
-            # original central-directory name before accepting that change.
-            name = member.orig_filename
-            path = PurePosixPath(name)
-            if ('\\' in name or ':' in name or path.is_absolute() or '..' in path.parts
-                    or not path.parts or any(p.endswith((' ', '.')) for p in path.parts)
-                    or (member.external_attr >> 16) & 0o170000 == 0o120000):
-                raise ValueError(f'Unsafe archive member: {name}')
-            canonical = str(path).casefold()
-            if canonical in seen:
-                raise ValueError(f'Duplicate archive member: {name}')
-            seen.add(canonical)
-            total += member.file_size
-            if total > 1_500_000_000 or member.file_size > 500_000_000:
-                raise ValueError('Archive exceeds development package limits')
-        source.extractall(destination)
 
 
 def copy_public_sources(output):

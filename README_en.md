@@ -50,7 +50,7 @@ Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md).
 | Five floors and repeat | Completion evidence and rotation storage | Battles, actual rewards and loop |
 | Enkephalin conversion/refill | Budget policy tests | Native actions and balance checks |
 | Mail/daily rewards | Design and task labels | Implementation and live tests |
-| GitHub updates | Metadata cache and persisted retry deadlines | Download, installation, rollback |
+| GitHub updates | Metadata cache, persisted retry deadlines, isolated download and package validation | MXU update UI, installation/rollback, public Release test |
 
 A bounded development session requests standard Windows UAC consent:
 

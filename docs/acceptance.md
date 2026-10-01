@@ -15,7 +15,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |
 | Mail / daily rewards | Design | Claimed/empty mailbox and mission reward evidence |
-| GitHub update / rate-limit resume | Real metadata request: no Release; cache/backoff restart tests passed. Downloader/installer pending | Cached state + retry deadline + checked staged install/rollback |
+| GitHub update / rate-limit resume | Metadata/cache and isolated download/checksum/manifest staging implemented; 612-file development ZIP offline staging passed. MXU UI and installer pending | Public asset download + installed version/config preservation + rollback |
 | Windows package | Local development package built; packaged Agent IPC replay passed; MXU UI/live acceptance and release audit pending | Portable build + actual UI/runtime + installed version/config preservation |
 | FGO error option and Release | Error option built/installed, config preserved; actual GUI exit + public Release pending | Option persistence/error action; full release gate + published asset |
 
@@ -162,3 +162,24 @@ from a task returning success, a manifest loading, or a process staying alive.
   `build/packaged-deployment-replay-verification.json` and
   `build/deployment-package-integrity.json`. Three reference navigation/changed
   cover/UNKNOWN regression replays also pass. No live controller or UAC request.
+
+## GitHub update staging
+
+- Shared ZIP prevalidation now also refuses Windows device names/data streams,
+  invalid characters, existing extraction destinations and file/directory collisions.
+  The downloader accepts only one stable package/checksum pair from the selected
+  GitHub repository/tag, checks metadata sizes/digests, checksum and all manifest
+  files, and refuses private config/evidence roots or unlisted files.
+- HTTP download failures persist safe retry state; restart during a rate-limit
+  delay performs no download. Incomplete `.part` files are removed only from the
+  newly created stage. Failed full archives/extracted contents remain quarantined
+  with `status=failed`; neither a failure nor `staged` executes/replaces an install.
+- 103 tests pass. `build/update-stage-verification.json` proves complete staging
+  of the actual retained clean `ded609b` development ZIP, with its original
+  hash and all 612 manifest files. Release metadata and transport were derived
+  offline fixtures; no public stable Release or live network download was tested.
+- Game PID40196 remains HIGH 12288 vs current Python MEDIUM 8192, recorded in
+  `build/update-development-preflight.json`. No game input/GUI/UAC was requested;
+  no active MaaLimbus Agent/Runner found. Full dungeon acceptance remains pending.
+- See `docs/update-staging.md`. MXU update integration, actual install/rollback,
+  source/asset distribution audit and public Release remain pending.

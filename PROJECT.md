@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Added isolated GitHub update staging with checksum/manifest checks,
+  persisted download rate-limit backoff and partial cleanup. Shared Windows ZIP
+  prevalidation rejects reserved names, streams and file/directory collisions.
+  103 tests and full offline staging of the retained 612-file development ZIP pass.
+  No installation/execution, MXU update button or public-release download proof.
 - 2026-10-01: Added experimental native deployment preparation with saved order,
   explicit standard-order preset, adaptive observed count and per-click local
   ordinal verification. Ten actual Maa derived graph cases and 79 tests pass.
