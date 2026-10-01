@@ -34,6 +34,7 @@ Agent 和 Runner 从自身可执行文件的安装位置定位包根目录，不
 python tools/verify_packaged_replay.py --app <开发包目录> --references <本地参考截图目录>
 python tools/verify_packaged_theme_replay.py --app <开发包目录>
 python tools/verify_packaged_deployment_replay.py --app <开发包目录>
+python tools/verify_packaged_battle_replay.py --app <8b309b8开发包目录>
 ```
 
 此工具使用 Maa CustomController 和保存的画面，经过真实 Maa AgentClient/打包 Agent 的进程通信执行生产识别及 Pipeline。它不创建 Win32 游戏控制器、不发送游戏输入。
@@ -50,3 +51,14 @@ python tools/verify_packaged_deployment_replay.py --app <开发包目录>
 这里使用派生人数/序号画面，未验证真实囚人身份、实机格子位置或开始战斗。
 
 开发包构建不会发起 UAC。实机权限条件满足且没有旧控制器后，才可另行启动有时限任务；仍须保存每层、领奖和轮换的真实证据。
+
+最新干净 `8b309b8` 开发包包含实验性战斗规划：619文件完整 manifest/私有根目录排除、
+Agent 自检通过。冻结 Agent 经 Maa IPC 对派生正常/卡住画面各按一次 P，对资源弹窗/
+未支持日语画面均零输入；正常派生新图的 Neutral 文本可读取，但不声明计划安全或胜利。
+子进程退出后未发现运行的 Agent/Runner。证据 `build/battle-package-integrity.json`、
+`build/packaged-battle-replay-verification.json`；原 `ded609b` 证明保留其历史范围。
+
+新 ZIP 也通过 `tools/verify_update_stage.py` 的全包离线暂存校验，619文件/原 ZIP 哈希一致。
+`build/update-stage-verification.json` 现在指向此新包；派生 Release 元数据不代表已经发布，
+暂存不安装也不执行。此前612文件包的 stage-result 仍保留在独立旧暂存目录。
+新包尚未打开 MXU 界面、未覆盖安装、未实机输入，也未完成分发审计/发布。

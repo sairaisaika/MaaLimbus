@@ -35,5 +35,10 @@ python tools/verify_battle_plan_replay.py --binary <Maa原生库目录>
 避免二次缩放损失小字；入口/变封面两次点击及 UNKNOWN 零输入通过。
 
 尚需真实英语/日语规划页、完整技能覆盖、目标/冲突与生存判断、E.G.O 成本/侵蚀策略、
-回合提交及胜败/地图回归后置条件。此独立节点未接入五层主循环，当前冻结开发包仍为
-旧 `ded609b`，没有因为源码回放通过而成为已安装实机功能。
+回合提交及胜败/地图回归后置条件。此独立节点未接入五层主循环；首次源码回放时，
+冻结开发包还是 `ded609b`。源码回放本身没有构成已安装实机功能的证明。
+
+后续打包验证：最新本地开发包来自干净 `8b309b8`，619文件完整性和 Agent 自检通过。
+`tools/verify_packaged_battle_replay.py` 经真实冻结 Agent/Maa IPC 验证四组派生画面，
+正常/卡住各一次 P、资源/日语零输入，保持全部计划/胜利声明为 false。
+证据 `build/packaged-battle-replay-verification.json`。新包没有安装或进行游戏实测。

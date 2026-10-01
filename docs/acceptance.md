@@ -204,3 +204,20 @@ from a task returning success, a manifest loading, or a process staying alive.
 - Read-only `build/battle-development-preflight.json`: game PID40196 HIGH12288,
   current Python MEDIUM8192. No UAC/game input/GUI/live task was started. Latest
   frozen development ZIP remains `ded609b`, not this battle-planning code.
+
+## Packaged battle planning refresh
+
+- Clean `8b309b8` development package built with 619 manifest file hashes,
+  private-root exclusion and actual frozen Agent self-test passing. Maa IPC
+  installed production graph passed four derived cases: normal/stuck one P each,
+  resource/unsupported JP zero input. Normal frame Neutral text retained; plan,
+  skill coverage, turn, victory and clear assertions remain false.
+- `build/battle-package-integrity.json`, `build/packaged-battle-replay-verification.json`
+  and `build/windows-package-latest.json` point to the new package. No GUI/game
+  input, UAC, installation replacement or public publication occurred.
+- New ZIP also passed isolated offline staging with all 619 hashes/ZIP checksum
+  checked; `build/update-stage-verification.json` now describes `8b309b8`. Metadata
+  and transport are derived fixtures, not published-release/download evidence.
+- All verification Agent children exited; CIM found only game PID40196/parent18536.
+  Read-only `build/packaged-battle-preflight.json` still records game HIGH12288 vs
+  controller MEDIUM8192. Full five-floor/reward/rotation acceptance remains pending.
