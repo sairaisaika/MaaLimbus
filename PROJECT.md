@@ -25,6 +25,10 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Added experimental native deployment preparation with saved order,
+  explicit standard-order preset, adaptive observed count and per-click local
+  ordinal verification. Ten actual Maa derived graph cases and 79 tests pass.
+  Stuck/unconfirmed choices are not clicked twice; battle start remains pending.
 - 2026-10-01: Added fixed-glyph/title theme-pack recognition, saved team weights,
   PI preference choices and bounded native drag. Seven actual Maa derived
   production-graph replays pass; 68 unit tests pass. Corrected OCR edge padding

@@ -93,6 +93,23 @@ def main():
         'next':['ThemePackBoundary'],'on_error':['LimbusUnknown']}
     nodes['ThemePackBoundary']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_terminal',
         'custom_action_param':{'reason':'theme_drag_recorded_map_verification_pending'},'next':[],'on_error':[]}
+    nodes['DeploymentStart']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_preflight',
+        'next':['DeploymentConfigure'],'on_error':['LimbusUnknown']}
+    nodes['DeploymentConfigure']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'configure','slot':1},'next':['DeploymentPreset'],'on_error':['LimbusUnknown']}
+    nodes['DeploymentPreset']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'deployment','preset':'saved'},'next':safety+['DeploymentComplete','DeploymentNext'],
+        'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['DeploymentNext']={'recognition':'Custom','custom_recognition':'limbus_scene',
+        'custom_recognition_param':{'scene':'DEPLOYMENT','deployment_mode':'next'},
+        'action':'Click','target':True,'post_delay':700,'max_hit':12,
+        'next':safety+['DeploymentComplete','DeploymentNext'],'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['DeploymentComplete']={'recognition':'Custom','custom_recognition':'limbus_scene',
+        'custom_recognition_param':{'scene':'DEPLOYMENT','deployment_mode':'complete'},
+        'action':'Custom','custom_action':'limbus_deployment_proof','next':['DeploymentBoundary'],
+        'on_error':['LimbusUnknown']}
+    nodes['DeploymentBoundary']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_terminal',
+        'custom_action_param':{'reason':'deployment_order_observed_battle_not_started'},'next':[],'on_error':[]}
     write(ROOT / 'assets/resource/base/pipeline/mirror.json', nodes)
     write(ROOT / 'assets/interface.json', {
         'interface_version': 2, 'name': 'MaaLimbus', 'label': 'MaaLimbus', 'version': 'v0.1.0',
@@ -108,12 +125,15 @@ def main():
                  {'name':'select_saved_team','label':'$select_saved_team','entry':'TeamLibraryStart','group':['mirror'],
                   'description':'$team_library_scope','option':['team_slot','team_name'],'default_check':False},
                  {'name':'select_theme_pack','label':'$select_theme_pack','entry':'ThemePackStart','group':['mirror'],
-                  'description':'$theme_pack_scope','option':['team_slot','pack_name','pack_weight'],'default_check':False}],
+                  'description':'$theme_pack_scope','option':['team_slot','pack_name','pack_weight'],'default_check':False},
+                 {'name':'prepare_deployment','label':'$prepare_deployment','entry':'DeploymentStart','group':['mirror'],
+                  'description':'$deployment_scope','option':['team_slot','deployment_preset'],'default_check':False}],
         'option': {
             'team_slot': {'type':'select','label':'$team_slot','default_case':'1','cases':[
                 {'name':str(slot),'label':str(slot),'pipeline_override':{
                     'TeamLibraryConfigure':{'custom_action_param':{'mode':'configure','slot':slot}},
-                    'ThemePackConfigure':{'custom_action_param':{'mode':'configure','slot':slot}}}}
+                    'ThemePackConfigure':{'custom_action_param':{'mode':'configure','slot':slot}},
+                    'DeploymentConfigure':{'custom_action_param':{'mode':'configure','slot':slot}}}}
                 for slot in range(1,21)]},
             'team_name': {'type':'input','label':'$team_name','inputs':[{'name':'name','label':'$team_name',
                            'default':'','verify':r'^.{0,80}$','pipeline_type':'string'}],
@@ -126,6 +146,10 @@ def main():
                 {'name':str(weight),'label':'$pack_block' if weight==0 else str(weight),
                  'pipeline_override':{'ThemePackWeight':{'custom_action_param':{'mode':'weight','weight':weight}}}}
                 for weight in (0,1,5,10,20,100)]},
+            'deployment_preset':{'type':'select','label':'$deployment_preset','default_case':'saved','cases':[
+                {'name':preset,'label':'$deployment_'+preset,
+                 'pipeline_override':{'DeploymentPreset':{'custom_action_param':{'mode':'deployment','preset':preset}}}}
+                for preset in ('saved','natural')]},
         },
     })
     for code, texts in {
@@ -133,12 +157,16 @@ def main():
                   'select_saved_team':'Select saved team','team_slot':'Saved team slot','team_name':'Renamed team label (optional)',
                   'team_library_scope':'Select and verify a team on the Sinners team-management page. Does not enter a dungeon.',
                   'select_theme_pack':'Select theme pack (development)','theme_pack_scope':'Current Hard pack page only. Save one preference for this team and drag the best identified pack. Stops with a fresh frame; map transition not yet verified.',
-                  'pack_name':'Save a theme preference','keep_pack_preferences':'Keep saved preferences','pack_weight':'Preference weight (higher first)','pack_block':'Do not select'},
+                  'pack_name':'Save a theme preference','keep_pack_preferences':'Keep saved preferences','pack_weight':'Preference weight (higher first)','pack_block':'Do not select',
+                  'prepare_deployment':'Prepare deployment (development)','deployment_scope':'Current battle preparation only. Uses saved order, verifies count and order after each choice, then stops before starting battle. Experimental; live geometry unverified.',
+                  'deployment_preset':'Deployment order','deployment_saved':'Keep saved order','deployment_natural':'Save natural sinner order'},
         'ja_jp': {'description': 'MaaFramework による Windows 版 Limbus 自動操作', 'windows': 'Windows · Limbus Company', 'mirror_group': '鏡ダンジョン', 'daily_group': 'デイリー', 'mirror_hard': '鏡ダンジョン · ハード', 'mirror_status': '開発中：入口の操作のみ。5階クリアとチーム切替は未検証です。',
                   'select_saved_team':'保存チームを選択','team_slot':'保存チーム番号','team_name':'変更したチーム名（任意）',
                   'team_library_scope':'囚人のチーム管理画面で選択と確認を行います。ダンジョンには入場しません。',
                   'select_theme_pack':'テーマパック選択（開発中）','theme_pack_scope':'ハードの選択画面でチームの優先度を保存し、識別できたパックをドラッグします。新しい画像を保存して停止します。マップ移行は未検証です。',
-                  'pack_name':'パックの優先設定を保存','keep_pack_preferences':'保存した設定を維持','pack_weight':'優先度（大きい順）','pack_block':'選択しない'},
+                  'pack_name':'パックの優先設定を保存','keep_pack_preferences':'保存した設定を維持','pack_weight':'優先度（大きい順）','pack_block':'選択しない',
+                  'prepare_deployment':'出撃順の準備（開発中）','deployment_scope':'戦闘準備画面のみ。選択ごとに人数と順番を確認し、戦闘開始前に停止します。実機の位置確認は未完了です。',
+                  'deployment_preset':'出撃順','deployment_saved':'保存した順番を維持','deployment_natural':'囚人の標準順を保存'},
     }.items():
         write(ROOT / f'assets/i18n/{code}.json', texts)
 

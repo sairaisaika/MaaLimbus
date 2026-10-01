@@ -8,7 +8,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Maa Win32 native input/screenshot | Capture verified; live input blocked by game HIGH vs Maa MEDIUM integrity | Running game capture and recognized click with page postcondition |
 | PI V2 labels and EN/JP resources | Maa resources parsed; interface schema checked; MXU UI pending | Actual Maa parser + MXU UI |
 | Variable cover/background recognition | Actual Maa saved-frame replay: reference, changed cover, unknown | Four supplied frames + live frame; negative and changed-art replay |
-| Saved teams / deployment / rotation | Library selector replay passed; profiles/checkpoints persist; actual deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
+| Saved teams / deployment / rotation | Library and experimental deployment-order derived replays passed; profiles persist; live deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |
 | Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
 | Gifts / enemy buffs / theme pack selection | Floor gifts and weighted theme-title/native drag derived replays passed; enemy buffs and full-loop integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
@@ -140,3 +140,18 @@ from a task returning success, a manifest loading, or a process staying alive.
   `build/packaged-theme-replay-verification.json` and `build/theme-package-integrity.json`
   retain evidence. The GUI was not opened, no game input was sent, and game
   PID40196 remains HIGH 12288 vs inspected controller MEDIUM 8192.
+
+## Experimental native deployment preparation
+
+- Added a separate opt-in preparation task using saved team order, with explicit
+  standard-order persistence. Count must be recognized, agree with all local
+  ordinals and match the desired prefix before each next click. No 0/1 fallback,
+  reset or battle-start input. Unconfirmed selections are not clicked again.
+- Actual Maa production graph passed ten derived cases including saved/preset,
+  resume, already complete, wrong order, missing count, paid, stuck, missing badge
+  and unconfigured. Small standalone digits missed by full-frame OCR are handled
+  by local `only_rec` with retained ROIs. 79 unit tests pass.
+- `build/deployment-replay-verification.json` is offline evidence. Grid centers
+  come from pinned Lix; badge strips are experimental, not live-validated geometry.
+  Capacity semantics for overflow, actual sinner identity, Japanese rendering,
+  battle start and five-floor/reward/rotation acceptance remain pending.

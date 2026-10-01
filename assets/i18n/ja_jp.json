@@ -14,5 +14,10 @@
   "pack_name": "パックの優先設定を保存",
   "keep_pack_preferences": "保存した設定を維持",
   "pack_weight": "優先度（大きい順）",
-  "pack_block": "選択しない"
+  "pack_block": "選択しない",
+  "prepare_deployment": "出撃順の準備（開発中）",
+  "deployment_scope": "戦闘準備画面のみ。選択ごとに人数と順番を確認し、戦闘開始前に停止します。実機の位置確認は未完了です。",
+  "deployment_preset": "出撃順",
+  "deployment_saved": "保存した順番を維持",
+  "deployment_natural": "囚人の標準順を保存"
 }

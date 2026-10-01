@@ -21,6 +21,8 @@ from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend
 from maalimbus.jobs import wait_job
 from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
+from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois
+from maalimbus.storage import SINNERS
 
 
 class Journal:
@@ -34,12 +36,12 @@ class Journal:
         with (self.directory / 'events.jsonl').open('a', encoding='utf-8') as file:
             file.write(json.dumps(data, ensure_ascii=False) + '\n')
 
-    def frame(self, frame, records, scene):
+    def frame(self, frame, records, scene, **extra):
         self.index += 1
         name = f'frame-{self.index:04d}'
         cv2.imwrite(str(self.directory / (name + '.png')), frame)
         data = {'scene': scene, 'size': [frame.shape[1], frame.shape[0]],
-                'ocr': [{'text': t.text, 'score': t.score, 'box': t.box} for t in records]}
+                'ocr': [{'text': t.text, 'score': t.score, 'box': t.box} for t in records],**extra}
         (self.directory / (name + '.json')).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
         return name
 
@@ -59,6 +61,7 @@ class LimbusRecognition(CustomRecognition):
         self.gifts = None
         self.themes = None
         self.pending_pack = ''
+        self.deployment_pending = None
 
     def theme_catalog(self):
         if self.themes is None:
@@ -79,9 +82,29 @@ class LimbusRecognition(CustomRecognition):
                 box = (b.x, b.y, b.w, b.h) if hasattr(b, 'x') else tuple(b)
                 records.append(Text(result.text, box, result.score))
         scene = classify(records, self.locale, (image.shape[1], image.shape[0]))
+        if scene=='UNKNOWN' and deployment_page(records,self.locale,(image.shape[1],image.shape[0])):
+            scene='DEPLOYMENT'
+        local=[]
+        if scene=='DEPLOYMENT':
+            # Isolated ordinal digits are often absent from the full-frame text
+            # detector. Recognize only the small badge strips, retaining ROIs.
+            for sinner,roi in badge_rois((image.shape[1],image.shape[0])).items():
+                detail=context.run_recognition_direct(JRecognitionType.OCR,
+                    JOCR(roi=roi,only_rec=True,expected=[r'^\s*(?:[1-9]|1[0-2])\s*$'],threshold=.85),image)
+                if detail is None:raise RuntimeError('Maa local deployment OCR did not return evidence')
+                x,y,w,h=roi
+                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
+                found=[]
+                if detail.hit:
+                    for result in detail.all_results:
+                        if hasattr(result,'text'):
+                            b=result.box;box=(b.x,b.y,b.w,b.h) if hasattr(b,'x') else tuple(b)
+                            records.append(Text(result.text,box,result.score))
+                            found.append(dict(text=result.text,score=result.score,box=box))
+                local.append(dict(sinner=sinner,roi=roi,only_rec=True,results=found))
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog()):
             scene='THEME_PACKS'
-        name = self.journal.frame(image, records, scene)
+        name = self.journal.frame(image, records, scene,local_ocr=local)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
         return records, scene, name
@@ -93,7 +116,36 @@ class LimbusRecognition(CustomRecognition):
         if scene != expected:
             return None
         mode = params.get('team_mode')
-        if params.get('theme_mode'):
+        if params.get('deployment_mode'):
+            if self.team is None:return None
+            size=(argv.image.shape[1],argv.image.shape[0])
+            state=observe_deployment(records,size)
+            if self.deployment_pending:
+                previous,target=self.deployment_pending
+                if state is None or state.selected!=previous.selected+1 or state.capacity!=previous.capacity or state.order!=previous.order+(target,):
+                    self.journal.record('deployment_transition_unconfirmed',frame=frame,
+                        expected_sinner=target,expected_count=previous.selected+1,verified_clear=False)
+                    return None
+                self.deployment_pending=None
+                self.journal.record('deployment_click_verified',frame=frame,sinner=target,
+                    count=state.selected,order=state.order,scope='count and local OCR ordinal badges; not live identity proof')
+            decision,sinner=next_sinner(state,self.team)
+            if decision=='stop':
+                self.journal.record('deployment_blocked',frame=frame,
+                    reason='missing_or_mismatched_counter_badges_saved_order',verified_clear=False)
+            mode=params['deployment_mode']
+            if mode=='complete':
+                if decision!='complete':return None
+                box,delay=(0,0,1,1),0
+            elif mode=='next':
+                if decision!='select':return None
+                self.deployment_pending=(state,sinner)
+                box,delay=target_box(sinner,size),random.randint(180,480)
+                context.override_pipeline({argv.node_name:{'pre_delay':delay}})
+                self.journal.record('deployment_click_planned',frame=frame,sinner=sinner,
+                    count=state.selected,capacity=state.capacity,target=box,verified_clear=False)
+            else:raise ValueError('Unknown deployment mode')
+        elif params.get('theme_mode'):
             catalog=self.theme_catalog()
             difficulty=theme_page(argv.image,catalog)
             if params['theme_mode']=='normal':
@@ -190,7 +242,7 @@ class TeamAction(CustomAction):
     def run(self, context, argv):
         params = json.loads(argv.custom_action_param or '{}')
         mode=params.get('mode')
-        if mode in ('name','pack','weight'):
+        if mode in ('name','pack','weight','deployment'):
             team=self.recognition.team
             if team is None:return False
             if mode=='pack':
@@ -200,6 +252,14 @@ class TeamAction(CustomAction):
                 self.recognition.pending_pack=pack
                 return True
             if mode=='name':configured=replace(team,name=str(params.get('name',team.name)))
+            elif mode=='deployment':
+                preset=params.get('preset','saved')
+                if preset=='saved':
+                    if not team.deployment:
+                        self.recognition.journal.record('deployment_blocked',reason='saved_order_not_configured',verified_clear=False)
+                    return bool(team.deployment)
+                if preset!='natural':raise ValueError('Unknown deployment preset')
+                configured=replace(team,deployment=SINNERS)
             else:
                 if not self.recognition.pending_pack:return True
                 weights=dict(team.pack_weights);weights[self.recognition.pending_pack]=params['weight']
@@ -224,6 +284,7 @@ class TeamAction(CustomAction):
             self.recognition.team = configured
             self.recognition.scroll_count, self.recognition.scroll_hash = 0, None
             self.recognition.pending_pack=''
+            self.recognition.deployment_pending=None
             self.recognition.journal.record('team_target', slot=slot, name=self.recognition.team.name)
             return True
         if mode!='verified':
@@ -258,6 +319,24 @@ class ThemeObservation(CustomAction):
         self.recognition.journal.record('theme_drag_observation',frame=frame,scene=scene,
             selected=False,verified_clear=False,
             reason='fresh_observation_only_map_postcondition_not_implemented')
+        return True
+
+
+class DeploymentProof(CustomAction):
+    def __init__(self,recognition):
+        super().__init__();self.recognition=recognition
+
+    def run(self,context,argv):
+        try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        except (TimeoutError,RuntimeError):return False
+        image=context.tasker.controller.cached_image
+        records,scene,frame=self.recognition.observe(context,image)
+        team=self.recognition.team
+        state=observe_deployment(records,(image.shape[1],image.shape[0]))
+        if scene!='DEPLOYMENT' or team is None or self.recognition.deployment_pending or next_sinner(state,team)[0]!='complete':return False
+        self.recognition.journal.record('deployment_order_observed',frame=frame,team_slot=team.slot,
+            order=state.order,count=state.selected,capacity=state.capacity,
+            battle_started=False,verified_clear=False,scope='local OCR order badges and count; experimental grid geometry, no live proof')
         return True
 
 

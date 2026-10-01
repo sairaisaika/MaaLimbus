@@ -99,6 +99,20 @@
         "pack_weight"
       ],
       "default_check": false
+    },
+    {
+      "name": "prepare_deployment",
+      "label": "$prepare_deployment",
+      "entry": "DeploymentStart",
+      "group": [
+        "mirror"
+      ],
+      "description": "$deployment_scope",
+      "option": [
+        "team_slot",
+        "deployment_preset"
+      ],
+      "default_check": false
     }
   ],
   "option": {
@@ -122,6 +136,12 @@
                 "mode": "configure",
                 "slot": 1
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 1
+              }
             }
           }
         },
@@ -136,6 +156,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 2
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 2
@@ -158,6 +184,12 @@
                 "mode": "configure",
                 "slot": 3
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 3
+              }
             }
           }
         },
@@ -172,6 +204,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 4
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 4
@@ -194,6 +232,12 @@
                 "mode": "configure",
                 "slot": 5
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 5
+              }
             }
           }
         },
@@ -208,6 +252,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 6
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 6
@@ -230,6 +280,12 @@
                 "mode": "configure",
                 "slot": 7
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 7
+              }
             }
           }
         },
@@ -244,6 +300,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 8
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 8
@@ -266,6 +328,12 @@
                 "mode": "configure",
                 "slot": 9
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 9
+              }
             }
           }
         },
@@ -280,6 +348,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 10
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 10
@@ -302,6 +376,12 @@
                 "mode": "configure",
                 "slot": 11
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 11
+              }
             }
           }
         },
@@ -316,6 +396,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 12
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 12
@@ -338,6 +424,12 @@
                 "mode": "configure",
                 "slot": 13
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 13
+              }
             }
           }
         },
@@ -352,6 +444,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 14
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 14
@@ -374,6 +472,12 @@
                 "mode": "configure",
                 "slot": 15
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 15
+              }
             }
           }
         },
@@ -388,6 +492,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 16
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 16
@@ -410,6 +520,12 @@
                 "mode": "configure",
                 "slot": 17
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 17
+              }
             }
           }
         },
@@ -424,6 +540,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 18
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 18
@@ -446,6 +568,12 @@
                 "mode": "configure",
                 "slot": 19
               }
+            },
+            "DeploymentConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 19
+              }
             }
           }
         },
@@ -460,6 +588,12 @@
               }
             },
             "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
+                "slot": 20
+              }
+            },
+            "DeploymentConfigure": {
               "custom_action_param": {
                 "mode": "configure",
                 "slot": 20
@@ -1722,6 +1856,37 @@
               "custom_action_param": {
                 "mode": "weight",
                 "weight": 100
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_preset": {
+      "type": "select",
+      "label": "$deployment_preset",
+      "default_case": "saved",
+      "cases": [
+        {
+          "name": "saved",
+          "label": "$deployment_saved",
+          "pipeline_override": {
+            "DeploymentPreset": {
+              "custom_action_param": {
+                "mode": "deployment",
+                "preset": "saved"
+              }
+            }
+          }
+        },
+        {
+          "name": "natural",
+          "label": "$deployment_natural",
+          "pipeline_override": {
+            "DeploymentPreset": {
+              "custom_action_param": {
+                "mode": "deployment",
+                "preset": "natural"
               }
             }
           }

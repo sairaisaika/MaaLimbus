@@ -14,5 +14,10 @@
   "pack_name": "Save a theme preference",
   "keep_pack_preferences": "Keep saved preferences",
   "pack_weight": "Preference weight (higher first)",
-  "pack_block": "Do not select"
+  "pack_block": "Do not select",
+  "prepare_deployment": "Prepare deployment (development)",
+  "deployment_scope": "Current battle preparation only. Uses saved order, verifies count and order after each choice, then stops before starting battle. Experimental; live geometry unverified.",
+  "deployment_preset": "Deployment order",
+  "deployment_saved": "Keep saved order",
+  "deployment_natural": "Save natural sinner order"
 }

@@ -11,7 +11,7 @@ if getattr(sys, 'frozen', False):
 
 from maa.agent.agent_server import AgentServer
 from maa.library import Library
-from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation
+from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof
 
 
 def main():
@@ -39,6 +39,7 @@ def main():
     AgentServer.register_custom_action('limbus_team', TeamAction(recognition))
     AgentServer.register_custom_action('limbus_preflight',InputPreflight(recognition))
     AgentServer.register_custom_action('limbus_theme_observe',ThemeObservation(recognition))
+    AgentServer.register_custom_action('limbus_deployment_proof',DeploymentProof(recognition))
     AgentServer.start_up(sys.argv[-1])
     AgentServer.join()
     AgentServer.shut_down()

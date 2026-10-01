@@ -368,5 +368,100 @@
     },
     "next": [],
     "on_error": []
+  },
+  "DeploymentStart": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "DeploymentConfigure"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentConfigure": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "configure",
+      "slot": 1
+    },
+    "next": [
+      "DeploymentPreset"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentPreset": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment",
+      "preset": "saved"
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "DeploymentComplete",
+      "DeploymentNext"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentNext": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DEPLOYMENT",
+      "deployment_mode": "next"
+    },
+    "action": "Click",
+    "target": true,
+    "post_delay": 700,
+    "max_hit": 12,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "DeploymentComplete",
+      "DeploymentNext"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentComplete": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DEPLOYMENT",
+      "deployment_mode": "complete"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_deployment_proof",
+    "next": [
+      "DeploymentBoundary"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentBoundary": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "deployment_order_observed_battle_not_started"
+    },
+    "next": [],
+    "on_error": []
   }
 }

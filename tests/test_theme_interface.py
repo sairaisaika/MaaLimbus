@@ -26,3 +26,15 @@ def test_independent_option_nodes_and_complete_custom_parameters():
     assert not tasks['ThemePackStart']['default_check']
     assert nodes['ThemePackDrag']['max_hit']==1
     assert nodes['ThemePackBoundary']['custom_action_param']['reason']=='theme_drag_recorded_map_verification_pending'
+
+
+def test_deployment_requires_saved_order_or_explicit_preset_and_is_bounded():
+    interface=json.loads((ROOT/'assets/interface.json').read_text(encoding='utf-8'))
+    nodes=json.loads((ROOT/'assets/resource/base/pipeline/mirror.json').read_text(encoding='utf-8'))
+    preset=interface['option']['deployment_preset']
+    assert preset['default_case']=='saved'
+    assert not next(t for t in interface['task'] if t['entry']=='DeploymentStart')['default_check']
+    assert nodes['DeploymentNext']['max_hit']==12
+    assert nodes['DeploymentComplete']['custom_action']=='limbus_deployment_proof'
+    assert nodes['DeploymentBoundary']['custom_action_param']['reason']=='deployment_order_observed_battle_not_started'
+    assert {name for case in preset['cases'] for name in case['pipeline_override']}=={'DeploymentPreset'}
