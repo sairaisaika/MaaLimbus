@@ -86,3 +86,15 @@ from a task returning success, a manifest loading, or a process staying alive.
   It checks usage availability and resumes the entire goal after limits recover,
   remaining quiet on unchanged/limited state. This is scheduling proof, not proof
   of future executions or live dungeon completion.
+
+## README and license reference correction
+
+- Chinese/English README now follows the pinned MaaFramework title/badges/language,
+  introduction/start, statements/licenses, development, acknowledgements and
+  communication structure. Actual feature coverage remains explicit.
+- Original MaaFramework LGPL and Lix AGPL notices remain; the GNU GPL v3 text
+  referenced by LGPL has been added. Main-project AGPL was a project choice,
+  not a framework requirement; no third-party material was relicensed.
+- `docs/readme-license-reference.md` maps the user's four specified references
+  to the current application and lists remaining packaging/artwork rights gaps.
+  Documentation alignment is not evidence of live completion or release readiness.

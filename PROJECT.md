@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Reworked Chinese/English README against pinned MaaFramework
+  structure, added direct build/interface references and truthful feature scope.
+  Distinguished the project's existing AGPL choice from MaaFramework LGPL;
+  retained third-party licenses, added the incorporated GPL v3 text and documented
+  unresolved artwork distribution rights. No change of third-party licensing.
 - 2026-10-01: Audited MaaEnd permission-required Win32 and LALC RunAs startup;
   corrected PI permission flag and added ordinary UAC/bounded CLI launcher with
   separate logs. Actual UAC request was cancelled; no new controller/input proof.
