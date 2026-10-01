@@ -1,0 +1,12 @@
+{
+  "description": "Native Windows Limbus automation with MaaFramework",
+  "windows": "Windows · Limbus Company",
+  "mirror_group": "Mirror Dungeon",
+  "daily_group": "Daily tasks",
+  "mirror_hard": "Hard Mirror Dungeon",
+  "mirror_status": "Development: entry navigation only; five floors and team rotation are not verified.",
+  "select_saved_team": "Select saved team",
+  "team_slot": "Saved team slot",
+  "team_name": "Renamed team label (optional)",
+  "team_library_scope": "Select and verify a team on the Sinners team-management page. Does not enter a dungeon."
+}

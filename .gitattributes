@@ -1,0 +1,2 @@
+# Preserve upstream Markdown's intentional hard line break in its license text.
+THIRD_PARTY_NOTICES/MaaFramework-LGPL-3.0.md whitespace=-blank-at-eol

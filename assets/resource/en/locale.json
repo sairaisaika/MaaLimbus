@@ -1,0 +1,12 @@
+{
+  "mirror_menu": "^Mirro(?:r)?$|Mirror\\s*Dungeons?",
+  "inferno": "^Inferno$",
+  "enter": "^Enter$",
+  "exploring": "Exploring|Before Entry",
+  "details": "^Details$",
+  "teams": "TEAMS|Preset",
+  "forbidden_dialog": "Purchase\\s*Lunacy|Refill\\s*Enkephalin|Extract\\s*10|Exchange\\s*Lunacy",
+  "expired": "previous session has expired",
+  "defeat": "^DEFEAT$",
+  "sin_cost": "^SIN\\s*\\|?\\s*COST$"
+}

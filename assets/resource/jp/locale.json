@@ -1,0 +1,12 @@
+{
+  "mirror_menu": "鏡ダンジョン|鏡のダンジョン",
+  "inferno": "Inferno|地獄",
+  "enter": "入場|入る|Enter",
+  "exploring": "探索状況|入場前|探索中|Exploring",
+  "details": "詳細|Details",
+  "teams": "チーム|プリセット|TEAMS",
+  "forbidden_dialog": "狂気を購入|狂気で.*回復|抽出10回|エンケファリン.*回復",
+  "expired": "前回.*期限|前回.*終了",
+  "defeat": "敗北|DEFEAT",
+  "sin_cost": "SIN\\s*\\|?\\s*COST|罪悪.*コスト"
+}

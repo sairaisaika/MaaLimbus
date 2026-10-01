@@ -1,0 +1,241 @@
+{
+  "MirrorHard": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorDrive",
+      "MirrorEnter",
+      "MirrorTeamEvidence"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "LimbusSafety": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "RESOURCE_DIALOG"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "unconfigured_resource_dialog"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "MirrorDrive": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DRIVE",
+      "token": "mirror_menu",
+      "roi": [
+        0.23,
+        0.25,
+        0.46,
+        0.55
+      ]
+    },
+    "action": "Click",
+    "target": true,
+    "post_delay": 1000,
+    "max_hit": 3,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorEnter",
+      "MirrorDrive"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "MirrorEnter": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "MIRROR_ENTRY",
+      "token": "enter",
+      "roi": [
+        0.76,
+        0.55,
+        0.97,
+        0.85
+      ]
+    },
+    "action": "Click",
+    "target": true,
+    "post_delay": 1000,
+    "max_hit": 2,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorTeamEvidence"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "MirrorTeamEvidence": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "TEAM_LIBRARY"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "unexpected_team_library_not_dungeon_deployment"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "LimbusUnknown": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "unknown_or_bounded_transition_exhausted"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "LimbusExpired": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "EXPIRED_SESSION"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "expired_session"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "LimbusDefeat": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DEFEAT"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "defeat"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "TeamLibraryStart": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "TeamLibraryConfigure"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamLibraryConfigure": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "configure",
+      "slot": 1,
+      "name": ""
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "TeamLibraryVerified",
+      "TeamLibraryRow",
+      "TeamLibraryScroll"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamLibraryVerified": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "TEAM_LIBRARY",
+      "team_mode": "verified"
+    },
+    "action": "Custom",
+    "post_delay": 1000,
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ],
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "verified"
+    },
+    "next": []
+  },
+  "TeamLibraryRow": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "TEAM_LIBRARY",
+      "team_mode": "row"
+    },
+    "action": "Click",
+    "post_delay": 1000,
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ],
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "TeamLibraryVerified",
+      "TeamLibraryRow",
+      "TeamLibraryScroll"
+    ],
+    "max_hit": 3,
+    "target": true
+  },
+  "TeamLibraryScroll": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "TEAM_LIBRARY",
+      "team_mode": "scroll"
+    },
+    "action": "Swipe",
+    "post_delay": 1000,
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ],
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "TeamLibraryVerified",
+      "TeamLibraryRow",
+      "TeamLibraryScroll"
+    ],
+    "max_hit": 8
+  }
+}

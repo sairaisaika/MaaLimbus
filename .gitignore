@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.cache/
+sources/upstream/
+evidence/runtime/
+build/
+dist/
+config/user*.json
+config/*.tmp
+config/*.json.*.tmp
+*.log

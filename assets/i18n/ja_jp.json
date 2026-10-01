@@ -1,0 +1,12 @@
+{
+  "description": "MaaFramework による Windows 版 Limbus 自動操作",
+  "windows": "Windows · Limbus Company",
+  "mirror_group": "鏡ダンジョン",
+  "daily_group": "デイリー",
+  "mirror_hard": "鏡ダンジョン · ハード",
+  "mirror_status": "開発中：入口の操作のみ。5階クリアとチーム切替は未検証です。",
+  "select_saved_team": "保存チームを選択",
+  "team_slot": "保存チーム番号",
+  "team_name": "変更したチーム名（任意）",
+  "team_library_scope": "囚人のチーム管理画面で選択と確認を行います。ダンジョンには入場しません。"
+}
