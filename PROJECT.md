@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Matched MaaEnd window/background/front Win32 profiles and added
+  generated Don Quixote native icon plus Chinese UI. 114 tests, clean 08c2adc
+  622-file package/self-test and four frozen-Agent IPC regressions pass. Actually
+  opened MXU and verified icon/controller/task labels in native screenshots,
+  retaining logs. Game remains minimized 0x0 and HIGH; no game input/UAC or clear.
 - 2026-10-01: Added experimental native one-shot battle planning using pinned
   small English UI/damage glyphs and Maa ClickKey P. Fresh frame/risk text is
   diagnostic only; no Enter/EGO, retry or victory claim. 112 tests, seven actual

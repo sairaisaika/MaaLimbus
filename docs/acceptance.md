@@ -221,3 +221,27 @@ from a task returning success, a manifest loading, or a process staying alive.
 - All verification Agent children exited; CIM found only game PID40196/parent18536.
   Read-only `build/packaged-battle-preflight.json` still records game HIGH12288 vs
   controller MEDIUM8192. Full five-floor/reward/rotation acceptance remains pending.
+
+## Reference control profiles and actual native UI
+
+- Clean `08c2adc` package: 622 manifest files and frozen Agent self-test pass.
+  Its four actual Maa IPC regressions pass with keys 1/1/0/0; no game controller.
+- Compared MaaEnd `850e5fa` PI source and Lix `431b432` input defaults/launcher.
+  Window/background/foreground combinations now match MaaEnd, with the existing
+  `windows` name retained. CLI reads the same PI configuration. 114 tests pass.
+- Opened the actual unmodified MXU executable. Native screenshots confirm the
+  generated Don Quixote window/title icon, Chinese labels, all three controller
+  choices and the five current task entries. Language and log retention survive
+  restart. UI smoke actions only dismissed welcome/onboarding and opened the
+  task picker in the bound MaaLimbus window; no task was added or started.
+- `build/native-ui-verification.json`, `evidence/runtime/native-ui-chinese-check/main-frame.png`
+  and the actual package debug logs retain display evidence. GUI PID52748 is
+  still open; no Agent/Runner is alive. This proves UI display, not live game input,
+  team settings execution, update installation or the complete MirrorHard loop.
+- Fresh game identity remains PID40196 HIGH12288; GUI MEDIUM8192. Game is
+  minimized with 0x0 client area; FramePool/Background capture attempts failed.
+  Both access-denied and empty-window evidence are retained, not reduced to a
+  speculative single cause. No new UAC or game input was sent.
+- Full five-floor combat/reward/rotation integration and real-game acceptance
+  remain incomplete. FGO was not reopened. New PNG branding does not change the
+  executable's embedded Explorer icon; the running MXU window uses the PI icon.

@@ -64,3 +64,8 @@ Agent 自检通过。冻结 Agent 经 Maa IPC 对派生正常/卡住画面各按
 新包尚未打开 MXU 界面、未覆盖安装、未实机输入，也未完成分发审计/发布。
 
 窗口/后台/前台三种控制方式、中文任务词条与小唐窗口图标现已通过 PI 配置；具体方法和实机边界见 [原生控制](native-control.md)。
+
+`08c2adc` 新包622文件/冻结Agent自检及四组生产图IPC回归通过。已实际打开
+MXU，原生截图确认小唐窗口图标、中文任务和三种控制方式，语言/保留日志设置在重启后生效。
+证据 `build/native-ui-verification.json`、`evidence/runtime/native-ui-chinese-check/main-frame.png`。
+这只验收界面显示，不代表队伍选项执行、原生游戏输入或五层通关；完整范围见 acceptance。

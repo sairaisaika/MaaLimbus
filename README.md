@@ -20,7 +20,7 @@
 
 ## 简介
 
-MaaLimbus 使用 MaaFramework 的 Win32 控制器、Pipeline 和 Python Agent，面向 Windows 原生客户端，提供英语和日语资源包。已构建使用 MXU 的本地 Windows 开发包；桌面界面与实机运行仍待验证。
+MaaLimbus 使用 MaaFramework 的 Win32 控制器、Pipeline 和 Python Agent，面向 Windows 原生客户端，提供英语和日语资源包。已构建使用 MaaEnd 同款 MXU 的本地 Windows 开发包，实际打开并确认小唐图标、中文任务与三种窗口控制方式；游戏内运行仍待验证。控制配置与证据见[原生控制说明](docs/native-control.md)。
 
 首要目标是 **困难镜牢五层 → 确认领奖 → 切换已保存队伍 → 继续刷取**。完整循环尚未完成实现或实机验证，当前不能作为可用的镜牢挂机工具。
 
