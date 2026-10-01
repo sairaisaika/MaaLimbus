@@ -11,7 +11,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Saved teams / deployment / rotation | Library selector replay passed; profiles/checkpoints persist; actual deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |
 | Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
-| Gifts / enemy buffs / theme pack selection | Floor-gift OCR/icon candidates + five actual Maa derived replays passed; enemy buffs/pack integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
+| Gifts / enemy buffs / theme pack selection | Floor gifts and weighted theme-title/native drag derived replays passed; enemy buffs and full-loop integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
 | Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |
 | Mail / daily rewards | Design | Claimed/empty mailbox and mission reward evidence |
@@ -115,3 +115,20 @@ from a task returning success, a manifest loading, or a process staying alive.
   remained HIGH integrity 12288 vs controller MEDIUM 8192; no UAC was requested.
 - Actual MXU UI, live input, five floors/rewards/rotation and complete source/asset
   redistribution audit remain pending. This is a local development packaging gate.
+
+## Native theme-pack selection
+
+- Stable five-glyph/title recognition replaces whole-card matching; 95 pinned
+  names, team-specific weights and zero-weight blocks persist in old-compatible
+  profiles. PI selects names/weights from choices and writes independent nodes.
+- Actual Maa production graph replay passed seven derived cases: save/read
+  preference, changed artwork, NEW exclusion, unknown, NORMAL, paid, all blocked.
+  Three permitted cases route exactly one native Swipe; four negative cases send
+  zero input. After dragging a fresh frame is observed and the task intentionally
+  stops with `selected=false` / `verified_clear=false` at the unfinished map boundary.
+- Fixed short-title OCR boxes extending several pixels past the card; bounded
+  padding permits that case without accepting adjacent titles. Fixed option
+  overrides replacing custom parameters and losing their mode/other settings.
+- `build/theme-replay-verification.json` retains local scope and frame provenance.
+  No UAC/game input was requested. Japanese rendered titles, live selection,
+  difficulty switching/refresh policy, deployment/battle and complete loop remain pending.

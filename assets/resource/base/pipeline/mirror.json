@@ -156,7 +156,22 @@
     "custom_action": "limbus_team",
     "custom_action_param": {
       "mode": "configure",
-      "slot": 1,
+      "slot": 1
+    },
+    "next": [
+      "TeamLibraryName"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamLibraryName": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "name",
       "name": ""
     },
     "next": [
@@ -237,5 +252,121 @@
       "TeamLibraryScroll"
     ],
     "max_hit": 8
+  },
+  "ThemePackStart": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "ThemePackConfigure"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackConfigure": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "configure",
+      "slot": 1
+    },
+    "next": [
+      "ThemePackPreference"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackPreference": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "pack",
+      "name": ""
+    },
+    "next": [
+      "ThemePackWeight"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackWeight": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "weight",
+      "weight": 20
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "ThemePackNormal",
+      "ThemePackDrag"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackNormal": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "THEME_PACKS",
+      "theme_mode": "normal"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "theme_pack_difficulty_is_normal_not_hard"
+    },
+    "next": [],
+    "on_error": []
+  },
+  "ThemePackDrag": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "THEME_PACKS",
+      "theme_mode": "recommend"
+    },
+    "action": "Swipe",
+    "max_hit": 1,
+    "post_delay": 1000,
+    "next": [
+      "ThemePackObserve"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackObserve": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_theme_observe",
+    "next": [
+      "ThemePackBoundary"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "ThemePackBoundary": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_terminal",
+    "custom_action_param": {
+      "reason": "theme_drag_recorded_map_verification_pending"
+    },
+    "next": [],
+    "on_error": []
   }
 }

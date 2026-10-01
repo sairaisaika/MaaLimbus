@@ -53,7 +53,8 @@ def team_from_json(value):
     if not isinstance(name, str) or len(name) > 80:
         raise ValueError('Team name must be at most 80 characters')
     return Team(slot, keywords, name, frozenset(value.get('allow', ())),
-                frozenset(value.get('block', ())), deployment)
+                frozenset(value.get('block', ())), deployment,
+                tuple(tuple(p) for p in value.get('pack_weights', ())))
 
 
 class ProfileStore:

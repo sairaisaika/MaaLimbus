@@ -25,6 +25,10 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Added fixed-glyph/title theme-pack recognition, saved team weights,
+  PI preference choices and bounded native drag. Seven actual Maa derived
+  production-graph replays pass; 68 unit tests pass. Corrected OCR edge padding
+  and independent custom-parameter option nodes. No live theme/map proof; no UAC.
 - 2026-10-01: Built first local Windows development package with unmodified MXU,
   Maa and frozen Agent/Runner; fixed installed roots/import-time native library
   paths. 57 tests and actual packaged Agent IPC reference/unknown replays passed.

@@ -56,7 +56,10 @@ def main():
     nodes['TeamLibraryStart'] = {'recognition':'DirectHit','action':'Custom','custom_action':'limbus_preflight',
         'next':['TeamLibraryConfigure'],'on_error':['LimbusUnknown']}
     nodes['TeamLibraryConfigure'] = {'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
-        'custom_action_param':{'mode':'configure','slot':1,'name':''},'next':safety+['TeamLibraryVerified','TeamLibraryRow','TeamLibraryScroll'],
+        'custom_action_param':{'mode':'configure','slot':1},'next':['TeamLibraryName'],
+        'timeout':20000,'on_error':['LimbusUnknown']}
+    nodes['TeamLibraryName']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'name','name':''},'next':safety+['TeamLibraryVerified','TeamLibraryRow','TeamLibraryScroll'],
         'timeout':20000,'on_error':['LimbusUnknown']}
     for name,mode,action in [('TeamLibraryVerified','verified','Custom'),('TeamLibraryRow','row','Click'),('TeamLibraryScroll','scroll','Swipe')]:
         node = {'recognition':'Custom','custom_recognition':'limbus_scene',
@@ -68,6 +71,28 @@ def main():
             node.update(next=safety+['TeamLibraryVerified','TeamLibraryRow','TeamLibraryScroll'], max_hit=3 if mode=='row' else 8)
             if mode=='row': node['target']=True
         nodes[name]=node
+    nodes['ThemePackStart']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_preflight',
+        'next':['ThemePackConfigure'],'on_error':['LimbusUnknown']}
+    nodes['ThemePackConfigure']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'configure','slot':1},'next':['ThemePackPreference'],
+        'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['ThemePackPreference']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'pack','name':''},'next':['ThemePackWeight'],'on_error':['LimbusUnknown']}
+    nodes['ThemePackWeight']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_team',
+        'custom_action_param':{'mode':'weight','weight':20},'next':safety+['ThemePackNormal','ThemePackDrag'],
+        'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['ThemePackNormal']={'recognition':'Custom','custom_recognition':'limbus_scene',
+        'custom_recognition_param':{'scene':'THEME_PACKS','theme_mode':'normal'},
+        'action':'Custom','custom_action':'limbus_terminal',
+        'custom_action_param':{'reason':'theme_pack_difficulty_is_normal_not_hard'},'next':[],'on_error':[]}
+    nodes['ThemePackDrag']={'recognition':'Custom','custom_recognition':'limbus_scene',
+        'custom_recognition_param':{'scene':'THEME_PACKS','theme_mode':'recommend'},
+        'action':'Swipe','max_hit':1,'post_delay':1000,'next':['ThemePackObserve'],
+        'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['ThemePackObserve']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_theme_observe',
+        'next':['ThemePackBoundary'],'on_error':['LimbusUnknown']}
+    nodes['ThemePackBoundary']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_terminal',
+        'custom_action_param':{'reason':'theme_drag_recorded_map_verification_pending'},'next':[],'on_error':[]}
     write(ROOT / 'assets/resource/base/pipeline/mirror.json', nodes)
     write(ROOT / 'assets/interface.json', {
         'interface_version': 2, 'name': 'MaaLimbus', 'label': 'MaaLimbus', 'version': 'v0.1.0',
@@ -81,23 +106,39 @@ def main():
         'group': [{'name': 'mirror', 'label': '$mirror_group'}, {'name': 'daily', 'label': '$daily_group'}],
         'task': [{'name': 'mirror_hard', 'label': '$mirror_hard', 'entry': 'MirrorHard', 'group': ['mirror'], 'description': '$mirror_status', 'default_check': False},
                  {'name':'select_saved_team','label':'$select_saved_team','entry':'TeamLibraryStart','group':['mirror'],
-                  'description':'$team_library_scope','option':['team_slot','team_name'],'default_check':False}],
+                  'description':'$team_library_scope','option':['team_slot','team_name'],'default_check':False},
+                 {'name':'select_theme_pack','label':'$select_theme_pack','entry':'ThemePackStart','group':['mirror'],
+                  'description':'$theme_pack_scope','option':['team_slot','pack_name','pack_weight'],'default_check':False}],
         'option': {
             'team_slot': {'type':'select','label':'$team_slot','default_case':'1','cases':[
-                {'name':str(slot),'label':str(slot),'pipeline_override':{'TeamLibraryConfigure':{'custom_action_param':{'slot':slot}}}}
+                {'name':str(slot),'label':str(slot),'pipeline_override':{
+                    'TeamLibraryConfigure':{'custom_action_param':{'mode':'configure','slot':slot}},
+                    'ThemePackConfigure':{'custom_action_param':{'mode':'configure','slot':slot}}}}
                 for slot in range(1,21)]},
             'team_name': {'type':'input','label':'$team_name','inputs':[{'name':'name','label':'$team_name',
                            'default':'','verify':r'^.{0,80}$','pipeline_type':'string'}],
-                          'pipeline_override':{'TeamLibraryConfigure':{'custom_action_param':{'name':'{name}'}}}},
+                          'pipeline_override':{'TeamLibraryName':{'custom_action_param':{'mode':'name','name':'{name}'}}}},
+            'pack_name':{'type':'select','label':'$pack_name','default_case':'unchanged','cases':[
+                {'name':'unchanged','label':'$keep_pack_preferences','pipeline_override':{'ThemePackPreference':{'custom_action_param':{'mode':'pack','name':''}}}}]+[
+                {'name':str(index),'label':entry['name'],'pipeline_override':{'ThemePackPreference':{'custom_action_param':{'mode':'pack','name':entry['name']}}}}
+                for index,entry in enumerate(json.loads((ROOT/'assets/resource/base/theme-catalog.json').read_text(encoding='utf-8'))['names'])]},
+            'pack_weight':{'type':'select','label':'$pack_weight','default_case':'20','cases':[
+                {'name':str(weight),'label':'$pack_block' if weight==0 else str(weight),
+                 'pipeline_override':{'ThemePackWeight':{'custom_action_param':{'mode':'weight','weight':weight}}}}
+                for weight in (0,1,5,10,20,100)]},
         },
     })
     for code, texts in {
         'en_us': {'description': 'Native Windows Limbus automation with MaaFramework', 'windows': 'Windows · Limbus Company', 'mirror_group': 'Mirror Dungeon', 'daily_group': 'Daily tasks', 'mirror_hard': 'Hard Mirror Dungeon', 'mirror_status': 'Development: entry navigation only; five floors and team rotation are not verified.',
                   'select_saved_team':'Select saved team','team_slot':'Saved team slot','team_name':'Renamed team label (optional)',
-                  'team_library_scope':'Select and verify a team on the Sinners team-management page. Does not enter a dungeon.'},
+                  'team_library_scope':'Select and verify a team on the Sinners team-management page. Does not enter a dungeon.',
+                  'select_theme_pack':'Select theme pack (development)','theme_pack_scope':'Current Hard pack page only. Save one preference for this team and drag the best identified pack. Stops with a fresh frame; map transition not yet verified.',
+                  'pack_name':'Save a theme preference','keep_pack_preferences':'Keep saved preferences','pack_weight':'Preference weight (higher first)','pack_block':'Do not select'},
         'ja_jp': {'description': 'MaaFramework による Windows 版 Limbus 自動操作', 'windows': 'Windows · Limbus Company', 'mirror_group': '鏡ダンジョン', 'daily_group': 'デイリー', 'mirror_hard': '鏡ダンジョン · ハード', 'mirror_status': '開発中：入口の操作のみ。5階クリアとチーム切替は未検証です。',
                   'select_saved_team':'保存チームを選択','team_slot':'保存チーム番号','team_name':'変更したチーム名（任意）',
-                  'team_library_scope':'囚人のチーム管理画面で選択と確認を行います。ダンジョンには入場しません。'},
+                  'team_library_scope':'囚人のチーム管理画面で選択と確認を行います。ダンジョンには入場しません。',
+                  'select_theme_pack':'テーマパック選択（開発中）','theme_pack_scope':'ハードの選択画面でチームの優先度を保存し、識別できたパックをドラッグします。新しい画像を保存して停止します。マップ移行は未検証です。',
+                  'pack_name':'パックの優先設定を保存','keep_pack_preferences':'保存した設定を維持','pack_weight':'優先度（大きい順）','pack_block':'選択しない'},
     }.items():
         write(ROOT / f'assets/i18n/{code}.json', texts)
 

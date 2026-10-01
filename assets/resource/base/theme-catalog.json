@@ -1,0 +1,420 @@
+{
+  "version": 1,
+  "reference_width": 1280,
+  "reference_height": 720,
+  "source": "https://github.com/HSLix/LixAssistantLimbusCompany",
+  "commit": "431b432e22f0b0da08b95d7c478fa213be20b3e8",
+  "license": "AGPL-3.0",
+  "glyphs": {
+    "theme_pack_detail": {
+      "path": "image/themes/theme_pack_detail.png",
+      "sha256": "d91a20a4363b00f29608789afe570983991f269965706bbde6bbc8ebf35fc0b4",
+      "source": "lalc_backend/img/general/mirror/theme_pack_detail.png"
+    },
+    "pack_search": {
+      "path": "image/themes/pack_search.png",
+      "sha256": "319e44705c91b552a02a005b4990b160164070e075e161b9252b00193abeba0c",
+      "source": "lalc_backend/img/general/mirror/pack_search.png"
+    },
+    "hard_mode": {
+      "path": "image/themes/hard_mode.png",
+      "sha256": "02278d164ec52630cbad7a589a0cdc5ecf01b790045fddf2ef498c5869f8b25c",
+      "source": "lalc_backend/img/general/mirror/hard_mode.png"
+    },
+    "normal_mode": {
+      "path": "image/themes/normal_mode.png",
+      "sha256": "f970447ae35a601fdfdce3b36b7ae434dbf33fab01ef0abc2fbeac214428fdf7",
+      "source": "lalc_backend/img/general/mirror/normal_mode.png"
+    },
+    "mirror_theme_pack_new": {
+      "path": "image/themes/mirror_theme_pack_new.png",
+      "sha256": "5b5ba688309432258b57f33b041c0e3dfb089f53367c1f0b485928f79a50aa48",
+      "source": "lalc_backend/img/general/mirror/mirror_theme_pack_new.png"
+    }
+  },
+  "names": [
+    {
+      "name": "A Certain World",
+      "reference_weight": 10
+    },
+    {
+      "name": "Abnormal Seismi Zone",
+      "reference_weight": 10
+    },
+    {
+      "name": "Addicting Lust",
+      "reference_weight": 10
+    },
+    {
+      "name": "ASEA",
+      "reference_weight": 20
+    },
+    {
+      "name": "Automated Factory",
+      "reference_weight": 1
+    },
+    {
+      "name": "Burning Haze",
+      "reference_weight": 5
+    },
+    {
+      "name": "Chaym Wwan",
+      "reference_weight": 10
+    },
+    {
+      "name": "Crawling Abyss",
+      "reference_weight": 5
+    },
+    {
+      "name": "Crushers & Breakers",
+      "reference_weight": 10
+    },
+    {
+      "name": "Crushing External Force",
+      "reference_weight": 20
+    },
+    {
+      "name": "Deep Sigh",
+      "reference_weight": 10
+    },
+    {
+      "name": "Degraded Gloom",
+      "reference_weight": 10
+    },
+    {
+      "name": "Devoured Gluttony",
+      "reference_weight": 20
+    },
+    {
+      "name": "Dizzying Waves",
+      "reference_weight": 10
+    },
+    {
+      "name": "Dregs of the Manor",
+      "reference_weight": 10
+    },
+    {
+      "name": "Emotional Craving",
+      "reference_weight": 20
+    },
+    {
+      "name": "Emotional Flood",
+      "reference_weight": 5
+    },
+    {
+      "name": "Emotional Indolence",
+      "reference_weight": 20
+    },
+    {
+      "name": "Emotional Judgment",
+      "reference_weight": 10
+    },
+    {
+      "name": "Emotional Repression",
+      "reference_weight": 10
+    },
+    {
+      "name": "Emotional Seduction",
+      "reference_weight": 10
+    },
+    {
+      "name": "Emotional Subservience",
+      "reference_weight": 20
+    },
+    {
+      "name": "Excessive Gluttong",
+      "reference_weight": 5
+    },
+    {
+      "name": "Faith & Erosion",
+      "reference_weight": 1
+    },
+    {
+      "name": "Falling Flowers",
+      "reference_weight": 1
+    },
+    {
+      "name": "Flat-broke Gamblers",
+      "reference_weight": 20
+    },
+    {
+      "name": "Four Houses and Greed",
+      "reference_weight": 10
+    },
+    {
+      "name": "Full-Stopped by a Bullet",
+      "reference_weight": 10
+    },
+    {
+      "name": "Hatred and Despair",
+      "reference_weight": 5
+    },
+    {
+      "name": "Hell's Chicken",
+      "reference_weight": 100
+    },
+    {
+      "name": "Inert Sloth",
+      "reference_weight": 1
+    },
+    {
+      "name": "Insignificant Envy",
+      "reference_weight": 10
+    },
+    {
+      "name": "La Manchaland Reopening",
+      "reference_weight": 5
+    },
+    {
+      "name": "Lake World",
+      "reference_weight": 20
+    },
+    {
+      "name": "LCB Reguar Checkup",
+      "reference_weight": 1
+    },
+    {
+      "name": "LCB Regular Check-up BokCak",
+      "reference_weight": 10
+    },
+    {
+      "name": "Line 1",
+      "reference_weight": 1
+    },
+    {
+      "name": "Line 2",
+      "reference_weight": 1
+    },
+    {
+      "name": "Line 3",
+      "reference_weight": 1
+    },
+    {
+      "name": "Line 4 Section#3",
+      "reference_weight": 1
+    },
+    {
+      "name": "Line 4 Section#4",
+      "reference_weight": 1
+    },
+    {
+      "name": "Line 5",
+      "reference_weight": 1
+    },
+    {
+      "name": "Marder on.the WARP Express BokGak",
+      "reference_weight": 1
+    },
+    {
+      "name": "Miracle in District 20 BokGak",
+      "reference_weight": 10
+    },
+    {
+      "name": "Miracle in District 20",
+      "reference_weight": 10
+    },
+    {
+      "name": "Mnestic' Experience",
+      "reference_weight": 10
+    },
+    {
+      "name": "Mountain of Corpses, Sea of Blood",
+      "reference_weight": 5
+    },
+    {
+      "name": "Murder on the WARP Express",
+      "reference_weight": 1
+    },
+    {
+      "name": "Nagel and Hammer",
+      "reference_weight": 10
+    },
+    {
+      "name": "Nest, Workshop, and Technology",
+      "reference_weight": 20
+    },
+    {
+      "name": "Nocturnal Sweeping",
+      "reference_weight": 1
+    },
+    {
+      "name": "Piercers & Penetrators",
+      "reference_weight": 10
+    },
+    {
+      "name": "Pitiful Envy",
+      "reference_weight": 10
+    },
+    {
+      "name": "Poised Breathing",
+      "reference_weight": 5
+    },
+    {
+      "name": "Repressed Wrath",
+      "reference_weight": 5
+    },
+    {
+      "name": "Rising Power Supply",
+      "reference_weight": 10
+    },
+    {
+      "name": "Season of the Flame",
+      "reference_weight": 5
+    },
+    {
+      "name": "Sinking Deluge",
+      "reference_weight": 10
+    },
+    {
+      "name": "Sinking Pang",
+      "reference_weight": 10
+    },
+    {
+      "name": "Slicers & Dicers",
+      "reference_weight": 10
+    },
+    {
+      "name": "Spring Cultivation",
+      "reference_weight": 1
+    },
+    {
+      "name": "Sunk Gloom",
+      "reference_weight": 5
+    },
+    {
+      "name": "Tangling Lust",
+      "reference_weight": 5
+    },
+    {
+      "name": "Tearful Things",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Dream Ending",
+      "reference_weight": 5
+    },
+    {
+      "name": "The Dusk of Amber",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Evil Defining",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Forgotten",
+      "reference_weight": 20
+    },
+    {
+      "name": "The Heartbreaking",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Infinite Procession",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Moon of Violet",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Outcast",
+      "reference_weight": 5
+    },
+    {
+      "name": "The Surrendered Witnessing",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Unchanging",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Unconfronting",
+      "reference_weight": 10
+    },
+    {
+      "name": "The Unloving",
+      "reference_weight": 1
+    },
+    {
+      "name": "Thunder and Lightning",
+      "reference_weight": 10
+    },
+    {
+      "name": "Timekilling Time BokGak",
+      "reference_weight": 5
+    },
+    {
+      "name": "Timekilling Time",
+      "reference_weight": 1
+    },
+    {
+      "name": "To be Cleaved",
+      "reference_weight": 20
+    },
+    {
+      "name": "To be Crushed",
+      "reference_weight": 10
+    },
+    {
+      "name": "To be Pierced",
+      "reference_weight": 10
+    },
+    {
+      "name": "Treadwheel Sloth",
+      "reference_weight": 5
+    },
+    {
+      "name": "Trickled Sanguin Blood",
+      "reference_weight": 10
+    },
+    {
+      "name": "Twining Threads",
+      "reference_weight": 10
+    },
+    {
+      "name": "Tyrannical Pride",
+      "reference_weight": 5
+    },
+    {
+      "name": "Unbound Wrath",
+      "reference_weight": 5
+    },
+    {
+      "name": "Unrelenting Might",
+      "reference_weight": 1
+    },
+    {
+      "name": "Vain Pride",
+      "reference_weight": 5
+    },
+    {
+      "name": "Vield My Flesh to Claim Their Bones BokGak",
+      "reference_weight": 5
+    },
+    {
+      "name": "Yield My Flesh to Claim Their Bones",
+      "reference_weight": 5
+    },
+    {
+      "name": "吞噬的暴食",
+      "reference_weight": 10
+    },
+    {
+      "name": "堕落的忧郁",
+      "reference_weight": 10
+    },
+    {
+      "name": "空转的怠惰",
+      "reference_weight": 10
+    },
+    {
+      "name": "粉碎者们",
+      "reference_weight": 10
+    }
+  ],
+  "name_source": "lalc_backend/config/theme_pack_cfg.json",
+  "name_sha256": "b74aa3beae1d0f31410aa81e212e3cfaaa2d43dada0e7d74c4999cdf130d2639",
+  "note": "Reference weights are provenance only. Active defaults are neutral 10; team overrides apply."
+}

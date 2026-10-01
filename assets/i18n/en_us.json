@@ -8,5 +8,11 @@
   "select_saved_team": "Select saved team",
   "team_slot": "Saved team slot",
   "team_name": "Renamed team label (optional)",
-  "team_library_scope": "Select and verify a team on the Sinners team-management page. Does not enter a dungeon."
+  "team_library_scope": "Select and verify a team on the Sinners team-management page. Does not enter a dungeon.",
+  "select_theme_pack": "Select theme pack (development)",
+  "theme_pack_scope": "Current Hard pack page only. Save one preference for this team and drag the best identified pack. Stops with a fresh frame; map transition not yet verified.",
+  "pack_name": "Save a theme preference",
+  "keep_pack_preferences": "Keep saved preferences",
+  "pack_weight": "Preference weight (higher first)",
+  "pack_block": "Do not select"
 }

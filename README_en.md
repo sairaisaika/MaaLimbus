@@ -46,6 +46,7 @@ Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md).
 | Dungeon entry | Actual Maa parser and offline navigation | Complete post-entry workflow |
 | Saved teams | Library name/position/selection replay | Dungeon deployment and live rotation |
 | Floor gifts | OCR/icons, ownership and team ranking replay | Selection quota, receipt, next floor |
+| Theme packs | Fixed glyph/title recognition, saved team weights and native drag replay; [details](docs/theme-packs.md) | Live selection, Japanese titles and map transition |
 | Five floors and repeat | Completion evidence and rotation storage | Battles, actual rewards and loop |
 | Enkephalin conversion/refill | Budget policy tests | Native actions and balance checks |
 | Mail/daily rewards | Design and task labels | Implementation and live tests |
@@ -91,6 +92,7 @@ Actual Maa replay checks create no game controller:
 python tools/verify_native_replay.py --binary <Maa-library-directory> --references <reference-directory>
 python tools/verify_team_replay.py --binary <Maa-library-directory> --frame <team-library-frame>
 python tools/verify_gift_replay.py --binary <Maa-library-directory>
+python tools/verify_theme_replay.py --binary <Maa-library-directory>
 ```
 
 Resource parsing does not prove Japanese live-flow coverage. Derived cover/title changes are marked separately.

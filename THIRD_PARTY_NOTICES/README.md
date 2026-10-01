@@ -22,6 +22,10 @@ terms; the root's `or-later` designation does not extend third-party permissions
   Cropped gift icons/keyword groups are imported from
   `lalc_backend/img/general/ego_gifts` into `assets/resource/base/image/gifts`.
   `gift-catalog.json` retains each source path, SHA256, keyword and pinned revision.
+  Five small fixed theme-page UI glyphs and 95 reference names are imported into
+  `image/themes` / `theme-catalog.json`, with hashes, source paths and revision.
+  Theme card artwork is not imported. Original reference weights are provenance
+  only; active defaults remain neutral unless the team config overrides them.
   This includes game artwork originating in the reference project; it does not
   assert that MaaLimbus owns the artwork or that upstream provenance establishes
   the game rights holder's redistribution permission. That scope remains to be

@@ -84,6 +84,21 @@
         "team_name"
       ],
       "default_check": false
+    },
+    {
+      "name": "select_theme_pack",
+      "label": "$select_theme_pack",
+      "entry": "ThemePackStart",
+      "group": [
+        "mirror"
+      ],
+      "description": "$theme_pack_scope",
+      "option": [
+        "team_slot",
+        "pack_name",
+        "pack_weight"
+      ],
+      "default_check": false
     }
   ],
   "option": {
@@ -98,6 +113,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 1
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 1
               }
             }
@@ -109,6 +131,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 2
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 2
               }
             }
@@ -120,6 +149,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 3
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 3
               }
             }
@@ -131,6 +167,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 4
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 4
               }
             }
@@ -142,6 +185,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 5
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 5
               }
             }
@@ -153,6 +203,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 6
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 6
               }
             }
@@ -164,6 +221,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 7
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 7
               }
             }
@@ -175,6 +239,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 8
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 8
               }
             }
@@ -186,6 +257,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 9
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 9
               }
             }
@@ -197,6 +275,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 10
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 10
               }
             }
@@ -208,6 +293,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 11
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 11
               }
             }
@@ -219,6 +311,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 12
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 12
               }
             }
@@ -230,6 +329,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 13
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 13
               }
             }
@@ -241,6 +347,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 14
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 14
               }
             }
@@ -252,6 +365,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 15
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 15
               }
             }
@@ -263,6 +383,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 16
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 16
               }
             }
@@ -274,6 +401,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 17
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 17
               }
             }
@@ -285,6 +419,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 18
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 18
               }
             }
@@ -296,6 +437,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 19
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 19
               }
             }
@@ -307,6 +455,13 @@
           "pipeline_override": {
             "TeamLibraryConfigure": {
               "custom_action_param": {
+                "mode": "configure",
+                "slot": 20
+              }
+            },
+            "ThemePackConfigure": {
+              "custom_action_param": {
+                "mode": "configure",
                 "slot": 20
               }
             }
@@ -327,12 +482,1251 @@
         }
       ],
       "pipeline_override": {
-        "TeamLibraryConfigure": {
+        "TeamLibraryName": {
           "custom_action_param": {
+            "mode": "name",
             "name": "{name}"
           }
         }
       }
+    },
+    "pack_name": {
+      "type": "select",
+      "label": "$pack_name",
+      "default_case": "unchanged",
+      "cases": [
+        {
+          "name": "unchanged",
+          "label": "$keep_pack_preferences",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": ""
+              }
+            }
+          }
+        },
+        {
+          "name": "0",
+          "label": "A Certain World",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "A Certain World"
+              }
+            }
+          }
+        },
+        {
+          "name": "1",
+          "label": "Abnormal Seismi Zone",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Abnormal Seismi Zone"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Addicting Lust",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Addicting Lust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "ASEA",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "ASEA"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Automated Factory",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Automated Factory"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Burning Haze",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Burning Haze"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Chaym Wwan",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Chaym Wwan"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Crawling Abyss",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Crawling Abyss"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Crushers & Breakers",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Crushers & Breakers"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Crushing External Force",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Crushing External Force"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Deep Sigh",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Deep Sigh"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Degraded Gloom",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Degraded Gloom"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Devoured Gluttony",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Devoured Gluttony"
+              }
+            }
+          }
+        },
+        {
+          "name": "13",
+          "label": "Dizzying Waves",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Dizzying Waves"
+              }
+            }
+          }
+        },
+        {
+          "name": "14",
+          "label": "Dregs of the Manor",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Dregs of the Manor"
+              }
+            }
+          }
+        },
+        {
+          "name": "15",
+          "label": "Emotional Craving",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Craving"
+              }
+            }
+          }
+        },
+        {
+          "name": "16",
+          "label": "Emotional Flood",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Flood"
+              }
+            }
+          }
+        },
+        {
+          "name": "17",
+          "label": "Emotional Indolence",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Indolence"
+              }
+            }
+          }
+        },
+        {
+          "name": "18",
+          "label": "Emotional Judgment",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Judgment"
+              }
+            }
+          }
+        },
+        {
+          "name": "19",
+          "label": "Emotional Repression",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Repression"
+              }
+            }
+          }
+        },
+        {
+          "name": "20",
+          "label": "Emotional Seduction",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Seduction"
+              }
+            }
+          }
+        },
+        {
+          "name": "21",
+          "label": "Emotional Subservience",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Emotional Subservience"
+              }
+            }
+          }
+        },
+        {
+          "name": "22",
+          "label": "Excessive Gluttong",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Excessive Gluttong"
+              }
+            }
+          }
+        },
+        {
+          "name": "23",
+          "label": "Faith & Erosion",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Faith & Erosion"
+              }
+            }
+          }
+        },
+        {
+          "name": "24",
+          "label": "Falling Flowers",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Falling Flowers"
+              }
+            }
+          }
+        },
+        {
+          "name": "25",
+          "label": "Flat-broke Gamblers",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Flat-broke Gamblers"
+              }
+            }
+          }
+        },
+        {
+          "name": "26",
+          "label": "Four Houses and Greed",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Four Houses and Greed"
+              }
+            }
+          }
+        },
+        {
+          "name": "27",
+          "label": "Full-Stopped by a Bullet",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Full-Stopped by a Bullet"
+              }
+            }
+          }
+        },
+        {
+          "name": "28",
+          "label": "Hatred and Despair",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Hatred and Despair"
+              }
+            }
+          }
+        },
+        {
+          "name": "29",
+          "label": "Hell's Chicken",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Hell's Chicken"
+              }
+            }
+          }
+        },
+        {
+          "name": "30",
+          "label": "Inert Sloth",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Inert Sloth"
+              }
+            }
+          }
+        },
+        {
+          "name": "31",
+          "label": "Insignificant Envy",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Insignificant Envy"
+              }
+            }
+          }
+        },
+        {
+          "name": "32",
+          "label": "La Manchaland Reopening",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "La Manchaland Reopening"
+              }
+            }
+          }
+        },
+        {
+          "name": "33",
+          "label": "Lake World",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Lake World"
+              }
+            }
+          }
+        },
+        {
+          "name": "34",
+          "label": "LCB Reguar Checkup",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "LCB Reguar Checkup"
+              }
+            }
+          }
+        },
+        {
+          "name": "35",
+          "label": "LCB Regular Check-up BokCak",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "LCB Regular Check-up BokCak"
+              }
+            }
+          }
+        },
+        {
+          "name": "36",
+          "label": "Line 1",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 1"
+              }
+            }
+          }
+        },
+        {
+          "name": "37",
+          "label": "Line 2",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 2"
+              }
+            }
+          }
+        },
+        {
+          "name": "38",
+          "label": "Line 3",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 3"
+              }
+            }
+          }
+        },
+        {
+          "name": "39",
+          "label": "Line 4 Section#3",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 4 Section#3"
+              }
+            }
+          }
+        },
+        {
+          "name": "40",
+          "label": "Line 4 Section#4",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 4 Section#4"
+              }
+            }
+          }
+        },
+        {
+          "name": "41",
+          "label": "Line 5",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Line 5"
+              }
+            }
+          }
+        },
+        {
+          "name": "42",
+          "label": "Marder on.the WARP Express BokGak",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Marder on.the WARP Express BokGak"
+              }
+            }
+          }
+        },
+        {
+          "name": "43",
+          "label": "Miracle in District 20 BokGak",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Miracle in District 20 BokGak"
+              }
+            }
+          }
+        },
+        {
+          "name": "44",
+          "label": "Miracle in District 20",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Miracle in District 20"
+              }
+            }
+          }
+        },
+        {
+          "name": "45",
+          "label": "Mnestic' Experience",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Mnestic' Experience"
+              }
+            }
+          }
+        },
+        {
+          "name": "46",
+          "label": "Mountain of Corpses, Sea of Blood",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Mountain of Corpses, Sea of Blood"
+              }
+            }
+          }
+        },
+        {
+          "name": "47",
+          "label": "Murder on the WARP Express",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Murder on the WARP Express"
+              }
+            }
+          }
+        },
+        {
+          "name": "48",
+          "label": "Nagel and Hammer",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Nagel and Hammer"
+              }
+            }
+          }
+        },
+        {
+          "name": "49",
+          "label": "Nest, Workshop, and Technology",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Nest, Workshop, and Technology"
+              }
+            }
+          }
+        },
+        {
+          "name": "50",
+          "label": "Nocturnal Sweeping",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Nocturnal Sweeping"
+              }
+            }
+          }
+        },
+        {
+          "name": "51",
+          "label": "Piercers & Penetrators",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Piercers & Penetrators"
+              }
+            }
+          }
+        },
+        {
+          "name": "52",
+          "label": "Pitiful Envy",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Pitiful Envy"
+              }
+            }
+          }
+        },
+        {
+          "name": "53",
+          "label": "Poised Breathing",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Poised Breathing"
+              }
+            }
+          }
+        },
+        {
+          "name": "54",
+          "label": "Repressed Wrath",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Repressed Wrath"
+              }
+            }
+          }
+        },
+        {
+          "name": "55",
+          "label": "Rising Power Supply",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Rising Power Supply"
+              }
+            }
+          }
+        },
+        {
+          "name": "56",
+          "label": "Season of the Flame",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Season of the Flame"
+              }
+            }
+          }
+        },
+        {
+          "name": "57",
+          "label": "Sinking Deluge",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Sinking Deluge"
+              }
+            }
+          }
+        },
+        {
+          "name": "58",
+          "label": "Sinking Pang",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Sinking Pang"
+              }
+            }
+          }
+        },
+        {
+          "name": "59",
+          "label": "Slicers & Dicers",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Slicers & Dicers"
+              }
+            }
+          }
+        },
+        {
+          "name": "60",
+          "label": "Spring Cultivation",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Spring Cultivation"
+              }
+            }
+          }
+        },
+        {
+          "name": "61",
+          "label": "Sunk Gloom",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Sunk Gloom"
+              }
+            }
+          }
+        },
+        {
+          "name": "62",
+          "label": "Tangling Lust",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Tangling Lust"
+              }
+            }
+          }
+        },
+        {
+          "name": "63",
+          "label": "Tearful Things",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Tearful Things"
+              }
+            }
+          }
+        },
+        {
+          "name": "64",
+          "label": "The Dream Ending",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Dream Ending"
+              }
+            }
+          }
+        },
+        {
+          "name": "65",
+          "label": "The Dusk of Amber",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Dusk of Amber"
+              }
+            }
+          }
+        },
+        {
+          "name": "66",
+          "label": "The Evil Defining",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Evil Defining"
+              }
+            }
+          }
+        },
+        {
+          "name": "67",
+          "label": "The Forgotten",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Forgotten"
+              }
+            }
+          }
+        },
+        {
+          "name": "68",
+          "label": "The Heartbreaking",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Heartbreaking"
+              }
+            }
+          }
+        },
+        {
+          "name": "69",
+          "label": "The Infinite Procession",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Infinite Procession"
+              }
+            }
+          }
+        },
+        {
+          "name": "70",
+          "label": "The Moon of Violet",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Moon of Violet"
+              }
+            }
+          }
+        },
+        {
+          "name": "71",
+          "label": "The Outcast",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Outcast"
+              }
+            }
+          }
+        },
+        {
+          "name": "72",
+          "label": "The Surrendered Witnessing",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Surrendered Witnessing"
+              }
+            }
+          }
+        },
+        {
+          "name": "73",
+          "label": "The Unchanging",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Unchanging"
+              }
+            }
+          }
+        },
+        {
+          "name": "74",
+          "label": "The Unconfronting",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Unconfronting"
+              }
+            }
+          }
+        },
+        {
+          "name": "75",
+          "label": "The Unloving",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "The Unloving"
+              }
+            }
+          }
+        },
+        {
+          "name": "76",
+          "label": "Thunder and Lightning",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Thunder and Lightning"
+              }
+            }
+          }
+        },
+        {
+          "name": "77",
+          "label": "Timekilling Time BokGak",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Timekilling Time BokGak"
+              }
+            }
+          }
+        },
+        {
+          "name": "78",
+          "label": "Timekilling Time",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Timekilling Time"
+              }
+            }
+          }
+        },
+        {
+          "name": "79",
+          "label": "To be Cleaved",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "To be Cleaved"
+              }
+            }
+          }
+        },
+        {
+          "name": "80",
+          "label": "To be Crushed",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "To be Crushed"
+              }
+            }
+          }
+        },
+        {
+          "name": "81",
+          "label": "To be Pierced",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "To be Pierced"
+              }
+            }
+          }
+        },
+        {
+          "name": "82",
+          "label": "Treadwheel Sloth",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Treadwheel Sloth"
+              }
+            }
+          }
+        },
+        {
+          "name": "83",
+          "label": "Trickled Sanguin Blood",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Trickled Sanguin Blood"
+              }
+            }
+          }
+        },
+        {
+          "name": "84",
+          "label": "Twining Threads",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Twining Threads"
+              }
+            }
+          }
+        },
+        {
+          "name": "85",
+          "label": "Tyrannical Pride",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Tyrannical Pride"
+              }
+            }
+          }
+        },
+        {
+          "name": "86",
+          "label": "Unbound Wrath",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Unbound Wrath"
+              }
+            }
+          }
+        },
+        {
+          "name": "87",
+          "label": "Unrelenting Might",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Unrelenting Might"
+              }
+            }
+          }
+        },
+        {
+          "name": "88",
+          "label": "Vain Pride",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Vain Pride"
+              }
+            }
+          }
+        },
+        {
+          "name": "89",
+          "label": "Vield My Flesh to Claim Their Bones BokGak",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Vield My Flesh to Claim Their Bones BokGak"
+              }
+            }
+          }
+        },
+        {
+          "name": "90",
+          "label": "Yield My Flesh to Claim Their Bones",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "Yield My Flesh to Claim Their Bones"
+              }
+            }
+          }
+        },
+        {
+          "name": "91",
+          "label": "吞噬的暴食",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "吞噬的暴食"
+              }
+            }
+          }
+        },
+        {
+          "name": "92",
+          "label": "堕落的忧郁",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "堕落的忧郁"
+              }
+            }
+          }
+        },
+        {
+          "name": "93",
+          "label": "空转的怠惰",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "空转的怠惰"
+              }
+            }
+          }
+        },
+        {
+          "name": "94",
+          "label": "粉碎者们",
+          "pipeline_override": {
+            "ThemePackPreference": {
+              "custom_action_param": {
+                "mode": "pack",
+                "name": "粉碎者们"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pack_weight": {
+      "type": "select",
+      "label": "$pack_weight",
+      "default_case": "20",
+      "cases": [
+        {
+          "name": "0",
+          "label": "$pack_block",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 0
+              }
+            }
+          }
+        },
+        {
+          "name": "1",
+          "label": "1",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "5",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 5
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "10",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 10
+              }
+            }
+          }
+        },
+        {
+          "name": "20",
+          "label": "20",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 20
+              }
+            }
+          }
+        },
+        {
+          "name": "100",
+          "label": "100",
+          "pipeline_override": {
+            "ThemePackWeight": {
+              "custom_action_param": {
+                "mode": "weight",
+                "weight": 100
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

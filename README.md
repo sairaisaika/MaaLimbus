@@ -46,6 +46,7 @@ python -m pytest -q
 | 镜牢入口 | 真实 Maa 解析与离线页面回放 | 入场后完整流程 |
 | 已保存队伍 | 队伍库名称、位置、选择后确认的回放 | 镜牢出战配置与实机换队 |
 | 楼层 E.G.O 礼物 | 图标/文字候选、归属、队伍关键词排序回放 | 选择数量、领取确认、下一层衔接 |
+| 主题包选择 | 稳定图标/标题、保存队伍权重、原生拖动回放；选项见[说明](docs/theme-packs.md) | 实机选包、日语标题与地图衔接 |
 | 五层领奖与循环 | 完成证据及换队条件的存储逻辑 | 五层战斗、实际领奖与连续循环 |
 | 体力兑换/补充 | 预算策略测试 | 游戏内操作与余额确认 |
 | 邮件/每日奖励 | 设计与任务标签 | 原生流程及实测 |
@@ -97,6 +98,7 @@ MaaLimbus 自有代码当前声明为 [AGPL-3.0-or-later](LICENSE)。这是本�
 python tools/verify_native_replay.py --binary <Maa原生库目录> --references <参考截图目录>
 python tools/verify_team_replay.py --binary <Maa原生库目录> --frame <队伍库截图>
 python tools/verify_gift_replay.py --binary <Maa原生库目录>
+python tools/verify_theme_replay.py --binary <Maa原生库目录>
 ```
 
 英语/日语资源包能被解析，不等于日语实机流程已验证。变换后的封面、标题等派生回放会单独标记。

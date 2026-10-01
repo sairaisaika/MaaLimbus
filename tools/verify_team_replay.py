@@ -81,7 +81,7 @@ def main():
         assert controller.post_connection().wait().succeeded
         tasker=Tasker(); assert tasker.bind(resource=resource,controller=controller)
         overrides={n:{'timeout':1800,'post_delay':60} for n in
-                   ('TeamLibraryConfigure','TeamLibraryRow','TeamLibraryScroll','TeamLibraryVerified')}
+                   ('TeamLibraryConfigure','TeamLibraryName','TeamLibraryRow','TeamLibraryScroll','TeamLibraryVerified')}
         overrides['TeamLibraryStart']={'action':'DoNothing'} # No OS input in saved-frame replay.
         overrides['TeamLibraryConfigure']['custom_action_param']={'mode':'configure','slot':slot,'name':''}
         job=tasker.post_task('TeamLibraryStart',overrides)

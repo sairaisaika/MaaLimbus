@@ -20,12 +20,23 @@ class Team:
     allow: frozenset[str] = frozenset()
     block: frozenset[str] = frozenset()
     deployment: tuple[str, ...] = ()
+    pack_weights: tuple[tuple[str, int], ...] = ()
 
     def __post_init__(self):
         if not 1 <= self.slot <= 20:
             raise ValueError('Saved team slot must be 1..20')
         if len(self.deployment) != len(set(self.deployment)):
             raise ValueError('A sinner cannot be deployed twice')
+        names = set()
+        for pair in self.pack_weights:
+            if not isinstance(pair,(tuple,list)) or len(pair)!=2:
+                raise ValueError('Pack weights must be name/weight pairs')
+            name,weight=pair
+            if not isinstance(name,str) or not name.strip() or len(name)>100 or name in names:
+                raise ValueError('Pack names must be unique nonempty strings')
+            if type(weight) is not int or not 0 <= weight <= 100:
+                raise ValueError('Pack weight must be integer 0..100; zero blocks selection')
+            names.add(name)
 
 
 def rank_gifts(candidates: Iterable[Gift], team: Team) -> list[dict]:
