@@ -132,3 +132,11 @@ from a task returning success, a manifest loading, or a process staying alive.
 - `build/theme-replay-verification.json` retains local scope and frame provenance.
   No UAC/game input was requested. Japanese rendered titles, live selection,
   difficulty switching/refresh policy, deployment/battle and complete loop remain pending.
+- 68 unit tests and six team-library Maa regression cases passed. New Windows
+  development package from clean `4178821` includes the theme component: 611
+  manifest hashes/privacy checks and Agent self-test pass. Frozen Agent IPC
+  confirms saved team 2 keeps its name/other weights while updating one choice;
+  native drag and paid zero-input cases pass using installed resources.
+  `build/packaged-theme-replay-verification.json` and `build/theme-package-integrity.json`
+  retain evidence. The GUI was not opened, no game input was sent, and game
+  PID40196 remains HIGH 12288 vs inspected controller MEDIUM 8192.

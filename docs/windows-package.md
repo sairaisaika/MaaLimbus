@@ -32,10 +32,16 @@ Agent 和 Runner 从自身可执行文件的安装位置定位包根目录，不
 
 ```powershell
 python tools/verify_packaged_replay.py --app <开发包目录> --references <本地参考截图目录>
+python tools/verify_packaged_theme_replay.py --app <开发包目录>
 ```
 
 此工具使用 Maa CustomController 和保存的画面，经过真实 Maa AgentClient/打包 Agent 的进程通信执行生产识别及 Pipeline。它不创建 Win32 游戏控制器、不发送游戏输入。
 
 已验证参考导航两次回放点击并在队伍库边界停止，以及未知画面零点击；终态明确保留 `verified_clear: false`。Agent 自检还验证了实际包内的 EN/JP 与礼物目录，Runner 的帮助入口可运行。这些不构成日语实机、MXU 桌面操作或镜牢通关证据。
+
+`4178821` 开发包另验证了主题包的打包 Agent：经 Maa IPC 读取已保存的第二队，
+更新一个权重而保留其他设置，执行一次原生拖动后保存画面并停在地图待验收边界；
+资源弹窗零输入。611 个文件校验和隐私排除检查通过。主题包名称/权重的 PI 下拉项已打包，
+实际 MXU 界面仍未打开验证。
 
 开发包构建不会发起 UAC。实机权限条件满足且没有旧控制器后，才可另行启动有时限任务；仍须保存每层、领奖和轮换的真实证据。
