@@ -35,3 +35,6 @@ from a task returning success, a manifest loading, or a process staying alive.
   `build/windows-preflight.json` are local evidence, excluded from release.
 - FGO prepublish audit returned ready with a missing-project-license warning;
   this is a privacy/source-tree audit, not full-suite or release validation.
+- FGO's full current Python suite subsequently passed 710 tests after stale
+  controller-scenario timing/retry assertions were corrected. Production behavior
+  unchanged. Error options, license and release package/publishing are still pending.
