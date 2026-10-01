@@ -1,5 +1,19 @@
 # Acceptance evidence
 
+## Custom deployment choices and callback failure boundary
+
+- Twelve PI child dropdowns apply only in custom mode. All twelve positions must
+  be complete and unique before atomic save; other teams/preferences are retained.
+- A derived replay exposed an exception escaping Maa's ctypes callback and
+  continuing old-order selection. All recognition/action callbacks now explicitly
+  fail and latch the Agent instance closed, even if journal writes fail.
+- 125 tests, 17 actual Maa derived deployment cases and seven battle-planning
+  regressions pass. Six callback faults produce zero clicks, no order proof or
+  battle start. `build/deployment-replay-verification.json` retains actual errors.
+- This is source/offline validation. The open 08c2adc GUI does not contain these
+  new choices/guards. Full five floors/rewards/rotation and live geometry remain
+  unverified; no game input, GUI replacement or UAC request occurred.
+
 Each requirement needs implementation plus matching verification scope. Status is not inferred
 from a task returning success, a manifest loading, or a process staying alive.
 

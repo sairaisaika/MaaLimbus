@@ -27,5 +27,18 @@
   "deployment_saved": "保留已保存的顺序",
   "deployment_natural": "保存囚人标准顺序",
   "prepare_battle_plan": "战斗配卡（开发中）",
-  "battle_plan_scope": "仅在英语战斗页面按一次 P，保存新截图后停止；尚未提交回合或验证胜利。"
+  "battle_plan_scope": "仅在英语战斗页面按一次 P，保存新截图后停止；尚未提交回合或验证胜利。",
+  "deployment_custom": "选择并保存十二个出战位置",
+  "deployment_position_1": "出战位置 1",
+  "deployment_position_2": "出战位置 2",
+  "deployment_position_3": "出战位置 3",
+  "deployment_position_4": "出战位置 4",
+  "deployment_position_5": "出战位置 5",
+  "deployment_position_6": "出战位置 6",
+  "deployment_position_7": "出战位置 7",
+  "deployment_position_8": "出战位置 8",
+  "deployment_position_9": "出战位置 9",
+  "deployment_position_10": "出战位置 10",
+  "deployment_position_11": "出战位置 11",
+  "deployment_position_12": "出战位置 12"
 }

@@ -13,6 +13,29 @@ from .vision import find,inset_box
 CENTERS={name:(290+130*(index%6),240+200*(index//6)) for index,name in enumerate(SINNERS)}
 
 
+class DeploymentDraft:
+    """Keep incomplete PI choices in memory until all twelve positions validate."""
+    def __init__(self):
+        self.positions = {}
+
+    def choose(self, position, sinner):
+        if type(position) is not int or not 1 <= position <= len(SINNERS):
+            raise ValueError('Deployment position must be 1..12')
+        if sinner not in SINNERS:
+            raise ValueError('Unknown deployment sinner')
+        if position in self.positions:
+            raise ValueError('Deployment position supplied twice')
+        self.positions[position] = sinner
+
+    def finish(self):
+        if set(self.positions) != set(range(1, len(SINNERS) + 1)):
+            raise ValueError('Configure all twelve deployment positions')
+        order = tuple(self.positions[i] for i in range(1, len(SINNERS) + 1))
+        if len(set(order)) != len(SINNERS):
+            raise ValueError('A sinner cannot occupy two deployment positions')
+        return order
+
+
 @dataclass(frozen=True)
 class DeploymentState:
     selected: int

@@ -404,11 +404,7 @@
       "preset": "saved"
     },
     "next": [
-      "LimbusSafety",
-      "LimbusExpired",
-      "LimbusDefeat",
-      "DeploymentComplete",
-      "DeploymentNext"
+      "DeploymentOrder1"
     ],
     "timeout": 3000,
     "on_error": [
@@ -518,5 +514,229 @@
     },
     "next": [],
     "on_error": []
+  },
+  "DeploymentOrder1": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 1,
+      "sinner": "Yi Sang"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder2"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder2": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 2,
+      "sinner": "Faust"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder3"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder3": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 3,
+      "sinner": "Don Quixote"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder4"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder4": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 4,
+      "sinner": "Ryoshu"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder5"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder5": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 5,
+      "sinner": "Meursault"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder6"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder6": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 6,
+      "sinner": "Hong Lu"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder7"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder7": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 7,
+      "sinner": "Heathcliff"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder8"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder8": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 8,
+      "sinner": "Ishmael"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder9"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder9": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 9,
+      "sinner": "Rodion"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder10"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder10": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 10,
+      "sinner": "Sinclair"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder11"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder11": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 11,
+      "sinner": "Outis"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrder12"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrder12": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_slot",
+      "position": 12,
+      "sinner": "Gregor"
+    },
+    "max_hit": 1,
+    "next": [
+      "DeploymentOrderCommit"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "DeploymentOrderCommit": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "deployment_commit"
+    },
+    "max_hit": 1,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "DeploymentComplete",
+      "DeploymentNext"
+    ],
+    "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   }
 }

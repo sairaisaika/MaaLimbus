@@ -27,5 +27,18 @@
   "windows_front": "Windows · フォアグラウンド操作",
   "windows_window_description": "MaaEndと同じ背景キャプチャとウィンドウメッセージ操作。入力後の画面を確認します。",
   "windows_background_description": "ウィンドウ位置メッセージとPostMessageキー。ゲームの対応を実機で確認してください。",
-  "windows_front_description": "画面キャプチャと前面のマウス・キー操作。ゲームを表示してください。"
+  "windows_front_description": "画面キャプチャと前面のマウス・キー操作。ゲームを表示してください。",
+  "deployment_custom": "12枠の出撃順を選んで保存",
+  "deployment_position_1": "出撃順 1",
+  "deployment_position_2": "出撃順 2",
+  "deployment_position_3": "出撃順 3",
+  "deployment_position_4": "出撃順 4",
+  "deployment_position_5": "出撃順 5",
+  "deployment_position_6": "出撃順 6",
+  "deployment_position_7": "出撃順 7",
+  "deployment_position_8": "出撃順 8",
+  "deployment_position_9": "出撃順 9",
+  "deployment_position_10": "出撃順 10",
+  "deployment_position_11": "出撃順 11",
+  "deployment_position_12": "出撃順 12"
 }

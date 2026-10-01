@@ -27,5 +27,18 @@
   "windows_front": "Windows · Foreground",
   "windows_window_description": "MaaEnd-style background capture, cursor-position window mouse messages and PostMessage keys. Verify the expected next page after input.",
   "windows_background_description": "Window-position mouse messages and PostMessage keys. Test whether this game accepts background input.",
-  "windows_front_description": "Screen capture and foreground mouse/keyboard input. Keep the game visible."
+  "windows_front_description": "Screen capture and foreground mouse/keyboard input. Keep the game visible.",
+  "deployment_custom": "Choose and save twelve positions",
+  "deployment_position_1": "Deployment position 1",
+  "deployment_position_2": "Deployment position 2",
+  "deployment_position_3": "Deployment position 3",
+  "deployment_position_4": "Deployment position 4",
+  "deployment_position_5": "Deployment position 5",
+  "deployment_position_6": "Deployment position 6",
+  "deployment_position_7": "Deployment position 7",
+  "deployment_position_8": "Deployment position 8",
+  "deployment_position_9": "Deployment position 9",
+  "deployment_position_10": "Deployment position 10",
+  "deployment_position_11": "Deployment position 11",
+  "deployment_position_12": "Deployment position 12"
 }

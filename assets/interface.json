@@ -1932,6 +1932,1988 @@
               }
             }
           }
+        },
+        {
+          "name": "custom",
+          "label": "$deployment_custom",
+          "option": [
+            "deployment_position_1",
+            "deployment_position_2",
+            "deployment_position_3",
+            "deployment_position_4",
+            "deployment_position_5",
+            "deployment_position_6",
+            "deployment_position_7",
+            "deployment_position_8",
+            "deployment_position_9",
+            "deployment_position_10",
+            "deployment_position_11",
+            "deployment_position_12"
+          ],
+          "pipeline_override": {
+            "DeploymentPreset": {
+              "custom_action_param": {
+                "mode": "deployment",
+                "preset": "custom"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_1": {
+      "type": "select",
+      "label": "$deployment_position_1",
+      "default_case": "1",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder1": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 1,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_2": {
+      "type": "select",
+      "label": "$deployment_position_2",
+      "default_case": "2",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder2": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 2,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_3": {
+      "type": "select",
+      "label": "$deployment_position_3",
+      "default_case": "3",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder3": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 3,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_4": {
+      "type": "select",
+      "label": "$deployment_position_4",
+      "default_case": "4",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder4": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 4,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_5": {
+      "type": "select",
+      "label": "$deployment_position_5",
+      "default_case": "5",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder5": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 5,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_6": {
+      "type": "select",
+      "label": "$deployment_position_6",
+      "default_case": "6",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder6": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 6,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_7": {
+      "type": "select",
+      "label": "$deployment_position_7",
+      "default_case": "7",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder7": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 7,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_8": {
+      "type": "select",
+      "label": "$deployment_position_8",
+      "default_case": "8",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder8": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 8,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_9": {
+      "type": "select",
+      "label": "$deployment_position_9",
+      "default_case": "9",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder9": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 9,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_10": {
+      "type": "select",
+      "label": "$deployment_position_10",
+      "default_case": "10",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder10": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 10,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_11": {
+      "type": "select",
+      "label": "$deployment_position_11",
+      "default_case": "11",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder11": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 11,
+                "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "deployment_position_12": {
+      "type": "select",
+      "label": "$deployment_position_12",
+      "default_case": "12",
+      "cases": [
+        {
+          "name": "1",
+          "label": "Yi Sang",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Yi Sang"
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "Faust",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Faust"
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "Don Quixote",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Don Quixote"
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "Ryoshu",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Ryoshu"
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "Meursault",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Meursault"
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "Hong Lu",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Hong Lu"
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "Heathcliff",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Heathcliff"
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "Ishmael",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Ishmael"
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "Rodion",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Rodion"
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "Sinclair",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Sinclair"
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "Outis",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Outis"
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "Gregor",
+          "pipeline_override": {
+            "DeploymentOrder12": {
+              "custom_action_param": {
+                "mode": "deployment_slot",
+                "position": 12,
+                "sinner": "Gregor"
+              }
+            }
+          }
         }
       ]
     }

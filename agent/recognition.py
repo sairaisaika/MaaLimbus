@@ -3,6 +3,7 @@ import json
 import os
 import random
 from dataclasses import replace
+from functools import wraps
 from pathlib import Path
 
 import cv2
@@ -21,9 +22,38 @@ from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend
 from maalimbus.jobs import wait_job
 from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
-from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois
+from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import SINNERS
 from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels
+
+
+def guarded_callback(failed_result):
+    """Never let Python exceptions become undefined Maa C callback returns.
+
+    A fault latches this Agent instance closed, including recognition alternatives.
+    Journal failures cannot undo the latch or escape the callback boundary.
+    """
+    def decorate(callback):
+        @wraps(callback)
+        def guarded(self, context, argv):
+            recognition = self if callback.__name__ == 'analyze' else self.recognition
+            if getattr(recognition, 'callback_failure', None) is not None:
+                return failed_result
+            try:
+                return callback(self, context, argv)
+            except Exception as error:
+                failure = dict(callback=type(self).__name__,
+                    node=getattr(argv, 'node_name', ''), error_type=type(error).__name__,
+                    verified_clear=False)
+                recognition.callback_failure = failure
+                try:
+                    recognition.journal.record('callback_failed', **failure)
+                except Exception:
+                    # Retain the failure in memory even when the evidence disk fails.
+                    failure['journal_failed'] = True
+                return failed_result
+        return guarded
+    return decorate
 
 
 class Journal:
@@ -63,8 +93,10 @@ class LimbusRecognition(CustomRecognition):
         self.themes = None
         self.pending_pack = ''
         self.deployment_pending = None
+        self.deployment_draft = None
         self.battle = None
         self.battle_before = None
+        self.callback_failure = None
 
     def theme_catalog(self):
         if self.themes is None:
@@ -118,6 +150,7 @@ class LimbusRecognition(CustomRecognition):
         self.cache = (digest, records, scene, name)
         return records, scene, name
 
+    @guarded_callback(None)
     def analyze(self, context, argv):
         params = json.loads(argv.custom_recognition_param or '{}')
         records, scene, frame = self.observe(context, argv.image)
@@ -255,10 +288,11 @@ class TeamAction(CustomAction):
         super().__init__()
         self.recognition = recognition
 
+    @guarded_callback(False)
     def run(self, context, argv):
         params = json.loads(argv.custom_action_param or '{}')
         mode=params.get('mode')
-        if mode in ('name','pack','weight','deployment'):
+        if mode in ('name','pack','weight','deployment','deployment_slot','deployment_commit'):
             team=self.recognition.team
             if team is None:return False
             if mode=='pack':
@@ -268,8 +302,18 @@ class TeamAction(CustomAction):
                 self.recognition.pending_pack=pack
                 return True
             if mode=='name':configured=replace(team,name=str(params.get('name',team.name)))
+            elif mode in ('deployment_slot','deployment_commit'):
+                if self.recognition.deployment_draft is None:return True
+                if mode=='deployment_slot':
+                    self.recognition.deployment_draft.choose(params.get('position'),params.get('sinner'))
+                    return True
+                configured=replace(team,deployment=self.recognition.deployment_draft.finish())
             elif mode=='deployment':
                 preset=params.get('preset','saved')
+                self.recognition.deployment_draft=None
+                if preset=='custom':
+                    self.recognition.deployment_draft=DeploymentDraft()
+                    return True
                 if preset=='saved':
                     if not team.deployment:
                         self.recognition.journal.record('deployment_blocked',reason='saved_order_not_configured',verified_clear=False)
@@ -285,6 +329,7 @@ class TeamAction(CustomAction):
             index=next(i for i,t in enumerate(teams) if t.slot==team.slot)
             teams[index]=configured;store.save(teams)
             self.recognition.team=configured
+            if mode=='deployment_commit':self.recognition.deployment_draft=None
             self.recognition.journal.record('team_preferences_saved',slot=team.slot,field=mode)
             return True
         if params.get('mode') == 'configure':
@@ -301,6 +346,7 @@ class TeamAction(CustomAction):
             self.recognition.scroll_count, self.recognition.scroll_hash = 0, None
             self.recognition.pending_pack=''
             self.recognition.deployment_pending=None
+            self.recognition.deployment_draft=None
             self.recognition.journal.record('team_target', slot=slot, name=self.recognition.team.name)
             return True
         if mode!='verified':
@@ -327,6 +373,7 @@ class ThemeObservation(CustomAction):
     def __init__(self,recognition):
         super().__init__();self.recognition=recognition
 
+    @guarded_callback(False)
     def run(self,context,argv):
         try:
             wait_job(context.tasker.controller.post_screencap(),timeout=5)
@@ -342,6 +389,7 @@ class DeploymentProof(CustomAction):
     def __init__(self,recognition):
         super().__init__();self.recognition=recognition
 
+    @guarded_callback(False)
     def run(self,context,argv):
         try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
         except (TimeoutError,RuntimeError):return False
@@ -360,6 +408,7 @@ class BattlePlanObservation(CustomAction):
     def __init__(self,recognition):
         super().__init__();self.recognition=recognition
 
+    @guarded_callback(False)
     def run(self,context,argv):
         try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
         except (TimeoutError,RuntimeError):return False
@@ -378,6 +427,7 @@ class InputPreflight(CustomAction):
     def __init__(self,recognition):
         super().__init__(); self.recognition=recognition
 
+    @guarded_callback(False)
     def run(self,context,argv):
         try:
             lease=ControllerLease.acquire(ROOT/'build/controller.lock')
@@ -405,6 +455,7 @@ class LimbusTerminal(CustomAction):
         super().__init__()
         self.recognition = recognition
 
+    @guarded_callback(False)
     def run(self, context, argv):
         params = json.loads(argv.custom_action_param or '{}')
         self.recognition.journal.record('terminal', reason=params['reason'],

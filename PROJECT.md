@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Added twelve PI deployment choices with atomic complete/unique
+  saving. Native derived replay exposed a Python exception escaping the Maa C
+  callback and continuing old-order clicks; all app callbacks now return explicit
+  failure and latch the Agent closed. 125 tests and 17 deployment replays pass,
+  including six callback faults with zero input. No game input or clear proof.
 - 2026-10-01: Matched MaaEnd window/background/front Win32 profiles and added
   generated Don Quixote native icon plus Chinese UI. 114 tests, clean 08c2adc
   622-file package/self-test and four frozen-Agent IPC regressions pass. Actually

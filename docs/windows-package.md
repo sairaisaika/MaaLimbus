@@ -33,7 +33,7 @@ Agent 和 Runner 从自身可执行文件的安装位置定位包根目录，不
 ```powershell
 python tools/verify_packaged_replay.py --app <开发包目录> --references <本地参考截图目录>
 python tools/verify_packaged_theme_replay.py --app <开发包目录>
-python tools/verify_packaged_deployment_replay.py --app <开发包目录>
+python tools/verify_packaged_deployment_replay.py --app <开发包目录> --expected-source <该包源码提交>
 python tools/verify_packaged_battle_replay.py --app <开发包目录> --expected-source <该包源码提交>
 ```
 
