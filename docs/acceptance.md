@@ -17,10 +17,16 @@
   `build/packaged-deployment-replay-verification.json`,
   `build/packaged-battle-replay-verification.json`, `build/battle-package-integrity.json`
   retain this package's scope. No release, game controller, GUI replacement or UAC.
-- The open 08c2adc GUI still lacks these new choices/guards. New package UI has
-  not been opened. Full five floors/rewards/rotation and live geometry remain
-  unverified; game PID40196 remains minimized 0x0/HIGH, controller MEDIUM.
-  Fresh read-only identity: `build/callback-fix-preflight.json`.
+- The old 08c2adc GUI exited normally. Actual d14d119 MXU displays positions1..12;
+  changed positions1/3 survive normal exit/restart, with all twelve persisted
+  options identical. New GUI PID23688 is disconnected, one unchecked task,
+  auto-run false; no live game task, input or UAC. Frozen Agent replay resolves
+  these actual saved choices against installed PI, saves the full order and
+  selects the first three derived slots while retaining the other team/preferences.
+  `build/native-deployment-ui-verification.json` and
+  `build/mxu-deployment-options-replay-verification.json` retain evidence.
+  GUI Start dispatch and live geometry remain unverified; five floors/rewards/
+  rotation are incomplete. Game remains HIGH/minimized; no permission bypass.
 
 Each requirement needs implementation plus matching verification scope. Status is not inferred
 from a task returning success, a manifest loading, or a process staying alive.
@@ -28,7 +34,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Requirement | Current status | Required evidence |
 | --- | --- | --- |
 | Maa Win32 native input/screenshot | Capture verified; live input blocked by game HIGH vs Maa MEDIUM integrity | Running game capture and recognized click with page postcondition |
-| PI V2 labels and EN/JP resources | Maa resources parsed; interface schema checked; MXU UI pending | Actual Maa parser + MXU UI |
+| PI V2 labels and EN/JP resources | Maa resources parsed; native Chinese MXU/controller/task/12-position display verified; EN/JP game acceptance pending | Actual Maa parser + MXU UI |
 | Variable cover/background recognition | Actual Maa saved-frame replay: reference, changed cover, unknown | Four supplied frames + live frame; negative and changed-art replay |
 | Saved teams / deployment / rotation | Library and experimental deployment-order derived replays passed; profiles persist; live deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |

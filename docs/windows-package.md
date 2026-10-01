@@ -74,5 +74,7 @@ MXU，原生截图确认小唐窗口图标、中文任务和三种控制方式�
 Agent 自检通过。冻结 Agent 的九组出战 IPC 验证自定义保存、重复/缺位置拒绝、
 错误参数/配置损坏/日志失败零输入；四组战斗 IPC 回归仍为 1/1/0/0 次 P。
 `build/windows-package-latest.json` 指向新包；`build/packaged-deployment-replay-verification.json`
-与 `build/battle-package-integrity.json` 保存证明。旧 GUI 仍运行08c2adc，未替换；
-新包的选项界面未实机打开，均未验证五层/领奖/轮换或发布。
+与 `build/battle-package-integrity.json` 保存证明。随后已正常退出旧08c2adc GUI，
+打开d14d119原生窗口并确认十二位置选项、修改和重启保存。新GUI只有一个未勾选任务，
+未连接游戏、自动运行关闭。保存选项的独立解析/冻结Agent派生回放通过，未点击GUI开始。
+`build/native-deployment-ui-verification.json` 保存实际界面证明；均未验证五层/领奖/轮换或发布。

@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Switched idle native MXU to d14d119 after the old GUI exited.
+  Actually displayed twelve deployment choices, changed positions1/3 and verified
+  persistence after normal restart. Actual saved options resolved against installed
+  PI passed frozen-Agent IPC derived deployment, retaining another team/preferences.
+  One unchecked task, disconnected, auto-run false; no game input/UAC or clear.
 - 2026-10-01: Added twelve PI deployment choices with atomic complete/unique
   saving. Native derived replay exposed a Python exception escaping the Maa C
   callback and continuing old-order clicks; all app callbacks now return explicit

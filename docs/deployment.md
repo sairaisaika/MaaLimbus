@@ -8,7 +8,7 @@
 「选择并保存十二个出战位置」展开十二个角色下拉框，无需输入角色名字；
 只有选择自定义模式才应用这些子选项。全部位置完整且角色不重复后才一次保存，
 缺位置、重复角色或写入失败保留旧顺序和其他队伍偏好，并明确停止，不能继续按旧顺序点击；每场使用已保存的顺序前缀。
-原生拖动排序编辑器仍未实现。当前运行的08c2adc包尚未同步这些新选项。
+原生拖动排序编辑器仍未实现。当前已切换到含这些选项的d14d119开发包。
 每场采用当前识别人数上限对应的顺序前缀，不在人数识别失败时猜测上限。
 
 ## 原生流程
@@ -53,3 +53,23 @@ python tools/verify_deployment_replay.py --binary <Maa原生库目录>
 实例停止后续识别与动作。修正配置后必须结束旧 Agent，再启动新的有界任务。
 日志失败不影响停止标记；正常证据记录 `callback_failed`，磁盘失败时保留内存错误，
 不伪造成功或清关。见 `build/deployment-replay-verification.json`。
+
+## 实际桌面选项与重启保存
+
+已在原生 MXU 中添加「出战顺序（开发中）」任务，选择自定义模式，实际查看
+位置1..12。通过界面将位置1改为 Don Quixote、位置3改为 Yi Sang，再正常退出
+并重启；界面和全部十二个持久化选项一致。任务未勾选、未连接游戏，自动运行关闭。
+所有操作由绑定 MaaLimbus.exe 的 Maa Pipeline 执行，没有向游戏发送输入或请求UAC。
+
+`build/native-deployment-ui-verification.json` 和
+`evidence/runtime/native-deployment-ui/restart-expanded/after.png` 保留实屏及保存证明。
+旧08c2adc窗口已退出，新d14d119窗口PID23688；后续必须重新核实身份。
+
+另从这些实际保存的选项按安装包 PI 解析参数，经冻结 Agent 的 Maa IPC 对派生画面
+依次选择 Don Quixote、Faust、Yi Sang，并保存完整十二人顺序，其他队伍偏好保留。
+`build/mxu-deployment-options-replay-verification.json` 保存证明。
+这是配置传递的离线验证，不是点击GUI「开始任务」的派发验证，也不是实机身份/格子/战斗证明。
+
+```powershell
+python tools/verify_mxu_deployment_replay.py --app <含已保存选项的开发包> --expected-source d14d119
+```
