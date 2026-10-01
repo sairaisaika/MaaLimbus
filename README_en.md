@@ -47,6 +47,7 @@ Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md).
 | Saved teams | Library selection and [experimental deployment](docs/deployment.md) count/local-ordinal derived replay | Live geometry, order editor, battle start and rotation |
 | Floor gifts | OCR/icons, ownership and team ranking replay | Selection quota, receipt, next floor |
 | Theme packs | Fixed glyph/title recognition, saved team weights and native drag replay; [details](docs/theme-packs.md) | Live selection, Japanese titles and map transition |
+| Battle planning | Experimental native one-shot P, fresh-frame/risk-text replay; [details](docs/battle-planning.md) | Complete selection/clash/survival, E.G.O, actual turns and victory |
 | Five floors and repeat | Completion evidence and rotation storage | Battles, actual rewards and loop |
 | Enkephalin conversion/refill | Budget policy tests | Native actions and balance checks |
 | Mail/daily rewards | Design and task labels | Implementation and live tests |

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "reference_width": 1280,
+  "reference_height": 720,
+  "names": [],
+  "commit": "431b432e22f0b0da08b95d7c478fa213be20b3e8",
+  "source": "https://github.com/HSLix/LixAssistantLimbusCompany",
+  "license": "AGPL-3.0",
+  "glyphs": {
+    "win_rate": {
+      "path": "image/battle/win_rate.png",
+      "sha256": "920516e0fb3d313c887a2b3059bc8cd0acfd4d0bee917616150986a64a6e4292",
+      "source": "lalc_backend/img/en/battle/win_rate.png"
+    },
+    "skill_slash": {
+      "path": "image/battle/skill_slash.png",
+      "sha256": "6f740f0f69ec47a8ab6c8c5fc0122af21a3340532f56c2fa1337b2d3ab1e1d06",
+      "source": "lalc_backend/img/general/battle/skill_slash.png"
+    },
+    "skill_pierce": {
+      "path": "image/battle/skill_pierce.png",
+      "sha256": "1c0b76c85751ec60106109efd7f84b977d4ac87e8b69046241f261c29dfa5f9d",
+      "source": "lalc_backend/img/general/battle/skill_pierce.png"
+    },
+    "skill_blunt": {
+      "path": "image/battle/skill_blunt.png",
+      "sha256": "7c6b8eebb88f7ba8c5068de466e9cd41b609623d2e1dd9e964b96935b99c8299",
+      "source": "lalc_backend/img/general/battle/skill_blunt.png"
+    }
+  },
+  "scope": "Small English UI and damage markers only; no artwork, classifier model or runtime"
+}

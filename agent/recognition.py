@@ -23,6 +23,7 @@ from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois
 from maalimbus.storage import SINNERS
+from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels
 
 
 class Journal:
@@ -62,11 +63,17 @@ class LimbusRecognition(CustomRecognition):
         self.themes = None
         self.pending_pack = ''
         self.deployment_pending = None
+        self.battle = None
+        self.battle_before = None
 
     def theme_catalog(self):
         if self.themes is None:
             self.themes=ThemeCatalog(ROOT/'assets/resource/base')
         return self.themes
+
+    def battle_catalog(self):
+        if self.battle is None:self.battle=BattleCatalog(ROOT/'assets/resource/base')
+        return self.battle
 
     def observe(self, context, image):
         digest = hashlib.sha256(image.tobytes()).hexdigest()
@@ -104,6 +111,8 @@ class LimbusRecognition(CustomRecognition):
                 local.append(dict(sinner=sinner,roi=roi,only_rec=True,results=found))
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog()):
             scene='THEME_PACKS'
+        if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
+            scene='BATTLE_PLANNING'
         name = self.journal.frame(image, records, scene,local_ocr=local)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
@@ -116,7 +125,14 @@ class LimbusRecognition(CustomRecognition):
         if scene != expected:
             return None
         mode = params.get('team_mode')
-        if params.get('deployment_mode'):
+        if params.get('battle_mode')=='plan_once':
+            if self.battle_before is not None:return None
+            self.battle_before=hashlib.sha256(argv.image.tobytes()).hexdigest()
+            box,delay=(0,0,1,1),random.randint(180,480)
+            context.override_pipeline({argv.node_name:{'pre_delay':delay}})
+            self.journal.record('battle_plan_requested',frame=frame,key=80,
+                scope='Lix P selection through Maa ClickKey; no Enter or EGO input',verified_clear=False)
+        elif params.get('deployment_mode'):
             if self.team is None:return None
             size=(argv.image.shape[1],argv.image.shape[0])
             state=observe_deployment(records,size)
@@ -337,6 +353,24 @@ class DeploymentProof(CustomAction):
         self.recognition.journal.record('deployment_order_observed',frame=frame,team_slot=team.slot,
             order=state.order,count=state.selected,capacity=state.capacity,
             battle_started=False,verified_clear=False,scope='local OCR order badges and count; experimental grid geometry, no live proof')
+        return True
+
+
+class BattlePlanObservation(CustomAction):
+    def __init__(self,recognition):
+        super().__init__();self.recognition=recognition
+
+    def run(self,context,argv):
+        try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        except (TimeoutError,RuntimeError):return False
+        image=context.tasker.controller.cached_image
+        records,scene,frame=self.recognition.observe(context,image)
+        changed=hashlib.sha256(image.tobytes()).hexdigest()!=self.recognition.battle_before
+        self.recognition.journal.record('battle_plan_observed',frame=frame,scene=scene,
+            frame_changed=changed,labels=preview_labels(records,(image.shape[1],image.shape[0])),
+            plan_verified=False,clash_coverage_verified=False,turn_submitted=False,
+            victory_verified=False,verified_clear=False,
+            reason='fresh_frame_only_clash_assignment_EGO_survival_and_turn_submission_pending')
         return True
 
 

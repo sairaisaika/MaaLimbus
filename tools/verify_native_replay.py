@@ -44,8 +44,10 @@ class Replay(CustomController):
     def touch_up(self, *args): raise AssertionError('Unexpected touch')
 
 
-def redact(frame, kind):
-    frame = cv2.resize(frame, (1920, round(frame.shape[0] * 1920 / frame.shape[1])))
+def redact(frame, kind, prepared=False):
+    # Retained Maa frames have already been normalized. Upscaling then asking Maa
+    # to downscale them again loses small outlined text; keep their exact pixels.
+    frame = frame.copy() if prepared else cv2.resize(frame, (1920, round(frame.shape[0] * 1920 / frame.shape[1])))
     # Only public menu labels are fixtures; account identifiers/balances stay private.
     if kind in ('drive', 'team'):
         frame[int(.81 * frame.shape[0]):] = 0
@@ -56,10 +58,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--references', type=Path, required=True)
+    parser.add_argument('--prepared-frames',action='store_true',help='Retained normalized Maa frames; avoid a second resample')
     args = parser.parse_args()
     Library.open(args.binary, agent_server=False)
     Toolkit.init_option(ROOT / 'build/replay-debug')
-    frames = [redact(cv2.imread(str(args.references / filename)), kind) for filename, kind in
+    frames = [redact(cv2.imread(str(args.references / filename)), kind,args.prepared_frames) for filename, kind in
               [('image-3.png', 'drive'), ('image-4.png', 'entry'), ('image-2.png', 'team')]]
     results = []
     for name in ('references', 'changed_cover', 'unknown'):

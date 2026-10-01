@@ -113,6 +113,16 @@
         "deployment_preset"
       ],
       "default_check": false
+    },
+    {
+      "name": "prepare_battle_plan",
+      "label": "$prepare_battle_plan",
+      "entry": "BattlePlanStart",
+      "group": [
+        "mirror"
+      ],
+      "description": "$battle_plan_scope",
+      "default_check": false
     }
   ],
   "option": {

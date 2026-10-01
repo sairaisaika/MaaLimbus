@@ -17,7 +17,7 @@ from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
-from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof
+from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof, BattlePlanObservation
 from maalimbus.windows_preflight import check_window, InputPermissionError
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
@@ -82,6 +82,7 @@ def execute(args, directory, journal, state):
     resource.register_custom_action('limbus_preflight',InputPreflight(recognition))
     resource.register_custom_action('limbus_theme_observe',ThemeObservation(recognition))
     resource.register_custom_action('limbus_deployment_proof',DeploymentProof(recognition))
+    resource.register_custom_action('limbus_battle_plan_observe',BattlePlanObservation(recognition))
     wait_job(resource.post_bundle(ROOT / 'assets/resource/base'), timeout=20, deadline=deadline)
     wait_job(resource.post_bundle(ROOT / f'assets/resource/{args.locale}'), timeout=20, deadline=deadline)
     tasker = Tasker()

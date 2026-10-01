@@ -19,5 +19,7 @@
   "deployment_scope": "Current battle preparation only. Uses saved order, verifies count and order after each choice, then stops before starting battle. Experimental; live geometry unverified.",
   "deployment_preset": "Deployment order",
   "deployment_saved": "Keep saved order",
-  "deployment_natural": "Save natural sinner order"
+  "deployment_natural": "Save natural sinner order",
+  "prepare_battle_plan": "Prepare battle plan (development)",
+  "battle_plan_scope": "Experimental English battle page only. Press P once through Maa, retain a fresh frame and stop. Does not submit a turn or verify victory."
 }

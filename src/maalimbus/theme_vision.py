@@ -26,9 +26,9 @@ class PackCandidate:
 
 
 class ThemeCatalog:
-    def __init__(self,root):
+    def __init__(self,root,filename='theme-catalog.json'):
         self.root=Path(root).resolve()
-        data=json.loads((self.root/'theme-catalog.json').read_text(encoding='utf-8'))
+        data=json.loads((self.root/filename).read_text(encoding='utf-8'))
         if data.get('version')!=1 or (data.get('reference_width'),data.get('reference_height'))!=(1280,720):
             raise ValueError('Unsupported theme catalog')
         self.names=tuple(entry['name'] for entry in data['names'])

@@ -110,6 +110,16 @@ def main():
         'on_error':['LimbusUnknown']}
     nodes['DeploymentBoundary']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_terminal',
         'custom_action_param':{'reason':'deployment_order_observed_battle_not_started'},'next':[],'on_error':[]}
+    nodes['BattlePlanStart']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_preflight',
+        'next':safety+['BattlePlanOnce'],'timeout':3000,'on_error':['LimbusUnknown']}
+    nodes['BattlePlanOnce']={'recognition':'Custom','custom_recognition':'limbus_scene',
+        'custom_recognition_param':{'scene':'BATTLE_PLANNING','battle_mode':'plan_once'},
+        'action':'ClickKey','key':80,'max_hit':1,'post_delay':700,'timeout':3000,
+        'next':['BattlePlanObserve'],'on_error':['LimbusUnknown']}
+    nodes['BattlePlanObserve']={'recognition':'DirectHit','action':'Custom',
+        'custom_action':'limbus_battle_plan_observe','next':['BattlePlanBoundary'],'on_error':['LimbusUnknown']}
+    nodes['BattlePlanBoundary']={'recognition':'DirectHit','action':'Custom','custom_action':'limbus_terminal',
+        'custom_action_param':{'reason':'battle_plan_observed_turn_submission_pending'},'next':[],'on_error':[]}
     write(ROOT / 'assets/resource/base/pipeline/mirror.json', nodes)
     write(ROOT / 'assets/interface.json', {
         'interface_version': 2, 'name': 'MaaLimbus', 'label': 'MaaLimbus', 'version': 'v0.1.0',
@@ -127,7 +137,9 @@ def main():
                  {'name':'select_theme_pack','label':'$select_theme_pack','entry':'ThemePackStart','group':['mirror'],
                   'description':'$theme_pack_scope','option':['team_slot','pack_name','pack_weight'],'default_check':False},
                  {'name':'prepare_deployment','label':'$prepare_deployment','entry':'DeploymentStart','group':['mirror'],
-                  'description':'$deployment_scope','option':['team_slot','deployment_preset'],'default_check':False}],
+                  'description':'$deployment_scope','option':['team_slot','deployment_preset'],'default_check':False},
+                 {'name':'prepare_battle_plan','label':'$prepare_battle_plan','entry':'BattlePlanStart','group':['mirror'],
+                  'description':'$battle_plan_scope','default_check':False}],
         'option': {
             'team_slot': {'type':'select','label':'$team_slot','default_case':'1','cases':[
                 {'name':str(slot),'label':str(slot),'pipeline_override':{
@@ -159,14 +171,18 @@ def main():
                   'select_theme_pack':'Select theme pack (development)','theme_pack_scope':'Current Hard pack page only. Save one preference for this team and drag the best identified pack. Stops with a fresh frame; map transition not yet verified.',
                   'pack_name':'Save a theme preference','keep_pack_preferences':'Keep saved preferences','pack_weight':'Preference weight (higher first)','pack_block':'Do not select',
                   'prepare_deployment':'Prepare deployment (development)','deployment_scope':'Current battle preparation only. Uses saved order, verifies count and order after each choice, then stops before starting battle. Experimental; live geometry unverified.',
-                  'deployment_preset':'Deployment order','deployment_saved':'Keep saved order','deployment_natural':'Save natural sinner order'},
+                  'deployment_preset':'Deployment order','deployment_saved':'Keep saved order','deployment_natural':'Save natural sinner order',
+                  'prepare_battle_plan':'Prepare battle plan (development)',
+                  'battle_plan_scope':'Experimental English battle page only. Press P once through Maa, retain a fresh frame and stop. Does not submit a turn or verify victory.'},
         'ja_jp': {'description': 'MaaFramework による Windows 版 Limbus 自動操作', 'windows': 'Windows · Limbus Company', 'mirror_group': '鏡ダンジョン', 'daily_group': 'デイリー', 'mirror_hard': '鏡ダンジョン · ハード', 'mirror_status': '開発中：入口の操作のみ。5階クリアとチーム切替は未検証です。',
                   'select_saved_team':'保存チームを選択','team_slot':'保存チーム番号','team_name':'変更したチーム名（任意）',
                   'team_library_scope':'囚人のチーム管理画面で選択と確認を行います。ダンジョンには入場しません。',
                   'select_theme_pack':'テーマパック選択（開発中）','theme_pack_scope':'ハードの選択画面でチームの優先度を保存し、識別できたパックをドラッグします。新しい画像を保存して停止します。マップ移行は未検証です。',
                   'pack_name':'パックの優先設定を保存','keep_pack_preferences':'保存した設定を維持','pack_weight':'優先度（大きい順）','pack_block':'選択しない',
                   'prepare_deployment':'出撃順の準備（開発中）','deployment_scope':'戦闘準備画面のみ。選択ごとに人数と順番を確認し、戦闘開始前に停止します。実機の位置確認は未完了です。',
-                  'deployment_preset':'出撃順','deployment_saved':'保存した順番を維持','deployment_natural':'囚人の標準順を保存'},
+                  'deployment_preset':'出撃順','deployment_saved':'保存した順番を維持','deployment_natural':'囚人の標準順を保存',
+                  'prepare_battle_plan':'戦闘プランの準備（開発中）',
+                  'battle_plan_scope':'英語画面のみの実験です。MaaでPを一度押して新しい画像を保存し停止します。ターン送信・勝利確認・日本語画面は未対応です。'},
     }.items():
         write(ROOT / f'assets/i18n/{code}.json', texts)
 

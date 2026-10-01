@@ -19,5 +19,7 @@
   "deployment_scope": "戦闘準備画面のみ。選択ごとに人数と順番を確認し、戦闘開始前に停止します。実機の位置確認は未完了です。",
   "deployment_preset": "出撃順",
   "deployment_saved": "保存した順番を維持",
-  "deployment_natural": "囚人の標準順を保存"
+  "deployment_natural": "囚人の標準順を保存",
+  "prepare_battle_plan": "戦闘プランの準備（開発中）",
+  "battle_plan_scope": "英語画面のみの実験です。MaaでPを一度押して新しい画像を保存し停止します。ターン送信・勝利確認・日本語画面は未対応です。"
 }

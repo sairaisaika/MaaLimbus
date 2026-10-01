@@ -10,6 +10,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Variable cover/background recognition | Actual Maa saved-frame replay: reference, changed cover, unknown | Four supplied frames + live frame; negative and changed-art replay |
 | Saved teams / deployment / rotation | Library and experimental deployment-order derived replays passed; profiles persist; live deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |
+| Battle planning / turn execution | Experimental one-shot native P planning and fresh-frame diagnostics replayed; turn/EGO/victory pending | Full selected-skill/clash/survival proof + actual turn and victory/map return |
 | Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
 | Gifts / enemy buffs / theme pack selection | Floor gifts and weighted theme-title/native drag derived replays passed; enemy buffs and full-loop integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
 | Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
@@ -183,3 +184,23 @@ from a task returning success, a manifest loading, or a process staying alive.
   no active MaaLimbus Agent/Runner found. Full dungeon acceptance remains pending.
 - See `docs/update-staging.md`. MXU update integration, actual install/rollback,
   source/asset distribution audit and public Release remain pending.
+
+## Experimental native battle planning
+
+- Four pinned small glyphs retain source hashes/notice; one English win-rate
+  marker and local damage glyph(s) are required. Resource/defeat classification
+  wins; duplicates/missing markers and Japanese resources refuse input.
+- Seven actual Maa derived cases passed: plan/stuck each exactly one P, five
+  negative cases zero input. A fresh changed frame/Neutral OCR observation is
+  retained, but plan/coverage/turn/victory/clear remain false. No Enter/EGO/mouse
+  action; an unchanged page is not retried. 112 unit tests pass.
+- Three navigation regressions passed from retained normalized Maa frames,
+  with source mapping in `build/battle-navigation-regression-refs/provenance.json`.
+  The replay helper avoids double resampling these images (`--prepared-frames`);
+  raw reference handling is unchanged. UNKNOWN remains zero input.
+- `build/battle-plan-replay-verification.json`, `docs/battle-planning.md` retain
+  offline scope. Live glyph/ROI/skill coverage, Japanese UI, EGO/survival, turn
+  execution and victory/map return are unverified; MirrorHard still stops at entry.
+- Read-only `build/battle-development-preflight.json`: game PID40196 HIGH12288,
+  current Python MEDIUM8192. No UAC/game input/GUI/live task was started. Latest
+  frozen development ZIP remains `ded609b`, not this battle-planning code.
