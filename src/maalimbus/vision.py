@@ -36,6 +36,9 @@ def classify(records, locale, size):
         return 'EXPIRED_SESSION'
     if find(records, locale['defeat'], (.15, .05, .9, .7), size):
         return 'DEFEAT'
+    if (find(records,locale['acquire_gift'],(.06,.13,.95,.26),size,.8)
+        and find(records,locale['gift_confirm'],(.77,.72,.97,.91),size,.8)):
+        return 'FLOOR_GIFTS'
     if find(records, locale['mirror_menu'], (.23, .25, .46, .55), size) and find(records, locale['inferno'], (.70, .07, .99, .3), size):
         return 'DRIVE'
     if find(records, locale['enter'], (.76, .55, .97, .85), size) and find(records, locale['exploring'], (.68, .10, .96, .3), size):

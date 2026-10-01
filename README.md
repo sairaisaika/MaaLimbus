@@ -15,7 +15,9 @@ Implemented foundations:
   from dungeon deployment; edited team names are matched literally.
 - Atomic private team profiles, deployment order validation, durable run evidence
   and rotation only after all five floors, victory, reward receipt and entry return.
-- Team-aware gift ranking, separate enemy-buff ranking and opt-in resource budgets.
+- Team-aware floor-gift OCR/icon candidates with retained ranking evidence,
+  separate enemy-buff ranking and opt-in resource budgets. Actual acquisition
+  confirmation and next-floor integration remain pending.
 - GitHub Release metadata checks with ETag caching and persisted rate-limit deadlines.
 
 See [design](docs/design.md) and [acceptance evidence](docs/acceptance.md) for the
@@ -41,6 +43,7 @@ Saved-frame checks use the actual Maa parser, OCR and production Pipeline:
 ```powershell
 python tools/verify_native_replay.py --binary <Maa-library-directory> --references <reference-directory>
 python tools/verify_team_replay.py --binary <Maa-library-directory> --frame <team-library-frame>
+python tools/verify_gift_replay.py --binary <Maa-library-directory>
 ```
 
 These checks construct no game controller. Derived title/cover changes are explicitly

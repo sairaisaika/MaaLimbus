@@ -17,6 +17,8 @@ from maalimbus.team_vision import team_row, team_header
 from maalimbus.windows_preflight import check_window, InputPermissionError
 from maalimbus.storage import ProfileStore
 from maalimbus.controller_lease import ControllerLease
+from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend
+from maalimbus.jobs import wait_job
 
 ROOT = Path(os.environ.get('MAALIMBUS_ROOT', Path(__file__).resolve().parents[1]))
 
@@ -54,6 +56,7 @@ class LimbusRecognition(CustomRecognition):
         self.locale_name = locale
         self.scroll_count = 0
         self.scroll_hash = None
+        self.gifts = None
 
     def observe(self, context, image):
         digest = hashlib.sha256(image.tobytes()).hexdigest()
@@ -81,7 +84,22 @@ class LimbusRecognition(CustomRecognition):
         if scene != expected:
             return None
         mode = params.get('team_mode')
-        if mode:
+        if params.get('gift_mode') == 'recommend':
+            if scene != 'FLOOR_GIFTS' or self.team is None:
+                return None
+            if self.gifts is None:
+                self.gifts = GiftCatalog(ROOT/'assets/resource/base')
+            candidates = floor_candidates(argv.image,records,self.locale,self.gifts)
+            target,ranking = recommend(candidates,self.team)
+            self.journal.record('floor_gift_ranking',frame=frame,team_slot=self.team.slot,
+                ranking=ranking,candidates=[{'name':c.gift.name,'owned':c.gift.owned,
+                    'box':c.box,'evidence':c.evidence} for c in candidates],
+                selected=False,reward_received=False)
+            if target is None:
+                return None
+            box,delay = target.box,random.randint(180,480)
+            context.override_pipeline({argv.node_name:{'pre_delay':delay}})
+        elif mode:
             if self.team is None:
                 return None
             size = (argv.image.shape[1], argv.image.shape[0])
@@ -154,8 +172,9 @@ class TeamAction(CustomAction):
             self.recognition.journal.record('team_target', slot=slot, name=self.recognition.team.name)
             return True
         # Take a new observation after selection, rather than trusting an old OCR box.
-        job = context.tasker.controller.post_screencap().wait()
-        if not job.succeeded:
+        try:
+            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        except (TimeoutError,RuntimeError):
             return False
         image = context.tasker.controller.cached_image
         records, scene, frame = self.recognition.observe(context,image)

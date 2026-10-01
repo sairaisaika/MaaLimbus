@@ -16,18 +16,23 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ocr', type=Path, required=True)
     args = parser.parse_args()
-    shutil.copytree(args.ocr, ROOT / 'assets/resource/base/model/ocr', dirs_exist_ok=True)
+    target_ocr = ROOT/'assets/resource/base/model/ocr'
+    if args.ocr.resolve() != target_ocr.resolve():
+        shutil.copytree(args.ocr,target_ocr,dirs_exist_ok=True)
     locales = {
         # The retained Drive screenshot's outlined menu label is read as Mirro
         # at Maa's 720px replay scale. Require the independent Inferno heading.
         'en': {'mirror_menu': r'^Mirro(?:r)?$|Mirror\s*Dungeons?', 'inferno': '^Inferno$', 'enter': '^Enter$',
                'exploring': 'Exploring|Before Entry', 'details': '^Details$', 'teams': r'TEAMS|Preset',
                'forbidden_dialog': r'Purchase\s*Lunacy|Refill\s*Enkephalin|Extract\s*10|Exchange\s*Lunacy',
-               'expired': 'previous session has expired', 'defeat': '^DEFEAT$', 'sin_cost': r'^SIN\s*\|?\s*COST$'},
+               'expired': 'previous session has expired', 'defeat': '^DEFEAT$', 'sin_cost': r'^SIN\s*\|?\s*COST$',
+               'acquire_gift':r'^Acquire\s*E\.?G\.?O\.?\s*Gift$', 'owned_gift':r'^Owned$', 'gift_confirm':r'^Confirm$'},
         'jp': {'mirror_menu': '鏡ダンジョン|鏡のダンジョン', 'inferno': 'Inferno|地獄', 'enter': '入場|入る|Enter',
                'exploring': '探索状況|入場前|探索中|Exploring', 'details': '詳細|Details', 'teams': 'チーム|プリセット|TEAMS',
                'forbidden_dialog': '狂気を購入|狂気で.*回復|抽出10回|エンケファリン.*回復',
-               'expired': '前回.*期限|前回.*終了', 'defeat': '敗北|DEFEAT', 'sin_cost': r'SIN\s*\|?\s*COST|罪悪.*コスト'},
+               'expired': '前回.*期限|前回.*終了', 'defeat': '敗北|DEFEAT', 'sin_cost': r'SIN\s*\|?\s*COST|罪悪.*コスト',
+               'acquire_gift':r'E\.?G\.?O\.?\s*ギフト.*獲得|^Acquire\s*E\.?G\.?O\.?\s*Gift$',
+               'owned_gift':r'^所持済み$|^所持$|^Owned$', 'gift_confirm':r'^確定$|^確認$|^Confirm$'},
     }
     for locale, words in locales.items():
         write(ROOT / f'assets/resource/{locale}/locale.json', words)

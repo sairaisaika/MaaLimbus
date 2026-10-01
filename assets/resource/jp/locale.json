@@ -8,5 +8,8 @@
   "forbidden_dialog": "狂気を購入|狂気で.*回復|抽出10回|エンケファリン.*回復",
   "expired": "前回.*期限|前回.*終了",
   "defeat": "敗北|DEFEAT",
-  "sin_cost": "SIN\\s*\\|?\\s*COST|罪悪.*コスト"
+  "sin_cost": "SIN\\s*\\|?\\s*COST|罪悪.*コスト",
+  "acquire_gift": "E\\.?G\\.?O\\.?\\s*ギフト.*獲得|^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
+  "owned_gift": "^所持済み$|^所持$|^Owned$",
+  "gift_confirm": "^確定$|^確認$|^Confirm$"
 }

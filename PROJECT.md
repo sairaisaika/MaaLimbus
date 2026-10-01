@@ -25,6 +25,12 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Imported 332 pinned public gift icons/keyword groups with file hashes
+  and source paths; added local floor-gift ownership/candidate recognition and
+  Maa ranking targets. Five actual Maa derived OCR/Click replays pass, including
+  paid/blocked zero-input cases; 48 tests plus 3 navigation/6 team regressions pass.
+  No live acquisition/quota/next-floor claim. FGO error option is locally installed
+  with all nine configs preserved; GUI exit and public release remain pending.
 - 2026-10-01: Replaced unbounded live connection/resource/stop waits with finite
   public Maa job polling and a monotonic whole-session deadline. Timeout and
   interruption stop once; failed stops remain unconfirmed and retain the lease

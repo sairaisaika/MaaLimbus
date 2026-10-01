@@ -11,13 +11,13 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Saved teams / deployment / rotation | Library selector replay passed; profiles/checkpoints persist; actual deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |
 | Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
-| Gifts / enemy buffs / theme pack selection | Upstream audited | Candidate ranking and actual choice/postcondition |
+| Gifts / enemy buffs / theme pack selection | Floor-gift OCR/icon candidates + five actual Maa derived replays passed; enemy buffs/pack integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
 | Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |
 | Mail / daily rewards | Design | Claimed/empty mailbox and mission reward evidence |
 | GitHub update / rate-limit resume | Real metadata request: no Release; cache/backoff restart tests passed. Downloader/installer pending | Cached state + retry deadline + checked staged install/rollback |
 | Windows package | Not built | Clean portable build + installed version/config preservation |
-| FGO error option and Release | Pending in sibling project | Option persistence/error action; full release gate + published asset |
+| FGO error option and Release | Error option built/installed, config preserved; actual GUI exit + public Release pending | Option persistence/error action; full release gate + published asset |
 
 ## 2026-10-01 evidence
 
@@ -48,3 +48,24 @@ from a task returning success, a manifest loading, or a process staying alive.
   false and the controller lease stays held until the process exits.
 - Game PID40196 is still HIGH integrity RID12288; the inspected Python controller
   is MEDIUM RID8192. This is a read-only refresh, not a new live attempt.
+
+## Floor-gift recognition refresh
+
+- 48 tests pass. Imported 332 public cropped gift icons from pinned LALC with
+  per-file hashes/source paths and keyword groups. Only local reward labels,
+  ownership strips and gift icons are considered; covers/identities are not.
+- The production recognizer supports `FLOOR_GIFTS` / `gift_mode: recommend` with
+  a configured team. Owned is associated by column, block-list wins, uncertain
+  titles/icons and overlapping candidates are refused. The default rank remains
+  unowned preferred → unowned other → owned. Each ranking retains target/provenance
+  and explicitly sets `selected=false`, `reward_received=false`.
+- Actual Maa OCR/CustomRecognition/Click routing passed five derived public-icon
+  cases: preferred, owned preferred, all blocked, paid zero-input and icon-only
+  identity with the JP resource. This does not verify Japanese rendered text,
+  selection quota, reward confirmation/receipt or a live floor transition.
+  The helper is not yet wired into the full dungeon loop.
+- Three navigation and six team-library Maa replay regressions passed. Private
+  local result: `build/gift-replay-verification.json`.
+- Original FGO installation is now clean 36e2f79, with nine configuration files
+  preserved and a retained rollback directory. Packaged Agent replay passed;
+  GUI error-option/exit and public Release remain unverified/unpublished.
