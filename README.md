@@ -3,6 +3,8 @@
 
 # MaaLimbus
 
+<img src="assets/misc/Don-Quixote.png" width="160" alt="MaaLimbus Don Quixote" />
+
 基于图像识别的 Limbus Company Windows 原生自动化学习项目，由 MaaFramework 驱动。
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)

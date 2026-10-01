@@ -21,10 +21,11 @@ from maalimbus.update_stage import verify_package
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--app',type=Path,required=True)
+    parser.add_argument('--expected-source', required=True, help='Reviewed source commit of this package')
     args=parser.parse_args();app=args.app.resolve()
     files=verify_package(app)
     info=json.loads((app/'build-info.json').read_text(encoding='utf-8'))
-    assert not info['source_dirty'] and info['source_commit'].startswith('8b309b8')
+    assert not info['source_dirty'] and info['source_commit'].startswith(args.expected_source)
     Library.open(app/'maafw',agent_server=False);Toolkit.init_option(ROOT/'build/packaged-battle-debug')
     output=ROOT/'evidence/runtime'/('packaged-battle-'+datetime.now().strftime('%Y%m%d-%H%M%S'))
     results=[]

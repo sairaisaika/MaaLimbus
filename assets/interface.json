@@ -7,23 +7,55 @@
   "license": "../LICENSE",
   "description": "$description",
   "languages": {
+    "zh_cn": "i18n/zh_cn.json",
     "en_us": "i18n/en_us.json",
     "ja_jp": "i18n/ja_jp.json"
   },
   "controller": [
     {
+      "name": "windows-window",
+      "label": "$windows_window",
+      "type": "Win32",
+      "display_long_side": 1920,
+      "permission_required": true,
+      "description": "$windows_window_description",
+      "win32": {
+        "class_regex": "^UnityWndClass$",
+        "window_regex": "^LimbusCompany$",
+        "screencap": "Background",
+        "mouse": "SendMessageWithCursorPos",
+        "keyboard": "PostMessage"
+      }
+    },
+    {
+      "name": "windows-background",
+      "label": "$windows_background",
+      "type": "Win32",
+      "display_long_side": 1920,
+      "permission_required": true,
+      "description": "$windows_background_description",
+      "win32": {
+        "class_regex": "^UnityWndClass$",
+        "window_regex": "^LimbusCompany$",
+        "screencap": "Background",
+        "mouse": "SendMessageWithWindowPos",
+        "keyboard": "PostMessage"
+      }
+    },
+    {
       "name": "windows",
-      "label": "$windows",
+      "label": "$windows_front",
       "type": "Win32",
       "display_long_side": 1920,
       "permission_required": true,
       "win32": {
         "class_regex": "^UnityWndClass$",
         "window_regex": "^LimbusCompany$",
-        "screencap": "FramePool",
+        "screencap": "ScreenDC",
         "mouse": "Seize",
         "keyboard": "Seize"
-      }
+      },
+      "description": "$windows_front_description"
     }
   ],
   "resource": [
@@ -1903,5 +1935,7 @@
         }
       ]
     }
-  }
+  },
+  "icon": "misc/Don-Quixote.png",
+  "welcome": "../README.md"
 }

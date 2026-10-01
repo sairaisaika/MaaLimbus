@@ -3,6 +3,8 @@
 
 # MaaLimbus
 
+<img src="assets/misc/Don-Quixote.png" width="160" alt="MaaLimbus Don Quixote" />
+
 A native Windows Limbus Company automation learning project powered by MaaFramework.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)

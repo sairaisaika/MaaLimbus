@@ -21,5 +21,11 @@
   "deployment_saved": "保存した順番を維持",
   "deployment_natural": "囚人の標準順を保存",
   "prepare_battle_plan": "戦闘プランの準備（開発中）",
-  "battle_plan_scope": "英語画面のみの実験です。MaaでPを一度押して新しい画像を保存し停止します。ターン送信・勝利確認・日本語画面は未対応です。"
+  "battle_plan_scope": "英語画面のみの実験です。MaaでPを一度押して新しい画像を保存し停止します。ターン送信・勝利確認・日本語画面は未対応です。",
+  "windows_window": "Windows · ウィンドウ操作（推奨）",
+  "windows_background": "Windows · バックグラウンド操作",
+  "windows_front": "Windows · フォアグラウンド操作",
+  "windows_window_description": "MaaEndと同じ背景キャプチャとウィンドウメッセージ操作。入力後の画面を確認します。",
+  "windows_background_description": "ウィンドウ位置メッセージとPostMessageキー。ゲームの対応を実機で確認してください。",
+  "windows_front_description": "画面キャプチャと前面のマウス・キー操作。ゲームを表示してください。"
 }

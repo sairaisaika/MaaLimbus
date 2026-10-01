@@ -21,5 +21,11 @@
   "deployment_saved": "Keep saved order",
   "deployment_natural": "Save natural sinner order",
   "prepare_battle_plan": "Prepare battle plan (development)",
-  "battle_plan_scope": "Experimental English battle page only. Press P once through Maa, retain a fresh frame and stop. Does not submit a turn or verify victory."
+  "battle_plan_scope": "Experimental English battle page only. Press P once through Maa, retain a fresh frame and stop. Does not submit a turn or verify victory.",
+  "windows_window": "Windows · Window messages (recommended)",
+  "windows_background": "Windows · Background messages",
+  "windows_front": "Windows · Foreground",
+  "windows_window_description": "MaaEnd-style background capture, cursor-position window mouse messages and PostMessage keys. Verify the expected next page after input.",
+  "windows_background_description": "Window-position mouse messages and PostMessage keys. Test whether this game accepts background input.",
+  "windows_front_description": "Screen capture and foreground mouse/keyboard input. Keep the game visible."
 }

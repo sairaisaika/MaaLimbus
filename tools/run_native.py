@@ -21,6 +21,7 @@ from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction, 
 from maalimbus.windows_preflight import check_window, InputPermissionError
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
+from maalimbus.windows_controller import DEFAULT_CONTROLLER, controller_profile, native_methods
 
 
 def main():
@@ -28,6 +29,9 @@ def main():
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--locale', choices=['en', 'jp'], default='en')
     parser.add_argument('--entry', default='MirrorHard')
+    parser.add_argument('--controller', default=DEFAULT_CONTROLLER,
+                        choices=['windows-window', 'windows-background', 'windows'],
+                        help='PI Win32 profile: window messages, background messages or foreground')
     parser.add_argument('--seconds', type=int, default=180)
     parser.add_argument('--live', action='store_true', required=True)
     args = parser.parse_args()
@@ -62,6 +66,8 @@ def execute(args, directory, journal, state):
     if len(windows) != 1:
         raise RuntimeError('Expected exactly one running LimbusCompany window')
     window = windows[0]
+    interface = ROOT / ('interface.json' if getattr(sys, 'frozen', False) else 'assets/interface.json')
+    profile = controller_profile(interface, args.controller)
     try:
         identity = check_window(window.hwnd)
     except InputPermissionError as error:
@@ -69,9 +75,8 @@ def execute(args, directory, journal, state):
         (directory / 'result.json').write_text(json.dumps({'input_sent':False,
             'reason':'windows_integrity_mismatch', **error.identity},indent=2),encoding='utf-8')
         raise
-    journal.record('preflight_passed', **identity)
-    controller = Win32Controller(window.hwnd, MaaWin32ScreencapMethodEnum.FramePool,
-                                 MaaWin32InputMethodEnum.Seize, MaaWin32InputMethodEnum.Seize)
+    journal.record('preflight_passed', profile=profile['name'], methods=profile['win32'], **identity)
+    controller = Win32Controller(window.hwnd, *native_methods(profile))
     wait_job(controller.post_connection(), deadline=deadline)
     controller.set_screenshot_target_long_side(1920)
     resource = Resource()
@@ -89,7 +94,8 @@ def execute(args, directory, journal, state):
     tasker.bind(resource=resource, controller=controller)
     assert tasker.inited
     session = {'owner': 'native_cli', 'pid': os.getpid(), 'hwnd': window.hwnd,
-               'started': started, 'deadline': started + args.seconds, 'evidence_directory': str(directory), 'entry': args.entry}
+               'started': started, 'deadline': started + args.seconds, 'evidence_directory': str(directory),
+               'entry': args.entry, 'controller_profile': profile['name'], 'methods': profile['win32']}
     (ROOT / 'build/live-session.json').write_text(json.dumps(session, indent=2), encoding='utf-8')
     print(json.dumps(session), flush=True)
     state.update(task_submitted=True, stop_confirmed=False)

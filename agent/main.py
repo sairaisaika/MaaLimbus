@@ -34,6 +34,8 @@ def main():
     locale = resource.get('name', 'en')
     Library.open(Path(os.environ.get('MAAFW_BINARY_PATH', ROOT / 'maafw')), agent_server=True)
     recognition = LimbusRecognition(locale)
+    # MXU owns the actual controller; retain its chosen PI profile for diagnosis.
+    recognition.journal.record('pi_controller', profile=json.loads(os.environ.get('PI_CONTROLLER', '{}')))
     AgentServer.register_custom_recognition('limbus_scene', recognition)
     AgentServer.register_custom_action('limbus_terminal', LimbusTerminal(recognition))
     AgentServer.register_custom_action('limbus_team', TeamAction(recognition))

@@ -83,6 +83,8 @@ def main():
     interface = json.loads((ROOT/'assets/interface.json').read_text(encoding='utf-8'))
     interface['agent'] = {'child_exec': './agent/MaaLimbusAgent.exe', 'child_args': []}
     interface['license'] = './LICENSE'
+    interface['icon'] = 'assets/' + interface['icon']
+    interface['welcome'] = './README.md'
     interface['languages'] = {k:'assets/'+v for k,v in interface['languages'].items()}
     for resource in interface['resource']:
         resource['path'] = [p.replace('./resource/', './assets/resource/') for p in resource['path']]

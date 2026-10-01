@@ -34,7 +34,7 @@ Agent 和 Runner 从自身可执行文件的安装位置定位包根目录，不
 python tools/verify_packaged_replay.py --app <开发包目录> --references <本地参考截图目录>
 python tools/verify_packaged_theme_replay.py --app <开发包目录>
 python tools/verify_packaged_deployment_replay.py --app <开发包目录>
-python tools/verify_packaged_battle_replay.py --app <8b309b8开发包目录>
+python tools/verify_packaged_battle_replay.py --app <开发包目录> --expected-source <该包源码提交>
 ```
 
 此工具使用 Maa CustomController 和保存的画面，经过真实 Maa AgentClient/打包 Agent 的进程通信执行生产识别及 Pipeline。它不创建 Win32 游戏控制器、不发送游戏输入。
@@ -62,3 +62,5 @@ Agent 自检通过。冻结 Agent 经 Maa IPC 对派生正常/卡住画面各按
 `build/update-stage-verification.json` 现在指向此新包；派生 Release 元数据不代表已经发布，
 暂存不安装也不执行。此前612文件包的 stage-result 仍保留在独立旧暂存目录。
 新包尚未打开 MXU 界面、未覆盖安装、未实机输入，也未完成分发审计/发布。
+
+窗口/后台/前台三种控制方式、中文任务词条与小唐窗口图标现已通过 PI 配置；具体方法和实机边界见 [原生控制](native-control.md)。
