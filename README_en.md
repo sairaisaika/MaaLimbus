@@ -18,7 +18,7 @@ A native Windows Limbus Company automation learning project powered by MaaFramew
 
 ## Introduction
 
-MaaLimbus uses the MaaFramework Win32 controller, Pipeline and Python Agent with English and Japanese resources. MXU is the planned desktop client; a portable package has not been built.
+MaaLimbus uses the MaaFramework Win32 controller, Pipeline and Python Agent with English and Japanese resources. A local Windows development package with MXU has been built; desktop UI and live operation remain unverified.
 
 The priority is **five Hard Mirror Dungeon floors → verified rewards → saved-team rotation → repeat**. The complete loop is neither implemented nor verified live. This is not yet a working dungeon farming tool.
 
@@ -27,7 +27,7 @@ Recognition uses local text, stable icons and positions rather than variable dun
 ## Get started
 
 > [!IMPORTANT]
-> Development source is available; a verified Windows distribution is not. Startup, task success and offline tests do not establish dungeon completion.
+> Development source and a local development package are available; a fully live-verified release is not. Startup, task success and offline tests do not establish dungeon completion.
 
 On Windows with Python 3.11+ and MaaFramework 5.12.2 native libraries:
 
@@ -95,10 +95,12 @@ python tools/verify_gift_replay.py --binary <Maa-library-directory>
 
 Resource parsing does not prove Japanese live-flow coverage. Derived cover/title changes are marked separately.
 
+See [Windows packaging](docs/windows-package.md) for building and replaying the packaged Agent over Maa IPC. The builder creates a fresh local directory; it does not launch the desktop client, request UAC, replace an installation or publish a Release.
+
 ## Acknowledgements
 
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework): controllers, recognition, Pipeline and Python interfaces.
-- [MXU](https://github.com/MistEO/MXU): planned ProjectInterface desktop client; integration pending.
+- [MXU](https://github.com/MistEO/MXU): unmodified ProjectInterface desktop client in the development package; UI acceptance pending.
 - [LixAssistantLimbusCompany](https://github.com/HSLix/LixAssistantLimbusCompany): workflow/team/gift references and attributed assets; its controller is not embedded.
 - [MaaCommonAssets](https://github.com/MaaXYZ/MaaCommonAssets) and [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR): OCR resources and notices.
 

@@ -25,6 +25,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Built first local Windows development package with unmodified MXU,
+  Maa and frozen Agent/Runner; fixed installed roots/import-time native library
+  paths. 57 tests and actual packaged Agent IPC reference/unknown replays passed.
+  Manifest/privacy checks passed; no live game input or new UAC. Full dungeon,
+  desktop UI and release audit remain pending.
 - 2026-10-01: Reworked Chinese/English README against pinned MaaFramework
   structure, added direct build/interface references and truthful feature scope.
   Distinguished the project's existing AGPL choice from MaaFramework LGPL;

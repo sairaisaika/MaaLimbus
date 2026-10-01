@@ -9,6 +9,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'agent')]
+from maalimbus.runtime_paths import ROOT
 
 from maa.controller import Win32Controller
 from maa.define import MaaWin32ScreencapMethodEnum, MaaWin32InputMethodEnum

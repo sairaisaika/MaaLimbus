@@ -19,8 +19,7 @@ from maalimbus.storage import ProfileStore
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend
 from maalimbus.jobs import wait_job
-
-ROOT = Path(os.environ.get('MAALIMBUS_ROOT', Path(__file__).resolve().parents[1]))
+from maalimbus.runtime_paths import ROOT
 
 
 class Journal:

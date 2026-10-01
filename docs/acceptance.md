@@ -16,7 +16,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |
 | Mail / daily rewards | Design | Claimed/empty mailbox and mission reward evidence |
 | GitHub update / rate-limit resume | Real metadata request: no Release; cache/backoff restart tests passed. Downloader/installer pending | Cached state + retry deadline + checked staged install/rollback |
-| Windows package | Not built | Clean portable build + installed version/config preservation |
+| Windows package | Local development package built; packaged Agent IPC replay passed; MXU UI/live acceptance and release audit pending | Portable build + actual UI/runtime + installed version/config preservation |
 | FGO error option and Release | Error option built/installed, config preserved; actual GUI exit + public Release pending | Option persistence/error action; full release gate + published asset |
 
 ## 2026-10-01 evidence
@@ -98,3 +98,20 @@ from a task returning success, a manifest loading, or a process staying alive.
 - `docs/readme-license-reference.md` maps the user's four specified references
   to the current application and lists remaining packaging/artwork rights gaps.
   Documentation alignment is not evidence of live completion or release readiness.
+
+## Local Windows package and packaged IPC verification
+
+- Fixed frozen Agent/Runner root resolution and import-time native library setup.
+  Packaged resources are resolved from the executable's installation, not cwd or
+  PyInstaller extraction. EN/JP and gift catalog load from the actual package.
+- 57 tests passed, including installed path resolution, unsafe archive prevalidation
+  and public source archive privacy exclusions. Two packed executables built.
+- Actual Maa AgentClient connected to the packaged Agent. Installed resource/OCR/
+  Pipeline passed reference navigation (two replay clicks, TEAM_LIBRARY boundary)
+  and UNKNOWN (zero input). Both preserve `verified_clear: false`; no Win32 game
+  controller was constructed. Record: `build/packaged-replay-verification.json`.
+- Local development ZIP manifest verified; source/third-party notices are included.
+  Builder never overwrites an install or publishes a release. Current game process
+  remained HIGH integrity 12288 vs controller MEDIUM 8192; no UAC was requested.
+- Actual MXU UI, live input, five floors/rewards/rotation and complete source/asset
+  redistribution audit remain pending. This is a local development packaging gate.

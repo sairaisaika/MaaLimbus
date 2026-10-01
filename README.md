@@ -18,7 +18,7 @@
 
 ## 简介
 
-MaaLimbus 使用 MaaFramework 的 Win32 控制器、Pipeline 和 Python Agent，面向 Windows 原生客户端，提供英语和日语资源包。桌面客户端计划使用 MXU，当前尚未完成便携包构建。
+MaaLimbus 使用 MaaFramework 的 Win32 控制器、Pipeline 和 Python Agent，面向 Windows 原生客户端，提供英语和日语资源包。已构建使用 MXU 的本地 Windows 开发包；桌面界面与实机运行仍待验证。
 
 首要目标是 **困难镜牢五层 → 确认领奖 → 切换已保存队伍 → 继续刷取**。完整循环尚未完成实现或实机验证，当前不能作为可用的镜牢挂机工具。
 
@@ -27,7 +27,7 @@ MaaLimbus 使用 MaaFramework 的 Win32 控制器、Pipeline 和 Python Agent，
 ## 即刻开始
 
 > [!IMPORTANT]
-> 当前提供开发源码，没有已验证可用的 Windows 安装包。启动进程、任务返回成功和离线测试通过均不代表镜牢通关。
+> 当前提供开发源码及本地开发包，尚无经完整实机验收的发布包。启动进程、任务返回成功和离线测试通过均不代表镜牢通关。
 
 开发需要 Windows、Python 3.11+ 和 MaaFramework 5.12.2 原生库：
 
@@ -101,10 +101,12 @@ python tools/verify_gift_replay.py --binary <Maa原生库目录>
 
 英语/日语资源包能被解析，不等于日语实机流程已验证。变换后的封面、标题等派生回放会单独标记。
 
+Windows 开发包构建与打包 Agent 的 Maa 通信回放见 [打包说明](docs/windows-package.md)。构建器只创建新的本地目录，不启动桌面客户端、不请求 UAC、不替换旧安装，也不发布 Release。
+
 ## 鸣谢
 
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)：原生控制器、识别、Pipeline 与 Python 接口。
-- [MXU](https://github.com/MistEO/MXU)：计划使用的 ProjectInterface 桌面客户端，集成尚未完成。
+- [MXU](https://github.com/MistEO/MXU)：开发包中使用的未修改 ProjectInterface 桌面客户端；界面验收仍待完成。
 - [LixAssistantLimbusCompany](https://github.com/HSLix/LixAssistantLimbusCompany)：镜牢流程、队伍/礼物选择参考及有来源记录的礼物素材；未嵌入其控制器。
 - [MaaCommonAssets](https://github.com/MaaXYZ/MaaCommonAssets) 与 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)：OCR 模型及相关许可。
 

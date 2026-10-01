@@ -4,6 +4,10 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'agent')]
+from maalimbus.runtime_paths import ROOT
+if getattr(sys, 'frozen', False):
+    # maa.agent imports and opens its native library immediately.
+    os.environ['MAAFW_BINARY_PATH'] = str(ROOT / 'maafw')
 
 from maa.agent.agent_server import AgentServer
 from maa.library import Library
@@ -12,6 +16,18 @@ from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPref
 
 def main():
     import json
+    if sys.argv[1:] == ['--self-test']:
+        # Read actual installed resources and load native libraries; no controller.
+        Library.open(ROOT / 'maafw', agent_server=True)
+        for locale in ('en', 'jp'):
+            LimbusRecognition(locale)
+        from maalimbus.gift_vision import GiftCatalog
+        GiftCatalog(ROOT / 'assets/resource/base')
+        print(json.dumps({'passed': True, 'application_root': str(ROOT),
+                          'device_controller': False, 'locales': ['en', 'jp']}))
+        return
+    if len(sys.argv) != 2:
+        raise SystemExit('Expected Maa Agent socket identifier or --self-test')
     resource = json.loads(os.environ.get('PI_RESOURCE', '{}'))
     locale = resource.get('name', 'en')
     Library.open(Path(os.environ.get('MAAFW_BINARY_PATH', ROOT / 'maafw')), agent_server=True)
