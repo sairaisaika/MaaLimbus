@@ -12,7 +12,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 | Five hard floors | Not verified | Floor 1..5 battle and completion observations |
 | Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
 | Gifts / enemy buffs / theme pack selection | Upstream audited | Candidate ranking and actual choice/postcondition |
-| Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays and stuck-scroll replay passed | Full-run cancellation and timeout checks still required |
+| Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |
 | Mail / daily rewards | Design | Claimed/empty mailbox and mission reward evidence |
 | GitHub update / rate-limit resume | Real metadata request: no Release; cache/backoff restart tests passed. Downloader/installer pending | Cached state + retry deadline + checked staged install/rollback |
@@ -38,3 +38,13 @@ from a task returning success, a manifest loading, or a process staying alive.
 - FGO's full current Python suite subsequently passed 710 tests after stale
   controller-scenario timing/retry assertions were corrected. Production behavior
   unchanged. Error options, license and release package/publishing are still pending.
+
+## Runtime bounds refresh
+
+- 43 tests pass, including finite pending setup/stop jobs, timeout cancellation,
+  interrupted sessions and the distinction between task status and dungeon clear.
+- CLI setup/load time now consumes the same monotonic session budget; wall-clock
+  changes cannot extend it. If a stop does not complete, `stop_confirmed` remains
+  false and the controller lease stays held until the process exits.
+- Game PID40196 is still HIGH integrity RID12288; the inspected Python controller
+  is MEDIUM RID8192. This is a read-only refresh, not a new live attempt.

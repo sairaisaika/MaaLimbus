@@ -25,6 +25,12 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-01: Replaced unbounded live connection/resource/stop waits with finite
+  public Maa job polling and a monotonic whole-session deadline. Timeout and
+  interruption stop once; failed stops remain unconfirmed and retain the lease
+  until process exit. Technical completion never marks a dungeon clear. 43 tests
+  pass. Read-only identity refresh still shows HIGH game / MEDIUM controller;
+  no live input attempted.
 - 2026-10-01: Native entry OCR replay corrected for the retained `Mirro` reading;
   changed covers and unknown frames passed actual Maa replay. Identified supplied
   team frame as Sinners library, implemented bounded native selection and fresh

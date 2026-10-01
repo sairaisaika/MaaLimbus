@@ -19,6 +19,7 @@ from maa.toolkit import Toolkit
 from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight
 from maalimbus.windows_preflight import check_window, InputPermissionError
 from maalimbus.controller_lease import ControllerLease
+from maalimbus.jobs import wait_job, wait_task
 
 
 def main():
@@ -31,10 +32,29 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.seconds <= 3600:
         parser.error('Session must be bounded to at most one hour')
-    lock_path = ROOT / 'build/controller.lock'
-    lock = ControllerLease.acquire(lock_path)
+    lock = ControllerLease.acquire(ROOT / 'build/controller.lock')
     directory = ROOT / ('evidence/runtime/live-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     journal = Journal(directory)
+    state = {'task_submitted':False, 'stop_confirmed':True}
+    try:
+        result = execute(args, directory, journal, state)
+    except Exception as error:
+        result = {'reason':'session_failed' if state['task_submitted'] else 'session_setup_failed',
+                  'error':str(error), 'input_sent':None if state['task_submitted'] else False,
+                  'verified_clear':False, **state}
+        # Never replace a more specific privilege/identity failure record.
+        if not (directory / 'result.json').exists():
+            (directory / 'result.json').write_text(json.dumps(result, indent=2),encoding='utf-8')
+        raise
+    finally:
+        # An unconfirmed stop retains the lease until this process exits.
+        if state['stop_confirmed']:
+            lock.close()
+
+
+def execute(args, directory, journal, state):
+    started = time.time()
+    deadline = time.monotonic() + args.seconds
     Library.open(args.binary, agent_server=False)
     Toolkit.init_option(ROOT / 'build/debug')
     windows = [w for w in Toolkit.find_desktop_windows() if w.window_name == 'LimbusCompany' and w.class_name == 'UnityWndClass']
@@ -51,7 +71,7 @@ def main():
     journal.record('preflight_passed', **identity)
     controller = Win32Controller(window.hwnd, MaaWin32ScreencapMethodEnum.FramePool,
                                  MaaWin32InputMethodEnum.Seize, MaaWin32InputMethodEnum.Seize)
-    assert controller.post_connection().wait().succeeded
+    wait_job(controller.post_connection(), deadline=deadline)
     controller.set_screenshot_target_long_side(1920)
     resource = Resource()
     recognition = LimbusRecognition(args.locale, journal)
@@ -59,32 +79,23 @@ def main():
     resource.register_custom_action('limbus_terminal', LimbusTerminal(recognition))
     resource.register_custom_action('limbus_team', TeamAction(recognition))
     resource.register_custom_action('limbus_preflight',InputPreflight(recognition))
-    assert resource.post_bundle(ROOT / 'assets/resource/base').wait().succeeded
-    assert resource.post_bundle(ROOT / f'assets/resource/{args.locale}').wait().succeeded
+    wait_job(resource.post_bundle(ROOT / 'assets/resource/base'), timeout=20, deadline=deadline)
+    wait_job(resource.post_bundle(ROOT / f'assets/resource/{args.locale}'), timeout=20, deadline=deadline)
     tasker = Tasker()
     tasker.bind(resource=resource, controller=controller)
     assert tasker.inited
-    started = time.time()
     session = {'owner': 'native_cli', 'pid': os.getpid(), 'hwnd': window.hwnd,
                'started': started, 'deadline': started + args.seconds, 'evidence_directory': str(directory), 'entry': args.entry}
     (ROOT / 'build/live-session.json').write_text(json.dumps(session, indent=2), encoding='utf-8')
     print(json.dumps(session), flush=True)
+    state.update(task_submitted=True, stop_confirmed=False)
     job = tasker.post_task(args.entry)
-    timed_out = False
-    try:
-        while not job.done:
-            if time.time() - started >= args.seconds:
-                timed_out = True
-                break
-            time.sleep(.2)
-    finally:
-        if not job.done:
-            tasker.post_stop().wait()
-        result = {'task_succeeded': job.succeeded, 'timed_out': timed_out,
-                  'last_scene': recognition.last_scene, 'verified_clear': False}
-        (directory / 'result.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
-        print(json.dumps(result))
-        lock.close()
+    result = wait_task(tasker, job, deadline=deadline)
+    state['stop_confirmed'] = result['stop_confirmed']
+    result['last_scene'] = recognition.last_scene
+    (directory / 'result.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
+    print(json.dumps(result))
+    return result
 
 
 if __name__ == '__main__':
