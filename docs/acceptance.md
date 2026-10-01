@@ -155,3 +155,10 @@ from a task returning success, a manifest loading, or a process staying alive.
   come from pinned Lix; badge strips are experimental, not live-validated geometry.
   Capacity semantics for overflow, actual sinner identity, Japanese rendering,
   battle start and five-floor/reward/rotation acceptance remain pending.
+- Clean `ded609b` Windows development package built; 612 manifest hashes,
+  private-data exclusions and Agent self-test pass. Frozen Agent over Maa IPC
+  verifies ordered choice, stuck no-repeat and paid zero-input cases with saved
+  team 2/name/keywords/weights preserved. Records:
+  `build/packaged-deployment-replay-verification.json` and
+  `build/deployment-package-integrity.json`. Three reference navigation/changed
+  cover/UNKNOWN regression replays also pass. No live controller or UAC request.
