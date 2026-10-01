@@ -69,3 +69,10 @@ Agent 自检通过。冻结 Agent 经 Maa IPC 对派生正常/卡住画面各按
 MXU，原生截图确认小唐窗口图标、中文任务和三种控制方式，语言/保留日志设置在重启后生效。
 证据 `build/native-ui-verification.json`、`evidence/runtime/native-ui-chinese-check/main-frame.png`。
 这只验收界面显示，不代表队伍选项执行、原生游戏输入或五层通关；完整范围见 acceptance。
+
+干净 `d14d119` 新开发包包含十二位置下拉选项和回调异常停止修复，622文件哈希与
+Agent 自检通过。冻结 Agent 的九组出战 IPC 验证自定义保存、重复/缺位置拒绝、
+错误参数/配置损坏/日志失败零输入；四组战斗 IPC 回归仍为 1/1/0/0 次 P。
+`build/windows-package-latest.json` 指向新包；`build/packaged-deployment-replay-verification.json`
+与 `build/battle-package-integrity.json` 保存证明。旧 GUI 仍运行08c2adc，未替换；
+新包的选项界面未实机打开，均未验证五层/领奖/轮换或发布。

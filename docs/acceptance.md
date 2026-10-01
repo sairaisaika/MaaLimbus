@@ -10,9 +10,17 @@
 - 125 tests, 17 actual Maa derived deployment cases and seven battle-planning
   regressions pass. Six callback faults produce zero clicks, no order proof or
   battle start. `build/deployment-replay-verification.json` retains actual errors.
-- This is source/offline validation. The open 08c2adc GUI does not contain these
-  new choices/guards. Full five floors/rewards/rotation and live geometry remain
-  unverified; no game input, GUI replacement or UAC request occurred.
+- Clean d14d119 Windows development package: 622 manifest hashes/self-test pass.
+  Nine frozen-Agent deployment IPC cases pass, including custom save and five
+  invalid-config/evidence cases with zero input. Four frozen-Agent battle
+  regressions pass (1/1/0/0 P), plus three source navigation regressions.
+  `build/packaged-deployment-replay-verification.json`,
+  `build/packaged-battle-replay-verification.json`, `build/battle-package-integrity.json`
+  retain this package's scope. No release, game controller, GUI replacement or UAC.
+- The open 08c2adc GUI still lacks these new choices/guards. New package UI has
+  not been opened. Full five floors/rewards/rotation and live geometry remain
+  unverified; game PID40196 remains minimized 0x0/HIGH, controller MEDIUM.
+  Fresh read-only identity: `build/callback-fix-preflight.json`.
 
 Each requirement needs implementation plus matching verification scope. Status is not inferred
 from a task returning success, a manifest loading, or a process staying alive.
