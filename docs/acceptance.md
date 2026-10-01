@@ -69,3 +69,20 @@ from a task returning success, a manifest loading, or a process staying alive.
 - Original FGO installation is now clean 36e2f79, with nine configuration files
   preserved and a retained rollback directory. Packaged Agent replay passed;
   GUI error-option/exit and public Release remain unverified/unpublished.
+
+## Native Windows launcher and continuation schedule
+
+- Compared MaaEnd's published `assets/interface.json`: Win32 foreground/background
+  controllers declare `permission_required: true`. LALC's `update_to.bat` starts
+  its application with standard Windows `RunAs`. MaaLimbus now declares the same
+  permission requirement and includes `tools/start_native.ps1` with normal UAC.
+- Launcher/wrapper scripts parse successfully. The wrapper invokes only the native
+  bounded Maa CLI, records separate stdout/stderr, and enforces the exact created
+  process's outer deadline. Identity and one-controller gates are preserved.
+- A real UAC request was issued this turn; Windows returned operation cancelled.
+  No new wrapper/runner or live transition was established. No permission was
+  bypassed and no second request was issued. The game remains at Before Entry.
+- App heartbeat `maalimbus` is active every 30 minutes on the current thread.
+  It checks usage availability and resumes the entire goal after limits recover,
+  remaining quiet on unchanged/limited state. This is scheduling proof, not proof
+  of future executions or live dungeon completion.

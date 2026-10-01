@@ -35,8 +35,20 @@ python tools/check_update.py
 
 The prepared ProjectInterface is `assets/interface.json`. `tools/run_native.py`
 uses one locked controller and a session of at most one hour. It refuses lower-privilege
-input to an elevated game. Maa and Steam/game must have matching privileges;
-the application does not elevate itself or restart Steam without user action.
+input to an elevated game. Maa and Steam/game must have matching privileges.
+The PI Win32 controller declares `permission_required: true`, following MaaEnd.
+The standard launcher requests Windows UAC consent; it cannot approve that consent
+or restart Steam. An approved session still verifies process identity and holds
+the single-controller lock. A cancelled request starts no controller.
+
+```powershell
+./tools/start_native.ps1 -Binary <Maa-library-directory> -Locale en -Seconds 180
+```
+
+The launch wrapper records `build/native-launch.json`, writes stdout/stderr to
+`build/native-live.*.log`, and allows the bounded runner to stop before enforcing
+its outer timeout. A launched process is not evidence of working game input;
+the next recognized page must verify each transition.
 
 Saved-frame checks use the actual Maa parser, OCR and production Pipeline:
 

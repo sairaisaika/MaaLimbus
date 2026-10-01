@@ -16,7 +16,7 @@
       "label": "$windows",
       "type": "Win32",
       "display_long_side": 1920,
-      "permission_required": false,
+      "permission_required": true,
       "win32": {
         "class_regex": "^UnityWndClass$",
         "window_regex": "^LimbusCompany$",

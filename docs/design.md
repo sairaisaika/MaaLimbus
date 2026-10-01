@@ -38,6 +38,13 @@ Windows input method must be verified against the running game; no assumption th
 messages work. Click positions are sampled inside an inset recognized box; delays are sampled
 within configured bounds. Re-check page and resource policy immediately before sensitive input.
 
+Like MaaEnd's published PI Win32 controllers, the packaged Win32 controller declares
+`permission_required: true`. The developer launcher uses ordinary Windows `RunAs`
+with interactive UAC consent, as LALC's updater launcher does. The application
+does not approve/bypass consent. Identity/privilege and single-controller gates
+remain active after launch. Maa `Seize` performs foreground mouse down/up; a
+successful SendInput return is insufficient without the expected next page.
+
 ## Choice policy
 
 LALC's floor gift order: unowned preferred keyword/allow-list → unowned other → owned.

@@ -73,7 +73,7 @@ def main():
         'interface_version': 2, 'name': 'MaaLimbus', 'label': 'MaaLimbus', 'version': 'v0.1.0',
         'github': 'https://github.com/sairaisaika/MaaLimbus', 'license': '../LICENSE',
         'description': '$description', 'languages': {'en_us': 'i18n/en_us.json', 'ja_jp': 'i18n/ja_jp.json'},
-        'controller': [{'name': 'windows', 'label': '$windows', 'type': 'Win32', 'display_long_side': 1920, 'permission_required': False,
+        'controller': [{'name': 'windows', 'label': '$windows', 'type': 'Win32', 'display_long_side': 1920, 'permission_required': True,
                         'win32': {'class_regex': '^UnityWndClass$', 'window_regex': '^LimbusCompany$', 'screencap': 'FramePool', 'mouse': 'Seize', 'keyboard': 'Seize'}}],
         'resource': [{'name': 'en', 'label': 'English', 'path': ['./resource/base', './resource/en']},
                      {'name': 'jp', 'label': '日本語', 'path': ['./resource/base', './resource/jp']}],
