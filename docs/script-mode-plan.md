@@ -254,6 +254,7 @@ config/user-team-profiles.json            # 轮换与队伍偏好
 
 - **P0 五层跑通 + 真实领奖**（进行中）：地图→节点→面板→队伍→战斗→胜利→回地图已实机验证；待补「层奖励选择 → 下一层 → 第 5 层结算领奖 → 轮换再入场」。
   - 战后这一段的所有者已定（2026-10-06，轮 22）：`mirror.json` 只走到战斗，`BattleObserve.next → PostBattleObserve` 之后交回 `tools/window_step.py`；那些页面的计划与护栏都在 `src/maalimbus/window.py:plan_step`，**不要**给奖励卡/层礼物/商店加 `Click` 节点（没有钩子会执行 window 计划，见 `docs/post-battle-ownership.md`）。
+  - 商店那一步：**顺序有权威依据，选择策略没有**（2026-10-06，轮 28/29）。顺序取自 LALC 自己的全自动配置 `D:\Program Files (x86)\lalc\config\task\full_auto_mirror.json:589-627`：认页 → `sell_unwanted_ego_gift` → `heal_all_sinner` → `purchase_wanted_ego_gift` → `enhance_wanted_ego_gift` → 点 (1400,860) → Enter 确认离店。但三个 `custom_name` 的实现**在可读源码里不存在**（`D:\Program Files (x86)\lalc` 与 `D:\scripts\lalc` 都搜不到），LALC 的 `config/` 里也没有礼物优先级表（只有 config / lalc_config / starlight_config / task\* / theme_pack / team）。⇒ 商店在取到真实商店帧之前**保持观望**，只记录（买了什么、花了多少、有哪些可选），**不发明**「卖/买/强化谁」的判断；机械部分（离店与确认）已由驱动在真机验证过。
   验收：`run-ledger.json` 记录 5 层、真实领奖证据帧、轮换 index 递增。
 - **P1 自检与采集（已完成，2026-10-06 离线）**：`anchors.json` + `verify_anchors.py`（留档回放，以及 `--frame` 对当前帧的漂移自检）+ `capture_anchors.py`（一条命令采集模板/几何并登记，写完即回放，不命中不留文件）。
   验收：故意改一版 UI 后自检能列出失配锚点及其影响的 Task（`--frame` 逐条 `drift`/`MISS` 且 exit 1）；采集命令能新增一条模板并登记（`tests/test_capture_anchors.py`）。
