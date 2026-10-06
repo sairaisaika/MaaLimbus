@@ -1656,6 +1656,11 @@
       "id": "run_end_entry_return",
       "what": "一局结束后的结算出口与回到镜牢入口再入场",
       "why": "收据＋轮换 index 推进的终点；「中途再入场」的 Dungeon Progress 弹窗已在 resume_dialog 页证明，仍缺一局结束后的出口路径"
+    },
+    {
+      "id": "previous_session_expired",
+      "what": "上一周镜牢未结算时弹出的提示（LALC 模板文案 “The previous session has expired. Please claim your rewards.” ＋ 领取按钮）",
+      "why": "这类软锁是 LALC 明确交回人工的一类（mirror_enter_last_week → report_error “请手动结算上周的镜牢再启动 | Please finish your Dungeon and restart”）；MaaLimbus 命中即停机并通知用户，绝不代替用户结算或重启客户端"
     }
   ]
 }

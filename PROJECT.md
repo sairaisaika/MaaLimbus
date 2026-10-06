@@ -27,6 +27,18 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   脚本侧维持 `no_candidate_node_observed` 停机，绝不盲点。
 - 新增诊断开关 `tools/window_step.py --swipe x1,y1,x2,y2[,duration_ms]`（一次手势，与 `--click-box` 共用 before/after
   记录，`goal = 0 if (boxes or swipes)`），用于证明「地图能拖」；全量 **269 passed**。
+- **联网核查（本轮补做，回答「为什么之前遗漏」）**：
+  - 之前只参考了 LALC（PC 端 Python 应用），**漏掉了 Maa 官方的原生 Limbus 项目**：
+    [MaaXYZ/MAALimbusCompany](https://github.com/MaaXYZ/MAALimbusCompany)（66★，最后推送 2024-08-11；`assets/interface.json`、
+    `assets/resource/base/pipeline/{startup,combat,awards,daily,psychube,wilderness}.json`）——它**没有镜牢**管线（2024 年版本），
+    但 `interface.json` 是 ProjectInterface V2 的原生写法，做 Windows 包（MXU/PI）时应作为格式基准。
+  - 官方公告（Steam 新闻 API `ISteamNews/GetNewsForApp?appid=1973530`）核查到两条与本情况相关的：
+    「Ver. 1.115.0 Known Issues Hotfix & **Save Restoration** Added」（2026-09-24）——Project Moon 为 **Canto X 的软锁**加了
+    「设置 → Sisyphe 标签页底部 Restore Save」的兜底，但**只覆盖主线任务软锁，镜牢不在其列**；
+    同公告还修了「某些楼层在较窄宽高比下地图被裁切」——与我们「地图能拖、节点不响应」不是同一现象。
+    「Known Issues After the Oct. 1st, 2026 Scheduled Update」列出「(The Shadowed) 战斗中进度无法推进」。
+  - 结论不变：镜牢卡死属 LALC 也要求人工处置的一类（`mirror_enter_last_week` → “Please finish your Dungeon and restart”），
+    脚本侧继续只做「识别 + 停机」，不做任何猜测性补救。
 
 ## Prior continuation: 2026-10-06 04:35 local
 - 新页面落地：**遭遇奖励卡**（`Select Encounter Reward Card`）。清掉一个节点后游戏交回一张
