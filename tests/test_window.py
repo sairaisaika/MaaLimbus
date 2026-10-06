@@ -246,8 +246,10 @@ def test_tutorial_follows_the_live_page_turn_triangle():
                      arrows={'previous': [93, 519, 40, 44], 'next': None})
     assert last['action'] == RECORD
     assert last['reason'] == 'tutorial_last_page_has_no_forward_control'
-    # With the book's own header arrow anchored the last card is closed instead of
-    # stopping: live, clicking it over the team page uncovered PRE_BATTLE_TEAM.
+    # With the book's own header arrow anchored it outranks ▶: the header closes the
+    # whole guide, while ▶ only turns one page (live: build/window-run50.json turned
+    # eleven pages without ever reaching the team page underneath; the player read
+    # that screen and said to click the top-left corner instead).
     closed = plan_step('TUTORIAL',
                        controls={'tutorial.next_button': [1782, 505, 76, 52],
                                  'tutorial.book_close': [83, 27, 114, 77]},
@@ -255,9 +257,14 @@ def test_tutorial_follows_the_live_page_turn_triangle():
     assert closed['action'] == CLICK
     assert closed['target'] == [83, 27, 114, 77]
     assert closed['advance'] is True
-    assert closed['reason'] == 'tutorial_last_page_is_closed_from_the_book_header'
+    assert closed['reason'] == 'tutorial_book_is_closed_from_its_own_header_arrow'
     assert successor_ok(closed, 'PRE_BATTLE_TEAM')
     assert not successor_ok(closed, 'TUTORIAL')
+    opening = plan_step('TUTORIAL',
+                        controls={'tutorial.next_button': [1782, 505, 76, 52],
+                                  'tutorial.book_close': [83, 27, 114, 77]},
+                        arrows={'previous': [93, 519, 40, 44], 'next': [1787, 517, 40, 44]})
+    assert opening['target'] == [83, 27, 114, 77]
     # Without a frame reading at all the anchor is still the best available box.
     blind = plan_step('TUTORIAL', controls={'tutorial.next_button': [1787, 517, 39, 44]})
     assert blind['target'] == [1787, 517, 39, 44]

@@ -135,7 +135,16 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # page-turn triangles move, and the book's last page shows only ``previous``
         # (live: evidence/runtime/window-20261006-030152/frame-0014.png), where a
         # fixed right-edge box clicks empty space and proves nothing.
+        #
+        # The book's own header arrow in the top-left corner is tried first: it closes
+        # the whole guide, while its ▶ only ever turns one page. The player pointed
+        # this out after a run turned eleven pages without reaching the team page
+        # underneath (build/window-run50.json).
         arrows = arrows or {}
+        close = controls.get('tutorial.book_close')
+        if close is not None:
+            return _plan(page, CLICK, target=close, expect=(ANY,), advance=True,
+                         reason='tutorial_book_is_closed_from_its_own_header_arrow')
         if arrows.get('next'):
             box = arrows['next']
         elif arrows:
