@@ -103,9 +103,9 @@ def auto_assign_buttons(records, size):
     Each button is the union of its two caption words in its own band. These are
     read-only targets; this function never clicks and never infers a turn result.
     """
-    win = find(records, r'^Win$', (.60, .70, .69, .80), size, .85)
-    rate = find(records, r'^Rate$', (.60, .70, .69, .80), size, .85)
-    damage = find(records, r'^Damage$', (.59, .77, .70, .84), size, .85)
+    win = find(records, r'^Win$', (.58, .70, .74, .81), size, .85)
+    rate = find(records, r'^Rate$', (.58, .70, .74, .81), size, .85)
+    damage = find(records, r'^Damage$', (.58, .77, .75, .86), size, .85)
     if len(win) != 1 or len(rate) != 1 or len(damage) != 1:
         return None
     union = (min(win[0].box[0], rate[0].box[0]), min(win[0].box[1], rate[0].box[1]),

@@ -23,6 +23,25 @@ def load(path):
     return [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']], tuple(data['size'])
 
 
+SHIFTED = ROOT / 'evidence/runtime/battle-step-20261006-013429/frame-0001.json'
+
+
+def test_auto_assign_buttons_survive_a_shifted_board_layout():
+    """The buttons move with the board; the bands must still find them."""
+    if not SHIFTED.exists():
+        pytest.skip('retained live shifted-layout evidence is not present')
+    records, size = load(SHIFTED)
+    hud = battle_hud(records, size)
+    assert hud is not None and hud['turn'] == '3'      # the turn glyph is readable here
+    buttons = auto_assign_buttons(records, size)
+    assert buttons is not None
+    assert buttons['win_rate'] == (1312, 796, 50, 43)
+    assert buttons['damage'] == (1300, 861, 76, 28)
+    plan = auto_assign_plan(records, size)
+    assert plan['reason'] == 'win_rate_auto_assign' and plan['target'] == (1312, 796, 50, 43)
+    assert plan['turn'] == '3'
+
+
 def test_auto_assign_plan_is_pinned_to_the_live_battle_frame():
     if not BATTLE.exists():
         pytest.skip('retained live battle evidence is not present')
