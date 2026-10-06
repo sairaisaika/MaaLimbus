@@ -153,7 +153,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
-    if page == 'MIRROR_ENTRY':
+    if page == 'BATTLE_RESULT':
+        # The victory screen has a proven producer and the pipeline clicks it
+        # through PostBattleObserve, but no control for it has been anchored on a
+        # real frame yet. Refuse by name rather than falling through to the
+        # generic observe-only answer, so the driver says what is missing.
+        return _refuse(page, 'battle_result_control_not_anchored')
+    if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY'):
         box = controls.get('entry.enter_button')
         if box is None:
             return _refuse(page, 'entry_enter_button_not_anchored')

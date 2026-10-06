@@ -42,13 +42,12 @@ def test_every_proven_page_gets_a_plan_of_its_own():
         assert plan.get('page') == page, (page, plan)
         if plan.get('reason') == fallback:
             offenders.append(page)
-    # Known gaps, pinned rather than hidden. Both are proven pages with evidence
-    # in the registry that still have no branch of their own in plan_step:
-    #   BATTLE_RESULT - the victory screen; the pipeline clicks it through
-    #     PostBattleObserve, but the driver would stop on it as observe-only.
-    #   BEFORE_ENTRY  - the mirror-dungeon entry page, which the driver knows as
-    #     MIRROR_ENTRY; the two spellings have not been reconciled.
-    # Fixing either one means editing window.py, so shrink this list there.
-    assert offenders == ['BATTLE_RESULT', 'BEFORE_ENTRY'], (
-        'the set of proven pages falling through to the unknown-page refusal (%s) '
-        'changed: %s' % (fallback, offenders))
+    # Both gaps found by the first run of this case are closed in window.py:
+    #   BATTLE_RESULT - now refuses by name (battle_result_control_not_anchored)
+    #     instead of answering observe-only, so the missing anchor is visible.
+    #   BEFORE_ENTRY  - now shares the MIRROR_ENTRY branch; the entry page has one
+    #     plan under two spellings.
+    # Nothing may fall through to the generic refusal any more.
+    assert offenders == [], (
+        'these proven pages still fall through to the unknown-page refusal (%s): %s'
+        % (fallback, offenders))
