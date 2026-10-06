@@ -28,6 +28,7 @@
   "forbidden_dialog": "Purchase\\s*Lunacy|Refill\\s*Enkephalin|Extract\\s*10|Exchange\\s*Lunacy",
   "expired": "previous session has expired",
   "defeat": "^DEFEAT$",
+  "victory": "^VICTORY$",
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
   "acquire_gift": "^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^Owned$",

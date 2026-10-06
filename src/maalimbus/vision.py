@@ -41,6 +41,13 @@ def classify(records, locale, size):
         return 'RESOURCE_DIALOG'
     if find(records, locale['expired'], (.15, .1, .9, .85), size):
         return 'EXPIRED_SESSION'
+    # Victory proof: 'VICTORY' is set in huge type on the result screen; the
+    # archived frames read it at [732,432,470,213] score .999 and
+    # [732,434,470,209] score 1.0 (evidence/runtime/window-20261006-105647/
+    # frame-0066.json and frame-0067.json), so this band is tight around it and
+    # the threshold is high on purpose.
+    if find(records, locale.get('victory', r'(?!)'), (.33, .36, .68, .64), size, .85):
+        return 'BATTLE_RESULT'
     if find(records, locale['defeat'], (.15, .05, .9, .7), size):
         return 'DEFEAT'
     if (find(records,locale.get('gift_get',r'(?!)'),(.40,.21,.62,.29),size,.85)
