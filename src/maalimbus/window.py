@@ -131,7 +131,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             box = controls.get('tutorial.next_button')
         if box is None:
             if arrows.get('previous'):
-                return _refuse(page, 'tutorial_last_page_has_no_forward_control')
+                # Last card of the book: there is no forward page-turn control, and
+                # the only way out is the book's own header arrow, which closes it
+                # and uncovers the page underneath (live: clicking it over the team
+                # page reached PRE_BATTLE_TEAM).
+                close = controls.get('tutorial.book_close')
+                if close is None:
+                    return _refuse(page, 'tutorial_last_page_has_no_forward_control')
+                return _plan(page, CLICK, target=close, expect=(ANY,), advance=True,
+                             reason='tutorial_last_page_is_closed_from_the_book_header')
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
@@ -205,6 +213,11 @@ def successor_ok(plan, page):
     being gone, so every successor except the plan's own page passes.
     """
     if plan.get('action') not in (CLICK, NODE):
+        return True
+    if page == 'TUTORIAL' and plan.get('page') != 'TUTORIAL':
+        # The guide book pops up over any page without warning (live: it covered
+        # the battle HUD right after "To Battle!"), so its appearance never
+        # disproves the input that preceded it; the next step dismisses it.
         return True
     expect = plan.get('expect') or []
     if ANY in expect:

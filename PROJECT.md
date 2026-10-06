@@ -9,7 +9,29 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 04:05 local
+## Latest continuation: 2026-10-06 03:45 local
+- **实机：窗口第一次自己把一局推进起来了**（`tools/window_step.py`，全部是被证明过的点击，零猜测坐标）：
+  MAP → 点「离玩家最近的候选节点」→ **NODE_PANEL**（此前点远处的宝箱节点毫无反应，见下）→ 点 `Enter` → 过场 →
+  教学书浮层（连点 ▶）→ 出战前队伍页（12 张卡逐张入队，0/12 的 Battle! 是暗的）→ `To Battle!` → 战斗 HUD
+  （`Win Rate` 自动指派 → `START` 提交回合）→ **VICTORY**（`evidence/runtime/window-20261006-033014/`）→ 回到 MAP。
+- 这一路上修掉的真实缺陷（每条都有实机帧与回归测试）：
+  - `map_vision.map_header`：实机把抬头拆成 `Exploring` ＋ `Floor` 两个 token，风格化层数数字常常没有被 OCR 读到 →
+    新增 `HEADER_LABEL_PATTERN`/`HEADER_FLOOR_PATTERN`，**只有 label 也认**（下面仍必须命中主题包行），层数允许 `None`。
+  - `overlay_vision`：`triangle_box` 原来返回「带内全部金色像素的包围盒」，于是战斗 HUD 右侧 E.G.O 图标列（x≈.95、y .35–.49）
+    被当成教学书的 ▶，窗口把整个战斗页误判成浮层并连点图标列 8 次；改成 `connectedComponentsWithStats` 只取**紧凑连通域**
+    （面积 200–4000、宽高比 .5–1.7、边长 ≤9% 帧宽），并新增 `carousel_dots`（书的轮播圆点行）作为主身份。
+  - `battle_vision`：第三种 Win Rate/Damage/START 布局（x 比旧的两套右移约 290px）落在波段外 → 波段放宽到 `.95`。
+  - `window_step`：MAP 候选改为「按到玩家节点的距离排序」，并加 `--map-tries`：不可达节点会吞掉点击（页面仍是 MAP），
+    于是跳过它试下一个，而不是直接停机。
+  - 教学书的**出口**：最后一页只剩左侧 ◀（没有前进控件），此前直接停机；现在新增锚点 `tutorial.book_close`
+    （书自己的抬头 ⟵，实机点它得到 `PRE_BATTLE_TEAM`，不消耗资源），有 `previous`、无前进控件时改点它。
+  - 教学书会在**任意**操作之后压上来（实机 `build/window-run3.json` step1：点 `To Battle!` 后书盖住了战斗页），
+    旧逻辑会记 `unexpected_successor` 停机；现在 `successor_ok` 把「后继页面是 TUTORIAL」一律视为可接受，
+    由下一步把浮层点掉。浮层自己的计划不受影响（仍要求点完浮层消失）。
+- 全量测试 **221 passed**；`tools/verify_anchors.py` 10 页 0 broken。
+- 下一步：把这局打到第 5 层并领奖（`pending` 里还缺：结算领奖、层礼赠、商店、事件、下一层、轮换再入场）。
+
+## Prior continuation: 2026-10-06 04:05 local
 - 按 Plan v1 先补两件「线上只读数值」的地基，全部离线（无设备、无点击、未改运行行为）：
 - ① 社区数据管道：`tools/fetch_identity_catalog.py`（`GitHubState` ETag/限流缓存 + 按 pinned commit 取 raw 与 commit 日期）
   → `src/maalimbus/identity_catalog.py`（纯函数合并）→ `assets/resource/base/identity-catalog.json`：

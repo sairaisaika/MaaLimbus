@@ -204,6 +204,18 @@ def test_tutorial_follows_the_live_page_turn_triangle():
                      arrows={'previous': [93, 519, 40, 44], 'next': None})
     assert last['action'] == RECORD
     assert last['reason'] == 'tutorial_last_page_has_no_forward_control'
+    # With the book's own header arrow anchored the last card is closed instead of
+    # stopping: live, clicking it over the team page uncovered PRE_BATTLE_TEAM.
+    closed = plan_step('TUTORIAL',
+                       controls={'tutorial.next_button': [1782, 505, 76, 52],
+                                 'tutorial.book_close': [83, 27, 114, 77]},
+                       arrows={'previous': [93, 519, 40, 44], 'next': None})
+    assert closed['action'] == CLICK
+    assert closed['target'] == [83, 27, 114, 77]
+    assert closed['advance'] is True
+    assert closed['reason'] == 'tutorial_last_page_is_closed_from_the_book_header'
+    assert successor_ok(closed, 'PRE_BATTLE_TEAM')
+    assert not successor_ok(closed, 'TUTORIAL')
     # Without a frame reading at all the anchor is still the best available box.
     blind = plan_step('TUTORIAL', controls={'tutorial.next_button': [1787, 517, 39, 44]})
     assert blind['target'] == [1787, 517, 39, 44]
@@ -218,6 +230,20 @@ def test_tutorial_overlay_outranks_the_page_it_covers():
     assert resolve_overlay('TUTORIAL', overlay_hit=True) == 'TUTORIAL'
     assert resolve_overlay('MIRROR_ENTRY', overlay_hit=False) == 'MIRROR_ENTRY'
     assert resolve_overlay('MAP', overlay_hit=None) == 'MAP'
+
+
+def test_the_guide_book_may_cover_the_page_after_any_input():
+    # Live proof: build/window-run3.json step 1 clicked "To Battle!" on the pre
+    # battle team page (target 1674,859,144,44) and the guide book came up over the
+    # battle HUD, so a step that only expected BATTLE_HUD reported
+    # unexpected_successor and stopped the run.
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS)
+    assert plan['action'] == CLICK
+    assert successor_ok(plan, 'TUTORIAL')
+    # The overlay's own plan is unaffected: it still has to be gone afterwards.
+    overlay = plan_step('TUTORIAL', controls={'tutorial.next_button': [1782, 505, 76, 52]})
+    assert not successor_ok(overlay, 'TUTORIAL')
+    assert successor_ok(overlay, 'BATTLE_HUD')
 
 
 def test_resume_dialog_resumes_and_never_halts_the_run():

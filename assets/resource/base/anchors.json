@@ -16,7 +16,12 @@
           "id": "map.floor",
           "kind": "ocr",
           "pattern": "^(?:Exploring|Before\\s+Entry)\\s+Floor\\s*([1-5])\\b",
-          "roi": [0.0, 0.06, 0.30, 0.22],
+          "roi": [
+            0.0,
+            0.06,
+            0.3,
+            0.22
+          ],
           "threshold": 0.85,
           "note": "楼层号＝捕获组 1；OCR 退化（Exploring FloorT）会失配，故必须与 map.pack_name 同时成立"
         },
@@ -24,7 +29,12 @@
           "id": "map.pack_name",
           "kind": "ocr",
           "pattern": "\\S",
-          "roi": [0.0, 0.14, 0.30, 0.28],
+          "roi": [
+            0.0,
+            0.14,
+            0.3,
+            0.28
+          ],
           "threshold": 0.8,
           "note": "抬头下方一行＝本层主题包名（随包变化，故只要求存在文本）"
         }
@@ -39,13 +49,20 @@
     {
       "id": "node_panel",
       "title": "节点信息面板（Clear Rewards + Enter）",
-      "evidence": ["evidence/runtime/map-probe-20261006-000748/frame-0002.json"],
+      "evidence": [
+        "evidence/runtime/map-probe-20261006-000748/frame-0002.json"
+      ],
       "identity": [
         {
           "id": "node_panel.rewards",
           "kind": "ocr",
           "pattern": "^Clear\\s+Rewards$",
-          "roi": [0.50, 0.64, 0.68, 0.75],
+          "roi": [
+            0.5,
+            0.64,
+            0.68,
+            0.75
+          ],
           "threshold": 0.85,
           "note": "打卡片节点成功打开的面板；同时说明「点地图节点＝打开信息面板」而不是直接进战斗"
         },
@@ -53,7 +70,12 @@
           "id": "node_panel.enter",
           "kind": "ocr",
           "pattern": "^Enter$",
-          "roi": [0.82, 0.68, 0.95, 0.80],
+          "roi": [
+            0.82,
+            0.68,
+            0.95,
+            0.8
+          ],
           "threshold": 0.85,
           "note": "面板确认键；用 inset 随机落点（勿点边缘）"
         }
@@ -64,7 +86,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/map-probe-20261006-000748/frame-0002.json",
-            "box": [1668, 780, 124, 63],
+            "box": [
+              1668,
+              780,
+              124,
+              63
+            ],
             "source": "tools/map_panel_enter.py：enter_box inset 后落点 (1705,815)，实测进入 CONNECTING 过渡态"
           }
         }
@@ -84,7 +111,12 @@
           "id": "pre_battle.clear_selection",
           "kind": "ocr",
           "pattern": "^\\s*Clear\\s+Selection\\s*$",
-          "roi": [0.86, 0.62, 0.95, 0.71],
+          "roi": [
+            0.86,
+            0.62,
+            0.95,
+            0.71
+          ],
           "threshold": 0.8,
           "note": "实机在队伍选满后读成带前导空格的 ' Clear Selection'（window-20261006-030941/frame-0022.json）"
         },
@@ -92,7 +124,12 @@
           "id": "pre_battle.battle",
           "kind": "ocr",
           "pattern": "^\\s*(?:Chain\\s+)?(?:To\\s+)?Battle!?\\s*$",
-          "roi": [0.86, 0.77, 0.96, 0.86],
+          "roi": [
+            0.86,
+            0.77,
+            0.96,
+            0.86
+          ],
           "threshold": 0.8,
           "note": "两个角标同时成立才认页：这一页与「Sinners 图鉴」共用大量视觉元素。按钮禁用时 OCR 只读 'Battle!'，选满人后读成 'To' + 'Battle!'（上方多一个 Chain 角标）"
         },
@@ -100,7 +137,12 @@
           "id": "pre_battle.preset",
           "kind": "ocr",
           "pattern": "^\\s*Preset\\s*#\\s*\\d+\\s*$",
-          "roi": [0.04, 0.19, 0.16, 0.30],
+          "roi": [
+            0.04,
+            0.19,
+            0.16,
+            0.3
+          ],
           "threshold": 0.8,
           "note": "当前选中预设队号＝选队路径 0 的入口证据"
         }
@@ -111,7 +153,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
-            "box": [1674, 859, 144, 44],
+            "box": [
+              1674,
+              859,
+              144,
+              44
+            ],
             "source": "tools/team_page_battle.py：battle_box inset 后落点 (1755,883)，实测进入战斗 HUD"
           }
         },
@@ -120,7 +167,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [355, 236, 1173, 544],
+            "box": [
+              355,
+              236,
+              1173,
+              544
+            ],
             "source": "12 张人格卡的整体网格（1920×1080 帧像素）。列边界由金色竖线峰值给出 ≈355/545/750/935/1140/1345/1520，行 y 236–484 与 531–782；单卡 190×248。实测点任一张卡只切换参与/不参与（SELECTED/BACKUP 徽章），不改人格"
           }
         },
@@ -129,7 +181,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [355, 236, 190, 248],
+            "box": [
+              355,
+              236,
+              190,
+              248
+            ],
             "source": "实机点击命中 SELECTED 徽章 [384,357,120,36]、计数 0/12→1/12（window-20261006-030901）"
           }
         },
@@ -138,7 +195,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [553, 236, 190, 248],
+            "box": [
+              553,
+              236,
+              190,
+              248
+            ],
             "source": "SELECTED 徽章实测在 [582,357,120,36]"
           }
         },
@@ -147,7 +209,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [748, 236, 190, 248],
+            "box": [
+              748,
+              236,
+              190,
+              248
+            ],
             "source": "SELECTED 徽章实测在 [780,357,122,36]"
           }
         },
@@ -156,7 +223,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [943, 236, 190, 248],
+            "box": [
+              943,
+              236,
+              190,
+              248
+            ],
             "source": "SELECTED 徽章实测在 [978,357,120,36]"
           }
         },
@@ -165,7 +237,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [1148, 236, 190, 248],
+            "box": [
+              1148,
+              236,
+              190,
+              248
+            ],
             "source": "SELECTED 徽章实测在 [1176,355,120,36]"
           }
         },
@@ -174,7 +251,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [1338, 236, 190, 248],
+            "box": [
+              1338,
+              236,
+              190,
+              248
+            ],
             "source": "SELECTED 徽章实测在 [1376,357,118,36]"
           }
         },
@@ -183,7 +265,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [355, 532, 190, 248],
+            "box": [
+              355,
+              532,
+              190,
+              248
+            ],
             "source": "第 7 张在 12/12 帧上仍是 SELECTED（红条）[382,655,120,35]，即 7 名出战之一"
           }
         },
@@ -192,7 +279,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [553, 532, 190, 248],
+            "box": [
+              553,
+              532,
+              190,
+              248
+            ],
             "source": "BACKUP 徽章实测在 [590,651,104,41]"
           }
         },
@@ -201,7 +293,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [748, 532, 190, 248],
+            "box": [
+              748,
+              532,
+              190,
+              248
+            ],
             "source": "BACKUP 徽章实测在 [788,651,104,41]"
           }
         },
@@ -210,7 +307,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [943, 532, 190, 248],
+            "box": [
+              943,
+              532,
+              190,
+              248
+            ],
             "source": "BACKUP 徽章实测在 [986,651,104,41]"
           }
         },
@@ -219,7 +321,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [1148, 532, 190, 248],
+            "box": [
+              1148,
+              532,
+              190,
+              248
+            ],
             "source": "BACKUP 徽章实测在 [1184,651,104,41]"
           }
         },
@@ -228,7 +335,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
-            "box": [1338, 532, 190, 248],
+            "box": [
+              1338,
+              532,
+              190,
+              248
+            ],
             "source": "BACKUP 徽章实测在 [1386,653,98,37]"
           }
         }
@@ -237,20 +349,32 @@
     {
       "id": "battle_hud",
       "title": "战斗 HUD（WAVE/TURN + Win Rate/Damage）",
-      "evidence": ["evidence/runtime/team-page-battle-20261006-010230/frame-0007.json"],
+      "evidence": [
+        "evidence/runtime/team-page-battle-20261006-010230/frame-0007.json"
+      ],
       "identity": [
         {
           "id": "battle.wave",
           "kind": "ocr",
           "pattern": "^WAVE$",
-          "roi": [0.0, 0.02, 0.07, 0.09],
+          "roi": [
+            0.0,
+            0.02,
+            0.07,
+            0.09
+          ],
           "threshold": 0.8
         },
         {
           "id": "battle.turn",
           "kind": "ocr",
           "pattern": "^TURN$",
-          "roi": [0.0, 0.06, 0.07, 0.14],
+          "roi": [
+            0.0,
+            0.06,
+            0.07,
+            0.14
+          ],
           "threshold": 0.8,
           "note": "回合数本身是位图（OCR 读不出），所以「回合是否推进」必须靠 START/结算页等别的证据判定"
         },
@@ -258,7 +382,12 @@
           "id": "battle.win_rate_glyph",
           "kind": "template",
           "template": "image/battle/win_rate.png",
-          "roi": [0.60, 0.65, 1.0, 1.0],
+          "roi": [
+            0.6,
+            0.65,
+            1.0,
+            1.0
+          ],
           "threshold": 0.8,
           "note": "模板在 1280 基准下采集，验证时按帧宽等比放大；这条同时验证「模板锚点」通路"
         },
@@ -266,7 +395,12 @@
           "id": "battle.damage",
           "kind": "ocr",
           "pattern": "^Damage$",
-          "roi": [0.56, 0.74, 0.72, 0.88],
+          "roi": [
+            0.56,
+            0.74,
+            0.72,
+            0.88
+          ],
           "threshold": 0.8
         }
       ],
@@ -276,7 +410,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/battle-step-20261006-012951/frame-0006.json",
-            "box": [1038, 771, 121, 133],
+            "box": [
+              1038,
+              771,
+              121,
+              133
+            ],
             "source": "battle_vision.warm_control()：START 标签(1060,738,66,30) 下方暖色圆钮＝真正按钮；submit 一次使 turn1→turn2"
           }
         },
@@ -285,7 +424,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/team-page-battle-20261006-010230/frame-0007.json",
-            "box": [1198, 796, 48, 41],
+            "box": [
+              1198,
+              796,
+              48,
+              41
+            ],
             "source": "battle_vision.auto_assign_buttons()：Win+Rate 两行并成一块，点它触发游戏自带评估"
           }
         }
@@ -294,13 +438,20 @@
     {
       "id": "battle_result",
       "title": "战斗结果演出（fatal blow / Gain / TOTAL）",
-      "evidence": ["evidence/runtime/battle-step-20261006-013320/frame-0001.json"],
+      "evidence": [
+        "evidence/runtime/battle-step-20261006-013320/frame-0001.json"
+      ],
       "identity": [
         {
           "id": "result.gain",
           "kind": "ocr",
           "pattern": "^Gain\\s+Corpus\\s+Ingredient$",
-          "roi": [0.16, 0.36, 0.31, 0.50],
+          "roi": [
+            0.16,
+            0.36,
+            0.31,
+            0.5
+          ],
           "threshold": 0.8,
           "note": "掉落行；不同敌人掉落物名会变，需按包扩展"
         },
@@ -308,7 +459,12 @@
           "id": "result.total",
           "kind": "ocr",
           "pattern": "^TOTAL$",
-          "roi": [0.05, 0.70, 0.18, 0.86],
+          "roi": [
+            0.05,
+            0.7,
+            0.18,
+            0.86
+          ],
           "threshold": 0.8,
           "note": "演出页，不是可交互的结算页；两者必须分开识别"
         }
@@ -318,13 +474,20 @@
     {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
-      "evidence": ["evidence/runtime/window-20261006-023206/frame-0001.json"],
+      "evidence": [
+        "evidence/runtime/window-20261006-023206/frame-0001.json"
+      ],
       "identity": [
         {
           "id": "home.drive",
           "kind": "ocr",
           "pattern": "^Drive$",
-          "roi": [0.73, 0.86, 0.81, 0.96],
+          "roi": [
+            0.73,
+            0.86,
+            0.81,
+            0.96
+          ],
           "threshold": 0.9,
           "note": "vision.classify 的 HOME 规则要求底部导航三格同时在位且右上无 Inferno 标题"
         },
@@ -332,14 +495,24 @@
           "id": "home.sinners",
           "kind": "ocr",
           "pattern": "^Sinners$",
-          "roi": [0.67, 0.86, 0.74, 0.96],
+          "roi": [
+            0.67,
+            0.86,
+            0.74,
+            0.96
+          ],
           "threshold": 0.9
         },
         {
           "id": "home.window",
           "kind": "ocr",
           "pattern": "^Window$",
-          "roi": [0.61, 0.86, 0.68, 0.96],
+          "roi": [
+            0.61,
+            0.86,
+            0.68,
+            0.96
+          ],
           "threshold": 0.9
         }
       ],
@@ -349,7 +522,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-023206/frame-0001.json",
-            "box": [1438, 968, 68, 28],
+            "box": [
+              1438,
+              968,
+              68,
+              28
+            ],
             "source": "实测 OCR 框＝底部 Drive 导航标签；点它只进镜牢入口菜单，不消耗资源、不切换难度"
           }
         }
@@ -358,13 +536,20 @@
     {
       "id": "drive",
       "title": "镜牢入口菜单（Drive 导航后的 MIRROR OF NAMES AND SPIDERS / Dungeons 卡片）",
-      "evidence": ["evidence/runtime/window-20261006-023525/frame-0003.json"],
+      "evidence": [
+        "evidence/runtime/window-20261006-023525/frame-0003.json"
+      ],
       "identity": [
         {
           "id": "drive.dungeons",
           "kind": "ocr",
           "pattern": "^Dungeons$",
-          "roi": [0.30, 0.42, 0.40, 0.49],
+          "roi": [
+            0.3,
+            0.42,
+            0.4,
+            0.49
+          ],
           "threshold": 0.9,
           "note": "locale.mirror_menu = '^Mirro(?:r)?$|Mirror\\s*Dungeons?|^Dungeons$' 在 roi[.23,.25,.46,.55] 命中它，识别自带的命中框就是点击框"
         },
@@ -372,7 +557,12 @@
           "id": "drive.inferno",
           "kind": "ocr",
           "pattern": "^Inferno$",
-          "roi": [0.82, 0.16, 0.96, 0.25],
+          "roi": [
+            0.82,
+            0.16,
+            0.96,
+            0.25
+          ],
           "threshold": 0.9
         }
       ],
@@ -382,7 +572,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-023525/frame-0003.json",
-            "box": [605, 477, 148, 30],
+            "box": [
+              605,
+              477,
+              148,
+              30
+            ],
             "source": "实测 OCR 框＝入口卡片标题；WindowDrive 节点用 limbus_scene 的 mirror_menu 命中框点击"
           }
         }
@@ -391,20 +586,32 @@
     {
       "id": "before_entry",
       "title": "镜牢进入页 Before Entry（本赛季门口，Enter 免费开局）",
-      "evidence": ["evidence/runtime/window-20261006-023549/frame-0003.json"],
+      "evidence": [
+        "evidence/runtime/window-20261006-023549/frame-0003.json"
+      ],
       "identity": [
         {
           "id": "entry.enter",
           "kind": "ocr",
           "pattern": "^Enter$",
-          "roi": [0.78, 0.64, 0.88, 0.72],
+          "roi": [
+            0.78,
+            0.64,
+            0.88,
+            0.72
+          ],
           "threshold": 0.9
         },
         {
           "id": "entry.before_entry",
           "kind": "ocr",
           "pattern": "^Before Entry$",
-          "roi": [0.78, 0.24, 0.87, 0.29],
+          "roi": [
+            0.78,
+            0.24,
+            0.87,
+            0.29
+          ],
           "threshold": 0.9,
           "note": "Lobbies 下的状态；显示 Before Entry 表示当前没有进行中的镜牢"
         },
@@ -412,7 +619,12 @@
           "id": "entry.season_title",
           "kind": "ocr",
           "pattern": "^Mirror of Names and Spiders$",
-          "roi": [0.10, 0.02, 0.50, 0.10],
+          "roi": [
+            0.1,
+            0.02,
+            0.5,
+            0.1
+          ],
           "threshold": 0.9
         }
       ],
@@ -422,7 +634,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-023549/frame-0003.json",
-            "box": [1534, 716, 96, 36],
+            "box": [
+              1534,
+              716,
+              96,
+              36
+            ],
             "source": "实测 OCR 框＝右侧 Enter 按钮文字；屏幕原话 Select the door or the \"Enter\" button to begin your Mirror Dungeon run.；开局免费，不消耗脑啡肽"
           }
         }
@@ -433,29 +650,59 @@
       "title": "镜牢教学/说明浮层（压在 Before Entry 之上，底层 Enter 失效）",
       "evidence": [
         "evidence/runtime/window-20261006-023714/frame-0001.json",
-        "evidence/runtime/window-20261006-025839/frame-0001.json"
+        "evidence/runtime/window-20261006-025839/frame-0001.json",
+        "evidence/runtime/window-20261006-024050/frame-0002.json",
+        "evidence/runtime/window-20261006-030152/frame-0014.json"
       ],
       "identity": [
+        {
+          "id": "tutorial.carousel_dots",
+          "kind": "ocr",
+          "pattern": "^[0-9Oo●•· ]{6,}$",
+          "roi": [
+            0.28,
+            0.82,
+            0.72,
+            0.9
+          ],
+          "threshold": 0.3,
+          "note": "浮层自己的轮播圆点行＝最可靠身份：OCR 把一圈圆点读成一长串数字（`●0000000`[420,909,348,28] score .39；`000000000000000●0`[698,909,524,28] score .89）。在 22 张留档帧上完全可分——浮层页（023714/frame-0001、024050/frame-0001・0002、030152/frame-0001..0014）全部有，战斗页与真实进入页（031546/frame-0001..0005、031643/frame-0001..0004、025520/frame-0001、025617/frame-0001・0002）全没有。阈值必须低（.3），因为圆点 OCR 分数天然低；判别力来自「图案＋位置」而不是分数"
+        },
         {
           "id": "tutorial.next_glyph",
           "kind": "template",
           "template": "image/navigation/tutorial_next.png",
-          "roi": [0.89, 0.44, 1.0, 0.55],
+          "roi": [
+            0.89,
+            0.44,
+            1.0,
+            0.55
+          ],
           "threshold": 0.85,
-          "note": "橙色 ▶ 继续控件本身＝浮层身份：浮层每张卡片的文案都会换，只有这个控件不变，故用它判定「浮层还压在上面」。阈值必须 ≥.85：真实浮层卡命中 0.9984，而没有浮层的真实进入页会在 [1833,494] 一带误命中 0.7607（那里压着灰掉的 INFINITY MIRROR 按钮）"
+          "note": "橙色 ▶ 继续控件本身：浮层每张卡片的文案都会换，只有这个控件不变。阈值必须 ≥.85（真实浮层卡命中 0.9984，没有浮层的真实进入页在 [1833,494] 一带误命中 0.7607）。注意这个 ROI 与战斗 HUD 右侧的 E.G.O 资源图标列重叠，**单靠它会把战斗页误判成浮层**，所以身份判定以 tutorial.carousel_dots 为主"
         },
         {
           "id": "tutorial.season_intro",
           "kind": "ocr",
           "pattern": "^Season 7's Mirror Dungeon is called$",
-          "roi": [0.64, 0.42, 0.92, 0.48],
+          "roi": [
+            0.64,
+            0.42,
+            0.92,
+            0.48
+          ],
           "threshold": 0.85
         },
         {
           "id": "tutorial.enter_hint",
           "kind": "ocr",
           "pattern": "^Select the door or the \"Enter\" button to$",
-          "roi": [0.62, 0.51, 0.92, 0.57],
+          "roi": [
+            0.62,
+            0.51,
+            0.92,
+            0.57
+          ],
           "threshold": 0.85,
           "note": "这句话属于浮层而不是可操作的进入页；实测在此状态下点底层 Enter 完全无效（帧 sha 逐字节不变）"
         }
@@ -466,8 +713,27 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-025839/frame-0001.json",
-            "box": [1787, 517, 39, 44],
+            "box": [
+              1787,
+              517,
+              39,
+              44
+            ],
             "source": "橙色 ▶ 三角的橙色像素包围盒（R>190,G>140,B<160,R-B>60 取 bbox）：在 024050/frame-0002 与 025839/frame-0001 上都是 (1787,517,39,44)。旧框 [1782,505,76,52] 来自 023714 那一帧，把整块卡片底色也算成橙色，导致 inset 落点常常落在三角右侧空白（实测点击后浮层一动不动）"
+          }
+        },
+        {
+          "id": "tutorial.book_close",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030152/frame-0014.json",
+            "box": [
+              83,
+              27,
+              114,
+              77
+            ],
+            "source": "教学书自己的抬头 ⟵（标题 Creating your Team 左侧、整屏左上角）。实机点它＝关掉书、露出底下页面：在 033650 那次运行之后用 --click-box 83,27,114,77 得到 page_after=PRE_BATTLE_TEAM；书只剩「上一页 ◀」时这是唯一的出口，不消耗资源"
           }
         }
       ]
@@ -475,27 +741,44 @@
     {
       "id": "resume_dialog",
       "title": "中途再入场确认（Dungeon Progress：Resume / Halt Exploration / Cancel）",
-      "evidence": ["evidence/runtime/window-20261006-025617/frame-0002.json"],
+      "evidence": [
+        "evidence/runtime/window-20261006-025617/frame-0002.json"
+      ],
       "identity": [
         {
           "id": "resume.progress_title",
           "kind": "ocr",
           "pattern": "^Dungeon Progress$",
-          "roi": [0.42, 0.29, 0.58, 0.35],
+          "roi": [
+            0.42,
+            0.29,
+            0.58,
+            0.35
+          ],
           "threshold": 0.85
         },
         {
           "id": "resume.resume_label",
           "kind": "ocr",
           "pattern": "^Resume$",
-          "roi": [0.45, 0.52, 0.55, 0.58],
+          "roi": [
+            0.45,
+            0.52,
+            0.55,
+            0.58
+          ],
           "threshold": 0.85
         },
         {
           "id": "resume.halt_label",
           "kind": "ocr",
           "pattern": "^Halt Exploration$",
-          "roi": [0.43, 0.58, 0.57, 0.64],
+          "roi": [
+            0.43,
+            0.58,
+            0.57,
+            0.64
+          ],
           "threshold": 0.85,
           "note": "这行字存在只用来确认「这是中途再入场弹窗」；它上面的按钮永远不许点"
         }
@@ -506,7 +789,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-025617/frame-0002.json",
-            "box": [902, 579, 114, 34],
+            "box": [
+              902,
+              579,
+              114,
+              34
+            ],
             "source": "实测 OCR 框＝Resume；点它回到进行中的那一局（F1 / To be Cleaved [HARD]），不消耗脑啡肽"
           }
         },
@@ -515,7 +803,12 @@
           "kind": "geometry",
           "verified_on": {
             "frame": "evidence/runtime/window-20261006-025617/frame-0002.json",
-            "box": [848, 647, 222, 33],
+            "box": [
+              848,
+              647,
+              222,
+              33
+            ],
             "source": "Halt Exploration＝放弃当前这一局；登记它只为让 window.FORBIDDEN_CONTROLS 拒点，绝不允许任何计划以它为落点"
           }
         }
@@ -523,12 +816,40 @@
     }
   ],
   "pending": [
-    {"id": "identity_filter", "what": "人格选择页的 filter（按状态关键词多选）与列表排序", "why": "自动配队 §6.1 的前提；必须现场证明「多选关键词 + 等级排序」"},
-    {"id": "reward_settle", "what": "结算领奖页（Enkephalin 5、周加成 3 档、按已清层数比例）", "why": "P0 的终点；确认后可关闭整轮"},
-    {"id": "floor_gifts", "what": "层奖励/礼赠三选一页", "why": "每层必经，且与 GIFT_GET 弹窗不同"},
-    {"id": "shop", "what": "商店（Boss 前必有）", "why": "预算体力兑换与购买策略的入口"},
-    {"id": "event_dialog", "what": "异想体事件（问号节点）选项页", "why": "问号节点是寻路主力，选项分支需要数字契约"},
-    {"id": "next_floor", "what": "下一层入口 / 楼层切换", "why": "五层推进的状态机"},
-    {"id": "run_end_entry_return", "what": "一局结束后的结算出口与回到镜牢入口再入场", "why": "收据＋轮换 index 推进的终点；「中途再入场」的 Dungeon Progress 弹窗已在 resume_dialog 页证明，仍缺一局结束后的出口路径"}
+    {
+      "id": "identity_filter",
+      "what": "人格选择页的 filter（按状态关键词多选）与列表排序",
+      "why": "自动配队 §6.1 的前提；必须现场证明「多选关键词 + 等级排序」"
+    },
+    {
+      "id": "reward_settle",
+      "what": "结算领奖页（Enkephalin 5、周加成 3 档、按已清层数比例）",
+      "why": "P0 的终点；确认后可关闭整轮"
+    },
+    {
+      "id": "floor_gifts",
+      "what": "层奖励/礼赠三选一页",
+      "why": "每层必经，且与 GIFT_GET 弹窗不同"
+    },
+    {
+      "id": "shop",
+      "what": "商店（Boss 前必有）",
+      "why": "预算体力兑换与购买策略的入口"
+    },
+    {
+      "id": "event_dialog",
+      "what": "异想体事件（问号节点）选项页",
+      "why": "问号节点是寻路主力，选项分支需要数字契约"
+    },
+    {
+      "id": "next_floor",
+      "what": "下一层入口 / 楼层切换",
+      "why": "五层推进的状态机"
+    },
+    {
+      "id": "run_end_entry_return",
+      "what": "一局结束后的结算出口与回到镜牢入口再入场",
+      "why": "收据＋轮换 index 推进的终点；「中途再入场」的 Dungeon Progress 弹窗已在 resume_dialog 页证明，仍缺一局结束后的出口路径"
+    }
   ]
 }

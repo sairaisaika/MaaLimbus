@@ -16,13 +16,19 @@ import re
 from .vision import Text, find
 
 HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+Floor\s*([1-5])\b'
+#: the same header, split into the two tokens the game actually renders on the
+#: floor-1 map page: 'Exploring' [56,127,202,53] and 'Floor' [236,133,122,43]
+#: (evidence/runtime/window-20261006-033107/frame-0005.json). The stylised floor
+#: digit is not read at all there, so the number is optional in this form.
+HEADER_LABEL_PATTERN = r'^(?:Exploring|Before\s+Entry)$'
+HEADER_FLOOR_PATTERN = r'^Floor\s*([1-5])?$'
 HEADER_ROI = (.0, .06, .30, .22)
 PACK_ROI = (.0, .14, .30, .28)
 
 
 @dataclass(frozen=True)
 class MapHeader:
-    floor: int
+    floor: int | None
     pack: str | None
     exploring_text: Text
     pack_text: Text | None
@@ -237,25 +243,48 @@ def map_header(records, size):
     """Return the map header only when floor text and the pack line both parse.
 
     The pack line is required so an unrelated page carrying similar wording cannot
-    be promoted into MAP; it is never used as an artwork or season anchor.
+    be promoted into MAP; it is never used as an artwork or season anchor. The
+    header is accepted either as one token or as the two the game really renders
+    (see :data:`HEADER_LABEL_PATTERN`); the floor number stays ``None`` when the
+    stylised digit is not read, and the label alone is enough when OCR also drops
+    the separate "Floor" token.
     """
-    floor_matches = find(records, HEADER_PATTERN, HEADER_ROI, size, .85)
-    if len(floor_matches) != 1:
-        return None
-    text = floor_matches[0]
-    match = re.match(HEADER_PATTERN, text.text.strip(), re.I)
-    if match is None:
+    floor = None
+    text = None
+    matches = find(records, HEADER_PATTERN, HEADER_ROI, size, .85)
+    if len(matches) == 1:
+        text = matches[0]
+        floor = int(re.match(HEADER_PATTERN, text.text.strip(), re.I).group(1))
+    else:
+        labels = [r for r in find(records, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)]
+        for label in labels:
+            same_line = [r for r in find(records, HEADER_FLOOR_PATTERN, HEADER_ROI, size, .85)
+                         if r.box[0] > label.box[0]
+                         and abs((r.box[1] + r.box[3] / 2) / size[1]
+                                 - (label.box[1] + label.box[3] / 2) / size[1]) <= .03]
+            same_line.sort(key=lambda r: r.box[0])
+            text = label
+            if same_line:
+                digit = re.match(HEADER_FLOOR_PATTERN, same_line[0].text.strip(), re.I).group(1)
+                floor = int(digit) if digit else None
+            # The stylised "Floor" token is dropped by OCR on roughly half of the
+            # live map frames (evidence/runtime/window-20261006-033259/frame-0002.json),
+            # so the label alone is accepted; the pack line below still gates it.
+            break
+    if text is None:
         return None
     pack_candidates = [r for r in records
                        if r.score >= .8 and r.box[1] > text.box[1]
                        and PACK_ROI[0] <= (r.box[0] + r.box[2] / 2) / size[0] <= PACK_ROI[2]
                        and PACK_ROI[1] <= (r.box[1] + r.box[3] / 2) / size[1] <= PACK_ROI[3]
-                       and not re.match(HEADER_PATTERN, r.text.strip(), re.I)]
+                       and not re.match(HEADER_PATTERN, r.text.strip(), re.I)
+                       and not re.match(HEADER_LABEL_PATTERN, r.text.strip(), re.I)
+                       and not re.match(HEADER_FLOOR_PATTERN, r.text.strip(), re.I)]
     pack_candidates.sort(key=lambda r: (r.box[1], r.box[0]))
     pack = pack_candidates[0] if pack_candidates else None
     if pack is None:
         return None
-    return MapHeader(int(match.group(1)), pack.text.strip(), text, pack)
+    return MapHeader(floor, pack.text.strip(), text, pack)
 
 
 def map_page(records, size):

@@ -14,6 +14,9 @@ centre-normalised boxes :mod:`maalimbus.vision` uses for OCR records.
 
 from __future__ import annotations
 
+import re
+
+import cv2
 import numpy as np
 
 #: a page-turn triangle is a solid gold shape: bright red, strong green, weak
@@ -30,9 +33,22 @@ MIN_PIXELS = 200
 #: a control is small; anything bigger is artwork that happens to be gold.
 MAX_SIDE = 0.09
 
+#: ... and a control is compact. The battle HUD's E.G.O resource column is gold,
+#: sits in the same right-hand band, and covered 156 px of height in the live
+#: frame that made the triangle alone report a tutorial over the battle page.
+MAX_PIXELS = 4000
+MIN_ASPECT = 0.5
+MAX_ASPECT = 1.7
+
 #: a narrow strip down each side, at the height the book draws its arrows.
 PREVIOUS_BAND = (0.0, 0.35, 0.12, 0.68)
 NEXT_BAND = (0.87, 0.35, 1.0, 0.68)
+
+#: the book's carousel dots: a long run of ring glyphs, read as digits by OCR.
+#: They exist only under the book, which makes them the dependable identity.
+DOTS_PATTERN = re.compile(r'^[0-9Oo\u25cf\u2022\u00b7]+$')
+DOTS_BAND = (0.28, 0.80, 0.72, 0.90)
+MIN_DOTS = 6
 
 
 def _band(size, roi):
@@ -42,9 +58,11 @@ def _band(size, roi):
 
 
 def triangle_box(image, roi):
-    """Bounding box of the solid gold triangle inside ``roi``, or ``None``.
+    """Pixel box of the solid gold page-turn triangle inside ``roi``, or ``None``.
 
-    ``image`` is an OpenCV BGR frame. The box is in pixels.
+    ``image`` is an OpenCV BGR frame. The biggest *compact* gold component wins: a
+    column of resource icons or a wide button strip can be gold too, and taking the
+    bounding box of every gold pixel in the band turned those into a fake control.
     """
     if image is None:
         return None
@@ -57,15 +75,42 @@ def triangle_box(image, roi):
     green = band[:, :, 1].astype(int)
     red = band[:, :, 2].astype(int)
     mask = ((red > MIN_RED) & (green > MIN_GREEN) & (blue < MAX_BLUE)
-            & (red - blue > MIN_WARMTH))
+            & (red - blue > MIN_WARMTH)).astype(np.uint8)
     if int(mask.sum()) < MIN_PIXELS:
         return None
-    ys, xs = np.nonzero(mask)
-    box = [x0 + int(xs.min()), y0 + int(ys.min()),
-           int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)]
-    if box[2] > MAX_SIDE * width or box[3] > MAX_SIDE * width:
-        return None
-    return box
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    best = None
+    for index in range(1, count):
+        x, y, w, h, area = (int(value) for value in stats[index])
+        if not MIN_PIXELS <= area <= MAX_PIXELS:
+            continue
+        if w > MAX_SIDE * width or h > MAX_SIDE * height:
+            continue
+        if not MIN_ASPECT <= w / max(1, h) <= MAX_ASPECT:
+            continue
+        if best is None or area > best[0]:
+            best = (area, [x0 + x, y0 + y, w, h])
+    return None if best is None else best[1]
+
+
+def carousel_dots(records, size, *, band=DOTS_BAND, minimum=MIN_DOTS):
+    """The book's carousel dot row as OCR records, or ``[]`` when it is absent.
+
+    ``records`` are :class:`maalimbus.vision.Text`-like objects. The row is drawn
+    under every book page and nowhere else, so it separates the book from the pages
+    it covers; the live battle page has no such row.
+    """
+    width, height = size
+    found = []
+    for record in records:
+        text = (getattr(record, 'text', '') or '').strip().replace(' ', '')
+        if len(text) < minimum or not DOTS_PATTERN.match(text):
+            continue
+        x, y, w, h = record.box
+        centre = ((x + w / 2) / width, (y + h / 2) / height)
+        if band[0] <= centre[0] <= band[2] and band[1] <= centre[1] <= band[3]:
+            found.append(record)
+    return found
 
 
 def page_turn_arrows(image):

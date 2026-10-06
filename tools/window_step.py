@@ -41,7 +41,7 @@ from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (advance_candidates, flame_player, likely_player,
                                   node_markers, player_marker)
-from maalimbus.overlay_vision import page_turn_arrows
+from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import NODE, plan_step, resolve_overlay, step_result
@@ -157,29 +157,58 @@ def observe(tasker, directory, deadline):
 
 
 def candidates_of(directory, record):
-    """Node boxes for a MAP page, read from the frame the observation used."""
+    """Node boxes for a MAP page, nearest to the player's own node first.
+
+    Which nodes the run is allowed to step to depends on the paths drawn under the
+    dots on this page, and that connectivity is not readable from the frame. So the
+    list is only ordered, never filtered: the window tries them in turn and stops at
+    the first node that really is connected (live: a far chest swallowed the click
+    while its neighbour two columns left opened the panel).
+    """
     if record['scene'] != 'MAP':
         return None, None
     image, name = latest_frame(directory)
     if image is None:
         return None, None
     markers = node_markers(image)
-    player = (player_marker(image) or flame_player(markers, image)
-              or likely_player(markers))
-    return name, [list(marker.node) for marker in advance_candidates(markers, player)]
+    if not markers:
+        return name, []
+
+    def distance(marker, player):
+        x, y, w, h = marker.node
+        return (x + w // 2 - player[0]) ** 2 + (y + h // 2 - player[1]) ** 2
+
+    player = flame_player(markers, image) or likely_player(markers)
+    ordered = list(markers)
+    if player is not None:
+        ordered.sort(key=lambda marker: distance(marker, player))
+        # The player stands on one of the detected nodes, and that node is not a
+        # candidate; drop by radius instead of blindly dropping the first entry.
+        elsewhere = [m for m in ordered if distance(m, player) > 40 * 40]
+        ordered = elsewhere or ordered
+    else:
+        ordered.sort(key=lambda m: (m.ornament[1], m.ornament[0]))
+    return name, [list(marker.node) for marker in ordered]
 
 
 def overlay_hit(registry, directory, record):
-    """True when the guide overlay is on screen.
+    """True when the guide book is on screen.
 
-    The overlay's wording changes from card to card, so its identity is its own
-    controls: a page-turn triangle on either side, or the continue glyph the
-    template anchor holds. Whatever is behind the overlay stays covered and must
-    not be treated as actionable.
+    Two signals, because each is wrong somewhere on its own. The book's carousel
+    dots exist only under the book (live: present on every book page, absent on the
+    battle page). The page-turn triangle shares its right-edge band with the battle
+    HUD's E.G.O resource column, so the triangle alone reported a tutorial over the
+    battle and sent eight clicks into that column while the battle ran on.
     """
     image, name = latest_frame(directory)
     if image is None:
         return None
+    size = tuple(record.get('size') or ())
+    if len(size) == 2 and record.get('ocr'):
+        records = [Text(item['text'], tuple(item['box']), item['score'])
+                   for item in record['ocr']]
+        if carousel_dots(records, size):
+            return True
     arrows = page_turn_arrows(image)
     if arrows['next'] or arrows['previous']:
         return True
@@ -243,6 +272,10 @@ def main() -> int:
                              'before calling the page unreadable (loading screens and turn '
                              'animations read as UNKNOWN and are not refusals)')
     parser.add_argument('--interval', type=float, default=4.0)
+    parser.add_argument('--map-tries', type=int, default=1,
+                        help='how many map nodes one MAP step may try: a node that is not '
+                             'connected to where the run stands opens no panel and is a '
+                             'no-op, so the next candidate is tried instead of stopping')
     parser.add_argument('--observe-only', action='store_true',
                         help='record the page and send no input at all')
     parser.add_argument('--click-box', action='append', default=None,
@@ -334,10 +367,14 @@ def main() -> int:
         goal = 0 if boxes else max(0, args.steps)
         step = 0
         unknown_seen = 0
+        map_skips = set()
+        map_attempts = 0
         while step < goal:
             record = observe(tasker, directory, deadline)
             page = resolve_scene(registry, directory, record)
             frame, candidates = candidates_of(directory, record)
+            if page == 'MAP':
+                candidates = [box for box in candidates if tuple(box) not in map_skips]
             sha = record.get('image_sha256')
             if not args.observe_only and page == 'UNKNOWN':
                 unknown_seen += 1
@@ -423,8 +460,23 @@ def main() -> int:
                                      frame_changed=settled.get('image_sha256') not in (None, before_sha)))
             result['steps'].append(entry)
             if not entry['passed']:
-                entry['stopped'] = entry['reason']
-                break
+                retryable = (page == 'MAP' and settled_page in ('MAP', 'UNKNOWN')
+                             and plan.get('target') is not None
+                             and map_attempts + 1 < max(1, args.map_tries))
+                if not retryable:
+                    entry['stopped'] = entry['reason']
+                    break
+                # An unreachable node swallows the click and the page stays MAP, so
+                # skip it and let the next candidate be tried in its place.
+                map_attempts += 1
+                map_skips.add(tuple(plan['target']))
+                entry['stopped'] = 'map_click_opened_no_panel'
+                journal.record('window_map_retry', target=list(plan['target']),
+                               attempt=map_attempts,
+                               remaining=len([b for b in candidates
+                                              if tuple(b) != tuple(plan['target'])]))
+                continue
+            map_attempts = 0
             step += 1
         result['foreground_after'] = foreground_of(device)
         last = result['steps'][-1] if result['steps'] else None

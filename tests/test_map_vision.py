@@ -162,6 +162,48 @@ def test_live_231221_terminal_records_identify_the_map_page():
     assert header.exploring_text.box == (58, 127, 332, 47)
 
 
+def test_the_split_floor_header_still_identifies_the_map_page():
+    """Regression pinned to the retained actual frame, not a derived one.
+
+    On the floor-1 map the game renders 'Exploring' and 'Floor' as two OCR tokens
+    and the stylised floor digit is not read at all
+    (evidence/runtime/window-20261006-033107/frame-0005.json), which used to leave
+    the page at UNKNOWN and stop the window in front of it.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-033107/frame-0005.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert (header.floor, header.pack) == (None, 'To be Cleaved')
+    assert map_page(records, tuple(data['size'])) is True
+
+
+def test_the_map_survives_a_frame_where_ocr_drops_the_floor_token():
+    """The same live page, one frame later, with the "Floor" token missing.
+
+    evidence/runtime/window-20261006-033259/frame-0002.json carries only
+    "Exploring" and the pack line; the window used to fall back to UNKNOWN there
+    and treat a harmless unreachable-node click as a broken successor.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-033259/frame-0002.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert (header.floor, header.pack) == (None, 'To be Cleaved')
+
+
 def test_other_scene_text_is_not_promoted_to_map():
     assert map_page([Text('Drive', (100, 100, 60, 20), .99)], SIZE) is False
     # The entry page carries `Exploring` in the upper right without a floor header.
