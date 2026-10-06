@@ -153,6 +153,10 @@ select_best_identity(sinner, keywords):
 两者 **id 对齐** → 可离线生成 `identity-catalog.json`（中文名＋关键词＋rank）。社区仓库无 SLA，需**自建镜像 + 定时 diff**（本仓库已有 `github_cache.py` 做限流缓存）。
 中文 wiki（huijiwiki / fandom）实测 **Cloudflare 403**，不适合脚本直取；替代 `wiki.biligame.com/limbuscompany`（人格一览/E.G.O 礼物筛选/状态图鉴，可直连）。
 
+**已实现（2026-10-06，离线、无设备）**：`tools/fetch_identity_catalog.py` 对每条 URL 用 `github_cache.GitHubState` 做 ETag 条件请求＋有界重试（原始 payload 只落 `build/upstream/state/`，不入库）；合并逻辑在 `src/maalimbus/identity_catalog.py`（纯函数、离线可测）；产物 `assets/resource/base/identity-catalog.json` 记录两个上游 commit＋日期，字段 `id/sinner/title(人格名)/name(罪人名)/rank/hp_default/hp_increment/keywords/buff_keywords/unit_keywords/association/resistances/skills`。
+- 关键词由**技能里的 `buffKeyword` 反推**（递归遍历 `skill/personality-skill-NN.json` 的 `skillData`），映射：`Burst→Rupture`、`Breath→Poise`、`Bleeding|Laceration→Bleed`、`Vibration*→Tremor`、`Combustion|Burn→Burn`、`Sinking*→Sinking`、`Charge*→Charge`。抽查吻合：剑契组杀手＝Poise、Seven 南部 6 科＝Rupture、多裂纹事务所收尾人＝Charge、脑叶 E.G.O 赤瞳＝Bleed。
+- **覆盖率限制**：`flaglow/LimbusStaticData` 停在 2025-01-23（commit `4e534f88…`），LLC 中文包活跃（2026-08-06）。所以 catalog 只是**离线事实快照**（当前 128 人格 / 122 带关键词），**不能**当作「玩家当前拥有的全部人格」；线上仍以游戏内 filter 为权威（§6.1）。
+
 `src/maalimbus/auto_formation.py` 已写明严谨契约：
 `choose_identity(candidates, sinner, keywords, *, inventory_complete=False, descending_level_verified=False)` —— 未证明「库存完整」或「降序已验证」时**禁止**声称最高等级；筛选 `owned and selectable and keywords & keywords and evidence and 1<=level<=100`；排序 `(-level, -|匹配关键词|, name)`。实现只需补上 `inventory.json` 的来源与证明。
 
@@ -223,10 +227,13 @@ assets/resource/base/pipeline/*.json      # 声明式流水线（mirror.json 等
 assets/resource/base/image/**             # 720p 基准模板（按 tasks 名分目录）
 assets/resource/base/model/ocr/**         # PP-OCR det/rec + keys
 assets/resource/base/{theme,gift,battle}-catalog.json
+assets/resource/base/identity-catalog.json # ★ 新增：离线人格事实（128 条，含关键词）
 assets/resource/base/anchors.json         # ★ 新增：锚点注册表
 assets/i18n/{zh_cn,ja_jp,en_us}.json      # 语义锚点词表
 agent/recognition.py                      # 自定义识别/动作（感知窗口的入口）
 src/maalimbus/*.py                        # 纯策略与视觉（可离线单测）
+src/maalimbus/identity_catalog.py         # ★ 新增：静态数据合并与关键词映射（纯函数）
+tools/fetch_identity_catalog.py           # ★ 新增：ETag/限流缓存抓取社区数据
 tools/verify_anchors.py                   # ★ 新增：自检报告
 tools/capture_anchors.py                  # ★ 新增：一次点击式采集
 tools/verify_*_replay.py                  # 既有：证据回归
