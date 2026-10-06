@@ -132,6 +132,26 @@ def test_battle_prefers_start_and_falls_back_to_win_rate():
     assert win['reason'] == 'win_rate_is_the_proven_auto_assign_control'
 
 
+def test_the_battle_planning_sub_state_takes_the_same_inputs():
+    """Live window-20261006-053000-frame-0031 named the battle screen BATTLE_PLANNING.
+
+    The WAVE/TURN captions are not read on that frame, so agent/recognition.py calls
+    it the planning sub-state; the forward input is still assign-then-submit, and the
+    other sub-state must be an accepted successor instead of stopping the run.
+    """
+    assign = plan_step('BATTLE_PLANNING', start_box=None,
+                       auto_assign={'win_rate': [1198, 796, 48, 41]})
+    assert assign['action'] == CLICK
+    assert assign['target'] == [1198, 796, 48, 41]
+    assert successor_ok(assign, 'BATTLE_HUD')
+    assert successor_ok(assign, 'BATTLE_PLANNING')
+    start = plan_step('BATTLE_PLANNING', start_box=[1038, 771, 121, 133], auto_assign=None)
+    assert start['reason'] == 'start_button_submits_the_assigned_turn'
+    assert successor_ok(start, 'BATTLE_PLANNING')
+    refused = plan_step('BATTLE_PLANNING', start_box=None, auto_assign=None)
+    assert refused['reason'] == 'battle_has_no_proven_control'
+
+
 def test_battle_without_a_proven_control_refuses():
     plan = plan_step('BATTLE_HUD', start_box=None, auto_assign=None)
     assert plan['action'] == RECORD

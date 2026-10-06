@@ -383,14 +383,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'reward_card_confirm_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='confirm_grants_the_picked_encounter_reward')
-    if page == 'BATTLE_HUD':
+    if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
+        # BATTLE_PLANNING is the same battle screen in its skill-planning sub-state
+        # (agent/recognition.py:198 names it when the WAVE/TURN captions are not read
+        # on that frame), so the forward input is unchanged: assign, then submit.
         if start_box:
             return _plan(page, CLICK, target=start_box,
-                         expect=('BATTLE_HUD', 'BATTLE_RESULT', 'UNKNOWN'),
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'UNKNOWN'),
                          reason='start_button_submits_the_assigned_turn')
         if auto_assign and auto_assign.get('win_rate'):
             return _plan(page, CLICK, target=auto_assign['win_rate'],
-                         expect=('BATTLE_HUD', 'BATTLE_RESULT', 'UNKNOWN'),
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'UNKNOWN'),
                          reason='win_rate_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
     return _refuse(page, 'page_is_observe_only')

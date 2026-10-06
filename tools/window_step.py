@@ -56,7 +56,7 @@ AUTHORIZATION = ROOT / 'build/map-probe-authorization.json'
 REGISTRY = ROOT / 'assets/resource/base/anchors.json'
 #: pages the loop guard never counts against: the guide book advances card by card
 #: from the same control, and a battle legitimately alternates Win Rate and START.
-LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD')
+LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD', 'BATTLE_PLANNING')
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {
     'WindowMapObserve': {
