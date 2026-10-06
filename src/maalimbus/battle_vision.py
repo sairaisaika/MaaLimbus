@@ -1,4 +1,7 @@
 """Experimental planning-page anchors; no turn submission or victory inference."""
+import cv2
+import numpy as np
+
 from .theme_vision import ThemeCatalog
 from .vision import find
 
@@ -40,20 +43,55 @@ def preview_labels(records, size):
     return sorted(result,key=lambda t:t['box'][0])
 
 
-def start_button(records, size):
-    """The battle's `START` action, which appears once a turn is assigned."""
+def warm_control(image, label_box, *, min_area=2000, window=(60, 20, 60, 150)):
+    """The warm (gold/orange) control blob just under a text label, or None.
+
+    The battle's `START` action draws its word in a banner above the actual button,
+    so the label box alone is not the control. This reads the control's own geometry
+    from the frame; nothing is clicked here.
+    """
+    height, width = image.shape[:2]
+    x, y, bw, bh = label_box
+    left, top, right, bottom = window
+    x0, y0 = max(0, x - left), max(0, y + top)
+    x1, y1 = min(width, x + bw + right), min(height, y + top + bottom)
+    crop = image[y0:y1, x0:x1]
+    if crop.size == 0:
+        return None
+    blue, green, red = crop[:, :, 0].astype(int), crop[:, :, 1].astype(int), crop[:, :, 2].astype(int)
+    mask = ((red > 150) & (green > 90) & (blue < 110)).astype(np.uint8)
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        bx, by, bwidth, bheight, area = stats[index]
+        if area < min_area or bwidth < 40 or bheight < 40:
+            continue
+        if best is None or area > best[0]:
+            best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
+    return None if best is None else tuple(best[1:])
+
+
+def start_button(records, size, image=None):
+    """The battle's `START` action box: its control when the frame is available.
+
+    Falls back to the label box, which is recorded rather than silently trusted.
+    """
     matches = find(records, r'^START$', (.52, .66, .62, .74), size, .85)
     if len(matches) != 1:
         return None
-    return matches[0].box
+    label = matches[0].box
+    if image is None:
+        return label
+    control = warm_control(image, label)
+    return label if control is None else control
 
 
-def begin_turn_plan(records, size):
+def begin_turn_plan(records, size, image=None):
     """Plan one bounded turn-submission click, or refuse with an explicit reason."""
     hud = battle_hud(records, size)
     if hud is None:
         return dict(target=None, reason='battle_hud_not_identified')
-    box = start_button(records, size)
+    box = start_button(records, size, image)
     if box is None:
         return dict(target=None, reason='turn_start_not_present')
     return dict(target=box, reason='submit_turn', wave=hud['wave'], turn=hud['turn'])

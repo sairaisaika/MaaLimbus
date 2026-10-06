@@ -57,9 +57,14 @@ def test_turn_start_appears_only_after_auto_assign():
     if not (ASSIGNED.exists() and BATTLE.exists()):
         pytest.skip('retained live battle evidence is not present')
     assigned, size = load(ASSIGNED)
+    # The recognized word is a banner; the control it names is the warm blob below.
     assert start_button(assigned, size) == (1060, 738, 66, 30)
-    plan = begin_turn_plan(assigned, size)
-    assert plan['reason'] == 'submit_turn' and plan['target'] == (1060, 738, 66, 30)
+    import cv2
+    image = cv2.imread(str(ASSIGNED.with_suffix('.png')))
+    assert image is not None and image.shape[:2] == (size[1], size[0])
+    assert start_button(assigned, size, image) == (1038, 771, 121, 133)
+    plan = begin_turn_plan(assigned, size, image)
+    assert plan['reason'] == 'submit_turn' and plan['target'] == (1038, 771, 121, 133)
     before, size_before = load(BATTLE)
     assert start_button(before, size_before) is None
     assert begin_turn_plan(before, size_before) == dict(target=None, reason='turn_start_not_present')

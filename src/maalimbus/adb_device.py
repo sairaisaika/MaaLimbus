@@ -78,6 +78,14 @@ def pin_input(record, method_name):
     return pinned
 
 
+def foreground_of(record):
+    """Foreground check through the discovered device's own adb (never a stray path)."""
+    from .adb_preflight import foreground
+    if record.get('source') != 'maa_toolkit_discovery':
+        raise ValueError('Device must be discovered before a foreground check: ' + str(record))
+    return foreground(record['adb_path'], record['address'])
+
+
 def build(record, *, input_enabled):
     """Create the AdbController for a discovered record; Null input when read-only."""
     if record.get('source') != 'maa_toolkit_discovery':

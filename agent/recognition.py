@@ -558,7 +558,7 @@ class LimbusRecognition(CustomRecognition):
             # target is chosen here; the page must already be an assigned battle.
             if scene!='BATTLE_HUD':return None
             size=(argv.image.shape[1],argv.image.shape[0])
-            plan=begin_turn_plan(records,size)
+            plan=begin_turn_plan(records,size,argv.image)
             if plan['target'] is None:
                 self.journal.record('battle_turn_blocked',frame=frame,scene=scene,
                                     reason=plan['reason'],verified_clear=False)
@@ -938,7 +938,7 @@ class BattleObservation(CustomAction):
         self.recognition.battle_before=digest
         hud=battle_hud(records,size)
         buttons=auto_assign_buttons(records,size)
-        begin=start_button(records,size)
+        begin=start_button(records,size,image)
         self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
             frame_changed=changed,wave=None if hud is None else hud['wave'],
             turn=None if hud is None else hud['turn'],

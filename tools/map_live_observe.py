@@ -27,7 +27,8 @@ from maa.toolkit import Toolkit
 from maalimbus.adb_preflight import foreground
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.adb_device import build, discover, input_policy, names
+from maalimbus.adb_device import (build, discover, foreground_of, input_policy,
+                                   names)
 from maalimbus.map_vision import map_header, route_decision
 from maalimbus.vision import Text
 from recognition import Journal, LimbusRecognition, MapObservation
@@ -53,7 +54,9 @@ def prepare() -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
-    parser.add_argument('--adb', type=Path, required=True)
+    parser.add_argument('--adb', type=Path, default=None,
+                        help='optional adb path restricting discovery; omit to let '
+                             'MaaToolkit search and supply the emulator config')
     parser.add_argument('--address', required=True)
     args = parser.parse_args()
     directory = ROOT / ('evidence/runtime/map-live-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
@@ -62,11 +65,12 @@ def main() -> int:
     deadline = time.monotonic() + 120
     result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
                   input_method='Null', input_sent=False, verified_clear=False,
-                  foreground_before=foreground(args.adb, args.address))
+                  foreground_before=None)
     try:
         Library.open(args.binary, agent_server=False)
-        Toolkit.init_option(prepare())
         device = discover(args.address, args.adb)
+        result['foreground_before'] = foreground_of(device)
+        Toolkit.init_option(prepare())
         controller = build(device, input_enabled=False)
         result['device'] = device
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
@@ -114,7 +118,7 @@ def main() -> int:
             'floor': header.floor, 'pack': header.pack,
             'header_box': header.exploring_text.box, 'pack_box': header.pack_text.box}
         result['route_recheck'] = route_decision(header, tuple(record['size'])) if record else None
-        result['foreground_after'] = foreground(args.adb, args.address)
+        result['foreground_after'] = foreground_of(device)
         result['reason'] = ('read_only_map_observed' if result['scene'] == 'MAP'
                             else 'read_only_frame_is_not_an_identified_map')
         result['passed'] = bool(result['scene'] == 'MAP' and result.get('identity')

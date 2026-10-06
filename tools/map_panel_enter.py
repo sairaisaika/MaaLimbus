@@ -29,7 +29,8 @@ from maa.toolkit import Toolkit
 from maalimbus.adb_preflight import foreground
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.adb_device import build, discover, input_policy, names
+from maalimbus.adb_device import (build, discover, foreground_of, input_policy,
+                                   names)
 from maalimbus.vision import inset_box
 from recognition import Journal, LimbusRecognition, MapObservation
 
@@ -79,7 +80,9 @@ def last_observation(journal_dir):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
-    parser.add_argument('--adb', type=Path, required=True)
+    parser.add_argument('--adb', type=Path, default=None,
+                        help='optional adb path restricting discovery; omit to let '
+                             'MaaToolkit search and supply the emulator config')
     parser.add_argument('--address', required=True)
     parser.add_argument('--authorize', required=True)
     args = parser.parse_args()
@@ -94,11 +97,12 @@ def main() -> int:
     deadline = time.monotonic() + 180
     result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
                   clicks_sent=0, verified_clear=False,
-                  foreground_before=foreground(args.adb, args.address))
+                  foreground_before=None)
     try:
         Library.open(args.binary, agent_server=False)
-        Toolkit.init_option(prepare())
         device = discover(args.address, args.adb)
+        result['foreground_before'] = foreground_of(device)
+        Toolkit.init_option(prepare())
         allowed, reason = input_policy(device)
         if not allowed:
             result.update(refused=reason, passed=False)
@@ -148,7 +152,7 @@ def main() -> int:
         result['page_changed'] = bool(
             result['after_observation'] and result['before_observation']
             and result['after_observation']['frame'] != result['before_observation']['frame'])
-        result['foreground_after'] = foreground(args.adb, args.address)
+        result['foreground_after'] = foreground_of(device)
         result['reason'] = 'panel_enter_successor_recorded'
         result['passed'] = (result['clicks_sent'] == 1
                             and result['foreground_after'] == result['foreground_before'])
