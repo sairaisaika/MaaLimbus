@@ -342,6 +342,11 @@ def main() -> int:
                              'animation and the victory banner all read as UNKNOWN and are '
                              'not refusals; the victory banner alone held the screen for '
                              'about 25 s in window-20261006-033014)')
+    parser.add_argument('--battle-rounds', type=int, default=8,
+                        help='how many consecutive battle observations may report the same '
+                             'wave and turn before the fight is called stalled; assigning and '
+                             'submitting legitimately repeat for many turns, so the bound is '
+                             'on the readouts moving, not on the clicks repeating')
     parser.add_argument('--interval', type=float, default=4.0)
     parser.add_argument('--map-tries', type=int, default=8,
                         help='how many map nodes one MAP step may try: a node that is not '
@@ -449,6 +454,8 @@ def main() -> int:
         goal = 0 if boxes else max(0, args.steps)
         step = 0
         unknown_seen = 0
+        battle_sig = None
+        battle_rounds = 0
         map_skips = set()
         map_attempts = 0
         gift_picks = 0
@@ -495,6 +502,25 @@ def main() -> int:
                 break
             if page == 'TUTORIAL' and sha:
                 tutorial_cards.add(sha)
+            if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
+                # The battle is exempt from the repeated-plan guard because assigning
+                # and submitting legitimate the same two controls for many turns, but
+                # it is not exempt from progress: the wave and turn readouts have to
+                # move. Ten-wave floor fights do run long, so the bound is generous.
+                signature = (record.get('wave'), record.get('turn'))
+                if signature == battle_sig:
+                    battle_rounds += 1
+                else:
+                    battle_sig, battle_rounds = signature, 1
+                if battle_rounds > args.battle_rounds:
+                    result['steps'].append({
+                        'step': step, 'page_before': page, 'scene_before': record['scene'],
+                        'frame': frame, 'observation': record, 'plan': None,
+                        'candidates': candidates, 'action': 'record',
+                        'reason': 'battle_progress_stalled',
+                        'passed': False, 'clicks_sent': 0,
+                        'stopped': 'battle_progress_stalled'})
+                    break
             team = team_state(record, controls) if page == 'PRE_BATTLE_TEAM' else None
             reward = reward_state(record) if page == 'REWARD_CARD' else None
             gift = None
