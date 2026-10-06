@@ -366,6 +366,11 @@ def main() -> int:
                         help='x,y,w,h: send exactly one click and record the before/'
                              'after frames, for a control the anchors do not cover yet. '
                              'Repeat the option to send several clicks in one run')
+    parser.add_argument('--swipe', action='append', default=None,
+                        help='x1,y1,x2,y2[,duration_ms]: send exactly one swipe in '
+                             'frame coordinates and record the before/after frames, '
+                             'for a gesture the anchors do not cover yet (the map '
+                             'scroll and the team page both need one)')
     parser.add_argument('--label', default='one_shot_click',
                         help='what --click-box is aiming at, for the evidence record')
     parser.add_argument('--report', type=Path, default=None)
@@ -451,7 +456,41 @@ def main() -> int:
                 'observation': before, 'settled': after, 'passed': bool(changed),
                 'reason': ('one_shot_screen_changed' if changed
                            else 'one_shot_screen_unchanged')})
-        goal = 0 if boxes else max(0, args.steps)
+        swipes = []
+        for spec in (args.swipe or []):
+            parts = [int(value) for value in spec.replace(' ', '').split(',')]
+            if len(parts) not in (4, 5):
+                raise ValueError('--swipe needs x1,y1,x2,y2[,duration_ms]')
+            swipes.append(parts)
+        for index, parts in enumerate(swipes):
+            before = observe(tasker, directory, deadline)
+            before_sha = before.get('image_sha256')
+            duration = parts[4] if len(parts) == 5 else 600
+            label = f'{args.label}_swipe' if len(swipes) == 1 \
+                else f'{args.label}_swipe[{index}]'
+            journal.record('one_shot_intent', label=label, gesture='swipe',
+                           points=list(parts), duration_ms=duration)
+            wait_job(controller.post_swipe(parts[0], parts[1], parts[2], parts[3],
+                                           duration), timeout=15, deadline=deadline)
+            result['swipes_sent'] = result.get('swipes_sent', 0) + 1
+            time.sleep(max(0.6, duration / 1000))
+            after = before
+            for round_index in range(max(1, args.rounds)):
+                if round_index:
+                    time.sleep(args.interval)
+                after = observe(tasker, directory, deadline)
+                if after.get('image_sha256') not in (None, before_sha):
+                    break
+            changed = after.get('image_sha256') not in (None, before_sha)
+            result['steps'].append({
+                'step': index, 'label': label, 'action': 'swipe',
+                'target': parts, 'duration_ms': duration,
+                'page_before': before['scene'], 'page_after': after['scene'],
+                'scene_before': before['scene'], 'scene_after': after['scene'],
+                'observation': before, 'settled': after, 'passed': bool(changed),
+                'reason': ('one_shot_screen_changed' if changed
+                           else 'one_shot_screen_unchanged')})
+        goal = 0 if (boxes or swipes) else max(0, args.steps)
         step = 0
         unknown_seen = 0
         battle_sig = None

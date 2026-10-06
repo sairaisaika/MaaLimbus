@@ -9,7 +9,26 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 04:35 local
+## Latest continuation: 2026-10-06 11:30 local
+- 实机（MuMu / ADB 127.0.0.1:16416）在 floor 3 地图（`Exploring Floor 3` / `Repressed Wrath`）停住：
+  **地图可以拖动、HUD 按钮可以点，但地图节点层不接受任何点击**（点节点后 `page_after` 仍是 MAP，无 NODE_PANEL）。
+- 已排除的三种解释：坐标空间（`adb shell wm size` = `Physical size: 720x1280`、density 240 ⇒ 横屏 1280×720，
+  而 Maa/证据帧是 1920×1080，正好 1.5×）、输入通道（同一页点右上「?」(1233,207) 能打开 Active Effects 弹窗，
+  `--swipe` 能平移地图）、结算窗口太短（`--rounds 4 --interval 5` ≈ 20 s）。
+- 实测无效：左发光节点中心与四边、玩家节点自身、大路径箭头、双击、900 ms 长按、Enter 键；
+  实测有效：地图平移、`?`/`i` 弹窗、队伍按钮（打开队伍页）、入口页 ▶/◀/圆点、
+  **入口页左上返回箭头 `--click-box 112,46,40,40` → `page_after=MAP`**（⇒ 那一局并没有结束，只是 Mirror Dungeon
+  菜单页叠在地图之上）。
+- 对照 LALC（本机 `D:\Program Files (x86)\lalc` 与 `D:\scripts\lalc`）：同类症状有专门兜底 `mirror_enter_last_week`
+  （模板 `previous_session_expired`，文案 "The previous session has expired. Please claim your rewards."）→ 直接报错
+  「请手动结算上周的镜牢再启动 | Please finish your Dungeon and restart」；其 `exec_mirror_select_next_node` 也是
+  点节点 → 等 connecting 消失 → `node_press("enter")`，失败就回初始页。
+- **按硬约束不再触碰该局**（不重启游戏、不点 `Halt Exploration`、不买/不兑换），已请用户处置；
+  脚本侧维持 `no_candidate_node_observed` 停机，绝不盲点。
+- 新增诊断开关 `tools/window_step.py --swipe x1,y1,x2,y2[,duration_ms]`（一次手势，与 `--click-box` 共用 before/after
+  记录，`goal = 0 if (boxes or swipes)`），用于证明「地图能拖」；全量 **269 passed**。
+
+## Prior continuation: 2026-10-06 04:35 local
 - 新页面落地：**遭遇奖励卡**（`Select Encounter Reward Card`）。清掉一个节点后游戏交回一张
   「选 1 张」的奖励卡（`Selectable 0/1`），确认前必须先在卡面上点一下。这一页同时带 `X Cancel`，
   所以它必须先于通用 UNKNOWN_DIALOG 被命名，否则整页会被当成「未知弹窗只观察」而卡死——
