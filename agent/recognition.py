@@ -26,7 +26,7 @@ from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import SINNERS
-from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud
+from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons
 from maalimbus import star_vision
 from maalimbus import initial_gifts
 from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
@@ -553,6 +553,24 @@ class LimbusRecognition(CustomRecognition):
                 raise ValueError('Unknown saved-team recognition mode')
             delay = random.randint(180,480)
             context.override_pipeline({argv.node_name: {'pre_delay': delay}})
+        elif params.get('battle_mode')=='win_rate':
+            # Android touch equivalent of the upstream win-rate step: one bounded
+            # tap on the battle's own Win Rate button. Skill slots, targets and the
+            # turn are not touched here.
+            if scene!='BATTLE_HUD':return None
+            size=(argv.image.shape[1],argv.image.shape[0])
+            plan=auto_assign_plan(records,size)
+            if plan['target'] is None:
+                self.journal.record('battle_auto_assign_blocked',frame=frame,scene=scene,
+                                    reason=plan['reason'],verified_clear=False)
+                return None
+            box=inset_box(plan['target'],.2)
+            delay=random.randint(350,750)
+            context.override_pipeline({argv.node_name:{'pre_delay':delay}})
+            self.journal.record('battle_auto_assign_intent',frame=frame,scene=scene,
+                                wave=plan['wave'],turn=plan['turn'],box=box,
+                                damage_box=plan['damage'],delay_ms=delay,
+                                turn_submitted=False,verified_clear=False)
         elif 'token' in params:
             matches = find(records, self.locale[params['token']], params['roi'],
                            (argv.image.shape[1], argv.image.shape[0]))
@@ -884,6 +902,35 @@ class MapObservation(CustomAction):
             input_sent=False,verified_clear=False,
             scope='fresh page identity and bounded route refusal; no node input')
         return header is not None or panel is not None or team is not None
+
+
+class BattleObservation(CustomAction):
+    """Read-only battle page recorder: identity, controls and frame change only."""
+    def __init__(self,recognition):
+        super().__init__();self.recognition=recognition
+
+    @guarded_callback(False)
+    def run(self,context,argv):
+        try:
+            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        except (TimeoutError,RuntimeError):return False
+        image=context.tasker.controller.cached_image
+        records,scene,frame=self.recognition.observe(context,image)
+        size=(image.shape[1],image.shape[0])
+        digest=hashlib.sha256(image.tobytes()).hexdigest()
+        changed=digest!=self.recognition.battle_before
+        self.recognition.battle_before=digest
+        hud=battle_hud(records,size)
+        buttons=auto_assign_buttons(records,size)
+        self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
+            frame_changed=changed,wave=None if hud is None else hud['wave'],
+            turn=None if hud is None else hud['turn'],
+            diagnostics=[] if hud is None else hud['diagnostics'],
+            auto_assign_buttons=None if buttons is None else
+                {'win_rate':list(buttons['win_rate']),'damage':list(buttons['damage'])},
+            turn_submitted=False,verified_clear=False,
+            scope='page identity, HUD counters and auto-assign controls; no input')
+        return hud is not None
 
 
 class InputPreflight(CustomAction):

@@ -1,0 +1,144 @@
+"""One bounded Android touch step in battle: tap the game's own `Win Rate` button.
+
+This is the touch equivalent of the upstream win-rate step. It refuses without the
+nonce in `build/map-probe-authorization.json`, only acts when a fresh read-only
+observation identifies the combat HUD, performs exactly one Maa `Click` through the
+pipeline node `BattleAutoAssign` (inset target, randomized bounded delay), then
+settles the page with bounded read-only observations. It never selects a skill,
+never picks an enemy target, never presses the turn button and never sends a key.
+"""
+import argparse
+from datetime import datetime
+import json
+import os
+from pathlib import Path
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
+sys.path.insert(0, str(ROOT / 'agent'))
+
+from maa.controller import AdbController
+from maa.define import MaaAdbInputMethodEnum, MaaAdbScreencapMethodEnum
+from maa.library import Library
+from maa.resource import Resource
+from maa.tasker import Tasker
+from maa.toolkit import Toolkit
+
+from maalimbus.adb_preflight import foreground
+from maalimbus.controller_lease import ControllerLease
+from maalimbus.jobs import wait_job, wait_task
+from recognition import Journal, LimbusRecognition, BattleObservation
+
+AUTHORIZATION = ROOT / 'build/map-probe-authorization.json'
+
+
+def authorized(nonce: str) -> bool:
+    if not AUTHORIZATION.is_file():
+        return False
+    data = json.loads(AUTHORIZATION.read_text(encoding='utf-8'))
+    return (data.get('live_input_authorized') is True and bool(data.get('nonce'))
+            and data['nonce'] == nonce)
+
+
+def run_node(tasker, name, deadline):
+    job = tasker.post_task(name)
+    try:
+        return wait_task(tasker, job, deadline=deadline)
+    except RuntimeError as error:
+        if not job.done:
+            wait_job(tasker.post_stop(), timeout=5)
+        return {'task_succeeded': False, 'stop_confirmed': job.done, 'error': str(error)}
+
+
+def events_of(directory, name):
+    events = [json.loads(line) for line in
+              (directory / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
+    return [e for e in events if e['event'] == name]
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--binary', type=Path, required=True)
+    parser.add_argument('--adb', type=Path, required=True)
+    parser.add_argument('--address', required=True)
+    parser.add_argument('--authorize', required=True)
+    parser.add_argument('--rounds', type=int, default=4)
+    parser.add_argument('--interval', type=float, default=5.0)
+    args = parser.parse_args()
+    if not authorized(args.authorize):
+        print(json.dumps({'refused': 'live_input_not_authorized',
+                          'hint': f'{AUTHORIZATION} must grant live_input_authorized '
+                                  'with this nonce'}, ensure_ascii=False))
+        return 2
+    directory = ROOT / ('evidence/runtime/battle-auto-assign-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
+    directory.mkdir(parents=True)
+    lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
+    deadline = time.monotonic() + 120 + args.rounds * (args.interval + 25)
+    result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
+                  clicks_sent=0, turn_submitted=False, verified_clear=False,
+                  foreground_before=foreground(args.adb, args.address))
+    try:
+        Library.open(args.binary, agent_server=False)
+        Toolkit.init_option(ROOT / 'build/battle-auto-debug')
+        controller = AdbController(args.adb, args.address, MaaAdbScreencapMethodEnum.Encode,
+                                   MaaAdbInputMethodEnum.Maatouch)
+        wait_job(controller.post_connection(), timeout=15, deadline=deadline)
+        controller.set_screenshot_target_long_side(1920)
+        journal = Journal(directory)
+        recognition = LimbusRecognition('en', journal)
+        resource = Resource()
+        resource.register_custom_recognition('limbus_scene', recognition)
+        resource.register_custom_action('limbus_battle_observe', BattleObservation(recognition))
+        for layer in ('base', 'en'):
+            wait_job(resource.post_bundle(ROOT / f'assets/resource/{layer}'), timeout=20, deadline=deadline)
+        tasker = Tasker()
+        assert tasker.bind(resource=resource, controller=controller)
+
+        result['before'] = run_node(tasker, 'BattleAutoAssignObserve', deadline)
+        before = events_of(directory, 'battle_observed')
+        result['before_observation'] = before[-1] if before else None
+        if not before or before[-1]['scene'] != 'BATTLE_HUD':
+            result.update(refused='page_is_not_the_combat_hud', passed=False)
+            return 1
+
+        result['assign'] = run_node(tasker, 'BattleAutoAssign', deadline)
+        intents = events_of(directory, 'battle_auto_assign_intent')
+        result['intent'] = intents[-1] if intents else None
+        result['clicks_sent'] = len(intents)
+        if not intents:
+            blocked = events_of(directory, 'battle_auto_assign_blocked')
+            result.update(refused='auto_assign_blocked', blocked=blocked[-1] if blocked else None,
+                          passed=False)
+            return 1
+        after = events_of(directory, 'battle_observed')
+        rounds = []
+        for index in range(args.rounds):
+            if index:
+                time.sleep(args.interval)
+                run_node(tasker, 'BattleAutoAssignObserve', deadline)
+            observed = events_of(directory, 'battle_observed')[-1]
+            rounds.append(observed)
+            if observed['scene'] != 'BATTLE_HUD':
+                break
+        result['rounds'] = rounds
+        result['settled'] = rounds[-1] if rounds else None
+        result['clicks_sent'] = len(events_of(directory, 'battle_auto_assign_intent'))
+        result['foreground_after'] = foreground(args.adb, args.address)
+        result['reason'] = 'auto_assign_click_recorded'
+        result['passed'] = (result['clicks_sent'] == 1
+                            and result['foreground_after'] == result['foreground_before'])
+    except Exception as error:
+        result.update(reason='battle_auto_assign_failed', error=str(error), passed=False)
+        raise
+    finally:
+        (directory / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n',
+                                              encoding='utf-8')
+        print(json.dumps({k: v for k, v in result.items() if k != 'rounds'}, ensure_ascii=False, indent=1))
+        lease.close()
+    return 0 if result.get('passed') else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

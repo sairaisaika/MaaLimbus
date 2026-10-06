@@ -690,6 +690,34 @@
     "next": [],
     "on_error": []
   },
+  "BattleAutoAssign": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "BATTLE_HUD",
+      "battle_mode": "win_rate"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "BattleAutoAssignObserve"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "BattleAutoAssignObserve": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_battle_observe",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
   "BattlePlanStart": {
     "recognition": "DirectHit",
     "action": "Custom",

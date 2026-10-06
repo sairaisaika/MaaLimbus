@@ -40,6 +40,38 @@ def preview_labels(records, size):
     return sorted(result,key=lambda t:t['box'][0])
 
 
+def auto_assign_buttons(records, size):
+    """The battle's `Win Rate` and `Damage` auto-assignment buttons.
+
+    Each button is the union of its two caption words in its own band. These are
+    read-only targets; this function never clicks and never infers a turn result.
+    """
+    win = find(records, r'^Win$', (.60, .70, .69, .80), size, .85)
+    rate = find(records, r'^Rate$', (.60, .70, .69, .80), size, .85)
+    damage = find(records, r'^Damage$', (.59, .77, .70, .84), size, .85)
+    if len(win) != 1 or len(rate) != 1 or len(damage) != 1:
+        return None
+    union = (min(win[0].box[0], rate[0].box[0]), min(win[0].box[1], rate[0].box[1]),
+             max(win[0].box[0] + win[0].box[2], rate[0].box[0] + rate[0].box[2])
+             - min(win[0].box[0], rate[0].box[0]),
+             max(win[0].box[1] + win[0].box[3], rate[0].box[1] + rate[0].box[3])
+             - min(win[0].box[1], rate[0].box[1]))
+    return {'win_rate': union, 'damage': damage[0].box,
+            'scope': 'auto-assignment button geometry from their own captions; no input'}
+
+
+def auto_assign_plan(records, size):
+    """Plan one bounded auto-assignment click, or refuse with an explicit reason."""
+    hud = battle_hud(records, size)
+    if hud is None:
+        return dict(target=None, reason='battle_hud_not_identified')
+    buttons = auto_assign_buttons(records, size)
+    if buttons is None:
+        return dict(target=None, reason='auto_assign_buttons_not_present')
+    return dict(target=buttons['win_rate'], damage=buttons['damage'],
+                reason='win_rate_auto_assign', wave=hud['wave'], turn=hud['turn'])
+
+
 def battle_hud(records, size):
     """Identify the combat HUD from its own WAVE/TURN captions.
 
