@@ -1,5 +1,29 @@
 # Acceptance evidence
 
+## 2026-10-06 first real battle entered, fought and won from the map
+
+- With the discovery-based binding (MuMu's own adb, `EmulatorExtras` screencap,
+  `AdbShell|MinitouchAndAdbKey|Maatouch` input) the bounded stepper advanced the real
+  battle: `START` clicks moved the HUD from turn 1 to turn 2, and the following turn
+  resolved into the victory sequence — "…have dealt a fatal blow to your enemies",
+  `Gain Corpus Ingredient`, `Sloth DMG Up +1`, `TOTAL 132`
+  (`evidence/runtime/battle-step-20261006-013320/frame-0001.png`). This is the first
+  actual combat progress from the stopped 231221 session, and it used one bounded
+  click per step with no key input.
+- The `START` word is a banner above the real button: clicking the label did nothing
+  until `battle_vision.warm_control()` read the warm control blob beneath it, so the
+  pinned geometry is label `(1060,738,66,30)` versus control `(1038,771,121,133)`.
+  The auto-assign bands also had to widen (`.58-.74` / `.58-.75`) because the board
+  shifts the buttons to x 1300-1362; both layouts are pinned.
+- Blocker found and stopped on: after the victory sequence the HUD shows `TURN 3`
+  with `Win Rate`/`Damage` present but never a `START`. Eight successive bounded
+  `auto_assign` clicks produced no state change, so the loop was stopped and the
+  stepper now reports `auto_assign_had_no_effect` instead of repeating it. Whether
+  that turn needs a manual skill assignment, a different control, or is an
+  end-of-battle state is undetermined; no further input was sent.
+- Not claimed: no floor clear, no reward receipt, no rotation or re-entry. The run
+  remains mid-battle at turn 3.
+
 ## 2026-10-06 authorized entry into the first battle from the map
 
 - With the same gated authorization, one click on the pre-battle team page's

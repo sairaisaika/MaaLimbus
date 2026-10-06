@@ -153,9 +153,16 @@ def main() -> int:
             rounds.append(events_of(directory, 'battle_observed')[-1])
         result['rounds'] = rounds
         result['settled'] = rounds[-1] if rounds else None
+        # A no-op step must be visible, never repeated blindly: an auto_assign that
+        # left the same turn without producing START did not take effect.
+        if (result.get('action') == 'auto_assign' and rounds
+                and result['settled'].get('start_box') is None
+                and result['settled'].get('turn') == page.get('turn')):
+            result['auto_assign_had_no_effect'] = True
         result['foreground_after'] = foreground_of(device)
         result['reason'] = 'bounded_battle_step_recorded'
         result['passed'] = (result['clicks_sent'] <= 1
+                            and not result.get('auto_assign_had_no_effect')
                             and result['foreground_after'] == result['foreground_before'])
     except Exception as error:
         result.update(reason='battle_step_failed', error=str(error), passed=False)

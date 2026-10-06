@@ -9,7 +9,22 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 01:20 local
+## Latest continuation: 2026-10-06 01:40 local
+- First real combat from the stopped231221 session, using the discovery-based binding
+  (MuMu 自带 adb、EmulatorExtras 截图、AdbShell|MinitouchAndAdbKey|Maatouch 输入) and one
+  bounded click per step: START 点击把战斗从 turn1 推到 turn2，随后回合结算出现胜利演出
+  "…have dealt a fatal blow to your enemies"、`Gain Corpus Ingredient`、`Sloth DMG Up +1`、
+  `TOTAL 132`（evidence/runtime/battle-step-20261006-013320/frame-0001.png）。全程无按键输入。
+- 关键几何：`START` 文字只是横幅，真正的按钮是横幅下方的暖色圆钮——
+  `battle_vision.warm_control()` 读该控件，钉住 label(1060,738,66,30) vs control(1038,771,121,133)；
+  Win Rate/Damage 按钮会随棋盘横向移动（x1300-1362），自动分配波段加宽到 .58-.74 / .58-.75，
+  两种布局都有测试。提交 82863aa、17101be。
+- 阻塞并已停下：胜利演出后 HUD 显示 `TURN 3`、有 Win Rate/Damage 但**始终没有 START**；
+  连续 8 次 auto_assign 点击无任何状态变化 → 已停止点击，并在 tools/battle_step.py 增加
+  `auto_assign_had_no_effect` 标记（pass=False）以免再盲重复。是"该回合要手动点技能/需要别的控件"
+  还是"战斗已处于结束态"尚无定论；未再发输入。未声称通关、领奖、轮换或再入场。
+
+## Prior continuation: 2026-10-06 01:20 local
 - ADB binding corrected to the documented path. Manual
   `docs/zh_cn/2.4-控制方式说明.md` (and the official Python sample `sample/python/demo1.py`)
   require an ADB controller's screencap/input methods to come from
