@@ -575,6 +575,21 @@ def main() -> int:
             entry.update(step_result(plan, sent=True, before=page,
                                      after=settled_page, page=settled_page,
                                      frame_changed=settled.get('image_sha256') not in (None, before_sha)))
+            if not entry['passed'] and entry['reason'] == 'unexpected_successor':
+                # Live run build/window-run36 pressed To Battle! on a full 12/12 team
+                # page, and the settle loop still read PRE_BATTLE_TEAM while the game
+                # had already moved into the battle: the successor arrives after the
+                # transition, so one more observation decides whether the input was
+                # swallowed or the frame was merely early. No second input is sent.
+                time.sleep(args.interval)
+                late = observe(tasker, directory, deadline)
+                late_page = resolve_scene(registry, directory, late)
+                if late_page != page:
+                    entry.update(page_after=late_page, settled=late,
+                                 scene_after=late['scene'], late_observation=True)
+                    entry.update(step_result(plan, sent=True, before=page, after=late_page,
+                                             page=late_page,
+                                             frame_changed=late.get('image_sha256') not in (None, before_sha)))
             result['steps'].append(entry)
             if not entry['passed']:
                 retryable = (page == 'MAP' and settled_page in ('MAP', 'UNKNOWN')

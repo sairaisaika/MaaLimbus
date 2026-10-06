@@ -356,14 +356,15 @@
         {
           "id": "battle.wave",
           "kind": "ocr",
-          "pattern": "^WAVE$",
+          "pattern": "^[WN]AVE$",
           "roi": [
             0.0,
             0.02,
             0.07,
             0.09
           ],
-          "threshold": 0.8
+          "threshold": 0.8,
+          "note": "红场地背景下 W 少一横被读成 NAVE（evidence/runtime/window-20261006-053000/frame-0030.json [28,41,38,24] 0.888），WAVE 与 NAVE 都收；与 battle.turn 必须同时命中"
         },
         {
           "id": "battle.turn",

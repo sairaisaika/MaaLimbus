@@ -139,7 +139,12 @@ def battle_hud(records, size):
     recorded as None rather than treated as a different page. Damage/Win-Rate
     readouts are diagnostics, never victory evidence.
     """
-    wave = find(records, r'^WAVE$', (.0, .02, .06, .08), size, .85)
+    # The W stays readable, but the red battlefield backdrop makes the OCR drop a
+    # stroke off it: live evidence/runtime/window-20261006-053000/frame-0031.json reads
+    # "NAVE" [28,41,38,24] beside a clean "TURN", and the whole page then fell back to
+    # UNKNOWN for a full turn. Both captions are still required together, so the
+    # widened vowel does not promote another page.
+    wave = find(records, r'^[WN]AVE$', (.0, .02, .06, .08), size, .85)
     turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
     if len(wave) != 1 or len(turn) != 1:
         return None

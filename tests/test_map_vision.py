@@ -496,3 +496,25 @@ def test_a_read_node_outranks_a_guessed_lattice_step():
     for item in clicks[1:]:
         x, y, w, h = item['box']
         assert ((x + w // 2 - centre[0]) ** 2 + (y + h // 2 - centre[1]) ** 2) > 50 * 50
+
+
+def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
+    """The WAVE caption loses a stroke once the floor is drawn in red.
+
+    Live evidence/runtime/window-20261006-053000/frame-0030.json (floor 3's battle)
+    reads "NAVE" beside a clean "TURN" while every other token of the HUD is present,
+    and the driver then sat on an UNKNOWN page for a whole turn.
+    """
+    from pathlib import Path
+    import json
+    from maalimbus.battle_vision import battle_hud
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-053000/frame-0030.json'
+    if not path.exists():
+        pytest.skip('retained live battle evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    hud = battle_hud(records, tuple(data['size']))
+    assert hud is not None
+    assert hud['wave_box'] == (28, 41, 38, 24)
+    assert hud['diagnostics'] == ['Damage', 'Rate', 'Win']
