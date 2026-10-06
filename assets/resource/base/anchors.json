@@ -1900,6 +1900,57 @@
           }
         }
       ]
+    },
+    {
+      "id": "level_warning",
+      "title": "等级警告弹窗（The current average level … Proceed anyway?：X Cancel / Confirm）",
+      "evidence": [
+        "evidence/runtime/window-20261006-193730/frame-0003.json"
+      ],
+      "identity": [
+        {
+          "id": "level_warning.prompt",
+          "kind": "ocr",
+          "pattern": "^Proceed anyway\\?$",
+          "roi": [
+            0.4,
+            0.36,
+            0.6,
+            0.46
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "level_warning.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193730/frame-0003.json",
+            "box": [
+              1116,
+              720,
+              112,
+              40
+            ],
+            "source": "实测 OCR 框＝弹窗右侧 Confirm；弹窗底下还露着载入页自己的 Confirm [1634,855,168,48]，两个不能混"
+          }
+        },
+        {
+          "id": "level_warning.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193730/frame-0003.json",
+            "box": [
+              744,
+              728,
+              96,
+              30
+            ],
+            "source": "实测 OCR 框＝弹窗左侧 X Cancel；登记只为识别页面与 FORBIDDEN 拒点（取消就等于不按轮换进局）"
+          }
+        }
+      ]
     }
   ],
   "pending": [

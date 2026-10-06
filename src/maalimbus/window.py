@@ -47,7 +47,7 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: start and cancelling it costs the step, not the run.
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
-                      'entry_confirm.cancel_button')
+                      'entry_confirm.cancel_button', 'level_warning.cancel_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -367,6 +367,19 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_GET', 'GIFT_PICK', 'MAP', 'UNKNOWN'),
                      reason='select_takes_the_picked_floor_gifts')
+    if page == 'LEVEL_WARNING':
+        # A rotation team whose average level sits below the recommendation raises
+        # this prompt; the rotation is the instruction, so the run proceeds and Cancel
+        # is refused (live: evidence/runtime/window-20261006-193730/frame-0003.json
+        # carries the dialog Confirm [1116,720,112,40], its X Cancel [744,728,96,30]
+        # and the loadout page's own Confirm [1634,855,168,48] underneath).
+        box = controls.get('level_warning.confirm_button')
+        if box is None:
+            return _refuse(page, 'level_warning_confirm_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
+                             'UNKNOWN'),
+                     reason='the_level_warning_proceeds_with_the_rotation_team')
     if page == 'DUNGEON_TEAM':
         # A Mirror Dungeon run opens on the loadout picker: seven TEAMS slots down the
         # left edge and one Confirm on the bottom right. The rotation decides which

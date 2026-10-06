@@ -319,6 +319,32 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_level_warning_proceeds_and_never_cancels():
+    # Live proof: evidence/runtime/window-20261006-193730/frame-0003.json is the
+    # prompt the rotation team raises (avg level 55 against a recommended 60).
+    dialog_confirm = [1116, 720, 112, 40]
+    cancel = [744, 728, 96, 30]
+    plan = plan_step('LEVEL_WARNING', controls={'level_warning.confirm_button': dialog_confirm,
+                                                'level_warning.cancel_button': cancel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == dialog_confirm
+    assert plan['reason'] == 'the_level_warning_proceeds_with_the_rotation_team'
+    assert successor_ok(plan, 'THEME_PACKS') and successor_ok(plan, 'MAP')
+    assert not successor_ok(plan, 'LEVEL_WARNING')
+    missing = plan_step('LEVEL_WARNING', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'level_warning_confirm_not_anchored'
+    # Cancel backs out of a run the rotation asked for, so it is never a target -
+    # not by naming it, and not through a mis-registered anchor.
+    named = plan_step('LEVEL_WARNING', controls={'level_warning.cancel_button': cancel})
+    assert named['action'] == RECORD
+    misregistered = plan_step('LEVEL_WARNING',
+                              controls={'level_warning.confirm_button': cancel,
+                                        'level_warning.cancel_button': cancel})
+    assert misregistered['action'] == RECORD
+    assert misregistered['reason'] == 'control_is_forbidden'
+
+
 def test_the_dungeon_team_page_brings_the_rotation_slot_then_confirms():
     # Live proof: evidence/runtime/window-20261006-193439/frame-0002.json is the
     # loadout picker a run opens on - TEAMS #1..#7 down the left edge, Starlight
