@@ -34,5 +34,7 @@
   "gift_confirm": "^Confirm$",
   "resume_dialog": "^Dungeon Progress$",
   "resume": "^Resume$",
-  "halt_exploration": "^Halt Exploration$"
+  "halt_exploration": "^Halt Exploration$",
+  "encounter_reward": "^Select Encounter Reward Card$",
+  "selectable": "^Selectable(?:\\s*\\d{1,2}\\s*/\\s*\\d{1,2})?$"
 }

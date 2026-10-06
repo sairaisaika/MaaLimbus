@@ -75,6 +75,13 @@ def classify(records, locale, size):
         and find(records, locale.get('resume', r'(?!)'), (.45, .52, .55, .58), size, .85)
         and find(records, locale.get('halt_exploration', r'(?!)'), (.43, .58, .57, .64), size, .85)):
         return 'RESUME_DIALOG'
+    # Encounter Reward Card is the pick-one screen a cleared node hands back. It
+    # carries Cancel as well, so it has to be named before the generic dialog veto.
+    # Live evidence evidence/runtime/window-20261006-034714/frame-0022.json.
+    if (find(records, locale.get('encounter_reward', r'(?!)'), (.20, .12, .85, .25), size, .85)
+        and find(records, locale.get('selectable', r'(?!)'), (.66, .13, .82, .25), size, .85)
+        and find(records, locale['gift_confirm'], (.56, .68, .72, .78), size, .85)):
+        return 'REWARD_CARD'
     if (find(records, locale.get('cancel', r'(?!)'), (.25,.25,.75,.80), size,.8)
         or find(records, locale.get('entry_confirm', r'(?!)'), (.30,.42,.70,.54), size,.8)):
         return 'UNKNOWN_DIALOG'

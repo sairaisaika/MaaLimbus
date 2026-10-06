@@ -9,7 +9,55 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 03:45 local
+## Latest continuation: 2026-10-06 04:35 local
+- 新页面落地：**遭遇奖励卡**（`Select Encounter Reward Card`）。清掉一个节点后游戏交回一张
+  「选 1 张」的奖励卡（`Selectable 0/1`），确认前必须先在卡面上点一下。这一页同时带 `X Cancel`，
+  所以它必须先于通用 UNKNOWN_DIALOG 被命名，否则整页会被当成「未知弹窗只观察」而卡死——
+  实机 `evidence/runtime/window-20261006-034714/frame-0022.json` 就是这样停下来的。
+  - `assets/resource/en/locale.json`：`encounter_reward` = `^Select Encounter Reward Card$`、
+    `selectable` = `^Selectable(?:\s*\d{1,2}\s*/\s*\d{1,2})?$`。
+  - `src/maalimbus/vision.py`：`REWARD_CARD` 分支（标题 + `Selectable` + `Confirm` 三证据）放在
+    通用 dialog 否决**之前**。
+  - `assets/resource/base/anchors.json`：新页 `reward_card`（identity 三条 + controls 两张卡框、
+    `Confirm` [1128,764,168,49]、`X Cancel` [688,768,154,45]）。`tools/verify_anchors.py` → **11 页 0 broken**。
+  - `src/maalimbus/window.py`：`REWARD_CARD` 计划读计数——没选满就点第一张卡（`advance=True`，
+    只有像素变化能证明选中），选满才点 `Confirm`；`reward_card.cancel_button` 进 `FORBIDDEN_CONTROLS`
+    （拒绝已到手的奖励是禁止输入，登记它只为让页面可被识别）。
+  - `src/maalimbus/reward_vision.py`（新，纯函数）：`counter_state(record)` 从帧的 OCR token 里读
+    `chosen/required`。**关键坑**：未选卡时 OCR 给两个 token（`Selectable` + `0/1`），选中后会并成一个
+    `Selectable 1/1`（`evidence/runtime/window-20261006-035257/frame-0002.json`），第一版严格匹配
+    因此掉进 UNKNOWN_DIALOG；现在在右上波段内搜索计数，`tests/test_reward_vision.py` 4 个用例钉住两种写法。
+  - 循环守卫加豁免 `LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD')`：一场战斗本来就会反复
+    「Win Rate → START」，否则 3 回合就被误判成循环。
+- 实机推进（`build/window-reward2.json`，4 步全 passed）：`REWARD_CARD`（点 `Confirm`）→
+  `REWARD_CARD`（再点 `Confirm`，第一次点击落在奖励卡出场动画上被吃掉，第二次生效）→ `MAP`
+  → `NODE_PANEL` → `PRE_BATTLE_TEAM`。**全程没有点过 `Cancel`，也没有重复领奖**。
+- 全量 **228 passed**。
+
+## Prior continuation: 2026-10-06 04:15 local
+- 这一轮全是「窗口自己在实机里被带偏」之后修掉的真实缺陷，每条都有实机帧 + 回归测试：
+  - **浮层身份收窄**：`overlay_vision.triangle_box` 现在要求金色连通域「又紧凑又尖」
+    （`MIN_FILL=0.28`/`MAX_FILL=0.72` 填充率 + `MIN_LEAN=1.8` 左右四分之一列像素比）。
+    实机根因：出战前队伍页右侧的暖色 **Details 按钮**（47×41、填充均匀）被判成教学书的 ▶，
+    窗口在 `evidence/runtime/window-20261006-034009/` 里连点 12 次，把「E.G.O Resource Overview」
+    详情面板开了又开。`window_step.overlay_hit` 也**不再把三角当身份**，只用「轮播圆点」＋
+    「书自己的 ▶ 模板」，三角只用来给浮层计划定位要点的控件。
+  - **analyze 事件没有 `ocr`/`size`**：`map_observed`/`battle_observed` 只带语义字段
+    （scene/floor/pack/各 box），所以 `overlay_hit` 的圆点判据与 `team_state` 的徽章读取**在实机里一直是死代码**
+    （`team` 恒为 `null`）。`window_step.observe` 现在从最新 `frame-*.json` 补齐 `size` 与 `ocr`。
+  - **循环守卫**：新增 `--loop-guard`（默认 3）。让 `successor_ok` 容忍 TUTORIAL 治好了「误判即停机」，
+    但也藏起了循环——实机 `build/window-run4` 用同一对动作（TUTORIAL 点 ▶ → 队伍页点 To Battle!）
+    跑了 12 个来回且每一步都 `passed`。现在同一 `(page, action, node/target)` 计划重复到阈值即停机
+    （教学书除外，它本来就该一张张翻）。
+  - **`--unknown-rounds` 默认 6 → 12**：胜利横幅本身就把画面占住约 25 秒
+    （`evidence/runtime/window-20261006-033014/`），6 轮 × 5 秒不够，窗口会在战斗刚结束时报
+    `page_unreadable_after_waiting`。
+- 实机进展（`build/window-run5.json`）：`PRE_BATTLE_TEAM`（**12/12 已满**，战绩 `Backup Deployed 5/5`）
+  → `To Battle!` → `BATTLE_HUD` → `Win Rate` 自动指派 → `START` 提交回合 → 回合结算（UNKNOWN）
+  → 再观测已回到 `BATTLE_HUD`，窗口可以继续推进同一场战斗。
+- 全量测试 **222 passed**；`tools/verify_anchors.py` 10 页 0 broken。
+
+## Prior continuation: 2026-10-06 03:45 local
 - **实机：窗口第一次自己把一局推进起来了**（`tools/window_step.py`，全部是被证明过的点击，零猜测坐标）：
   MAP → 点「离玩家最近的候选节点」→ **NODE_PANEL**（此前点远处的宝箱节点毫无反应，见下）→ 点 `Enter` → 过场 →
   教学书浮层（连点 ▶）→ 出战前队伍页（12 张卡逐张入队，0/12 的 Battle! 是暗的）→ `To Battle!` → 战斗 HUD

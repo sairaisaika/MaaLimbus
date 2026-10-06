@@ -90,3 +90,18 @@ def test_dungeon_progress_prompt_is_a_named_resume_page():
             Text('Cancel', (455, 666, 70, 28), .99)]
     assert classify(page, words, (1000, 1000)) == 'RESUME_DIALOG'
     assert classify(page[1:], words, (1000, 1000)) == 'UNKNOWN_DIALOG'
+
+
+def test_encounter_reward_card_is_named_before_the_generic_dialog():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-034714/frame-0022.json is the
+    # pick-one screen a cleared node hands back. It also carries Cancel, so the
+    # generic dialog veto would swallow it; Cancel must never be the plan target.
+    page = [Text('Select Encounter Reward Card', (434, 174, 734, 54), .99),
+            Text('Selectable', (1326, 176, 174, 50), .99),
+            Text('X Cancel', (690, 770, 150, 41), .94),
+            Text('Confirm', (1130, 766, 164, 45), .99)]
+    assert classify(page, words, (1920, 1080)) == 'REWARD_CARD'
+    without_title = [item for item in page
+                     if item.text != 'Select Encounter Reward Card']
+    assert classify(without_title, words, (1920, 1080)) == 'UNKNOWN_DIALOG'

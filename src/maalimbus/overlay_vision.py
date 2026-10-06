@@ -40,6 +40,15 @@ MAX_PIXELS = 4000
 MIN_ASPECT = 0.5
 MAX_ASPECT = 1.7
 
+#: ... and a page-turn triangle is *pointed*. A solid triangle fills about half of
+#: its bounding box and one horizontal quarter of it holds far more gold than the
+#: other. The pre-battle page draws a warm rounded ``Details`` button inside the
+#: same right-hand band, which is evenly filled and therefore not a control: the
+#: live run window-20261006-034009 clicked it twelve times as if it turned a page.
+MIN_FILL = 0.28
+MAX_FILL = 0.72
+MIN_LEAN = 1.8
+
 #: a narrow strip down each side, at the height the book draws its arrows.
 PREVIOUS_BAND = (0.0, 0.35, 0.12, 0.68)
 NEXT_BAND = (0.87, 0.35, 1.0, 0.68)
@@ -57,12 +66,34 @@ def _band(size, roi):
     return int(x0 * width), int(y0 * height), int(x1 * width), int(y1 * height)
 
 
+def _points_sideways(component):
+    """True when a compact gold component is a sideways-pointing triangle.
+
+    ``component`` is a boolean mask cropped to the component's own box. A page-turn
+    arrow fills about half of that box and is lopsided: one horizontal quarter
+    carries far more gold than the other. A rounded button fills most of its box
+    evenly, and a resource icon is not compact, so neither is mistaken for a page
+    turn when it happens to sit in the same band.
+    """
+    height, width = component.shape
+    if width < 3 or height < 3:
+        return False
+    fill = float(component.sum()) / float(width * height)
+    if not MIN_FILL <= fill <= MAX_FILL:
+        return False
+    quarter = max(1, width // 4)
+    left = float(component[:, :quarter].sum())
+    right = float(component[:, -quarter:].sum())
+    return max(left, right) / max(1.0, min(left, right)) >= MIN_LEAN
+
+
 def triangle_box(image, roi):
     """Pixel box of the solid gold page-turn triangle inside ``roi``, or ``None``.
 
-    ``image`` is an OpenCV BGR frame. The biggest *compact* gold component wins: a
-    column of resource icons or a wide button strip can be gold too, and taking the
-    bounding box of every gold pixel in the band turned those into a fake control.
+    ``image`` is an OpenCV BGR frame. The biggest *compact, pointed* gold component
+    wins: a column of resource icons or a wide button strip can be gold too, and
+    taking the bounding box of every gold pixel in the band turned those into a
+    fake control.
     """
     if image is None:
         return None
@@ -78,7 +109,7 @@ def triangle_box(image, roi):
             & (red - blue > MIN_WARMTH)).astype(np.uint8)
     if int(mask.sum()) < MIN_PIXELS:
         return None
-    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
     best = None
     for index in range(1, count):
         x, y, w, h, area = (int(value) for value in stats[index])
@@ -87,6 +118,8 @@ def triangle_box(image, roi):
         if w > MAX_SIDE * width or h > MAX_SIDE * height:
             continue
         if not MIN_ASPECT <= w / max(1, h) <= MAX_ASPECT:
+            continue
+        if not _points_sideways(labels[y:y + h, x:x + w] == index):
             continue
         if best is None or area > best[0]:
             best = (area, [x0 + x, y0 + y, w, h])

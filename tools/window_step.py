@@ -22,6 +22,7 @@ import json
 import os
 from pathlib import Path
 import random
+import re
 import sys
 import time
 
@@ -42,6 +43,7 @@ from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (advance_candidates, flame_player, likely_player,
                                   node_markers, player_marker)
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
+from maalimbus.reward_vision import counter_state
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import NODE, plan_step, resolve_overlay, step_result
@@ -50,6 +52,9 @@ from recognition import (BattleObservation, Journal, LimbusRecognition,
 
 AUTHORIZATION = ROOT / 'build/map-probe-authorization.json'
 REGISTRY = ROOT / 'assets/resource/base/anchors.json'
+#: pages the loop guard never counts against: the guide book advances card by card
+#: from the same control, and a battle legitimately alternates Win Rate and START.
+LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD')
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {
     'WindowMapObserve': {
@@ -140,11 +145,29 @@ def frame_sha(directory):
     return None
 
 
+def frame_details(directory):
+    """The newest stored frame's ``ocr`` tokens and ``size``, or ``None``.
+
+    The analyze event carries only semantic fields (scene, floor, pack, boxes), so
+    the token list and frame size that the guide-book and team readers need come
+    from the frame record the journal writes next to the image.
+    """
+    for path in sorted(directory.glob('frame-*.json'), reverse=True):
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if data.get('ocr') or data.get('size'):
+            return data
+    return None
+
+
 def observe(tasker, directory, deadline):
     """Read the live page once and return its journal record.
 
-    The analyze event itself carries no frame hash, so one is attached here: both
-    the repeated-card guard and the "did the click move the screen" check need it.
+    The analyze event itself carries no frame hash, tokens or size, so they are
+    attached here: the repeated-card guard, the "did the click move the screen"
+    check, the guide-book carousel and the pre-battle team reader all need them.
     """
     run_node(tasker, 'WindowMapObserve', deadline)
     record = events(directory, 'map_observed')[-1]
@@ -153,6 +176,12 @@ def observe(tasker, directory, deadline):
         record = events(directory, 'battle_observed')[-1]
     if not record.get('image_sha256'):
         record['image_sha256'] = frame_sha(directory)
+    details = frame_details(directory)
+    if details:
+        if not record.get('size'):
+            record['size'] = details.get('size')
+        if not record.get('ocr'):
+            record['ocr'] = details.get('ocr')
     return record
 
 
@@ -194,11 +223,18 @@ def candidates_of(directory, record):
 def overlay_hit(registry, directory, record):
     """True when the guide book is on screen.
 
-    Two signals, because each is wrong somewhere on its own. The book's carousel
-    dots exist only under the book (live: present on every book page, absent on the
-    battle page). The page-turn triangle shares its right-edge band with the battle
-    HUD's E.G.O resource column, so the triangle alone reported a tutorial over the
-    battle and sent eight clicks into that column while the battle ran on.
+    Only identities that exist *without* the book count here: the book's carousel
+    dots and the template of its own continue control. The page-turn triangle is
+    deliberately not an identity -- it shares its right-hand band with other UI (the
+    battle HUD's E.G.O resource column, the pre-battle page's warm Details button),
+    and in live run window-20261006-034009 that turned twelve team page observations
+    into "tutorial" clicks on the Details button.
+
+    The glyph template is not an identity either: it only counts while a page-turn
+    control is actually on screen. The battle HUD's E.G.O icon column scores inside
+    the same ROI (0.706-0.858 across evidence/runtime/window-20261006-035540), and
+    at 0.858 it crossed the 0.85 template threshold and refused a real battle page
+    as ``tutorial_next_button_not_anchored``.
     """
     image, name = latest_frame(directory)
     if image is None:
@@ -210,8 +246,8 @@ def overlay_hit(registry, directory, record):
         if carousel_dots(records, size):
             return True
     arrows = page_turn_arrows(image)
-    if arrows['next'] or arrows['previous']:
-        return True
+    if not arrows.get('previous') and not arrows.get('next'):
+        return False
     height, width = image.shape[:2]
     observation = {'size': [width, height],
                    'image_sha256': record.get('image_sha256')}
@@ -257,6 +293,19 @@ def team_state(record, controls):
     return {'states': card_states(records, boxes, size)}
 
 
+def reward_state(record):
+    """The encounter reward page's pick counter, as ``{'chosen': n, 'required': m}``.
+
+    The page opens at ``Selectable 0/1`` and its Confirm button stays inert until a
+    card is picked, so the driver hands the planner the counter rather than
+    clicking blind (live: evidence/runtime/window-20261006-034714/frame-0022.json).
+    The reading itself lives in :mod:`maalimbus.reward_vision` so it is unit tested
+    offline, together with the merged-token case
+    (evidence/runtime/window-20261006-035257/frame-0002.json).
+    """
+    return counter_state(record)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -267,15 +316,23 @@ def main() -> int:
                         help='how many planned inputs this window may send')
     parser.add_argument('--rounds', type=int, default=3,
                         help='read-only observations used to settle each step')
-    parser.add_argument('--unknown-rounds', type=int, default=6,
+    parser.add_argument('--unknown-rounds', type=int, default=12,
                         help='how many consecutive UNKNOWN observations to wait through '
-                             'before calling the page unreadable (loading screens and turn '
-                             'animations read as UNKNOWN and are not refusals)')
+                             'before calling the page unreadable (loading screens, the turn '
+                             'animation and the victory banner all read as UNKNOWN and are '
+                             'not refusals; the victory banner alone held the screen for '
+                             'about 25 s in window-20261006-033014)')
     parser.add_argument('--interval', type=float, default=4.0)
     parser.add_argument('--map-tries', type=int, default=1,
                         help='how many map nodes one MAP step may try: a node that is not '
                              'connected to where the run stands opens no panel and is a '
                              'no-op, so the next candidate is tried instead of stopping')
+    parser.add_argument('--loop-guard', type=int, default=3,
+                        help='stop after the same page/action/target plan passed this many '
+                             'times in one run: a misleading overlay once produced twelve '
+                             'passed rounds of TUTORIAL then To Battle! with nothing '
+                             'changing. The guide book itself is exempt, because it '
+                             'legitimately advances card by card from the same control')
     parser.add_argument('--observe-only', action='store_true',
                         help='record the page and send no input at all')
     parser.add_argument('--click-box', action='append', default=None,
@@ -369,6 +426,7 @@ def main() -> int:
         unknown_seen = 0
         map_skips = set()
         map_attempts = 0
+        repeated_plans = {}
         while step < goal:
             record = observe(tasker, directory, deadline)
             page = resolve_scene(registry, directory, record)
@@ -405,13 +463,15 @@ def main() -> int:
             if page == 'TUTORIAL' and sha:
                 tutorial_cards.add(sha)
             team = team_state(record, controls) if page == 'PRE_BATTLE_TEAM' else None
+            reward = reward_state(record) if page == 'REWARD_CARD' else None
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
-                             candidates=candidates, team=team)
+                             candidates=candidates, team=team, reward=reward)
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
-                     'arrows': arrows_of(directory), 'candidates': candidates}
+                     'reward': reward, 'arrows': arrows_of(directory),
+                     'candidates': candidates}
             if plan['action'] not in ('click', NODE) or args.observe_only:
                 entry.update(step_result(plan, sent=False, before=page, after=None,
                                          page=page))
@@ -477,6 +537,22 @@ def main() -> int:
                                               if tuple(b) != tuple(plan['target'])]))
                 continue
             map_attempts = 0
+            if page not in LOOP_GUARD_EXEMPT:
+                # A plan that keeps succeeding while the page never moves on is a
+                # loop, not progress: live run window-20261006-034009 passed twelve
+                # rounds of TUTORIAL then To Battle! with nothing changing underneath.
+                # Battles are exempt because a fight legitimately alternates the same
+                # two clicks (Win Rate then START) for as many turns as it has waves;
+                # the step budget, not this guard, bounds them.
+                key = (page, plan['action'], plan.get('node'),
+                       None if plan.get('target') is None else tuple(plan['target']))
+                repeated_plans[key] = repeated_plans.get(key, 0) + 1
+                if repeated_plans[key] >= max(2, args.loop_guard):
+                    entry['passed'] = False
+                    entry['stopped'] = 'the_same_plan_repeated'
+                    journal.record('window_loop_guard', plan=list(key),
+                                   repeats=repeated_plans[key])
+                    break
             step += 1
         result['foreground_after'] = foreground_of(device)
         last = result['steps'][-1] if result['steps'] else None

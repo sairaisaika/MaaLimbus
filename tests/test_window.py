@@ -268,3 +268,37 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
                                         'resume.halt_button': halt})
     assert misregistered['action'] == RECORD
     assert misregistered['reason'] == 'control_is_forbidden'
+
+
+def test_reward_card_is_picked_before_confirm_and_cancel_is_never_the_target():
+    # Live proof: evidence/runtime/window-20261006-034714/frame-0022.json is the
+    # pick-one screen a cleared node hands back ("Selectable 0/1").
+    controls = {'reward_card.card_01': [700, 300, 270, 370],
+                'reward_card.card_02': [1000, 300, 270, 370],
+                'reward_card.confirm_button': [1128, 764, 168, 49],
+                'reward_card.cancel_button': [688, 768, 154, 45]}
+    empty = plan_step('REWARD_CARD', controls=controls,
+                      reward={'chosen': 0, 'required': 1})
+    assert empty['action'] == CLICK
+    assert empty['target'] == [700, 300, 270, 370]
+    assert empty['expect'] == [ANY]
+    assert empty['advance'] is True
+    assert empty['reason'] == 'the_reward_card_must_be_picked_before_confirm'
+    picked = plan_step('REWARD_CARD', controls=controls,
+                       reward={'chosen': 1, 'required': 1})
+    assert picked['action'] == CLICK
+    assert picked['target'] == [1128, 764, 168, 49]
+    assert picked['reason'] == 'confirm_grants_the_picked_encounter_reward'
+    # A missing counter is read as "nothing picked yet", never as "confirm now".
+    unread = plan_step('REWARD_CARD', controls=controls)
+    assert unread['target'] == [700, 300, 270, 370]
+    no_card = plan_step('REWARD_CARD',
+                        controls={'reward_card.confirm_button': [1128, 764, 168, 49]})
+    assert no_card['action'] == RECORD
+    assert no_card['reason'] == 'reward_card_box_not_anchored'
+    # Cancel refuses the reward, so it is registered but never a plan target.
+    cancel = [688, 768, 154, 45]
+    named = plan_step('REWARD_CARD', controls={'reward_card.card_01': cancel,
+                                               'reward_card.cancel_button': cancel})
+    assert named['action'] == RECORD
+    assert named['reason'] == 'control_is_forbidden'
