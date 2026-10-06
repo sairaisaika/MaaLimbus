@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "note": "Route policy for one Mirror Dungeon floor. The weights are an editable preference, not the game's internal numbers: map_vision proves which nodes are candidates, this table only orders them by the kind a reader already recognised. Kinds follow the eight legends LALC ships (mirror_legend/classes.txt).",
+  "weights": {
+    "boss": 3.0,
+    "elite": 2.4,
+    "focused": 2.2,
+    "abnormality": 1.8,
+    "event": 1.6,
+    "regular": 1.4,
+    "shop": 1.2,
+    "empty": 0.2
+  },
+  "modifiers": {
+    "avoid_wounded": 2.0,
+    "promote_fusion_shop": 1.6,
+    "push_boss_on_last_floor": 0.8
+  }
+}

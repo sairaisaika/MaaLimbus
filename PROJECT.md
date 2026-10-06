@@ -9,7 +9,16 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 11:55 local
+## Latest continuation: 2026-10-06 12:20 local
+- **P3 的第一块（离线、可测）：路线打分策略表与打分器**
+  - 新增 `assets/resource/base/route-policy.json`（version 1）：按八类节点（`boss`/`elite`/`focused`/`abnormality`/`event`/`regular`/`shop`/`empty`，沿用 LALC 的 legend 分类）给权重，另加三个修正项 `avoid_wounded` 2.0、`promote_fusion_shop` 1.6、`push_boss_on_last_floor` 0.8；`note` 明说这是**可编辑的偏好表、不是游戏内部数值**。
+  - 新增 `src/maalimbus/route_plan.py`：`load_policy(path)`（校验 version、权重键必须是已知种类、修正项必须是已知名字，非法即 `PolicyError`）、`score_node(kind, *, policy, context)`（返回 `{kind, score, reasons}`，未收录的种类返回 `None`）、`plan_route(candidates, *, policy, context)`（`candidates` 是 `{id, kind, box?}`；**只给种类已知的候选打分**，其余跳过；全部无法打分 → `refused='route_kind_unknown'`，空候选 → `route_candidates_empty`；同分按输入顺序定序，返回 `target/box/kind/score/reasons/ranked/refused`）。
+  - **命名澄清（避免踩坑）**：`floor-graph.json` 在 `docs/script-mode-plan.md` §4 里是**运行时每层模型**（节点/连线/行列/包名/层号，由地图感知每层写一次），所以策略表另起名 `route-policy.json`；`route_plan.py` 只负责给那个模型交来的候选打分，不读像素、不发明节点。
+  - 测试 `tests/test_route_plan.py` 8 条：shipped 策略覆盖全部八类且不含未知键、非法策略被拒、按分数取最高并带出 `box`、无法打分的候选被跳过且全盲时拒绝、受伤时精英被普通战反超（`wounded_penalty_2.000`）、待融合时商店反超精英（`fusion_shop_bonus_1.600`）、末层推 Boss 且同分按输入顺序、纯函数稳定性（同输入两次调用结果相同）。全量 **289 passed**（原 281）。
+  - `docs/script-mode-plan.md` §12 的 P3 条目改为「已实现（离线）＋待办三条」（让 `map_vision.route_decision` 接上每层 floor-graph、商店/融合计划与预算门限、需要一次实机映射验收）。
+- **实机侧**：floor 3 地图软锁**依旧**（本轮只拍了一帧核对：mean 11.67，与软锁期一致），未发任何输入；需要用户手工结算/结束那一局或重启客户端后才能继续 P0 的实机验证。
+
+## Prior continuation: 2026-10-06 11:55 local
 - **P1 自检与采集闭环补齐（离线，`docs/script-mode-plan.md` §5.2/§5.3 的两条「下一步」）**：
   - `tools/capture_anchors.py`：一条命令采集并登记锚点。`--label/--from/--box/--page`，裁图→缩到 1280 基准→写 `assets/resource/base/image/<组>/<名>.png`→登记
     `{id,kind:'template',template,roi,threshold,box,note:'captured from …'}`（`--kind geometry` 登记 `verified_on{frame,sha256,box,source}`）。
