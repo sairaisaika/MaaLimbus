@@ -257,9 +257,9 @@ config/user-team-profiles.json            # 轮换与队伍偏好
 2. **游戏内 filter 能力**：filter 是否支持按状态关键词（流血/震颤…）多选、是否可排序——**必须实机验证一次**（P2 第一件事）。若不支持 → 走「一次扫描 inventory + 本地关键词表」。
 3. **人格数据源**：已定位可用源（见 §6.3.1）——`LocalizeLimbusCompany`（中文名/关键词/礼物，活跃）＋`flaglow/LimbusStaticData`（rank/抗性/被动，停更），id 对齐；中文 wiki 被 Cloudflare 拦，改 `wiki.biligame.com`。需拍板：是否引入「自建镜像 + 定时 diff」这一运维负担（本仓库已有 `github_cache.py`，倾向复用）。
 4. **两处情报冲突**：AALC 是否基于 MaaFramework 说法不一致，未核实前不引用其框架结论；已确认 **MaaEnd 不是边狱巴士项目**、**MAALimbusCompany 已弃坑**——实现参考的定位按 §2 表执行。
-4. **分辨率/语言**：统一 720p；英日双语靠 `assets/i18n` 词表；用户 Lix 配置里 `mirror_mode hard`。
-5. **风控/封号**：仅 ADB 触摸 + 截图，不注入进程；保持随机落点与有界间隔，避免高频同点连击。
-6. **分发**：是否上 MirrorChyan（`mirrorchyan_rid`）；Windows 包与 OTA 由 `tools/build_windows_package.py` + `releases.py` 承担。
+5. **分辨率/语言**：统一 720p；英日双语靠 `assets/i18n` 词表；用户 Lix 配置里 `mirror_mode hard`。
+6. **风控/封号**：仅 ADB 触摸 + 截图，不注入进程；保持随机落点与有界间隔，避免高频同点连击。
+7. **分发**：是否上 MirrorChyan（`mirrorchyan_rid`）；Windows 包与 OTA 由 `tools/build_windows_package.py` + `releases.py` 承担。
 
 ---
 
