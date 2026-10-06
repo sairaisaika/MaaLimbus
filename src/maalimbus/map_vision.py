@@ -13,6 +13,7 @@ fabricated click target. No function here calls an input API.
 from dataclasses import dataclass
 import re
 
+from .route_plan import plan_route
 from .vision import Text, find
 
 HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+(?:F\w{3,5}|F\s*\d)\s*([1-5])?\s*$'
@@ -683,13 +684,21 @@ def read_map_asset(image, roi=(.01, .22, .995, .80), threshold=190):
                     link_ratio=0.0)
 
 
-def route_decision(header, size, *, current=None, cleared=(), candidates=()):
+def route_decision(header, size, *, current=None, cleared=(), candidates=(),
+                   policy=None, kinds=None, context=None):
     """Decide a next node or refuse; never invents a target.
 
     `current` is the proven current-position node; `cleared` and `candidates` are
     node identifiers observed on this page. Stage one has no proven node reader,
     so callers must pass the evidence they actually hold; an absent current
     position or candidate list yields an explicit refusal reason.
+
+    When several candidates are unvisited the answer is normally
+    `ambiguous_unvisited_candidates`.  Passing `policy` (a table from
+    `route_plan.load_policy`) with `kinds` (node id -> kind observed on this
+    page) lets `route_plan.plan_route` order them instead; candidates whose kind
+    nobody read are skipped, and when none can be scored the refusal is
+    `route_kind_unknown` — still a refusal, never a guess.
     """
     if header is None:
         return dict(next_node=None, reason='map_header_not_identified')
@@ -701,5 +710,15 @@ def route_decision(header, size, *, current=None, cleared=(), candidates=()):
     if not unvisited:
         return dict(next_node=None, reason='no_unvisited_reachable_node')
     if len(unvisited) != 1:
-        return dict(next_node=None, reason='ambiguous_unvisited_candidates')
+        if policy is None:
+            return dict(next_node=None, reason='ambiguous_unvisited_candidates')
+        known_kinds = kinds or {}
+        plan = plan_route(
+            [dict(id=node, kind=known_kinds.get(node)) for node in unvisited],
+            policy=policy,
+            context=context,
+        )
+        if plan['refused'] is not None:
+            return dict(next_node=None, reason=plan['refused'], plan=plan)
+        return dict(next_node=plan['target'], reason='policy_ranked_candidate', plan=plan)
     return dict(next_node=unvisited[0], reason='single_unvisited_candidate')

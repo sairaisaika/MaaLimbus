@@ -260,7 +260,8 @@ config/user-team-profiles.json            # 轮换与队伍偏好
   验收：对每个罪人给出「符合关键词且等级最高」的人格名 + 证据帧；未证明完整/降序时**拒绝**并回落预设队。
 - **P3 路线与礼赠策略**：`floor-graph.json` 路线打分、商店/融合计划、Wishmaking 决策。
   - 已实现（2026-10-06，离线）：`assets/resource/base/route-policy.json`（按节点种类的可编辑权重表 + 三个修正项 `avoid_wounded` / `promote_fusion_shop` / `push_boss_on_last_floor`，种类沿用 LALC 的八类 legend）与 `src/maalimbus/route_plan.py`（`load_policy` / `score_node` / `plan_route`：只给「种类已知」的候选打分，无法打分的候选被跳过、全部无法打分则拒为 `route_kind_unknown`，同分按输入顺序定序，返回 `target`/`box`/`score`/`reasons`/`ranked`）。命名注意：**`floor-graph.json` 留给运行时每层模型**（`map_vision` 每层写出的节点/连线/行列/包名/层号），策略表另叫 `route-policy.json`。
-  - 待办：① 让 `map_vision.route_decision` 在拿到每层 `floor-graph.json` 后用它打分选路（保留现有拒绝语义）；② 商店/融合（Wishmaking）计划与预算门限；③ 验收需要一次实机映射出的真实 floor-graph。
+  - 已接上（2026-10-06）：`map_vision.route_decision(header, size, *, current, cleared, candidates, policy=None, kinds=None, context=None)` 在「多个未访问候选」时改用 `route_plan.plan_route` 排序并返回 `{'next_node', 'reason': 'policy_ranked_candidate', 'plan'}`；不传 `policy` 时语义完全不变（仍是 `ambiguous_unvisited_candidates`），种类读不出的候选被跳过、全体读不出则拒为 `route_kind_unknown`，只有一个候选时仍走 `single_unvisited_candidate`（不做多余排序）。
+  - 待办：① 商店/融合（Wishmaking）计划与预算门限；② 验收需要一次实机映射出的真实 floor-graph（节点 id 与种类怎么从帧里读出来是它自己的问题）。
   验收：同一层给出可复现的路线与购买/融合计划；预算门限生效。
 - **P4 预算/邮件/每日 + 打包**：体力兑换预算、邮件每日奖励、Windows 包（含 OTA）。
   验收：预算不越界；每日奖励幂等（有 receipt）；打包产物可跑 `verify_deployment_replay`。

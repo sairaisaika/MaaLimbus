@@ -320,6 +320,51 @@ def test_route_decision_refuses_without_proven_evidence():
     assert only == dict(next_node='a', reason='single_unvisited_candidate')
 
 
+def shipped_policy():
+    from pathlib import Path
+
+    from maalimbus.route_plan import load_policy
+
+    root = Path(__file__).resolve().parents[1]
+    return load_policy(root / 'assets' / 'resource' / 'base' / 'route-policy.json')
+
+
+def test_a_policy_orders_the_candidates_nobody_else_could_separate():
+    records, image = frame()
+    header = map_header(records, SIZE)
+    ranked = route_decision(header, SIZE, current='entry', candidates=('a', 'b', 'c'),
+                            kinds={'a': 'empty', 'b': 'elite', 'c': 'event'},
+                            policy=shipped_policy())
+    assert ranked['next_node'] == 'b'
+    assert ranked['reason'] == 'policy_ranked_candidate'
+    assert ranked['plan']['score'] == 2.4
+    assert [entry['id'] for entry in ranked['plan']['ranked']] == ['b', 'c', 'a']
+
+
+def test_a_policy_refuses_rather_than_ranking_a_kind_nobody_read():
+    records, image = frame()
+    header = map_header(records, SIZE)
+    blind = route_decision(header, SIZE, current='entry', candidates=('a', 'b'),
+                           kinds={}, policy=shipped_policy())
+    assert blind['next_node'] is None
+    assert blind['reason'] == 'route_kind_unknown'
+    assert blind['plan']['refused'] == 'route_kind_unknown'
+    readable = route_decision(header, SIZE, current='entry', candidates=('a', 'b'),
+                              kinds={'b': 'regular'}, policy=shipped_policy())
+    assert readable['next_node'] == 'b'
+
+
+def test_a_policy_does_not_change_a_single_candidate_or_the_evidence_first_path():
+    records, image = frame()
+    header = map_header(records, SIZE)
+    single = route_decision(header, SIZE, current='entry', cleared=('entry',),
+                            candidates=('a',), kinds={'a': 'boss'}, policy=shipped_policy())
+    assert single == dict(next_node='a', reason='single_unvisited_candidate')
+    ambiguous = route_decision(header, SIZE, current='entry', candidates=('a', 'b'),
+                               kinds={'a': 'empty', 'b': 'boss'})
+    assert ambiguous == dict(next_node=None, reason='ambiguous_unvisited_candidates')
+
+
 def test_header_pattern_matches_only_the_two_supported_wordings():
     assert HEADER_PATTERN
     import re

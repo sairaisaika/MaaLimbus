@@ -9,7 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 12:20 local
+## Latest continuation: 2026-10-06 12:40 local
+- **P3 接线：`map_vision.route_decision` 用策略表排序（离线，可测）**
+  - `route_decision(header, size, *, current=None, cleared=(), candidates=(), policy=None, kinds=None, context=None)`：仍是「先证后选」——`map_header_not_identified` / `current_position_not_proven` / `no_unvisited_candidate_observed` / `no_unvisited_reachable_node` 四道拒绝不变；**多个未访问候选**时若给了 `policy`（`route_plan.load_policy` 的表）与 `kinds`（节点 id → 本帧读到的种类），改由 `route_plan.plan_route` 排序，返回 `{'next_node', 'reason': 'policy_ranked_candidate', 'plan'}`；种类读不出的候选被跳过，**全体读不出则拒为 `route_kind_unknown`**（仍是拒绝，不是猜）；只有一个候选时不做多余排序，仍返回 `single_unvisited_candidate`。凡不传 `policy` 的调用方（含 `tools/map_live_observe.py:120`）语义逐字不变。
+  - 实机冒烟（离线喂 `{'floor':3,'pack':'Repressed Wrath'}` + 三个候选 kinds `shop/abnormality/boss`）→ `next_node='r'`、`reason='policy_ranked_candidate'`、`plan.score=3.0`，`ranked` 依次为 boss 3.0 / abnormality 1.8 / shop 1.2。
+  - 测试：`tests/test_map_vision.py` 新增 3 条（策略排序并带出 `ranked`、无人读出种类时拒绝而不是排序、有种类可读时跳过读不出的并把 `regular` 选中、单候选与无 policy 路径逐字不变）。全量 **292 passed**（原 289）；`tools/verify_anchors.py` 仍 **22 page(s), 0 broken**。
+  - `docs/script-mode-plan.md` §12 的 P3 待办缩为两条：商店/融合（Wishmaking）计划与预算门限、需要一次实机映射出的真实 floor-graph。
+- **实机侧**：floor 3 地图软锁**依旧**（本轮只拍一帧核对：mean 11.59，与软锁期一致），未发任何输入。
+
+## Prior continuation: 2026-10-06 12:20 local
 - **P3 的第一块（离线、可测）：路线打分策略表与打分器**
   - 新增 `assets/resource/base/route-policy.json`（version 1）：按八类节点（`boss`/`elite`/`focused`/`abnormality`/`event`/`regular`/`shop`/`empty`，沿用 LALC 的 legend 分类）给权重，另加三个修正项 `avoid_wounded` 2.0、`promote_fusion_shop` 1.6、`push_boss_on_last_floor` 0.8；`note` 明说这是**可编辑的偏好表、不是游戏内部数值**。
   - 新增 `src/maalimbus/route_plan.py`：`load_policy(path)`（校验 version、权重键必须是已知种类、修正项必须是已知名字，非法即 `PolicyError`）、`score_node(kind, *, policy, context)`（返回 `{kind, score, reasons}`，未收录的种类返回 `None`）、`plan_route(candidates, *, policy, context)`（`candidates` 是 `{id, kind, box?}`；**只给种类已知的候选打分**，其余跳过；全部无法打分 → `refused='route_kind_unknown'`，空候选 → `route_candidates_empty`；同分按输入顺序定序，返回 `target/box/kind/score/reasons/ranked/refused`）。
