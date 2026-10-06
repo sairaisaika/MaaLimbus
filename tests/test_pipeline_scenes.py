@@ -91,6 +91,32 @@ def _all_nodes() -> dict:
     return nodes
 
 
+def _custom_hooks() -> set:
+    names = set()
+    for path in sorted((ROOT / 'assets' / 'resource').glob('**/pipeline/*.json')):
+        for node in json.loads(path.read_text(encoding='utf-8')).values():
+            for key in ('custom_action', 'custom_recognition'):
+                value = node.get(key)
+                if isinstance(value, str) and value:
+                    names.add(value)
+    return names
+
+
+def test_every_custom_hook_is_named_somewhere_in_the_python_sources():
+    """A node naming a hook nobody implements only fails on a real run.
+
+    The hooks are registered from `agent/` (AgentServer) and exercised from
+    `tools/`, so the search covers all three source trees.
+    """
+    sources = '\n'.join(
+        path.read_text(encoding='utf-8')
+        for tree in ('src', 'agent', 'tools')
+        for path in sorted((ROOT / tree).glob('**/*.py'))
+    )
+    missing = sorted(name for name in _custom_hooks() if name not in sources)
+    assert missing == [], 'pipeline hooks with no implementation: %s' % missing
+
+
 def test_every_route_target_is_a_node_that_exists():
     """A `next`/`on_error` pointing at a missing node is a runtime dead end."""
     nodes = _all_nodes()
