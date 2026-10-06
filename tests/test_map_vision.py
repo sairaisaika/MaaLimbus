@@ -577,3 +577,24 @@ def test_the_start_control_is_read_at_the_right_edge_of_the_band():
     # The banner is drawn above its button, so the control hangs under the label.
     assert y >= label[1] + label[3] - 10
     assert abs((x + w / 2) - (label[0] + label[2] / 2)) < 40
+
+
+def test_the_map_survives_the_header_word_being_misread():
+    """OCR turns "Floor" into "Flaor" and the whole map page fell back to UNKNOWN.
+
+    Live evidence/runtime/window-20261006-104857/frame-0080.json reads the header as
+    'Exploring Flaor' [56,127,310,53] with the pack 'Repressed Wrath' below it.
+    """
+    from pathlib import Path
+    import json
+    from maalimbus.map_vision import map_header
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-104857/frame-0080.json'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert header.floor is None
+    assert header.pack == 'Repressed Wrath'

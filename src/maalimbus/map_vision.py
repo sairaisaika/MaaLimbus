@@ -15,14 +15,17 @@ import re
 
 from .vision import Text, find
 
-HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+Floor\s*([1-5])?\s*$'
+HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+(?:F\w{3,5}|F\s*\d)\s*([1-5])?\s*$'
 #: the same header in the shapes the game really renders on the floor-1 map page. OCR
 #: has produced all three: 'Exploring Floor 1' as one token, 'Exploring' [56,127,202,53]
 #: plus 'Floor' [236,133,122,43] as two (evidence/runtime/window-20261006-033107),
 #: and 'Exploring Floor' [60,133,330,41] with the stylised digit dropped by the
-#: recogniser (evidence/runtime/window-20261006-040651). So the floor digit is
-#: optional and the label may or may not carry the word "Floor"; the pack line below
-#: is what keeps an unrelated page from being promoted into MAP.
+#: recogniser (evidence/runtime/window-20261006-040651). The word itself also mangles:
+#: window-20261006-104857/frame-0080 reads the whole line as 'Exploring Flaor'
+#: [56,127,310,53] 0.99, so the word after the label is only required to open with F
+#: and carry three to five more characters (or an F followed by the digit). So the
+#: floor digit is optional and the label may or may not carry the word "Floor"; the
+#: pack line below is what keeps an unrelated page from being promoted into MAP.
 HEADER_LABEL_PATTERN = r'^(?:Exploring|Before\s+Entry)(?:\s+Floor)?$'
 HEADER_FLOOR_PATTERN = r'^Floor\s*([1-5])?$'
 HEADER_ROI = (.0, .06, .30, .22)

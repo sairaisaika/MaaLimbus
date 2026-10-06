@@ -529,7 +529,10 @@ def main() -> int:
                 gift = gift_state(record, image=latest_frame(directory)[0],
                                   select_box=controls.get('gift_pick.select_button'),
                                   picks=gift_picks)
-                cards = gift_cards(record.get('ocr') or [], record.get('size') or (1920, 1080))
+                cards = gift_cards(
+                    [Text(t['text'], tuple(t['box']), t['score'])
+                     for t in record.get('ocr') or []],
+                    record.get('size') or (1920, 1080))
             else:
                 gift_picks = 0
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
