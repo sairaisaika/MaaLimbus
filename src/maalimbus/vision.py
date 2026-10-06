@@ -95,6 +95,47 @@ def classify(records, locale, size):
     if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
         and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)):
         return 'SHOP'
+    # The floor's gift pick ("Acquire E.G.O Gift" cards + Select N/2 + Refuse Gift)
+    # hands the run its floor rewards. Refuse Gift is a forbidden input, so the page
+    # has to be named before the generic dialog veto and before FLOOR_GIFTS (which
+    # wants a plain Confirm the live page does not carry).
+    # Live evidence evidence/runtime/window-20261006-043102/frame-0003.json.
+    if (find(records, locale.get('gift_pick_label', r'(?!)'), (.06, .13, .95, .26), size, .85)
+        and len(find(records, locale.get('select', r'(?!)'), (.78, .74, .96, .88), size, .85)) == 1
+        and find(records, locale.get('refuse_gift', r'(?!)'), (.62, .74, .82, .88), size, .85)):
+        return 'GIFT_PICK'
+    # The event's "Choices" page (abnormality events) puts two to four option rows in
+    # the right-hand column. Any row advances, but the rows are read live because
+    # their number moves them, so the page is named here and its rows come from OCR.
+    # It has to be named before the cutscene branch: the choices page keeps the
+    # story playback's REC badge and its SKIP button, so a cutscene test placed first
+    # swallows it (live build/window-run31.json: the SKIP press handed back
+    # evidence/runtime/window-20261006-051213/frame-0002.json, which reads Choices
+    # 1.0, REC 1.0 and SKIP 1.0 together).
+    # Live evidence evidence/runtime/window-20261006-044943/frame-0015.json.
+    if (find(records, locale.get('choices', r'(?!)'), (.50, .11, .68, .24), size, .85)
+        and len(find(records, r'.+', (.52, .24, .99, .72), size, 0)) >= 2):
+        return 'EVENT_CHOICE'
+    # The event's outcome page keeps the REC badge of the story playback and adds a
+    # "Result" panel on the right. Its bottom-right control is the same slot the
+    # cutscene uses, and it stays dimmed until the story has been tapped through, at
+    # which point that slot carries a bright "Continue": live
+    # evidence/runtime/window-20261006-045451/frame-0001.json (dim, no button token)
+    # becomes frame-0002.json ("Continue" 1.0 at [1588,943,218,55]). It therefore has
+    # to be named before CUTSCENE, which also sees REC and SKIP.
+    if (find(records, locale.get('result', r'(?!)'), (.48, .11, .66, .24), size, .85)
+        and find(records, locale.get('rec', r'(?!)'), (.42, .14, .52, .24), size, .85)):
+        if find(records, locale.get('continue', r'(?!)'), (.78, .82, .99, .98), size, .85):
+            return 'EVENT_RESULT_READY'
+        return 'EVENT_RESULT'
+    # A cutscene (abnormality intro, event story) covers the screen with a REC badge
+    # and a single SKIP button, and it waits for input instead of advancing: live
+    # window-20261006-044556 sat on it for over a minute with the text already complete
+    # ("Clopping like a spider, it talks to me."). Skipping is that page's own forward
+    # control, so it must be named rather than left as an unknown page.
+    if (find(records, locale.get('skip', r'(?!)'), (.78, .82, .99, .98), size, .85)
+        and find(records, locale.get('rec', r'(?!)'), (.42, .14, .52, .24), size, .85)):
+        return 'CUTSCENE'
     if (find(records, locale.get('cancel', r'(?!)'), (.25,.25,.75,.80), size,.8)
         or find(records, locale.get('entry_confirm', r'(?!)'), (.30,.42,.70,.54), size,.8)):
         return 'UNKNOWN_DIALOG'

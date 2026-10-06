@@ -1084,6 +1084,495 @@
           }
         }
       ]
+    },
+    {
+      "id": "gift_pick",
+      "title": "层礼物选择页（Acquire E.G.O Gift ×4 + Select N/2；Refuse Gift 禁止）",
+      "evidence": [
+        "evidence/runtime/window-20261006-043102/frame-0003.json"
+      ],
+      "identity": [
+        {
+          "id": "gift.pick_label",
+          "kind": "ocr",
+          "pattern": "^Acq\\S{2,4}re E\\.?G\\.?O Gift$",
+          "roi": [
+            0.06,
+            0.13,
+            0.95,
+            0.26
+          ],
+          "threshold": 0.85,
+          "note": "四张卡顶部的 Acquire E.G.O Gift 标签；实测 [382,232,150,28] 0.965 / [778,232,148,28] 0.978 / [1176,232,144,28] 0.915 / [1572,232,148,28] 0.987"
+        },
+        {
+          "id": "gift.pick_select",
+          "kind": "ocr",
+          "pattern": "^Select$",
+          "roi": [
+            0.78,
+            0.74,
+            0.96,
+            0.88
+          ],
+          "threshold": 0.85,
+          "note": "右下 Select 按钮文字；实测 [1620,851,100,36] score 1.0（0/2 时灰、选满才亮）"
+        },
+        {
+          "id": "gift.pick_counter",
+          "kind": "ocr",
+          "pattern": "^\\d{1,2}\\s*/\\s*\\d{1,2}$",
+          "roi": [
+            0.84,
+            0.74,
+            1.0,
+            0.9
+          ],
+          "threshold": 0.85,
+          "note": "实测 [1740,841,62,50] score 1.0＝0/2；reward_vision.counter_state(band=GIFT_COUNTER_BAND) 读它"
+        }
+      ],
+      "controls": [
+        {
+          "id": "gift_pick.card_01",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              337,
+              300,
+              240,
+              200
+            ],
+            "source": "第一张卡（Phlebotomy Pack）卡面内区；点卡面＝选中该礼物，计数 0/2→1/2，不弹任何确认"
+          }
+        },
+        {
+          "id": "gift_pick.card_02",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              732,
+              300,
+              240,
+              200
+            ],
+            "source": "第二张卡（Bloody Gadget）卡面内区"
+          }
+        },
+        {
+          "id": "gift_pick.card_03",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              1128,
+              300,
+              240,
+              200
+            ],
+            "source": "第三张卡（Layered Bandages）卡面内区"
+          }
+        },
+        {
+          "id": "gift_pick.card_04",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              1526,
+              300,
+              240,
+              200
+            ],
+            "source": "第四张卡（Golden Urn）卡面内区"
+          }
+        },
+        {
+          "id": "gift_pick.select_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              1620,
+              851,
+              100,
+              36
+            ],
+            "source": "实测 OCR 框＝Select；选满 required 张后点它领取（这一页唯一的前进输入）"
+          }
+        },
+        {
+          "id": "gift_pick.refuse_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-043102/frame-0003.json",
+            "box": [
+              1350,
+              851,
+              150,
+              34
+            ],
+            "source": "Refuse Gift＝放弃本层礼物（用户明确禁止「拒绝」）；登记它只为让 window.FORBIDDEN_CONTROLS 拒点"
+          }
+        }
+      ]
+    },
+    {
+      "id": "theme_packs",
+      "title": "下一层主题包选择页（SELECT FLOOR n THEME PACK；拖动卡包往下「Pull」才生效）",
+      "evidence": [
+        "evidence/runtime/window-20261006-044113/frame-0001.json",
+        "evidence/runtime/window-20261006-044113/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "theme_packs.title",
+          "kind": "ocr",
+          "pattern": "^SELECT FLOOR \\d THEME PACK$",
+          "roi": [
+            0.35,
+            0.1,
+            0.65,
+            0.22
+          ],
+          "threshold": 0.85,
+          "note": "实测 [766,154,386,42] 0.95（第 1 层清完后的换层入口）"
+        },
+        {
+          "id": "theme_packs.prompt",
+          "kind": "ocr",
+          "pattern": "^Select a Pack$",
+          "roi": [
+            0.15,
+            0.64,
+            0.3,
+            0.76
+          ],
+          "threshold": 0.85,
+          "note": "左侧提示 'Select a Pack And Pull'；实测 [354,746,122,20] 0.999 与 'And Pull' [376,770,76,22] 0.96 → 这一页的输入是「拖下去」而不是「点一下」（点击只播 hover 动画，见 build/theme-probe-click.json）"
+        },
+        {
+          "id": "theme_packs.pack_search",
+          "kind": "ocr",
+          "pattern": "^Pack Search$",
+          "roi": [
+            0.08,
+            0.02,
+            0.28,
+            0.1
+          ],
+          "threshold": 0.85,
+          "note": "左上 Pack Search；实测 [268,53,90,26] 0.905"
+        }
+      ],
+      "controls": [
+        {
+          "id": "theme_packs.pack_01",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-044113/frame-0001.json",
+            "box": [
+              520,
+              390,
+              250,
+              300
+            ],
+            "source": "最左侧卡包（To be Crushed）卡面中段：从 1280 截图 build/live-now.png 的卡面包 (340,180)-(520,540) 按 1.5× 换算到 1920，避开右上角放大镜与底部标题；拖动起点落在这里"
+          }
+        },
+        {
+          "id": "theme_packs.pull_to",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-044113/frame-0001.json",
+            "box": [
+              600,
+              900,
+              90,
+              60
+            ],
+            "source": "非 OCR 框：卡包下方传送带下沉区（1280 空间 (400,600)-(460,640) ×1.5）；终点只决定手势方向，松手不会点到罪人血条"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cutscene",
+      "title": "异想体/事件过场（REC 角标 + SKIP；不受输入就不会自己走）",
+      "evidence": [
+        "evidence/runtime/window-20261006-044556/frame-0023.json"
+      ],
+      "identity": [
+        {
+          "id": "cutscene.skip",
+          "kind": "ocr",
+          "pattern": "^SKIP$",
+          "roi": [
+            0.78,
+            0.82,
+            0.99,
+            0.98
+          ],
+          "threshold": 0.85,
+          "note": "右下 SKIP 按钮文字；实测 [1620,919,152,99] score 1.0"
+        },
+        {
+          "id": "cutscene.rec",
+          "kind": "ocr",
+          "pattern": "^REC$",
+          "roi": [
+            0.42,
+            0.14,
+            0.52,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "过场左上角红点 REC；实测 [870,192,64,28] score 1.0（同一帧还有 '00:00:02:12' 计时器 [124,194,126,22]）"
+        }
+      ],
+      "controls": [
+        {
+          "id": "cutscene.skip_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-044556/frame-0023.json",
+            "box": [
+              1620,
+              919,
+              152,
+              99
+            ],
+            "source": "SKIP 按钮（实测 OCR 框即按钮外框）；过场文字已播完却停在原地超过一分钟（run22 的 12 轮 UNKNOWN 等待），说明它等输入，SKIP 是这一页唯一的前进控件"
+          }
+        }
+      ]
+    },
+    {
+      "id": "event_choice",
+      "title": "异想体事件选项页（右侧 Choices 列，2–4 行口头选项；可选奖励行是提示不是选项）",
+      "live_derived": "选项行的框不写死：它们的条数会改变版式，所以每帧从 OCR 现读（src/maalimbus/event_vision.py 的 choice_options/gift_hints，框取自 .52–.99 × .24–.72 波段内长度 ≥8 的非提示行）。带 'Select to gain … E.G.O Gift' 的提示行落在它上面那一行的下方，故优先点被提示的那一行（preferred_choice）。",
+      "evidence": [
+        "evidence/runtime/window-20261006-044943/frame-0015.json"
+      ],
+      "identity": [
+        {
+          "id": "event_choice.heading",
+          "kind": "ocr",
+          "pattern": "^Choices$",
+          "roi": [
+            0.5,
+            0.11,
+            0.68,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "右上 Choices 标题；实测 [1050,166,168,46] score 1.0"
+        },
+        {
+          "id": "event_choice.rec",
+          "kind": "ocr",
+          "pattern": "^REC$",
+          "roi": [
+            0.42,
+            0.14,
+            0.52,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "左上 REC 角标；实测 [868,200,62,22] score 1.0（这一页不是 cutscene：没有 SKIP，所以 CUTSCENE 分支不会命中）"
+        }
+      ]
+    },
+    {
+      "id": "deployment",
+      "title": "出战部署页（队伍页的部署视图：每张卡带部署序号，右下仍是 To Battle!）",
+      "why": "点 To Battle! 有时先落到这一页（实机 build/window-run29.json 的 step2：PRE_BATTLE_TEAM → DEPLOYMENT），它的前进控件与队伍页同一个按钮；点一次后战斗自行开始（实机截图显示 WAVE 1/1、TURN 1）。识别沿用 src/maalimbus/deployment.py:deployment_page（计数 12/12 + 恰一条 Details）。",
+      "evidence": [
+        "evidence/runtime/window-20261006-050402/frame-0006.json"
+      ],
+      "identity": [
+        {
+          "id": "deployment.counter",
+          "kind": "ocr",
+          "pattern": "^\\s*\\d{1,2}\\s*/\\s*\\d{1,2}\\s*$",
+          "roi": [
+            0.882,
+            0.69,
+            0.966,
+            0.77
+          ],
+          "threshold": 0.85,
+          "note": "队伍人数计数；实测 [1702,758,118,52] score 0.946"
+        },
+        {
+          "id": "deployment.details",
+          "kind": "ocr",
+          "pattern": "^Details$",
+          "roi": [
+            0.05,
+            0.02,
+            0.98,
+            0.3
+          ],
+          "threshold": 0.8,
+          "note": "队伍页的 Details 按钮；实测 [1362,176,74,22] score 0.932"
+        }
+      ],
+      "controls": [
+        {
+          "id": "deployment.battle_button",
+          "kind": "geometry",
+          "box": [
+            1674,
+            859,
+            144,
+            44
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-050402/frame-0006.json",
+            "box": [
+              1674,
+              859,
+              144,
+              44
+            ],
+            "source": "与队伍页同一个 To Battle! 按钮；这一页实测文字框 [1614,857,206,48]，落在 [1674,859,144,44] 内"
+          },
+          "note": "点它开始战斗；不点别的（COST/Support/Details 都不点）"
+        }
+      ]
+    },
+    {
+      "id": "event_result",
+      "title": "异想体事件结算页（左侧剧情回放 + 右侧 Result 面板，右下控件仍是灰的 SKIP 槽位）",
+      "why": "这一页的右下槽位在剧情走完前是**灰的**（`window-20261006-045319/frame-0002.json` 只有 REC/SKIP，`frame-0017.json` 与 `window-20261006-045451/frame-0001.json` 连按钮字都读不出），点剧情面板一次就把它点亮成 Continue。所以「点剧情面板」是这一页唯一被证明的前进输入（advance=True：判定靠帧变化，不靠页面变化）。",
+      "evidence": [
+        "evidence/runtime/window-20261006-045451/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "event_result.heading",
+          "kind": "ocr",
+          "pattern": "^Result$",
+          "roi": [
+            0.48,
+            0.11,
+            0.66,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "右上 Result 标题；实测 [1068,168,138,42] score 1.0"
+        },
+        {
+          "id": "event_result.rec",
+          "kind": "ocr",
+          "pattern": "^REC$",
+          "roi": [
+            0.42,
+            0.14,
+            0.52,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "左上 REC 角标，证明这是剧情回放而不是通用结算页；实测 [876,200,60,22] score 0.998"
+        }
+      ],
+      "controls": [
+        {
+          "id": "event_result.story_panel",
+          "kind": "geometry",
+          "box": [
+            300,
+            400,
+            500,
+            250
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-045451/frame-0001.json",
+            "box": [
+              300,
+              400,
+              500,
+              250
+            ],
+            "source": "点它推进剧情：实机 window-20261006-045451 的 frame-0001 → frame-0002，右下由灰 SKIP 变亮 Continue"
+          },
+          "note": "剧情面板左半的空白处，避开文本行与右侧 Result 面板"
+        }
+      ]
+    },
+    {
+      "id": "event_result_ready",
+      "title": "异想体事件结算页·剧情走完（右下槽位变亮 Continue）",
+      "evidence": [
+        "evidence/runtime/window-20261006-045451/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "event_result_ready.heading",
+          "kind": "ocr",
+          "pattern": "^Result$",
+          "roi": [
+            0.48,
+            0.11,
+            0.66,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "同上；同一页的两个形态，用右下按钮的 token 区分"
+        },
+        {
+          "id": "event_result_ready.rec",
+          "kind": "ocr",
+          "pattern": "^REC$",
+          "roi": [
+            0.42,
+            0.14,
+            0.52,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "左上 REC 角标；实测 [868,188,60,22] score 1.0"
+        },
+        {
+          "id": "event_result_ready.continue",
+          "kind": "ocr",
+          "pattern": "^Continue$",
+          "roi": [
+            0.78,
+            0.82,
+            0.99,
+            0.98
+          ],
+          "threshold": 0.85,
+          "note": "右下亮起的 Continue；实测 [1588,943,218,55] score 1.0"
+        }
+      ],
+      "controls": [
+        {
+          "id": "event_result.continue_button",
+          "kind": "geometry",
+          "box": [
+            1588,
+            943,
+            218,
+            55
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-045451/frame-0002.json",
+            "box": [
+              1588,
+              943,
+              218,
+              55
+            ],
+            "source": "亮起的 Continue 按钮本体；点它离开事件结算页"
+          },
+          "note": "与 CUTSCENE 的 skip_button [1620,919,152,99] 同一槽位，靠亮/灰与 token 区分"
+        }
+      ]
     }
   ],
   "pending": [
@@ -1096,21 +1585,6 @@
       "id": "reward_settle",
       "what": "结算领奖页（Enkephalin 5、周加成 3 档、按已清层数比例）",
       "why": "P0 的终点；确认后可关闭整轮"
-    },
-    {
-      "id": "floor_gifts",
-      "what": "层奖励/礼赠三选一页",
-      "why": "每层必经，且与 GIFT_GET 弹窗不同"
-    },
-    {
-      "id": "event_dialog",
-      "what": "异想体事件（问号节点）选项页",
-      "why": "问号节点是寻路主力，选项分支需要数字契约"
-    },
-    {
-      "id": "next_floor",
-      "what": "下一层入口 / 楼层切换",
-      "why": "五层推进的状态机"
     },
     {
       "id": "run_end_entry_return",

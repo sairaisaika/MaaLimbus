@@ -10,7 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.window import (ANY, CLICK, NODE, RECORD, plan_step, resolve_overlay,
+from maalimbus.window import (ANY, CLICK, NODE, RECORD, SWIPE, plan_step,
+                              resolve_overlay,
                               step_result, successor_ok)  # noqa: E402
 
 CONTROLS = {'node_panel.enter_button': [1668, 780, 124, 63],
@@ -69,7 +70,8 @@ def test_node_panel_uses_the_anchored_enter_button():
     plan = plan_step('NODE_PANEL', controls=CONTROLS)
     assert plan['action'] == CLICK
     assert plan['target'] == CONTROLS['node_panel.enter_button']
-    assert plan['expect'] == ['PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'UNKNOWN']
+    assert plan['expect'][:4] == ['PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'CUTSCENE']
+    assert 'UNKNOWN' in plan['expect']
 
 
 def test_node_panel_without_the_anchor_refuses():
@@ -344,6 +346,9 @@ def test_the_gift_get_notice_is_cleared_with_its_own_confirm():
     assert plan['action'] == CLICK
     assert plan['target'] == [922, 774, 136, 45]
     assert plan['reason'] == 'the_gift_get_notice_is_cleared_with_its_own_confirm'
+    # One notice per picked gift, so the page may hand back to itself: live
+    # window-20261006-043531 shows Phlebotomy Pack then Bloody Gadget.
+    assert successor_ok(plan, 'GIFT_GET')
     assert successor_ok(plan, 'REWARD_CARD')
     assert successor_ok(plan, 'MAP')
     missing = plan_step('GIFT_GET', controls={})
@@ -358,3 +363,173 @@ def test_the_node_panel_enter_may_fade_back_through_the_map():
     assert successor_ok(plan, 'MAP')
     assert successor_ok(plan, 'SHOP')
     assert successor_ok(plan, 'PRE_BATTLE_TEAM')
+
+
+def test_the_floor_gift_pick_is_counter_driven_and_refuse_is_never_the_target():
+    # Live proof: evidence/runtime/window-20261006-043102/frame-0003.json is the
+    # floor's gift pick (Acquire E.G.O Gift x4, Select 0/2, Refuse Gift).
+    controls = {'gift_pick.card_01': [337, 300, 240, 200],
+                'gift_pick.card_02': [732, 300, 240, 200],
+                'gift_pick.card_03': [1128, 300, 240, 200],
+                'gift_pick.card_04': [1526, 300, 240, 200],
+                'gift_pick.select_button': [1620, 851, 100, 36],
+                'gift_pick.refuse_button': [1350, 851, 150, 34]}
+    empty = plan_step('GIFT_PICK', controls=controls,
+                      gift={'chosen': 0, 'required': 2})
+    assert empty['action'] == CLICK
+    assert empty['target'] == [337, 300, 240, 200]
+    assert empty['expect'] == [ANY]
+    assert empty['advance'] is True
+    assert empty['reason'] == 'the_floor_gift_card_must_be_picked_before_select'
+    one = plan_step('GIFT_PICK', controls=controls, gift={'chosen': 1, 'required': 2})
+    assert one['target'] == [732, 300, 240, 200]
+    full = plan_step('GIFT_PICK', controls=controls, gift={'chosen': 2, 'required': 2})
+    assert full['target'] == [1620, 851, 100, 36]
+    assert full['reason'] == 'select_takes_the_picked_floor_gifts'
+    # The pick page itself lingers while the notice animates in (live:
+    # window-20261006-043531 read GIFT_PICK in the settle frame right after Select
+    # and raised the "E.G.O Gift GET!" notice only on the next observation), so the
+    # page handing back to itself is accepted; the loop guard bounds a dead button.
+    assert successor_ok(full, 'GIFT_PICK')
+    assert successor_ok(full, 'GIFT_GET')
+    assert successor_ok(full, 'MAP')
+    # A missing counter is read as "nothing picked yet", never as "select now".
+    unread = plan_step('GIFT_PICK', controls=controls)
+    assert unread['target'] == [337, 300, 240, 200]
+    # The three-card round prints no counter at all (live:
+    # evidence/runtime/window-20261006-043531), so the driver's own count and the
+    # Select button's brightness carry the pick: dark -> next card, lit -> select.
+    dark = plan_step('GIFT_PICK', controls=controls,
+                     gift={'chosen': 1, 'required': None, 'ready': False})
+    assert dark['target'] == [732, 300, 240, 200]
+    assert dark['reason'] == 'the_floor_gift_card_must_be_picked_before_select'
+    lit = plan_step('GIFT_PICK', controls=controls,
+                    gift={'chosen': 1, 'required': None, 'ready': True})
+    assert lit['target'] == [1620, 851, 100, 36]
+    assert lit['reason'] == 'select_takes_the_picked_floor_gifts'
+    # Four cards offered and the button still dark: repeating a pick would be a
+    # guess, so the page refuses instead of clicking a card again.
+    exhausted = plan_step('GIFT_PICK', controls=controls,
+                          gift={'chosen': 4, 'required': None, 'ready': False})
+    assert exhausted['action'] == RECORD
+    assert exhausted['reason'] == 'gift_pick_cards_exhausted_without_a_lit_select'
+    # Refuse Gift is anchored so the page is identifiable, but never a target.
+    refuse = [1350, 851, 150, 34]
+    named = plan_step('GIFT_PICK', controls={'gift_pick.card_01': refuse,
+                                             'gift_pick.refuse_button': refuse})
+    assert named['action'] == RECORD
+    assert named['reason'] == 'control_is_forbidden'
+    no_cards = plan_step('GIFT_PICK',
+                         controls={'gift_pick.select_button': [1620, 851, 100, 36]})
+    assert no_cards['action'] == RECORD
+    assert no_cards['reason'] == 'gift_pick_card_not_anchored'
+
+
+def test_the_theme_pack_page_is_pulled_down_and_never_clicked():
+    # Live: evidence/runtime/window-20261006-044113/frame-0001.json is the floor 2
+    # theme pack page ("SELECT FLOOR 2 THEME PACK", "Select a Pack And Pull").
+    controls = {'theme_packs.pack_01': [520, 390, 250, 300],
+                'theme_packs.pull_to': [600, 900, 90, 60]}
+    plan = plan_step('THEME_PACKS', controls=controls)
+    assert plan['action'] == SWIPE
+    assert plan['target'] == [520, 390, 250, 300]
+    assert plan['to'] == [645, 930]
+    assert plan['duration_ms'] == 700
+    assert plan['reason'] == 'the_floor_theme_pack_is_pulled_down_to_be_taken'
+    # The page must hand back something other than itself: a drag that did nothing
+    # cannot be recorded as progress.
+    assert plan['expect'] == [ANY]
+    assert successor_ok(plan, 'THEME_PACKS') is False
+    assert successor_ok(plan, 'MAP') is True
+    assert successor_ok(plan, 'UNKNOWN') is True
+    # Without the pack box, or without a pull target, the page refuses to guess.
+    assert plan_step('THEME_PACKS', controls={})['reason'] == 'theme_pack_card_not_anchored'
+    half = plan_step('THEME_PACKS', controls={'theme_packs.pack_01': [520, 390, 250, 300]})
+    assert half['action'] == RECORD
+    assert half['reason'] == 'theme_pack_pull_target_not_anchored'
+
+
+def test_the_cutscene_is_skipped_once_and_never_left_waiting():
+    # Live: evidence/runtime/window-20261006-044556/frame-0023.json is the abnormality
+    # intro ("A thing wearing human skin was dancing in place…") with REC and SKIP.
+    controls = {'cutscene.skip_button': [1620, 919, 152, 99]}
+    plan = plan_step('CUTSCENE', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [1620, 919, 152, 99]
+    assert plan['reason'] == 'the_cutscene_is_skipped_to_resume_the_run'
+    # The cutscene is proven dismissed by it being gone, so any other page passes and
+    # the cutscene itself does not.
+    assert plan['expect'] == [ANY]
+    assert successor_ok(plan, 'CUTSCENE') is False
+    assert successor_ok(plan, 'MAP') is True
+    assert plan_step('CUTSCENE', controls={})['reason'] == 'cutscene_skip_not_anchored'
+
+
+def test_the_event_choice_takes_the_row_that_names_its_reward():
+    # Live: evidence/runtime/window-20261006-044943/frame-0015.json has three rows and
+    # the hint "Select to gain a Blunt E.G.O Gift" under the second one.
+    rows = [[1096, 311, 290, 28], [1096, 464, 378, 28], [1096, 643, 366, 33]]
+    plan = plan_step('EVENT_CHOICE', candidates=rows, candidate_index=1)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [1096, 464, 378, 28]
+    assert plan['reason'] == 'the_event_choice_that_names_its_reward_is_taken'
+    assert plan['detail'] == {'option_count': 3, 'option_index': 1}
+    # Any row advances, so the plan is proven by the page being gone.
+    assert plan['expect'] == [ANY]
+    assert successor_ok(plan, 'EVENT_CHOICE') is False
+    assert successor_ok(plan, 'MAP') is True
+    # No rows read, or an index outside them, refuses instead of clicking blind.
+    assert plan_step('EVENT_CHOICE')['reason'] == 'no_event_choice_observed'
+    bad = plan_step('EVENT_CHOICE', candidates=rows, candidate_index=3)
+    assert bad['action'] == RECORD
+    assert bad['reason'] == 'event_choice_index_out_of_range'
+
+
+def test_the_event_result_is_tapped_through_and_then_continued():
+    # Live: evidence/runtime/window-20261006-045451/frame-0001.json is the outcome page
+    # with the bottom-right control still dim; one tap on the story panel produced
+    # frame-0002.json, whose Continue is the only control left.
+    controls = {'event_result.story_panel': [300, 400, 500, 250],
+                'event_result.continue_button': [1588, 943, 218, 55]}
+    tap = plan_step('EVENT_RESULT', controls=controls)
+    assert tap['action'] == CLICK
+    assert tap['target'] == [300, 400, 500, 250]
+    assert tap['reason'] == 'the_event_result_story_is_tapped_to_reveal_its_continue'
+    assert tap['advance'] is True
+    # The tap only relights the button, so the same page may come back: the frame
+    # change is what proves it, not the page name.
+    assert successor_ok(tap, 'EVENT_RESULT') is False
+    assert successor_ok(tap, 'EVENT_RESULT_READY') is True
+    assert step_result(tap, sent='click', before='EVENT_RESULT', after='EVENT_RESULT',
+                       page='EVENT_RESULT', frame_changed=False)['passed'] is False
+    assert step_result(tap, sent='click', before='EVENT_RESULT', after='EVENT_RESULT',
+                       page='EVENT_RESULT', frame_changed=True)['passed'] is True
+    done = plan_step('EVENT_RESULT_READY', controls=controls)
+    assert done['action'] == CLICK
+    assert done['target'] == [1588, 943, 218, 55]
+    assert done['reason'] == 'the_event_result_is_cleared_with_its_own_continue'
+    assert done['expect'] == [ANY]
+    assert successor_ok(done, 'EVENT_RESULT_READY') is False
+    assert successor_ok(done, 'MAP') is True
+    # No story panel, or no continue button, refuses rather than clicking blind.
+    assert plan_step('EVENT_RESULT', controls={})['reason'] == 'event_result_story_panel_not_anchored'
+    assert plan_step('EVENT_RESULT_READY', controls={})['reason'] == 'event_result_continue_not_anchored'
+
+
+def test_the_deployment_view_only_starts_the_fight():
+    # Live run build/window-run29.json: To Battle! on the team page handed back
+    # DEPLOYMENT, whose own bottom-right control is the same button
+    # (evidence/runtime/window-20261006-050402/frame-0006.json).
+    controls = {'pre_battle.battle_button': [1674, 859, 144, 44]}
+    plan = plan_step('DEPLOYMENT', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [1674, 859, 144, 44]
+    assert plan['reason'] == 'deployment_view_starts_the_fight'
+    assert 'BATTLE_HUD' in plan['expect']
+    assert successor_ok(plan, 'BATTLE_HUD') is True
+    assert successor_ok(plan, 'DEPLOYMENT') is False
+    # The team page may also hand back the deployment view instead of the fight.
+    team = plan_step('PRE_BATTLE_TEAM', controls=controls)
+    assert 'DEPLOYMENT' in team['expect']
+    assert successor_ok(team, 'DEPLOYMENT') is True
+    assert plan_step('DEPLOYMENT', controls={})['reason'] == 'deployment_battle_button_not_anchored'

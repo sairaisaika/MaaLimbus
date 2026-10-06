@@ -125,3 +125,91 @@ def test_the_shop_node_is_named_by_its_title_and_leave_button():
                      Text('Confirm', (1116, 722, 110, 34), 1.0),
                      Text('X Cancel', (706, 720, 138, 36), .94)]
     assert classify(asking, words, (1920, 1080)) == 'SHOP_LEAVE'
+
+
+def test_the_cutscene_is_named_by_its_rec_badge_and_skip_button():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-044556/frame-0023.json is the
+    # abnormality intro the floor's first node handed back. It never advanced by
+    # itself, so the window has to name it and skip it instead of waiting.
+    page = [Text('A thing wearing human skin was dancing in place, clicking and',
+                 (108, 504, 738, 36), .99),
+            Text('Clopping like a spider, it talks to me', (114, 611, 422, 28), .99),
+            Text('00:00:02:12', (124, 194, 126, 22), .999),
+            Text('REC', (870, 192, 64, 28), 1.0),
+            Text('SKIP', (1620, 919, 152, 99), 1.0)]
+    assert classify(page, words, (1920, 1080)) == 'CUTSCENE'
+    # Without the REC badge the page is not claimed: a stray SKIP-shaped token
+    # elsewhere must not turn an unknown page into an input target.
+    without_rec = [item for item in page if item.text != 'REC']
+    assert classify(without_rec, words, (1920, 1080)) != 'CUTSCENE'
+
+
+def test_the_event_choice_page_is_named_by_its_heading_and_rows():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-044943/frame-0015.json is the
+    # abnormality event's "Choices" page. It also carries a REC badge, so it must be
+    # named before anything can read it as a cutscene.
+    page = [Text('Choices', (1050, 166, 168, 46), 1.0),
+            Text('I think we will smile.', (1096, 311, 290, 28), .96),
+            Text("Don't make any expression.", (1096, 464, 378, 28), .99),
+            Text('Select to gain a Blunt E.G.O Gift', (1096, 500, 322, 26), .995),
+            Text('Cry and cry until you sink.', (1096, 643, 366, 33), .997),
+            Text('REC', (868, 200, 62, 22), 1.0)]
+    assert classify(page, words, (1920, 1080)) == 'EVENT_CHOICE'
+    # The heading alone is not enough: a Choices label with no column under it must
+    # not turn a stray screen into an input target.
+    heading_only = [item for item in page if item.text in ('Choices', 'REC')]
+    assert classify(heading_only, words, (1920, 1080)) != 'EVENT_CHOICE'
+
+
+def test_the_event_result_is_named_and_its_ready_form_is_its_own_page():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-045451/frame-0001.json is the
+    # event's outcome page with the bottom-right control still dim, and frame-0002.json
+    # is the same page one tap later, when that slot carries a bright Continue.
+    dim = [Text('Result', (1068, 168, 138, 42), 1.0),
+           Text("Don't make any expression.", (1066, 317, 352, 28), .997),
+           Text("E.G.O Gift Today's Expression obtained!", (1088, 470, 524, 28), 1.0),
+           Text('REC', (876, 200, 60, 22), .998)]
+    assert classify(dim, words, (1920, 1080)) == 'EVENT_RESULT'
+    lit = dim + [Text('Continue', (1588, 943, 218, 55), 1.0)]
+    assert classify(lit, words, (1920, 1080)) == 'EVENT_RESULT_READY'
+    # A dim SKIP (the cutscene slot before the story is tapped) must not be read as the
+    # ready form, and the Result heading alone is not enough without the REC badge.
+    with_skip = dim + [Text('SKIP', (1620, 923, 152, 93), 1.0)]
+    assert classify(with_skip, words, (1920, 1080)) == 'EVENT_RESULT'
+    without_rec = [item for item in lit if item.text != 'REC']
+    assert classify(without_rec, words, (1920, 1080)) != 'EVENT_RESULT_READY'
+
+
+def test_the_choices_page_beats_the_cutscene_badge_it_shares():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: the cutscene's SKIP press handed back a page that carries the story
+    # playback's REC badge AND its SKIP control together with the Choices heading
+    # (evidence/runtime/window-20261006-051213/frame-0002.json). Naming it a cutscene
+    # would keep pressing SKIP on the event's options forever.
+    page = [Text('REC', (864, 196, 64, 28), 1.0),
+            Text('SKIP', (1632, 931, 132, 79), 1.0),
+            Text('Choices', (1050, 166, 170, 46), 1.0),
+            Text('Reach out and hold it.', (1090, 380, 300, 28), .98),
+            Text('Step back and watch.', (1090, 520, 280, 28), .97)]
+    assert classify(page, words, (1920, 1080)) == 'EVENT_CHOICE'
+
+
+def test_the_floor_gift_pick_is_named_from_a_live_frame():
+    # Regression: the page's locale keys were once dropped while re-writing
+    # assets/resource/en/locale.json, and only the live driver noticed -- every unit
+    # test built its own dictionary. This one reads the shipped file and a recorded
+    # live frame (evidence/runtime/window-20261006-051524/frame-0036.json, whose
+    # scene was UNKNOWN while the page was plainly the floor's gift pick).
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261006-051524/frame-0036.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert classify(records, words, tuple(frame['size'])) == 'GIFT_PICK'
+    # The counter merges into the button's own token on some frames ("Select 0/2"),
+    # so the pattern has to tolerate it (same trap as "Selectable 1/1").
+    merged = [r for r in records if r.text != 'Select']
+    merged.append(Text('Select 0/2', (1618, 847, 194, 50), .99))
+    assert classify(merged, words, tuple(frame['size'])) == 'GIFT_PICK'

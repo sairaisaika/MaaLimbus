@@ -22,6 +22,7 @@ Rules encoded here:
 from __future__ import annotations
 
 CLICK = 'click'
+SWIPE = 'swipe'
 NODE = 'node'
 RECORD = 'record'
 
@@ -42,7 +43,8 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: Exploration throws an in-progress run away, and Cancel on the encounter reward
 #: page refuses a reward the run has already earned, so both stay registered as
 #: anchors (their labels are how the page is identified) but are refused as targets.
-FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button')
+FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
+                      'gift_pick.refuse_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -58,11 +60,15 @@ def resolve_overlay(page, *, overlay_hit):
 
 
 def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=None,
-          advance=False):
+          advance=False, to=None, duration=None):
     plan = {'page': page, 'action': action,
             'target': None if target is None else list(target),
             'node': node, 'expect': list(expect), 'reason': reason,
             'advance': bool(advance)}
+    if to is not None:
+        plan['to'] = list(to)
+    if duration is not None:
+        plan['duration_ms'] = int(duration)
     if detail is not None:
         plan['detail'] = detail
     return plan
@@ -74,7 +80,7 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-              reward=None):
+              reward=None, gift=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -84,7 +90,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     plan = _plan_step(page, controls=controls, start_box=start_box,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
-                      team=team, reward=reward)
+                      team=team, reward=reward, gift=gift)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -94,7 +100,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-               reward=None):
+               reward=None, gift=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -162,6 +168,67 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('MAP', 'THEME_PACKS', 'STAR_GRACES', 'INITIAL_GIFTS', 'UNKNOWN'),
                      reason='resume_rejoins_the_run_that_is_already_in_progress')
+    if page == 'THEME_PACKS':
+        # "SELECT FLOOR n THEME PACK" hangs the candidate packs from a rack and asks
+        # for one to be taken: the page's own prompt is "Select a Pack And Pull", and
+        # a click on a pack only plays its hover animation (live probe
+        # build/theme-probe-click.json: the frame changed, no pack was taken), so
+        # this page needs a drag down rather than a click. The leftmost pack is taken
+        # so the choice is deterministic; matching a pack to the team's affinities is
+        # a later refinement, not a licence to guess a coordinate here. The page must
+        # hand back something other than itself, so a drag that did nothing is not
+        # recorded as progress.
+        box = controls.get('theme_packs.pack_01')
+        if box is None:
+            return _refuse(page, 'theme_pack_card_not_anchored')
+        drop = controls.get('theme_packs.pull_to')
+        if drop is None:
+            return _refuse(page, 'theme_pack_pull_target_not_anchored')
+        x, y, width, height = (int(value) for value in drop)
+        return _plan(page, SWIPE, target=box, to=(x + width // 2, y + height // 2),
+                     duration=700, expect=(ANY,),
+                     reason='the_floor_theme_pack_is_pulled_down_to_be_taken')
+    if page == 'EVENT_RESULT':
+        # The outcome page plays the event's own story with a dimmed bottom-right
+        # control, and tapping the story panel is what turns that control into a
+        # bright Continue (live: window-20261006-045451/frame-0001.json is dim, and
+        # one tap produced frame-0002.json with Continue). The tap changes the frame
+        # rather than the page, so this plan is an advancing one.
+        box = controls.get('event_result.story_panel')
+        if box is None:
+            return _refuse(page, 'event_result_story_panel_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_event_result_story_is_tapped_to_reveal_its_continue')
+    if page == 'EVENT_RESULT_READY':
+        box = controls.get('event_result.continue_button')
+        if box is None:
+            return _refuse(page, 'event_result_continue_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,),
+                     reason='the_event_result_is_cleared_with_its_own_continue')
+    if page == 'CUTSCENE':
+        # The abnormality/event intro covers the screen with a REC badge and one SKIP
+        # button, and it does not advance on its own: live window-20261006-044556 sat
+        # there with the text already complete for over a minute of observations.
+        # Skipping is the page's own forward control, so it is a click, not a refusal.
+        box = controls.get('cutscene.skip_button')
+        if box is None:
+            return _refuse(page, 'cutscene_skip_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,),
+                     reason='the_cutscene_is_skipped_to_resume_the_run')
+    if page == 'EVENT_CHOICE':
+        # The event's "Choices" page lists two to four rows of spoken text; any row
+        # advances the run, and the rows are read live because their count moves them.
+        # A reward announcement under a row names what that row grants, so the hinted
+        # row is the one taken when the driver can see one.
+        if not candidates:
+            return _refuse(page, 'no_event_choice_observed')
+        if not 0 <= candidate_index < len(candidates):
+            return _refuse(page, 'event_choice_index_out_of_range')
+        return _plan(page, CLICK, target=candidates[candidate_index],
+                     expect=(ANY,),
+                     reason='the_event_choice_that_names_its_reward_is_taken',
+                     detail={'option_count': len(candidates),
+                             'option_index': candidate_index})
     if page == 'MAP':
         if not candidates:
             return _refuse(page, 'no_candidate_node_observed')
@@ -178,9 +245,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'enter_button_not_anchored')
         # Enter hands the node over to the game: it fades back through MAP
         # (evidence/runtime/window-20261006-042056/frame-0002.json) before the node
-        # itself shows up (the same run reached the Shop page).
+        # itself shows up. What a node hands back depends on the node: the shop
+        # (window-20261006-042123), the pre-battle team, an abnormality cutscene
+        # (build/window-run30.json step 15), an event's choices, a floor-gift pick or a
+        # reward card, so every one of them is a legitimate successor here.
         return _plan(page, CLICK, target=box,
-                     expect=('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'UNKNOWN'),
+                     expect=('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'CUTSCENE',
+                             'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
+                             'GIFT_PICK', 'REWARD_CARD', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
     if page == 'SHOP':
         # Spending is out of budget (module budget is 0/pending), so Leave is the
@@ -207,8 +279,43 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('gift_get.confirm_button')
         if box is None:
             return _refuse(page, 'gift_get_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('REWARD_CARD', 'MAP', 'UNKNOWN'),
+        return _plan(page, CLICK, target=box,
+                     expect=('GIFT_GET', 'REWARD_CARD', 'MAP', 'UNKNOWN'),
                      reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
+    if page == 'GIFT_PICK':
+        # The floor hands out its gifts here: a row of cards and a Select button that
+        # stays dark until the pick is satisfied. Two live variants exist — a
+        # four-card round that prints "Select 0/2" and a three-card round that prints
+        # a bare "Select" with no counter at all (evidence/runtime/window-20261006-043531),
+        # so the planner takes the counter when it reads and the button's own
+        # brightness when it does not. Refuse Gift is anchored but forbidden, so no
+        # plan may ever land on it.
+        state = gift or {}
+        chosen = int(state.get('chosen') or 0)
+        required = state.get('required')
+        ready = state.get('ready')
+        # The counter settles the pick when it reads; without one (the three-card
+        # round) the button's own brightness is the only completion signal, so a
+        # missing counter is never rounded up into "confirm now".
+        counted = required is not None and chosen >= int(required)
+        settled = ready is True or counted
+        if not settled and chosen < 4:
+            box = controls.get('gift_pick.card_%02d' % (chosen + 1))
+            if box is None:
+                return _refuse(page, 'gift_pick_card_not_anchored')
+            return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                         reason='the_floor_gift_card_must_be_picked_before_select',
+                         detail={'chosen': chosen, 'required': required, 'ready': ready})
+        if not settled:
+            # Every anchored card has been offered and the button still reads dark:
+            # repeating a pick would be a blind guess, so the driver stops instead.
+            return _refuse(page, 'gift_pick_cards_exhausted_without_a_lit_select')
+        box = controls.get('gift_pick.select_button')
+        if box is None:
+            return _refuse(page, 'gift_pick_select_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('GIFT_GET', 'GIFT_PICK', 'MAP', 'UNKNOWN'),
+                     reason='select_takes_the_picked_floor_gifts')
     if page == 'PRE_BATTLE_TEAM':
         # The page opens with nobody picked, and its Battle! button is dark until
         # at least one card is in the team (live: window-20261006-030750 has
@@ -225,8 +332,22 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('pre_battle.battle_button')
         if box is None:
             return _refuse(page, 'battle_button_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('BATTLE_HUD', 'THEME_PACKS', 'UNKNOWN'),
+        return _plan(page, CLICK, target=box,
+                     expect=('BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'UNKNOWN'),
                      reason='battle_button_submits_the_team')
+    if page == 'DEPLOYMENT':
+        # Submitting the team can land on the deployment view instead of the battle:
+        # live run build/window-run29.json had To Battle! hand back DEPLOYMENT, whose
+        # own bottom-right control is the same "To Battle!" (live frame
+        # evidence/runtime/window-20261006-050402/frame-0006.json reads it at
+        # [1614,857,206,48], inside the anchored battle button). The fight then
+        # starts by itself, so one click here is enough.
+        box = controls.get('deployment.battle_button') or controls.get('pre_battle.battle_button')
+        if box is None:
+            return _refuse(page, 'deployment_battle_button_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('BATTLE_HUD', 'UNKNOWN'),
+                     reason='deployment_view_starts_the_fight')
     if page == 'REWARD_CARD':
         # A cleared node hands back a pick-one reward screen ("Selectable 0/1").
         # Confirm does nothing until a card is picked, so the planner reads the
@@ -268,7 +389,7 @@ def successor_ok(plan, page):
     :data:`ANY` is the dismissal case: the click is proven by the covered page
     being gone, so every successor except the plan's own page passes.
     """
-    if plan.get('action') not in (CLICK, NODE):
+    if plan.get('action') not in (CLICK, SWIPE, NODE):
         return True
     if page == 'TUTORIAL' and plan.get('page') != 'TUTORIAL':
         # The guide book pops up over any page without warning (live: it covered

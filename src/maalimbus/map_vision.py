@@ -282,6 +282,100 @@ def yellow_flame_player(markers, image):
     return None if best is None else best[1]
 
 
+def flame_centroid(image, *, bottom=None, right=None, minimum=PLAYER_FLAME):
+    """The player's flame found anywhere on the map, or None.
+
+    `yellow_flame_player` can only score the nodes the badge scan already found, and
+    on live floor-2 frames (evidence/runtime/window-20261006-045857, reproduced from
+    build/live-now.png) that scan found a single node, so the player was never
+    scored and its own glow was then mistaken for a marked node. The flame is the
+    player's own feature, so it is looked for directly.
+    """
+    if image is None:
+        return None
+    import cv2
+    import numpy as np
+    bottom = MARKER_MAP_BOTTOM if bottom is None else bottom
+    right = MARKER_MAP_RIGHT if right is None else right
+    height, width = image.shape[:2]
+    blue = image[:, :, 0].astype(int)
+    green = image[:, :, 1].astype(int)
+    red = image[:, :, 2].astype(int)
+    mask = ((red > 180) & (green > 150) & (blue < 120)).astype(np.uint8)
+    mask[round(bottom * height):] = 0
+    mask[:, round(right * width):] = 0
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        area = int(stats[index][4])
+        if area < minimum:
+            continue
+        if best is None or area > best[0]:
+            best = (area, (int(round(centroids[index][0])), int(round(centroids[index][1]))))
+    return None if best is None else best[1]
+
+
+def train_player(image, *, bottom=None, right=None, min_area=60, max_side=32,
+                 gap=(55, 115), drift=45):
+    """The player's node found by its locomotive, or None.
+
+    The locomotive is the only place on a map where a small yellow flame sits above
+    another yellow blob: a live floor-2 frame (build/live-now.png, 1920) carries the
+    flame as a 20x20 blob of 271 px at (702,300) with the lit body 156 px at
+    (694,384) 84 px below it, while the node reward chips are 44x44 blobs of ~285 px
+    whose only neighbour is the node's own icon. Pairing the small blob with the blob
+    under it therefore names the player where neither the badge scan (one node found
+    on that frame) nor a whole-map scan (the largest yellow blob was a reward chip)
+    can.
+    """
+    if image is None:
+        return None
+    import cv2
+    import numpy as np
+    bottom = MARKER_MAP_BOTTOM if bottom is None else bottom
+    right = MARKER_MAP_RIGHT if right is None else right
+    height, width = image.shape[:2]
+    blue = image[:, :, 0].astype(int)
+    green = image[:, :, 1].astype(int)
+    red = image[:, :, 2].astype(int)
+    mask = ((red > 180) & (green > 150) & (blue < 120)).astype(np.uint8)
+    mask[round(bottom * height):] = 0
+    mask[:, round(right * width):] = 0
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    blobs = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = (int(value) for value in stats[index])
+        if area < min_area:
+            continue
+        blobs.append(dict(x=x, y=y, w=box_w, h=box_h, area=area,
+                          cx=int(round(centroids[index][0])),
+                          cy=int(round(centroids[index][1]))))
+    best = None
+    for flame in blobs:
+        if flame['w'] > max_side or flame['h'] > max_side:
+            continue
+        for body in blobs:
+            if body is flame:
+                continue
+            if abs(body['cx'] - flame['cx']) > drift:
+                continue
+            if not gap[0] <= body['cy'] - flame['cy'] <= gap[1]:
+                continue
+            weight = flame['area'] + body['area']
+            if best is None or weight > best[0]:
+                best = (weight, (body['cx'], body['cy']))
+    return None if best is None else best[1]
+
+
+def lattice_neighbours(player, pitch=None):
+    """The four lattice steps around the player; ordering is the caller's job."""
+    if player is None:
+        return []
+    pitch = LATTICE_PITCH if pitch is None else pitch
+    return [(player[0] + pitch[0], player[1]), (player[0] - pitch[0], player[1]),
+            (player[0], player[1] + pitch[1]), (player[0], player[1] - pitch[1])]
+
+
 def advance_candidates(markers, player=None):
     """Ordered nodes to try: nearest to the player when known, else topmost.
 
@@ -384,7 +478,8 @@ def map_clicks(image, *, template=None, node_side=190):
         return []
     height, width = image.shape[:2]
     markers = node_markers(image, template=template, node_side=node_side)
-    player = (yellow_flame_player(markers, image) or flame_player(markers, image)
+    player = (train_player(image)
+              or yellow_flame_player(markers, image) or flame_player(markers, image)
               or likely_player(markers))
     clicks = []
 
@@ -420,6 +515,12 @@ def map_clicks(image, *, template=None, node_side=190):
         nearby = lambda point: (point[0] - player[0]) ** 2 + (point[1] - player[1]) ** 2
         highlighted.sort(key=nearby)
         chevrons.sort(key=nearby)
+    else:
+        # With no player on the page a compact bright ring cannot be told from the
+        # player's own glow (live floor-2 probe: the locomotive's halo was the
+        # "highlighted node" and the first click went to it), so nothing is claimed
+        # as marked and the chevron/lattice candidates carry the step instead.
+        highlighted = []
     # The highlighted node is the step the game will accept, so it goes first; the
     # chevron only points along the path towards it, and the badge nodes are the
     # ordinary case where nothing on the page is marked at all.
@@ -427,6 +528,12 @@ def map_clicks(image, *, template=None, node_side=190):
         add(point, 'highlighted_node', CLICK_SIDE)
     for point in chevrons:
         add(point, 'chevron_target', node_side)
+    # A step away from the player on the lattice is connected to the player by a path
+    # in the live game, and a click on an unconnected node only does nothing, so the
+    # four lattice steps are offered before the badge nodes when there is a player.
+    for point in lattice_neighbours(player):
+        if 0 <= point[0] < width and 0 <= point[1] < height:
+            add(point, 'lattice_step', node_side)
     for marker in advance_candidates(markers, player):
         add((marker.node[0] + marker.node[2] // 2,
              marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)

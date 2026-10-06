@@ -40,5 +40,13 @@
   "shop": "^Shop$",
   "super_shop": "^Super Shop$",
   "leave": "^Leave$",
-  "leave_shop_question": "^Leave the shop\\?$"
+  "leave_shop_question": "^Leave the shop\\?$",
+  "gift_pick_label": "^Acq\\S{2,4}re E\\.?G\\.?O Gift$",
+  "select": "^Select(?:\\s+\\d{1,2}\\s*/\\s*\\d{1,2})?$",
+  "refuse_gift": "^Refuse Gift$",
+  "skip": "^SKIP$",
+  "continue": "^Continue$",
+  "result": "^Result$",
+  "rec": "^REC$",
+  "choices": "^Choices$"
 }

@@ -179,8 +179,40 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     assert clicks[0]['kind'] == 'highlighted_node'
     point = clicks[0]['point']
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
-    assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'node_away_from_player')
+    assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
+                                'node_away_from_player')
                for item in clicks)
+
+
+def test_the_locomotive_names_the_player_when_no_badge_node_does():
+    """Live floor-2 evidence/runtime/window-20261006-050106/frame-0003.json.
+
+    The badge scan finds a single node on that frame, so the player cannot be scored
+    from badge nodes at all; the locomotive pair (a small flame above a lit body)
+    names it instead, and the step it is connected to by a path is offered first.
+    """
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import NODE_BADGE_TEMPLATE, map_clicks, train_player
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-050106/frame-0003.png'
+    template_path = root / 'assets/resource/base' / NODE_BADGE_TEMPLATE
+    if not path.exists() or not template_path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    player = train_player(image)
+    assert player is not None, 'the live floor-2 frame must name the player'
+    assert abs(player[0] - 694) <= 25 and abs(player[1] - 384) <= 25, player
+    clicks = map_clicks(image, template=cv2.imread(str(template_path)))
+    assert clicks, 'the live floor-2 map must offer at least one candidate'
+    # The train's own node is never a candidate, and the first candidate is the step
+    # the page's chevron points at rather than a badge node four columns away.
+    first = clicks[0]
+    assert first['kind'] == 'chevron_target'
+    assert (first['point'][0] - player[0]) ** 2 + (first['point'][1] - player[1]) ** 2 \
+        >= 300 * 300
+    assert all(item['kind'] != 'highlighted_node' for item in clicks[:1])
 
 
 def test_map_observe_node_is_a_bounded_read_only_continuation():

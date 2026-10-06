@@ -37,15 +37,18 @@ from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
 from maalimbus import anchors
-from maalimbus.adb_device import build, discover, foreground_of, input_policy
+from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
 from maalimbus.controller_lease import ControllerLease
+from maalimbus.event_vision import choice_options, gift_hints, preferred_choice
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
-from maalimbus.reward_vision import counter_state
+from maalimbus.reward_vision import (GIFT_COUNTER_BAND, counter_state,
+                                     select_ready)
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
-from maalimbus.window import NODE, plan_step, resolve_overlay, step_result
+from maalimbus.window import (NODE, SWIPE, plan_step, resolve_overlay,
+                              step_result)
 from recognition import (BattleObservation, Journal, LimbusRecognition,
                          MapObservation)
 
@@ -297,10 +300,36 @@ def reward_state(record):
     return counter_state(record)
 
 
+def gift_state(record, *, image=None, select_box=None, picks=0):
+    """The floor gift page's pick state, as ``{'chosen': n, 'required': m, 'ready': b}``.
+
+    The page ("Acquire E.G.O Gift") offers cards and confirms with one Select
+    button that stays dark until the pick is satisfied. Two live variants exist: a
+    four-card round printing ``Select 0/2`` (live:
+    evidence/runtime/window-20261006-043102/frame-0003.json) and a three-card round
+    printing a bare ``Select`` with no counter to read
+    (evidence/runtime/window-20261006-043531). ``chosen`` therefore falls back to the
+    driver's own count of the cards it has already clicked on this page, and
+    ``ready`` comes from the button's pixels, which both variants share.
+    """
+    state = counter_state(record, band=GIFT_COUNTER_BAND) or {}
+    chosen = state.get('chosen')
+    return {'chosen': int(picks if chosen is None else chosen),
+            'required': state.get('required'),
+            'ready': select_ready(image, select_box) if select_box else None}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--adb', type=Path, default=None)
+    parser.add_argument('--input-method', default=None,
+                        help='pin the ADB input method discovery offered (AdbShell, '
+                             'MinitouchAndAdbKey, Maatouch, EmulatorExtras). Discovery '
+                             'picks the highest-priority one Maa offers, and on this '
+                             'MuMu both Maatouch and MinitouchAndAdbKey stopped '
+                             'reaching the app while plain adb shell input tap kept '
+                             'working, so the method may be pinned for a run')
     parser.add_argument('--address', required=True)
     parser.add_argument('--authorize', required=True)
     parser.add_argument('--steps', type=int, default=1,
@@ -360,6 +389,9 @@ def main() -> int:
             result.update(refused=reason, passed=False)
             return 1
         device['input_policy'] = reason
+        if args.input_method:
+            device = pin_input(device, args.input_method)
+            device['input_policy'] = reason + '+pinned_' + args.input_method
         controller = build(device, input_enabled=not args.observe_only)
         result.update(device=device, foreground_before=foreground_of(device))
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
@@ -419,11 +451,19 @@ def main() -> int:
         unknown_seen = 0
         map_skips = set()
         map_attempts = 0
+        gift_picks = 0
         repeated_plans = {}
         while step < goal:
             record = observe(tasker, directory, deadline)
             page = resolve_scene(registry, directory, record)
             frame, candidates = candidates_of(directory, record)
+            choice_index = 0
+            if page == 'EVENT_CHOICE':
+                options = choice_options(record.get('ocr'), record.get('size'))
+                candidates = [box for box, _text in options]
+                choice_index = preferred_choice(options,
+                                                gift_hints(record.get('ocr'),
+                                                           record.get('size')))
             if page == 'MAP':
                 candidates = [box for box in candidates if tuple(box) not in map_skips]
             sha = record.get('image_sha256')
@@ -457,15 +497,23 @@ def main() -> int:
                 tutorial_cards.add(sha)
             team = team_state(record, controls) if page == 'PRE_BATTLE_TEAM' else None
             reward = reward_state(record) if page == 'REWARD_CARD' else None
+            gift = None
+            if page == 'GIFT_PICK':
+                gift = gift_state(record, image=latest_frame(directory)[0],
+                                  select_box=controls.get('gift_pick.select_button'),
+                                  picks=gift_picks)
+            else:
+                gift_picks = 0
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
-                             candidates=candidates, team=team, reward=reward)
+                             candidates=candidates, candidate_index=choice_index,
+                             team=team, reward=reward, gift=gift)
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
-                     'reward': reward, 'arrows': arrows_of(directory),
+                     'reward': reward, 'gift': gift, 'arrows': arrows_of(directory),
                      'candidates': candidates}
-            if plan['action'] not in ('click', NODE) or args.observe_only:
+            if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
                 entry.update(step_result(plan, sent=False, before=page, after=None,
                                          page=page))
                 entry['stopped'] = ('observe_only' if args.observe_only
@@ -482,6 +530,22 @@ def main() -> int:
                 journal.record('window_intent', page=page, node=plan['node'],
                                reason=plan['reason'], delay_ms=delay)
                 run_node(tasker, plan['node'], deadline)
+            elif plan['action'] == SWIPE:
+                # A drag's start point is jittered inside its anchored box just like a
+                # click, and its end point is jittered around the anchored pull target
+                # (``to`` is a point, not a box); MuMu only ever sees Maa's simulated
+                # touch, never the OS pointer.
+                start = inset_box(tuple(plan['target']), .3)
+                point = (random.randint(start[0], start[0] + max(1, start[2])),
+                         random.randint(start[1], start[1] + max(1, start[3])))
+                target_x, target_y = (int(value) for value in plan['to'])
+                drop = (target_x + random.randint(-8, 8), target_y + random.randint(-8, 8))
+                duration = int(plan.get('duration_ms') or 600)
+                journal.record('window_intent', page=page, target=list(plan['target']),
+                               reason=plan['reason'], point=list(point),
+                               swipe_to=list(drop), duration_ms=duration, delay_ms=delay)
+                wait_job(controller.post_swipe(point[0], point[1], drop[0], drop[1], duration),
+                         timeout=10, deadline=deadline)
             else:
                 box = inset_box(tuple(plan['target']), .3)
                 x, y, w, h = box
@@ -530,6 +594,8 @@ def main() -> int:
                                               if tuple(b) != tuple(plan['target'])]))
                 continue
             map_attempts = 0
+            if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
+                gift_picks += 1
             if page not in LOOP_GUARD_EXEMPT:
                 # A plan that keeps succeeding while the page never moves on is a
                 # loop, not progress: live run window-20261006-034009 passed twelve
