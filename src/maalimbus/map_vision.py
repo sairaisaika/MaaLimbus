@@ -70,6 +70,126 @@ def enter_target(panel):
     return panel.enter.box
 
 
+@dataclass(frozen=True)
+class NodeMarker:
+    """A visible map node ornament and the clickable hexagon centred on it.
+
+    The ornament is the node's own bright interior glyph, so the node body is a box
+    centred on it. Identity is that glyph's shape/brightness only; node *type* is
+    never inferred from artwork.
+    """
+    ornament: tuple[int, int, int, int]
+    node: tuple[int, int, int, int]
+
+
+def node_markers(image, *, threshold=175, band=(.18, .78), min_area=300, max_area=4000,
+                 node_side=190):
+    """Read node ornaments (and the node body around each) from a map frame; no input."""
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    gray = image.max(axis=2)
+    mask = (gray >= threshold).astype(np.uint8)
+    mask[:round(band[0] * height)] = 0
+    mask[round(band[1] * height):] = 0
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    markers = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if not (min_area <= area <= max_area) or not (25 <= box_w <= 95) or not (18 <= box_h <= 75):
+            continue
+        if box_w < box_h * 0.8:
+            continue
+        cx, cy = int(centroids[index][0]), int(centroids[index][1])
+        half = node_side // 2
+        nx = min(max(0, cx - half), width - node_side)
+        ny = min(max(0, cy - half), height - node_side)
+        markers.append(NodeMarker((int(x), int(y), int(box_w), int(box_h)),
+                                  (nx, ny, node_side, node_side)))
+    markers.sort(key=lambda m: (m.ornament[1], m.ornament[0]))
+    return markers
+
+
+def player_marker(image):
+    """Approximate the red player icon's centre on a map page, or None."""
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    blue = image[:, :, 0].astype(int)
+    green = image[:, :, 1].astype(int)
+    red = image[:, :, 2].astype(int)
+    red = red.copy()
+    red[:round(.18 * height)] = 0
+    red[round(.78 * height):] = 0
+    mask = ((red > 130) & (red - green > 70) & (red - blue > 70)).astype(np.uint8)
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        area = stats[index][4]
+        if area < 800:
+            continue
+        if best is None or area > best[0]:
+            best = (int(area), int(centroids[index][0]), int(centroids[index][1]))
+    return None if best is None else (best[1], best[2])
+
+
+def likely_player(markers):
+    """The marker most likely to be the player's own node.
+
+    The player icon's bright part is the smallest ornament on the page (the flame tip
+    of the train), while every other node carries a larger interior glyph. This is a
+    coarse ordering, so callers record it instead of trusting it as identity.
+    """
+    if not markers:
+        return None
+    smallest = min(markers, key=lambda m: (m.ornament[2] * m.ornament[3], m.ornament[0]))
+    return ((smallest.node[0] + smallest.node[2] // 2),
+            (smallest.node[1] + smallest.node[3] // 2))
+
+
+def flame_player(markers, image):
+    """The node whose ornament is the player's bright yellow flame, or None."""
+    best = None
+    for marker in markers:
+        x, y, w, h = marker.ornament
+        crop = image[y:y + h, x:x + w]
+        if crop.size == 0:
+            continue
+        blue, green = float(crop[:, :, 0].mean()), float(crop[:, :, 1].mean())
+        score = green - blue
+        if green < 120:
+            continue
+        if best is None or score > best[0]:
+            best = (score, (marker.node[0] + marker.node[2] // 2,
+                            marker.node[1] + marker.node[3] // 2))
+    return None if best is None else best[1]
+
+
+def advance_candidates(markers, player=None):
+    """Ordered nodes to try: nearest to the player when known, else topmost."""
+    ordered = list(markers)
+    if player is not None:
+        def distance(marker):
+            x, y, w, h = marker.node
+            return (x + w // 2 - player[0]) ** 2 + (y + h // 2 - player[1]) ** 2
+        ordered.sort(key=distance)
+        ordered = ordered[1:] or ordered
+    else:
+        ordered.sort(key=lambda m: (m.ornament[1], m.ornament[0]))
+    return ordered
+
+
+def advance_plan(markers, player=None, index=0):
+    """Choose one node to try (never the player's own), or refuse explicitly."""
+    if not markers:
+        return dict(target=None, reason='no_node_marker_observed')
+    ordered = advance_candidates(markers, player)
+    chosen = ordered[index % len(ordered)]
+    return dict(target=chosen.node, ornament=chosen.ornament, index=index,
+                candidates=len(markers), player=list(player) if player else None,
+                reason='nearest_node_away_from_player' if player else 'topmost_node_first')
+
+
 BATTLE_PATTERN = r'^Battle!?$'
 BATTLE_ROI = (.83, .77, .97, .87)
 CLEAR_SELECTION_PATTERN = r'^Clear\s+Selection$'

@@ -113,8 +113,16 @@ def main() -> int:
         tasker = Tasker()
         assert tasker.bind(resource=resource, controller=controller)
 
-        result['before'] = run_node(tasker, 'BattleObserve', deadline)
-        before = events_of(directory, 'battle_observed')
+        # Wait for a stable identified page before deciding: a submitted turn shows
+        # a dialogue/animation the agent cannot classify yet.
+        before = []
+        for index in range(6):
+            if index:
+                time.sleep(args.interval)
+            run_node(tasker, 'BattleObserve', deadline)
+            before = events_of(directory, 'battle_observed')
+            if before and before[-1]['scene'] != 'UNKNOWN':
+                break
         result['before_observation'] = before[-1] if before else None
         page = before[-1] if before else None
         if page is None or page['scene'] != 'BATTLE_HUD':
@@ -149,8 +157,11 @@ def main() -> int:
         for index in range(args.rounds):
             if index:
                 time.sleep(args.interval)
-                run_node(tasker, 'BattleObserve', deadline)
+            run_node(tasker, 'BattleObserve', deadline)
             rounds.append(events_of(directory, 'battle_observed')[-1])
+            if rounds[-1]['scene'] != 'UNKNOWN':
+                break
+        result['page_not_settled'] = bool(rounds) and rounds[-1]['scene'] == 'UNKNOWN'
         result['rounds'] = rounds
         result['settled'] = rounds[-1] if rounds else None
         # A no-op step must be visible, never repeated blindly: an auto_assign that
@@ -163,6 +174,7 @@ def main() -> int:
         result['reason'] = 'bounded_battle_step_recorded'
         result['passed'] = (result['clicks_sent'] <= 1
                             and not result.get('auto_assign_had_no_effect')
+                            and not result.get('page_not_settled')
                             and result['foreground_after'] == result['foreground_before'])
     except Exception as error:
         result.update(reason='battle_step_failed', error=str(error), passed=False)

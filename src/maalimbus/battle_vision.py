@@ -75,8 +75,10 @@ def start_button(records, size, image=None):
     """The battle's `START` action box: its control when the frame is available.
 
     Falls back to the label box, which is recorded rather than silently trusted.
+    The banner sits above whichever gear the board layout puts it over, so the band
+    spans the middle of the row rather than one fixed x.
     """
-    matches = find(records, r'^START$', (.52, .66, .62, .74), size, .85)
+    matches = find(records, r'^START$', (.45, .63, .70, .79), size, .85)
     if len(matches) != 1:
         return None
     label = matches[0].box
