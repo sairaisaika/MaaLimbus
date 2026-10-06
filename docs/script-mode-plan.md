@@ -253,6 +253,7 @@ config/user-team-profiles.json            # 轮换与队伍偏好
 ## 12 路线图与验收（每条都要有「验证过的数值接口」）
 
 - **P0 五层跑通 + 真实领奖**（进行中）：地图→节点→面板→队伍→战斗→胜利→回地图已实机验证；待补「层奖励选择 → 下一层 → 第 5 层结算领奖 → 轮换再入场」。
+  - 战后这一段的所有者已定（2026-10-06，轮 22）：`mirror.json` 只走到战斗，`BattleObserve.next → PostBattleObserve` 之后交回 `tools/window_step.py`；那些页面的计划与护栏都在 `src/maalimbus/window.py:plan_step`，**不要**给奖励卡/层礼物/商店加 `Click` 节点（没有钩子会执行 window 计划，见 `docs/post-battle-ownership.md`）。
   验收：`run-ledger.json` 记录 5 层、真实领奖证据帧、轮换 index 递增。
 - **P1 自检与采集（已完成，2026-10-06 离线）**：`anchors.json` + `verify_anchors.py`（留档回放，以及 `--frame` 对当前帧的漂移自检）+ `capture_anchors.py`（一条命令采集模板/几何并登记，写完即回放，不命中不留文件）。
   验收：故意改一版 UI 后自检能列出失配锚点及其影响的 Task（`--frame` 逐条 `drift`/`MISS` 且 exit 1）；采集命令能新增一条模板并登记（`tests/test_capture_anchors.py`）。
