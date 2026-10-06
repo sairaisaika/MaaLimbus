@@ -42,6 +42,7 @@ from maalimbus.controller_lease import ControllerLease
 from maalimbus.event_vision import choice_options, gift_hints, preferred_choice
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
+from maalimbus import session_flow as flows
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, counter_state,
                                      gift_cards, select_ready)
@@ -319,6 +320,103 @@ def gift_state(record, *, image=None, select_box=None, picks=0):
             'ready': select_ready(image, select_box) if select_box else None}
 
 
+def flow_token(record, step):
+    """The token a named-flow step is waiting for on the page just read, or ``None``.
+
+    The reading itself is a pure function in :mod:`maalimbus.session_flow`, so the
+    band and the threshold a step uses are the ones the tests pin.
+    """
+    return flows.token_of(record.get('ocr') or [],
+                          record.get('size') or (1920, 1080), step)
+
+
+def run_flow(tasker, controller, journal, directory, deadline, steps, *,
+             observe_only=False, interval=4.0, rounds=3):
+    """Walk a named flow and return one record per step.
+
+    Each step waits for its own token, clicks inside that token's box, and stops the
+    whole flow the moment the page does not answer. One step is one input: the flow
+    never guesses a coordinate for a control it has not recognised, and never sends a
+    second input to a page that did not move.
+    """
+    records = []
+    for step in steps:
+        entry = {'step': step.id, 'kind': step.kind, 'pattern': step.pattern,
+                 'roi': None if step.roi is None else list(step.roi),
+                 'optional': bool(step.optional), 'repeat': step.repeat, 'clicks': 0,
+                 'note': step.note}
+        if step.kind == 'start_app':
+            if observe_only:
+                entry.update(passed=False, reason='observe_only')
+                records.append(entry)
+                continue
+            wait_job(controller.post_start_app(flows.LAUNCH_INTENT), timeout=30,
+                     deadline=deadline)
+            journal.record('flow_start_app', intent=flows.LAUNCH_INTENT)
+            entry.update(passed=True, reason='start_app_sent')
+            records.append(entry)
+            time.sleep(min(interval, 3.0))
+            continue
+        limit = time.monotonic() + step.timeout_s
+        record, token = None, None
+        while True:
+            record = observe(tasker, directory, deadline)
+            token = flow_token(record, step)
+            if token is not None or step.optional or time.monotonic() >= limit:
+                break
+            time.sleep(min(interval, 2.0))
+        entry.update(page=record.get('scene'), observation=record, token=token)
+        if token is None:
+            entry.update(passed=bool(step.optional),
+                         reason=('flow_token_absent_skipped' if step.optional
+                                 else 'flow_token_not_seen'))
+            records.append(entry)
+            if not step.optional:
+                return records
+            continue
+        if step.kind == 'wait':
+            entry.update(passed=True, reason='flow_token_seen')
+            records.append(entry)
+            continue
+        if observe_only:
+            entry.update(passed=False, reason='observe_only')
+            records.append(entry)
+            continue
+        sent, changed = 0, False
+        for _index in range(max(1, step.repeat)):
+            before_sha = record.get('image_sha256')
+            x, y, w, h = flows.center(token['box'])
+            point = (random.randint(x, x + max(1, w - 1)),
+                     random.randint(y, y + max(1, h - 1)))
+            delay = random.randint(350, 750)
+            journal.record('flow_intent', step=step.id, note=step.note,
+                           pattern=step.pattern, target=list(token['box']),
+                           point=list(point), delay_ms=delay)
+            wait_job(controller.post_click(*point), timeout=10, deadline=deadline)
+            sent += 1
+            time.sleep(delay / 1000)
+            settled = record
+            for round_index in range(max(1, rounds)):
+                if round_index:
+                    time.sleep(interval)
+                settled = observe(tasker, directory, deadline)
+                if settled.get('image_sha256') not in (None, before_sha):
+                    break
+            changed = settled.get('image_sha256') not in (None, before_sha)
+            record = settled
+            token = flow_token(settled, step)
+            if token is None:
+                break
+        entry.update(clicks=sent, changed=bool(changed), token_after=token,
+                     page_after=record.get('scene'), settled=record,
+                     passed=bool(changed or token is None),
+                     reason='flow_step_clicked' if changed else 'flow_step_unchanged')
+        records.append(entry)
+        if not entry['passed']:
+            return records
+    return records
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -360,6 +458,10 @@ def main() -> int:
                              'passed rounds of TUTORIAL then To Battle! with nothing '
                              'changing. The guide book itself is exempt, because it '
                              'legitimately advances card by card from the same control')
+    parser.add_argument('--observe-page', action='store_true',
+                        help='read the live page once and print its scene and OCR tokens '
+                             'as JSON, then stop: the cheap way to see a screen without '
+                             'storing and reading a screenshot, and it sends no input')
     parser.add_argument('--observe-only', action='store_true',
                         help='record the page and send no input at all')
     parser.add_argument('--click-box', action='append', default=None,
@@ -371,10 +473,27 @@ def main() -> int:
                              'frame coordinates and record the before/after frames, '
                              'for a gesture the anchors do not cover yet (the map '
                              'scroll and the team page both need one)')
+    parser.add_argument('--flow', default=None, choices=flows.names(),
+                        help='run a named session flow (see maalimbus.session_flow): '
+                             'the walk from a cold client to the Mirror Dungeon card is '
+                             'data, so repeating it is one command instead of a chain of '
+                             'hand-aimed one-shot clicks')
+    parser.add_argument('--flow-list', action='store_true',
+                        help='print the named flows and exit, without touching a device')
     parser.add_argument('--label', default='one_shot_click',
                         help='what --click-box is aiming at, for the evidence record')
     parser.add_argument('--report', type=Path, default=None)
     args = parser.parse_args()
+    if args.flow_list:
+        for name in flows.names():
+            for step in flows.flow(name):
+                print(json.dumps({'flow': name, 'step': step.id, 'kind': step.kind,
+                                  'pattern': step.pattern,
+                                  'roi': None if step.roi is None else list(step.roi),
+                                  'repeat': step.repeat, 'optional': bool(step.optional),
+                                  'timeout_s': step.timeout_s, 'note': step.note},
+                                 ensure_ascii=False))
+        return 0
     if not authorized(args.authorize):
         print(json.dumps({'refused': 'live_input_not_authorized',
                           'hint': f'{AUTHORIZATION} must grant live_input_authorized '
@@ -422,6 +541,33 @@ def main() -> int:
         page = None
         tutorial_cards = set()
         boxes = []
+        if args.observe_page:
+            record = observe(tasker, directory, deadline)
+            page = resolve_scene(registry, directory, record)
+            frames = sorted(directory.glob('frame-*.png'))
+            result['observed'] = {
+                'scene': record['scene'], 'page': page, 'size': record.get('size'),
+                'floor': record.get('floor'), 'pack': record.get('pack'),
+                'wave': record.get('wave'), 'turn': record.get('turn'),
+                'start_box': record.get('start_box'),
+                'auto_assign_buttons': record.get('auto_assign_buttons'),
+                'sha256': record.get('image_sha256'),
+                'frame': frames[-1].name if frames else None,
+                'tokens': [[token['text'], list(token['box']), round(token['score'], 3)]
+                           for token in (record.get('ocr') or [])],
+            }
+            result['passed'] = True
+            result['reason'] = 'page_observed'
+            return 0
+        if args.flow:
+            problems = flows.validate(args.flow)
+            if problems:
+                raise SystemExit('; '.join(problems))
+            result['flow'] = args.flow
+            result['flow_steps'] = run_flow(
+                tasker, controller, journal, directory, deadline, flows.flow(args.flow),
+                observe_only=bool(args.observe_only), interval=args.interval,
+                rounds=args.rounds)
         for spec in (args.click_box or []):
             parts = [int(value) for value in spec.replace(' ', '').split(',')]
             if len(parts) != 4:
@@ -490,7 +636,7 @@ def main() -> int:
                 'observation': before, 'settled': after, 'passed': bool(changed),
                 'reason': ('one_shot_screen_changed' if changed
                            else 'one_shot_screen_unchanged')})
-        goal = 0 if (boxes or swipes) else max(0, args.steps)
+        goal = 0 if (boxes or swipes or args.flow) else max(0, args.steps)
         step = 0
         unknown_seen = 0
         battle_sig = None
@@ -700,12 +846,20 @@ def main() -> int:
                     break
             step += 1
         result['foreground_after'] = foreground_of(device)
+        flow_records = result.get('flow_steps') or []
+        failed_flow = next((entry for entry in flow_records
+                            if not (entry.get('passed')
+                                    or entry.get('reason') == 'observe_only')), None)
         last = result['steps'][-1] if result['steps'] else None
         result['page_before'] = None if last is None else last['page_before']
         result['page_after'] = None if last is None else last.get('page_after')
-        result['passed'] = bool(result['steps']) and all(s['passed'] for s in result['steps'])
+        result['passed'] = (all(step_record['passed'] for step_record in result['steps'])
+                            and bool(result['steps'] or flow_records)
+                            and failed_flow is None)
         result['reason'] = ('window_steps_passed' if result['passed']
-                            else ((last or {}).get('stopped') or (last or {}).get('reason')
+                            else ((failed_flow or {}).get('reason')
+                                  or (last or {}).get('stopped')
+                                  or (last or {}).get('reason')
                                   or 'no_step_recorded'))
     except Exception as error:
         result.update(reason='window_failed', error=str(error), passed=False)
@@ -718,9 +872,17 @@ def main() -> int:
             Path(args.report).write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n',
                                          encoding='utf-8')
         print(json.dumps({k: v for k, v in result.items()
-                          if k not in ('steps', 'device', 'foreground_before',
+                          if k not in ('steps', 'flow_steps', 'device', 'foreground_before',
                                        'foreground_after')},
                          ensure_ascii=False, indent=1))
+        for step_record in result.get('flow_steps') or []:
+            print(json.dumps({'flow': result.get('flow'), 'step': step_record['step'],
+                              'kind': step_record['kind'], 'page': step_record.get('page'),
+                              'token': step_record.get('token'),
+                              'token_after': step_record.get('token_after'),
+                              'clicks': step_record.get('clicks'),
+                              'passed': step_record.get('passed'),
+                              'reason': step_record.get('reason')}, ensure_ascii=False))
         for entry in result['steps']:
             print(json.dumps({'step': entry['step'], 'page_before': entry['page_before'],
                               'page_after': entry.get('page_after'),

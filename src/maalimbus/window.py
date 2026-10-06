@@ -43,8 +43,11 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: Exploration throws an in-progress run away, and Cancel on the encounter reward
 #: page refuses a reward the run has already earned, so both stay registered as
 #: anchors (their labels are how the page is identified) but are refused as targets.
+#: The entry confirmation's X Cancel is the same shape: the run is already free to
+#: start and cancelling it costs the step, not the run.
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
-                      'gift_pick.refuse_button', 'gift_warning.confirm_button')
+                      'gift_pick.refuse_button', 'gift_warning.confirm_button',
+                      'entry_confirm.cancel_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -167,6 +170,19 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
                              'LEVEL_WARNING', 'ENTRY_CONFIRM', 'UNKNOWN'),
                      reason='before_entry_enter_starts_the_free_run')
+    if page == 'ENTRY_CONFIRM':
+        # The entry page's Enter only raises the confirmation; the control that
+        # really starts the run is the dialog's own Enter, and the X Cancel beside it
+        # cancels instead (live: evidence/runtime/window-20261006-192917/frame-0001.json
+        # carries the dialog Enter [1124,704,90,42] and the page's Enter
+        # [1606,718,112,44] at once, so the two must never be confused).
+        box = controls.get('entry_confirm.confirm_button')
+        if box is None:
+            return _refuse(page, 'entry_confirm_button_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'LEVEL_WARNING',
+                             'MAP', 'UNKNOWN'),
+                     reason='the_entry_confirmation_starts_the_run')
     if page == 'RESUME_DIALOG':
         box = controls.get('resume.resume_button')
         if box is None:

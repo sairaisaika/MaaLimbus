@@ -312,6 +312,56 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_entry_confirmation_starts_the_run_and_cancel_is_never_the_target():
+    # Live proof: evidence/runtime/window-20261006-192917/frame-0001.json is the
+    # prompt the entry page raises ("Will you enter Mirror of Names and Spiders?").
+    # It carries the dialog's own Enter while the page's Enter [1606,718,112,44]
+    # stays visible underneath, so the two must not be confused.
+    dialog_enter = [1124, 704, 90, 42]
+    cancel = [708, 704, 152, 42]
+    plan = plan_step('ENTRY_CONFIRM',
+                     controls={'entry_confirm.confirm_button': dialog_enter,
+                               'entry_confirm.cancel_button': cancel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == dialog_enter
+    assert plan['reason'] == 'the_entry_confirmation_starts_the_run'
+    assert successor_ok(plan, 'MAP') and successor_ok(plan, 'UNKNOWN')
+    assert not successor_ok(plan, 'ENTRY_CONFIRM')
+    missing = plan_step('ENTRY_CONFIRM', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'entry_confirm_button_not_anchored'
+    # X Cancel cancels the run the player just asked for, so it may never be the
+    # landing spot - not by naming it, and not through a mis-registered anchor.
+    named = plan_step('ENTRY_CONFIRM', controls={'entry_confirm.cancel_button': cancel})
+    assert named['action'] == RECORD
+    misregistered = plan_step('ENTRY_CONFIRM',
+                              controls={'entry_confirm.confirm_button': cancel,
+                                        'entry_confirm.cancel_button': cancel})
+    assert misregistered['action'] == RECORD
+    assert misregistered['reason'] == 'control_is_forbidden'
+
+
+def test_the_mirror_entry_page_uses_its_own_enter_button():
+    # Live proof: evidence/runtime/window-20261006-192906/frame-0001.json is the
+    # bright entry page. The same page dim (mean 16.0, Enter band mean 6.3) is what
+    # the guide overlay produces; pressing Before Entry lifts it (mean 30.7, Enter
+    # band 76.0) and only then does this button answer.
+    enter = [1606, 718, 112, 44]
+    plan = plan_step('MIRROR_ENTRY', controls={'entry.enter_button': enter})
+    assert plan['action'] == CLICK
+    assert plan['target'] == enter
+    assert plan['reason'] == 'before_entry_enter_starts_the_free_run'
+    assert successor_ok(plan, 'ENTRY_CONFIRM')
+    assert not successor_ok(plan, 'MIRROR_ENTRY')
+    # The pipeline spells this page both ways and both must plan identically.
+    other = plan_step('BEFORE_ENTRY', controls={'entry.enter_button': enter})
+    assert ({k: v for k, v in plan.items() if k != 'page'} ==
+            {k: v for k, v in other.items() if k != 'page'})
+    missing = plan_step('MIRROR_ENTRY', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'entry_enter_button_not_anchored'
+
+
 def test_reward_card_is_picked_before_confirm_and_cancel_is_never_the_target():
     # Live proof: evidence/runtime/window-20261006-034714/frame-0022.json is the
     # pick-one screen a cleared node hands back ("Selectable 0/1").

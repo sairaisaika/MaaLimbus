@@ -740,6 +740,120 @@
       ]
     },
     {
+      "id": "mirror_entry",
+      "title": "镜牢入口页（Mirror of Names and Spiders：Rental / Enter，页面自带 20 页说明浮层）",
+      "evidence": [
+        "evidence/runtime/window-20261006-192906/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "entry.dungeon_title",
+          "kind": "ocr",
+          "pattern": "^Mirror of Names and Spid\\w*$",
+          "roi": [
+            0.44,
+            0.15,
+            0.62,
+            0.22
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "entry.before_entry_tab",
+          "kind": "ocr",
+          "pattern": "^Before Entry$",
+          "roi": [
+            0.8,
+            0.17,
+            0.9,
+            0.24
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "entry.enter_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-192906/frame-0001.json",
+            "box": [
+              1606,
+              718,
+              112,
+              44
+            ],
+            "source": "实测 OCR 框＝Enter。说明浮层（TUTORIAL）盖住这一页时整块面板变暗、点了不动（build/live-md.png 量到按钮区均值 6.3），浮层撤掉后同框均值 76.0，点它弹出 ENTRY_CONFIRM（build/live-entry3.png → build/observe-enter.json）"
+          }
+        },
+        {
+          "id": "entry.rental_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-192906/frame-0001.json",
+            "box": [
+              1372,
+              726,
+              102,
+              36
+            ],
+            "source": "实测 OCR 框＝Rental；登记只为识别页面，租借人格不在本次授权范围，计划里永不作为落点"
+          }
+        }
+      ]
+    },
+    {
+      "id": "entry_confirm",
+      "title": "镜牢入场确认弹窗（Will you enter Mirror of Names and Spiders?：X Cancel / Enter）",
+      "evidence": [
+        "evidence/runtime/window-20261006-192917/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "entry_confirm.prompt",
+          "kind": "ocr",
+          "pattern": "^Will you enter Mirror of Names and Spiders\\?$",
+          "roi": [
+            0.3,
+            0.42,
+            0.7,
+            0.52
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "entry_confirm.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-192917/frame-0001.json",
+            "box": [
+              1124,
+              704,
+              90,
+              42
+            ],
+            "source": "实测 OCR 框＝弹窗右侧那个 Enter（和背景页面的 [1606,718,112,44] 是两个不同控件）；点它才真的开始一局"
+          }
+        },
+        {
+          "id": "entry_confirm.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-192917/frame-0001.json",
+            "box": [
+              708,
+              704,
+              152,
+              42
+            ],
+            "source": "实测 OCR 框＝X Cancel；登记只为识别页面，并进 FORBIDDEN_CONTROLS 永不许当落点"
+          }
+        }
+      ]
+    },
+    {
       "id": "resume_dialog",
       "title": "中途再入场确认（Dungeon Progress：Resume / Halt Exploration / Cancel）",
       "evidence": [
