@@ -40,7 +40,7 @@ def test_shipped_registry_files_validate():
                    'mirror_entry', 'entry_confirm', 'resume_dialog', 'reward_card',
                    'shop', 'shop_leave', 'gift_get', 'gift_pick', 'gift_warning',
                    'theme_packs', 'cutscene', 'event_choice', 'deployment',
-                   'event_result', 'event_result_ready']
+                   'event_result', 'event_result_ready', 'dungeon_team']
     assert loaded['reference_width'] == 1280
     assert loaded['pending'], 'the registry must keep naming what is not proven yet'
 

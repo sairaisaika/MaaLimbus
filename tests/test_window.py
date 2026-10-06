@@ -319,6 +319,37 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_dungeon_team_page_brings_the_rotation_slot_then_confirms():
+    # Live proof: evidence/runtime/window-20261006-193439/frame-0002.json is the
+    # loadout picker a run opens on - TEAMS #1..#7 down the left edge, Starlight
+    # Bonus 107 and Confirm on the bottom right.
+    slot5 = [152, 673, 88, 21]
+    confirm = [1632, 853, 170, 52]
+    controls = {'team.slot_05': slot5, 'team.confirm_button': confirm}
+    picked = plan_step('DUNGEON_TEAM', controls=controls,
+                       team={'wanted': 5, 'selected': 1})
+    assert picked['action'] == CLICK
+    assert picked['target'] == slot5
+    assert picked['advance'] is True
+    assert picked['detail'] == {'slot': 5}
+    assert picked['reason'] == 'dungeon_team_slot_is_selected_for_the_rotation'
+    entered = plan_step('DUNGEON_TEAM', controls=controls,
+                        team={'wanted': 5, 'selected': 5})
+    assert entered['action'] == CLICK
+    assert entered['target'] == confirm
+    assert entered['reason'] == 'dungeon_team_confirm_brings_the_chosen_team_in'
+    assert successor_ok(entered, 'MAP') and successor_ok(entered, 'UNKNOWN')
+    assert not successor_ok(entered, 'DUNGEON_TEAM')
+    # Without a rotation the page must still be able to start the run.
+    blind = plan_step('DUNGEON_TEAM', controls=controls,
+                      team={'wanted': None, 'selected': None})
+    assert blind['target'] == confirm
+    missing = plan_step('DUNGEON_TEAM', controls={'team.slot_05': slot5},
+                        team={'wanted': 5, 'selected': 5})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'dungeon_team_confirm_not_anchored'
+
+
 def test_the_entry_confirmation_starts_the_run_and_cancel_is_never_the_target():
     # Live proof: evidence/runtime/window-20261006-192917/frame-0001.json is the
     # prompt the entry page raises ("Will you enter Mirror of Names and Spiders?").

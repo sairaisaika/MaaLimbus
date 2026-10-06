@@ -1753,6 +1753,153 @@
           "note": "与 CUTSCENE 的 skip_button [1620,919,152,99] 同一槽位，靠亮/灰与 token 区分"
         }
       ]
+    },
+    {
+      "id": "dungeon_team",
+      "title": "镜牢队伍载入页（左侧 TEAMS #1..#7、右下 Starlight Bonus 与 Confirm）",
+      "evidence": [
+        "evidence/runtime/window-20261006-193439/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "team.starlight_label",
+          "kind": "ocr",
+          "pattern": "^Starlight$",
+          "roi": [
+            0.81,
+            0.7,
+            0.9,
+            0.77
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "team.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.82,
+            0.76,
+            0.95,
+            0.86
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "team.slot_01",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              152,
+              454,
+              88,
+              22
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #1 标签，标签整体在按钮面内，故直接当落点；#2..#7 同列向下每格约 54 px"
+          }
+        },
+        {
+          "id": "team.slot_02",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              150,
+              508,
+              90,
+              22
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #2 标签"
+          }
+        },
+        {
+          "id": "team.slot_03",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              150,
+              561,
+              90,
+              22
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #3 标签"
+          }
+        },
+        {
+          "id": "team.slot_04",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              150,
+              617,
+              90,
+              22
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #4 标签"
+          }
+        },
+        {
+          "id": "team.slot_05",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              152,
+              673,
+              88,
+              21
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #5 标签；轮换 5,4,1,6,2,7,3 当前指向它"
+          }
+        },
+        {
+          "id": "team.slot_06",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              152,
+              726,
+              90,
+              22
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #6 标签"
+          }
+        },
+        {
+          "id": "team.slot_07",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              148,
+              778,
+              92,
+              26
+            ],
+            "source": "实测 OCR 框＝左列 TEAMS #7 标签"
+          }
+        },
+        {
+          "id": "team.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193439/frame-0002.json",
+            "box": [
+              1632,
+              853,
+              170,
+              52
+            ],
+            "source": "实测 OCR 框＝右下 Confirm（按钮面比字更大，框本身就在按钮内）；点它才带着选中的队进局"
+          }
+        }
+      ]
     }
   ],
   "pending": [

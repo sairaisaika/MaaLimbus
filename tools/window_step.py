@@ -452,6 +452,10 @@ def main() -> int:
                              'no-op, so the next candidate is tried instead of stopping '
                              '(a floor-1 frame shows up to six nodes, and only the ones '
                              'joined to the player by a path can open a panel)')
+    parser.add_argument('--team', type=int, default=5,
+                        help='which TEAMS slot the rotation brings on the loadout page '
+                             '(1..7): the official ledger stands at team 5, so the '
+                             'planner clicks that slot once and then Confirm')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one run: a misleading overlay once produced twelve '
@@ -540,6 +544,7 @@ def main() -> int:
 
         page = None
         tutorial_cards = set()
+        team_slot_picked = None
         boxes = []
         if args.observe_page:
             record = observe(tasker, directory, deadline)
@@ -707,6 +712,13 @@ def main() -> int:
                         'stopped': 'battle_progress_stalled'})
                     break
             team = team_state(record, controls) if page == 'PRE_BATTLE_TEAM' else None
+            if page == 'DUNGEON_TEAM':
+                # The rotation decides which loadout to bring; the planner clicks the
+                # slot once, and once that click has been sent the next step falls
+                # through to Confirm.
+                team = {'wanted': args.team, 'selected': team_slot_picked}
+            else:
+                team_slot_picked = None
             reward = reward_state(record) if page == 'REWARD_CARD' else None
             gift = None
             cards = None
@@ -792,6 +804,10 @@ def main() -> int:
             entry.update(step_result(plan, sent=True, before=page,
                                      after=settled_page, page=settled_page,
                                      frame_changed=settled.get('image_sha256') not in (None, before_sha)))
+            if entry['passed'] and plan.get('detail', {}).get('slot'):
+                # The loadout slot has been sent; the next step on this page must
+                # fall through to Confirm instead of pressing the same slot again.
+                team_slot_picked = plan['detail']['slot']
             if not entry['passed'] and entry['reason'] == 'unexpected_successor':
                 # Live run build/window-run36 pressed To Battle! on a full 12/12 team
                 # page, and the settle loop still read PRE_BATTLE_TEAM while the game

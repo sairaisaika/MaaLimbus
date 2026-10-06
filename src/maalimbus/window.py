@@ -367,6 +367,26 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_GET', 'GIFT_PICK', 'MAP', 'UNKNOWN'),
                      reason='select_takes_the_picked_floor_gifts')
+    if page == 'DUNGEON_TEAM':
+        # A Mirror Dungeon run opens on the loadout picker: seven TEAMS slots down the
+        # left edge and one Confirm on the bottom right. The rotation decides which
+        # slot to bring, and only Confirm starts the run (live:
+        # evidence/runtime/window-20261006-193439/frame-0002.json reads TEAMS #1..#7
+        # at x≈150 and Confirm [1632,853,170,52] with Starlight Bonus 107).
+        wanted = (team or {}).get('wanted')
+        chosen = (team or {}).get('selected')
+        slot = controls.get('team.slot_%02d' % wanted) if wanted else None
+        if slot is not None and chosen != wanted:
+            return _plan(page, CLICK, target=slot, expect=(ANY,), advance=True,
+                         reason='dungeon_team_slot_is_selected_for_the_rotation',
+                         detail={'slot': wanted})
+        confirm = controls.get('team.confirm_button')
+        if confirm is None:
+            return _refuse(page, 'dungeon_team_confirm_not_anchored')
+        return _plan(page, CLICK, target=confirm,
+                     expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
+                             'LEVEL_WARNING', 'UNKNOWN'),
+                     reason='dungeon_team_confirm_brings_the_chosen_team_in')
     if page == 'PRE_BATTLE_TEAM':
         # The page opens with nobody picked, and its Battle! button is dark until
         # at least one card is in the team (live: window-20261006-030750 has
