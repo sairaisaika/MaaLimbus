@@ -29,6 +29,7 @@ from maalimbus.storage import SINNERS
 from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels
 from maalimbus import star_vision
 from maalimbus import initial_gifts
+from maalimbus.map_vision import map_header, route_decision
 from maalimbus.storage import read_json, write_json
 
 
@@ -175,6 +176,10 @@ class LimbusRecognition(CustomRecognition):
                 local.append(dict(sinner=sinner,roi=roi,only_rec=True,results=found))
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog(),records,self.locale):
             scene='THEME_PACKS'
+        if scene=='UNKNOWN' and map_header(records,size) is not None:
+            # The floor header plus its pack line is the only map identity anchor;
+            # artwork, currency and season icons are never consulted.
+            scene='MAP'
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
         name = self.journal.frame(image, records, scene,local_ocr=local)
@@ -770,10 +775,29 @@ class ThemeObservation(CustomAction):
         try:
             wait_job(context.tasker.controller.post_screencap(),timeout=5)
         except (TimeoutError,RuntimeError):return False
-        records,scene,frame=self.recognition.observe(context,context.tasker.controller.cached_image)
-        self.recognition.journal.record('theme_drag_observation',frame=frame,scene=scene,
-            selected=False,verified_clear=False,
-            reason='fresh_observation_only_map_postcondition_not_implemented')
+        image=context.tasker.controller.cached_image
+        records,scene,frame=self.recognition.observe(context,image)
+        size=(image.shape[1],image.shape[0])
+        header=map_header(records,size) if scene=='MAP' else None
+        # The pack line must equal the pack this run planned; any other name keeps
+        # the selection unproven instead of borrowing an unrelated page as proof.
+        status='not_applicable'
+        if header is not None:
+            status=('verified' if header.pack==self.recognition.pending_pack
+                    else 'header_pack_differs_from_pending')
+        self.recognition.journal.record('theme_map_postcondition',frame=frame,scene=scene,
+            floor=None if header is None else header.floor,
+            pack=None if header is None else header.pack,
+            pending_pack=self.recognition.pending_pack,status=status,
+            selected=status=='verified',verified_clear=False,
+            reason=('pack_drag_selection_substantiated_by_fresh_floor_header'
+                    if status=='verified' else
+                    ('fresh_map_header_names_a_different_pack' if header is not None else
+                     'fresh_post_drag_frame_is_not_an_identified_map_page')))
+        if header is not None:
+            self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
+                pack=header.pack,route=route_decision(header,size),
+                scope='header identity and bounded route refusal; no node identity or input')
         return True
 
 

@@ -53,7 +53,7 @@ def main():
         assert result['stop_confirmed'] and not result['timed_out']
         assert len(controller.drags)==int(allowed),(case,controller.drags)
         events=[json.loads(l) for l in (directory/'events.jsonl').read_text().splitlines()]
-        post=[e for e in events if e['event']=='theme_drag_observation']
+        post=[e for e in events if e['event']=='theme_map_postcondition']
         if allowed:assert post and not post[-1]['selected'] and not post[-1]['verified_clear']
         results.append(dict(case=case,drags=controller.drags,device_input=False,selected=False,evidence=str(directory)))
     output=ROOT/'build/real-theme-drag-verification.json'

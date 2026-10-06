@@ -1,5 +1,23 @@
 # Acceptance evidence
 
+## 2026-10-05 offline map identity repair
+
+- `src/maalimbus/map_vision.py` now identifies the Mirror Dungeon map page from the
+  localized floor header plus the theme-pack line beneath it; artwork, currency and
+  season icons are never anchors. `agent/recognition.py` promotes only that page to
+  scene `MAP`, and `ThemeObservation` records `theme_map_postcondition` with
+  `selected` true solely when the fresh floor header names the pack this run planned.
+- Actual Maa OCR/recognition replay over the retained `231221/terminal.png` (binary
+  `build/portable check 249aba9398a84dbfacd55c2b79065cd7/maafw`) identifies scene
+  `MAP` and hits only `OfflineMapHeader`; the retained pack page is not promoted and
+  hits no map node. The replay controller asserts that click/swipe/touch/key are
+  never called: `build/map-frame-replay-verification.json`, no device input.
+- Route reading stays an explicit refusal. The retained map frame shows no provable
+  unvisited node, so `route_decision` returns `current_position_not_proven` and
+  records no click target; `tools/verify_map_replay.py` deliberately sends no input.
+- 153 Python tests pass (145 before this change). Node identity, floor-1 routing and
+  any live continuation from the stopped session remain unproven and unauthorised.
+
 ## 2026-10-05 23:13 actual downward pack selection
 
 - Real-frame Maa intercepted replay passed five cases: one downward Swipe on the

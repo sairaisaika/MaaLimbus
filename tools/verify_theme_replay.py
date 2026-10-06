@@ -104,8 +104,9 @@ def main():
         ranks=[e for e in events if e['event']=='theme_pack_ranking']
         if target:
             assert ranks[-1]['ranking'][0]['name']==target,(name,ranks)
-            post=next(e for e in events if e['event']=='theme_drag_observation')
-            assert post['scene']=='UNKNOWN' and not post['selected'] and not post['verified_clear']
+            post=next(e for e in events if e['event']=='theme_map_postcondition')
+            assert post['scene']=='UNKNOWN' and post['status']=='not_applicable'
+            assert not post['selected'] and not post['verified_clear']
         assert all(not e['selected'] and not e['refreshed'] for e in ranks)
         results.append(dict(case=name,target=target,drags=controller.drags,result=result,
                             selected=False,verified_clear=False,evidence=str(directory)))

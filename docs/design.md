@@ -1,5 +1,22 @@
 # Native design and requirement ledger
 
+## Map identity and bounded routing (October5 late continuation)
+
+The map page is identified by text only: the localized `Exploring`/`Before Entry`
+floor header inside the upper-left band plus the theme-pack line directly beneath
+it. The pack line must sit in its own band and must not repeat the floor pattern;
+a page carrying similar wording elsewhere is never promoted, and node artwork,
+cover art, season icons and currency amounts remain non-anchors. A theme drag is
+substantiated only when the fresh post-drag page is that map and its pack line
+equals the pack this run planned; any other name stays unproven.
+
+Routing stays a refusal until node identity exists. A next node may be planned
+only when the page is an identified map, a single current-position marker is
+proven, and exactly one unvisited candidate remains; otherwise no click target is
+produced and the reason is recorded. The retained floor-1 frame has no provable
+unvisited node, so routing there must keep returning a refusal rather than a
+fabricated target.
+
 ## Pack input and initial receipt proof (October5 late continuation)
 
 Theme selection drags a positively identified card downward using Maa Swipe,

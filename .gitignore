@@ -12,3 +12,9 @@ config/*-progress.json
 config/*.tmp
 config/*.json.*.tmp
 *.log
+
+# Agent skills 配置（本地记录：issue tracker / triage 标签词汇 / 域文档布局）
+docs/agents/
+AGENTS.md
+CONTEXT.md
+CONTEXT-MAP.md

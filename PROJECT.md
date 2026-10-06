@@ -9,7 +9,22 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-05 23:13 local
+## Latest continuation: 2026-10-05 23:45 local
+- Map recognition repaired offline as required after231221. `src/maalimbus/map_vision.py`
+  identifies the map page from the `Exploring|Before Entry Floor 1-5` header plus its
+  pack line only; `agent/recognition.py` promotes that to scene MAP and
+  `ThemeObservation` now records `theme_map_postcondition`, selected true only when the
+  fresh header names the pack this run planned. Actual Maa OCR replay over the retained
+  `evidence/runtime/live-20261005-231221/terminal.png` identifies MAP (pack page stays
+  THEME_PACKS) and the replay controller sent zero input:
+  `build/map-frame-replay-verification.json`. 153 Python tests pass (145 before).
+- Route reading is deliberately an explicit refusal: the retained floor1 frame has no
+  provable unvisited node, so `route_decision` returns `current_position_not_proven`
+  and records no target. Node identity, floor routing, live continuation from the stopped
+  session, floor clear, reward, rotation and re-entry all remain unproven. No device
+  input was sent in this continuation and no previous input was repeated.
+
+## Prior continuation: 2026-10-05 23:13 local
 - Actual native downward Swipe selected To be Cleaved and reached the floor1 map.
   `evidence/runtime/live-20261005-231221/terminal.png` visibly shows Exploring
   Floor1 / To be Cleaved, party portraits and connected route nodes. Process60476
