@@ -1,5 +1,21 @@
 # Native design and requirement ledger
 
+## Map node vocabulary and upstream comparison (October6)
+
+The map panel is a boss-cell grid, not the six-slot option grid LALC models. Pinned
+LALC 431b432 keeps two trained classifiers: `mirror_legend` (eight node classes:
+abnormality/boss/elite/focused/regular encounter, event, shop, empty) and
+`mirror_path` (nine `00..22` cells, six regions used, `connections.txt`). Its
+`get_mirror_path` masks and *graffiti-fills* those six regions before inference, so
+its model reacts to the highlighted option cells, not to the map nodes themselves.
+A read-only comparison (`tools/compare_lalc_map_regions.py`) samples those regions
+at the 1440x810 authoring scale and their half-scale projection; on the retained
+floor-1 page the six LALC slots sit in the dark upper-left quadrant while the drawn
+nodes occupy a wider area, so LALC's coordinates are not this page's node
+coordinates. Node identity therefore stays unproven and route stays a refusal. A
+future live session must first click one observed node and record the successor
+page to establish what the panel proves; nothing may be assumed before that.
+
 ## Map identity and bounded routing (October5 late continuation)
 
 The map page is identified by text only: the localized `Exploring`/`Before Entry`

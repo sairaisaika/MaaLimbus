@@ -1,5 +1,22 @@
 # Acceptance evidence
 
+## 2026-10-06 upstream and live comparison of the map node grid
+
+- Pinned LALC 431b432 ships two trained classifiers: `mirror_legend` with eight node
+  classes (abnormality/boss/elite/focused/regular encounter, event, shop, empty) and
+  `mirror_path` with nine `00..22` cells over six regions. This is recorded as
+  reference vocabulary only; no model or weight is imported.
+- `tools/compare_lalc_map_regions.py` sampled LALC's six path regions on the live
+  MuMu capture at the 1440x810 authoring scale and at half scale. The six slots fall
+  in the dark upper-left quadrant (bright ratios 0.0000-0.0814) while the drawn nodes
+  span a wider area, so LALC's coordinates are not this page's node coordinates. The
+  comparison is read-only and sends no input (`build/map-region-comparison.json`,
+  `build/map-region-annotation.png`).
+- Consequence kept explicit: node identity, the panel's cleared/uncleared meaning and
+  the option-selection successor are all still unproven, so no node is clicked. The
+  first step of any live continuation must be a single observed-node click with its
+  successor page recorded, not an assumed grid.
+
 ## 2026-10-06 live MuMu verification of the map identity
 
 - A read-only MuMu probe (`tools/probe_adb.py`, actual address `127.0.0.1:16416`,
