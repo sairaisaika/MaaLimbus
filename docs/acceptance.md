@@ -1,5 +1,34 @@
 # Acceptance evidence
 
+## 2026-10-06 authorized single-node probe and the panel -> team flow
+
+- With an explicit user authorization and the gated probe (nonce in
+  `build/map-probe-authorization.json`), exactly one click was sent at the sampled
+  target `(997,452)` inside the node requested at `(1005,465)`, delay `481ms`,
+  foreground unchanged before and after. Successor: the node info panel, not a
+  battle (`evidence/runtime/map-probe-20261006-000748/frame-0002.png`). So a click
+  on the map opens a node info panel carrying `Clear Rewards`, an `85` reward icon
+  and an `Enter` action; the map pans while the panel is open.
+- `src/maalimbus/map_vision.py` gained `node_panel()`/`enter_target()` (identity =
+  exactly one `Clear Rewards` caption plus exactly one `Enter` in their own bands;
+  title and numeric costs recorded as context only) and the agent promotes that page
+  to scene `NODE_PANEL`. A regression pinned to that actual frame asserts the panel
+  is not a map header; the retained map frame is asserted not to be a panel.
+- A second single click on that panel's `Enter` (`enter_box (1668,780,124,63)`,
+  sampled target `(1705,815)`, delay `712ms`) reached the **pre-battle team /
+  identity selection page**, not a battle: `Preset #1 / Zilu/Zigong`, twelve
+  identity cards with two marked `SELECTED`, right-hand `SIN | COST`, `Details`,
+  `Clear Selection`, `Total Participants 2/12` and a `To Battle!` action
+  (`evidence/runtime/map-settle-20261006-000930/frame-0001.png`). The production
+  classifier reported `TEAM_LIBRARY` for this page, so its scene identity is still
+  open.
+- No input was sent twice, no key was sent, and no floor clear, battle, reward or
+  rotation is claimed. The game is parked on this team page; no preset was changed
+  and `To Battle!` / `Clear Selection` were never pressed.
+- Open: the team page's true scene identity and its preset-to-saved-team mapping,
+  which must be resolved before the rotation ledger's `index 2` continuation can
+  select the right team and continue.
+
 ## 2026-10-06 upstream and live comparison of the map node grid
 
 - Pinned LALC 431b432 ships two trained classifiers: `mirror_legend` with eight node

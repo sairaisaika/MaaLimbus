@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from maalimbus.map_vision import (HEADER_PATTERN, MapHeader, map_header, map_page,
-                                  route_decision)
+from maalimbus.map_vision import (HEADER_PATTERN, MapHeader, enter_target, map_header,
+                                  map_page, node_panel, route_decision)
 from maalimbus.vision import Text, classify
 
 SIZE = (1920, 1080)
@@ -68,6 +68,34 @@ def test_header_pattern_matches_only_the_two_supported_wordings():
     assert re.match(HEADER_PATTERN, 'Before Entry Floor 5', re.I)
     assert not re.match(HEADER_PATTERN, 'Explore the Floor 1', re.I)
     assert not re.match(HEADER_PATTERN, 'Exploring Floor 6', re.I)
+
+
+def test_node_panel_is_distinct_from_the_map_and_names_its_enter_action():
+    """Regression pinned to the actual post-click panel from the MuMu probe."""
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/map-probe-20261006-000748/frame-0002.json'
+    if not path.exists():
+        pytest.skip('retained live panel evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    size = tuple(data['size'])
+    assert data['scene'] == 'UNKNOWN'      # the production classifier missed it then
+    assert map_header(records, size) is None
+    panel = node_panel(records, size)
+    assert panel is not None
+    assert panel.title == 'To be Cleaved'
+    assert panel.clear_rewards.box == (1052, 744, 138, 32)
+    assert panel.enter.box == (1668, 780, 124, 63)
+    assert panel.cost_texts == ('85',)
+    assert enter_target(panel) == (1668, 780, 124, 63)
+    # A plain map page must never look like a panel.
+    map_path = root / 'evidence/runtime/live-20261005-231221/frame-0002.json'
+    if map_path.exists():
+        map_data = json.loads(map_path.read_text(encoding='utf-8'))
+        map_records = [Text(r['text'], tuple(r['box']), r['score']) for r in map_data['ocr']]
+        assert node_panel(map_records, tuple(map_data['size'])) is None
 
 
 def test_map_observe_node_is_a_bounded_read_only_continuation():

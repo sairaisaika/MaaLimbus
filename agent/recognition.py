@@ -29,7 +29,7 @@ from maalimbus.storage import SINNERS
 from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels
 from maalimbus import star_vision
 from maalimbus import initial_gifts
-from maalimbus.map_vision import map_header, route_decision
+from maalimbus.map_vision import map_header, route_decision, node_panel
 from maalimbus.storage import read_json, write_json
 
 
@@ -180,6 +180,10 @@ class LimbusRecognition(CustomRecognition):
             # The floor header plus its pack line is the only map identity anchor;
             # artwork, currency and season icons are never consulted.
             scene='MAP'
+        if scene=='UNKNOWN' and node_panel(records,size) is not None:
+            # A click on the map opens this node info panel; it is a distinct page
+            # from the map itself and must never be mistaken for one.
+            scene='NODE_PANEL'
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
         name = self.journal.frame(image, records, scene,local_ocr=local)
@@ -853,15 +857,20 @@ class MapObservation(CustomAction):
         records,scene,frame=self.recognition.observe(context,image)
         size=(image.shape[1],image.shape[0])
         header=map_header(records,size) if scene=='MAP' else None
+        panel=node_panel(records,size) if scene=='NODE_PANEL' else None
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
             floor=None if header is None else header.floor,
             pack=None if header is None else header.pack,
             header_box=None if header is None else header.exploring_text.box,
             pack_box=None if header is None else header.pack_text.box,
+            panel_title=None if panel is None else panel.title,
+            panel_enter_box=None if panel is None else panel.enter.box,
+            panel_clear_rewards=None if panel is None else panel.clear_rewards.box,
+            panel_cost_texts=None if panel is None else list(panel.cost_texts),
             route=route_decision(header,size),
             input_sent=False,verified_clear=False,
             scope='fresh page identity and bounded route refusal; no node input')
-        return header is not None
+        return header is not None or panel is not None
 
 
 class InputPreflight(CustomAction):

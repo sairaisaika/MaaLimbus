@@ -28,6 +28,48 @@ class MapHeader:
     pack_text: Text | None
 
 
+@dataclass(frozen=True)
+class NodePanel:
+    """The node info panel that opens after a map click, if it is on screen."""
+    title: str | None
+    clear_rewards: Text | None
+    enter: Text | None
+    cost_texts: tuple
+
+
+REWARDS_PATTERN = r'^Clear\s*Rewards$'
+REWARDS_ROI = (.50, .64, .68, .75)
+ENTER_PATTERN = r'^Enter$'
+ENTER_ROI = (.82, .68, .95, .80)
+PANEL_TITLE_ROI = (.58, .33, .85, .48)
+PANEL_TITLE_PATTERN = r'^[A-Za-z][A-Za-z\s\'&.\-]{2,40}$'
+
+
+def node_panel(records, size):
+    """Return the open node info panel, or None when the page is not a panel.
+
+    Identity is the stable `Clear Rewards` caption plus the `Enter` action in their
+    own bands; the theme name is used only as recorded context, never as identity.
+    """
+    rewards = find(records, REWARDS_PATTERN, REWARDS_ROI, size, .8)
+    enters = find(records, ENTER_PATTERN, ENTER_ROI, size, .8)
+    if len(rewards) != 1 or len(enters) != 1:
+        return None
+    titles = find(records, PANEL_TITLE_PATTERN, PANEL_TITLE_ROI, size, .8)
+    titles.sort(key=lambda t: (t.box[1], t.box[0]))
+    costs = tuple(t.text for t in records
+                  if re.fullmatch(r'\d{1,4}', t.text.strip()) and t.score >= .8
+                  and .62 <= (t.box[1] + t.box[3] / 2) / size[1] <= .92)
+    return NodePanel(titles[0].text.strip() if titles else None, rewards[0], enters[0], costs)
+
+
+def enter_target(panel):
+    """The bounded click box for the panel's Enter action, or None without it."""
+    if panel is None or panel.enter is None:
+        return None
+    return panel.enter.box
+
+
 def map_header(records, size):
     """Return the map header only when floor text and the pack line both parse.
 

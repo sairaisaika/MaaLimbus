@@ -9,7 +9,27 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 00:05 local
+## Latest continuation: 2026-10-06 00:20 local
+- Two user-authorized bounded clicks on MuMu established the real entry flow.
+  (1) One click at sampled target (997,452) inside the node requested at (1005,465)
+  opened the **node info panel** (`Clear Rewards`, `85` reward icon, `Enter`), not a
+  battle: `evidence/runtime/map-probe-20261006-000748/`. `map_vision.node_panel()` /
+  `enter_target()` now identify that page (exactly one `Clear Rewards` plus exactly
+  one `Enter` in their own bands) and the agent promotes it to scene `NODE_PANEL`.
+  (2) One click on that panel's `Enter` (enter_box 1668,780,124,63; sampled target
+  1705,815; delay712ms) reached the **pre-battle team / identity selection page**, not
+  a battle: `Preset #1 / Zilu/Zigong`, twelve identity cards with two `SELECTED`,
+  `Total Participants 2/12`, `To Battle!` —
+  `evidence/runtime/map-settle-20261006-000930/`. The production classifier reported
+  `TEAM_LIBRARY` for that page, so its scene identity is still open. Both clicks used
+  the gated probe (nonce in `build/map-probe-authorization.json`), one click each, no
+  key, foreground unchanged; 156 tests pass.
+- Open and deliberately untouched: the team page's preset-to-saved-team mapping and
+  the rotation ledger's `index2` (0-based, the fifth team) continuation. No preset was
+  changed and `To Battle!` / `Clear Selection` were never pressed. No floor clear,
+  battle, reward or rotation is claimed.
+
+## Prior continuation: 2026-10-06 00:05 local
 - Live MuMu verification of the map identity, read-only first and then through the
   real pipeline. The game is still on `Exploring Floor 1 / To be Cleaved` (7548
   Starlight, 600 Enkephalin). Actual Maa OCR on a fresh MuMu capture and on the
@@ -27,7 +47,9 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   proves a current position and an unvisited node. No previous input was repeated
   and no pack was dragged again.
 
-## Prior continuation: 2026-10-05 23:45 local- Map recognition repaired offline as required after231221. `src/maalimbus/map_vision.py`
+## Prior continuation: 2026-10-05 23:45 local
+
+- Map recognition repaired offline as required after231221. `src/maalimbus/map_vision.py`
   identifies the map page from the `Exploring|Before Entry Floor 1-5` header plus its
   pack line only; `agent/recognition.py` promotes that to scene MAP and
   `ThemeObservation` now records `theme_map_postcondition`, selected true only when the
