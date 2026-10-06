@@ -9,7 +9,11 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 13:00 local
+## Latest continuation: 2026-10-06 13:20 local
+- **管道场景自检（离线，可测）**：新增 `tests/test_pipeline_scenes.py`——冻结管道里 21 个 `limbus_scene` 场景名，断言每个名字都被 agent 侧模块（`agent/recognition.py` ＋ `src/maalimbus/*.py`）提到（防「改名/拼错/凭空发明」这类只在实机半途才炸的错）、冻结列表与管道现状一致、以及**普通 Click/Swipe/Key 节点必须带 `max_hit`**（`Custom`/`DoNothing` 豁免：它们的边界在自己的 Python 回调里，实测有 10 个 `action: Custom` 节点确实按设计不带 `max_hit`）。全量 **302 passed**（原 299）。
+- **实机侧**：本轮发过一次**有界**探针（1 步、`--map-tries 2`）确认软锁仍在：MAP 点节点 → `map_click_opened_no_panel` → 驱动如实停机，未继续点击。仍需用户手工结算/结束那一局或重启客户端。
+
+## Prior continuation: 2026-10-06 13:00 local
 - **P4 的第一块（离线、可测）：预算闸门——出厂即「什么都不许花」**
   - 新增 `assets/resource/base/budget.json`：`status: "pending"`、`module_budget: 0`、`spent: 0`、`conversion_step: 1`、`allowed_purposes: ["enkephalin_refill","module_conversion"]`，`note` 写明这是用户硬约束（模块预算 0/pending）的出厂态，**只有用户明确给额度才可把 status 改成 active 并提高 module_budget**。
   - 新增 `src/maalimbus/budget.py`：`load_budget(path)`（校验 version/status/module_budget≥0/spent≥0/conversion_step≥1/allowed_purposes 合法性，非法即 `BudgetError`）、`plan_spend(amount, *, budget, spent=None, purpose=...)`、`apply_spend(...)`（额外给出 `spent_next` 供持久化）。拒绝理由按检查顺序：`budget_not_configured`（无表或 `status != active`，**出厂态就是它**）、`budget_amount_must_be_positive`、`purpose_not_allowed`、`budget_zero`、`budget_exhausted`、`request_exceeds_remaining`、`amount_not_multiple_of_step`；全部通过才是 `within_budget` 并给出 `spent_after`。
