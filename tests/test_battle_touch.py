@@ -24,6 +24,9 @@ def load(path):
 
 
 SHIFTED = ROOT / 'evidence/runtime/battle-step-20261006-013429/frame-0001.json'
+SHIFTED_RIGHT = ROOT / 'evidence/runtime/window-20261006-031546/frame-0005.json'
+ASSIGNED_RIGHT = ROOT / 'evidence/runtime/window-20261006-032224/frame-0003.json'
+WIDEST_RIGHT = ROOT / 'evidence/runtime/window-20261006-032429/frame-0006.json'
 
 
 def test_auto_assign_buttons_survive_a_shifted_board_layout():
@@ -90,6 +93,29 @@ def test_turn_start_appears_only_after_auto_assign():
     # Without the HUD there is no turn submission at all.
     assert begin_turn_plan([Text('START', (1060, 738, 66, 30), .99)], size) == \
         dict(target=None, reason='battle_hud_not_identified')
+
+
+def test_right_shifted_layouts_are_found_before_and_after_auto_assign():
+    """Live: the board widens with the party, so the captions and START move right.
+
+    `window-20261006-031546/frame-0005.json` is the state with no skill assigned at
+    all: both captions sit at x .7865 and there is no START banner, so `Win Rate` is
+    the only usable control. After that tap the banner appears
+    (`window-20261006-032224/frame-0003.json`: [1348,738,66,30]); a wider party
+    pushes everything further right
+    (`window-20261006-032429/frame-0006.json`: [1548,794,40,23], [1410,742,52,24]).
+    """
+    for path, win, damage, start in (
+            (SHIFTED_RIGHT, (1486, 796, 46, 41), (1472, 863, 76, 24), None),
+            (ASSIGNED_RIGHT, (1486, 796, 46, 41), (1472, 861, 76, 26), (1348, 738, 66, 30)),
+            (WIDEST_RIGHT, (1542, 794, 48, 43), (1530, 865, 74, 22), (1410, 742, 52, 24))):
+        if not path.exists():
+            pytest.skip('retained live shifted-layout evidence is not present')
+        records, size = load(path)
+        buttons = auto_assign_buttons(records, size)
+        assert buttons is not None
+        assert buttons['win_rate'] == win and buttons['damage'] == damage
+        assert start_button(records, size) == start
 
 
 def test_battle_auto_assign_node_is_bounded_and_not_wired_to_the_theme_drag():

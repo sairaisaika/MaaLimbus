@@ -78,7 +78,7 @@ def start_button(records, size, image=None):
     The banner sits above whichever gear the board layout puts it over, so the band
     spans the middle of the row rather than one fixed x.
     """
-    matches = find(records, r'^START$', (.45, .63, .70, .79), size, .85)
+    matches = find(records, r'^START$', (.45, .63, .80, .79), size, .85)
     if len(matches) != 1:
         return None
     label = matches[0].box
@@ -105,9 +105,9 @@ def auto_assign_buttons(records, size):
     Each button is the union of its two caption words in its own band. These are
     read-only targets; this function never clicks and never infers a turn result.
     """
-    win = find(records, r'^Win$', (.58, .70, .74, .81), size, .85)
-    rate = find(records, r'^Rate$', (.58, .70, .74, .81), size, .85)
-    damage = find(records, r'^Damage$', (.58, .77, .75, .86), size, .85)
+    win = find(records, r'^Win$', (.58, .70, .95, .84), size, .85)
+    rate = find(records, r'^Rate$', (.58, .70, .95, .84), size, .85)
+    damage = find(records, r'^Damage$', (.58, .77, .95, .90), size, .85)
     if len(win) != 1 or len(rate) != 1 or len(damage) != 1:
         return None
     union = (min(win[0].box[0], rate[0].box[0]), min(win[0].box[1], rate[0].box[1]),

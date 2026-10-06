@@ -10,13 +10,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.window import (CLICK, NODE, RECORD, plan_step, resolve_overlay,
+from maalimbus.window import (ANY, CLICK, NODE, RECORD, plan_step, resolve_overlay,
                               step_result, successor_ok)  # noqa: E402
 
 CONTROLS = {'node_panel.enter_button': [1668, 780, 124, 63],
             'pre_battle.battle_button': [1674, 859, 144, 44],
             'entry.enter_button': [1534, 716, 96, 36],
             'home.drive_button': [1438, 968, 68, 28]}
+CONTROLS.update({'pre_battle.card_%02d' % index:
+                 [355 + 195 * ((index - 1) % 6), 236 + 296 * ((index - 1) // 6), 190, 248]
+                 for index in range(1, 13)})
 
 
 def test_map_clicks_the_planned_candidate_and_expects_the_panel():
@@ -81,6 +84,39 @@ def test_pre_battle_team_uses_the_anchored_battle_button():
     assert 'BATTLE_HUD' in plan['expect']
 
 
+def test_pre_battle_team_joins_the_next_unpicked_card_before_battling():
+    # Live proof: evidence/runtime/window-20261006-030750/frame-0001.json opens at
+    # 0/12 with a dark Battle! button; picking eleven more cards reaches 12/12 and
+    # only then does the button light up. Never click a card that already has a badge
+    # (that would take its identity back out of the team).
+    states = [None] * 12
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS, team={'states': states})
+    assert plan['target'] == CONTROLS['pre_battle.card_01']
+    assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
+    assert plan['advance'] is True
+    assert plan['detail'] == {'card_index': 1}
+    # A click on a card only changes pixels, so it is proven by the frame moving.
+    assert successor_ok(plan, 'PRE_BATTLE_TEAM') is False
+    assert step_result(plan, sent=True, before='PRE_BATTLE_TEAM',
+                       after='PRE_BATTLE_TEAM', page='PRE_BATTLE_TEAM',
+                       frame_changed=True)['passed'] is True
+    assert step_result(plan, sent=True, before='PRE_BATTLE_TEAM',
+                       after='PRE_BATTLE_TEAM', page='PRE_BATTLE_TEAM',
+                       frame_changed=False)['passed'] is False
+    # Skipping the picked cards and stopping at the first gap keeps the order stable.
+    states = ['selected'] * 6 + ['backup'] + [None] * 5
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS, team={'states': states})
+    assert plan['target'] == CONTROLS['pre_battle.card_08']
+    assert plan['detail'] == {'card_index': 8}
+
+
+def test_pre_battle_team_battles_once_every_card_is_in_the_team():
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS,
+                     team={'states': ['selected'] * 7 + ['backup'] * 5})
+    assert plan['target'] == CONTROLS['pre_battle.battle_button']
+    assert plan['reason'] == 'battle_button_submits_the_team'
+
+
 def test_battle_prefers_start_and_falls_back_to_win_rate():
     start = plan_step('BATTLE_HUD', start_box=[1038, 771, 121, 133],
                       auto_assign={'win_rate': [1198, 796, 48, 41]})
@@ -133,13 +169,44 @@ def test_tutorial_overlay_advances_before_entry_is_live():
     plan = plan_step('TUTORIAL', controls={'tutorial.next_button': [1782, 505, 76, 52]})
     assert plan['action'] == CLICK
     assert plan['target'] == [1782, 505, 76, 52]
-    assert 'TUTORIAL' in plan['expect'] and 'MIRROR_ENTRY' in plan['expect']
+    assert plan['expect'] == [ANY]
+    assert plan['advance'] is True
+    # The overlay's cards uncover many different pages, so the only decidable
+    # failure is that the overlay is still there after the click.
     assert successor_ok(plan, 'MIRROR_ENTRY')
-    assert not successor_ok(plan, 'SHOP')
+    assert successor_ok(plan, 'DUNGEON_TEAM')
+    assert successor_ok(plan, 'UNKNOWN')
+    assert not successor_ok(plan, 'TUTORIAL')
+    # Card after card keeps the same page label, so the changed frame is the
+    # proof that the click landed (live: window-20261006-030013 frame-0001 vs
+    # frame-0002 are two different "Creating your Team" cards).
+    stuck = step_result(plan, sent=True, before='TUTORIAL', after='TUTORIAL',
+                        page='TUTORIAL', frame_changed=False)
+    assert stuck['passed'] is False and stuck['reason'] == 'unexpected_successor'
+    advanced = step_result(plan, sent=True, before='TUTORIAL', after='TUTORIAL',
+                           page='TUTORIAL', frame_changed=True)
+    assert advanced['passed'] is True
     assert plan['reason'] == 'tutorial_overlay_must_be_dismissed_before_enter_is_live'
     unanchored = plan_step('TUTORIAL', controls={})
     assert unanchored['action'] == RECORD
     assert unanchored['reason'] == 'tutorial_next_button_not_anchored'
+
+
+def test_tutorial_follows_the_live_page_turn_triangle():
+    # Live proof: the book's last page keeps only the left triangle
+    # (evidence/runtime/window-20261006-030152/frame-0014.png, previous
+    # 93,519,40,44, next absent), so a fixed right-edge box clicks empty space.
+    turned = plan_step('TUTORIAL', controls={'tutorial.next_button': [1782, 505, 76, 52]},
+                       arrows={'previous': [93, 519, 40, 44], 'next': [1787, 517, 40, 44]})
+    assert turned['action'] == CLICK
+    assert turned['target'] == [1787, 517, 40, 44]
+    last = plan_step('TUTORIAL', controls={'tutorial.next_button': [1782, 505, 76, 52]},
+                     arrows={'previous': [93, 519, 40, 44], 'next': None})
+    assert last['action'] == RECORD
+    assert last['reason'] == 'tutorial_last_page_has_no_forward_control'
+    # Without a frame reading at all the anchor is still the best available box.
+    blind = plan_step('TUTORIAL', controls={'tutorial.next_button': [1787, 517, 39, 44]})
+    assert blind['target'] == [1787, 517, 39, 44]
 
 
 def test_tutorial_overlay_outranks_the_page_it_covers():

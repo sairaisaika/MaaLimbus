@@ -25,6 +25,12 @@ CLICK = 'click'
 NODE = 'node'
 RECORD = 'record'
 
+#: expectation sentinel for a dismissal: the successor is proven by the covered
+#: page being gone, not by which page it uncovered. The overlay's cards walk
+#: through many different pages, so no positive list can name them all, but
+#: "still the overlay" is a decidable failure.
+ANY = '*'
+
 #: pages that end the walk: a fresh observation is taken and the window stops.
 OBSERVE_ONLY = ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
                 'BATTLE_RESULT', 'UNKNOWN')
@@ -50,10 +56,12 @@ def resolve_overlay(page, *, overlay_hit):
     return 'TUTORIAL' if overlay_hit else page
 
 
-def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=None):
+def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=None,
+          advance=False):
     plan = {'page': page, 'action': action,
             'target': None if target is None else list(target),
-            'node': node, 'expect': list(expect), 'reason': reason}
+            'node': node, 'expect': list(expect), 'reason': reason,
+            'advance': bool(advance)}
     if detail is not None:
         plan['detail'] = detail
     return plan
@@ -64,7 +72,7 @@ def _refuse(page, reason):
 
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
-              candidates=None, candidate_index=0, nodes=None):
+              candidates=None, candidate_index=0, nodes=None, arrows=None, team=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -73,7 +81,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     controls = controls or {}
     plan = _plan_step(page, controls=controls, start_box=start_box,
                       auto_assign=auto_assign, candidates=candidates,
-                      candidate_index=candidate_index, nodes=nodes)
+                      candidate_index=candidate_index, nodes=nodes, arrows=arrows,
+                      team=team)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -82,14 +91,15 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
-               candidates=None, candidate_index=0, nodes=None):
+               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
     boxes; ``start_box`` and ``auto_assign`` come from the battle observation;
     ``candidates`` are node boxes read from the live map frame; ``nodes`` maps a
     page to an existing pipeline node that already carries its own proven
-    recognition and click box.
+    recognition and click box; ``team`` carries the pre-battle page's per-card
+    participation badges.
     """
     controls = controls or {}
     nodes = dict(PAGE_NODES, **(nodes or {}))
@@ -108,11 +118,22 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      expect=('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
                      reason='mirror_menu_recognition_owns_the_click_box')
     if page == 'TUTORIAL':
-        box = controls.get('tutorial.next_button')
+        # ``arrows`` comes from the live frame (maalimbus.overlay_vision): the two
+        # page-turn triangles move, and the book's last page shows only ``previous``
+        # (live: evidence/runtime/window-20261006-030152/frame-0014.png), where a
+        # fixed right-edge box clicks empty space and proves nothing.
+        arrows = arrows or {}
+        if arrows.get('next'):
+            box = arrows['next']
+        elif arrows:
+            box = None
+        else:
+            box = controls.get('tutorial.next_button')
         if box is None:
+            if arrows.get('previous'):
+                return _refuse(page, 'tutorial_last_page_has_no_forward_control')
             return _refuse(page, 'tutorial_next_button_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('TUTORIAL', 'MIRROR_ENTRY', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
     if page == 'MIRROR_ENTRY':
         box = controls.get('entry.enter_button')
@@ -146,6 +167,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=('PRE_BATTLE_TEAM', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
     if page == 'PRE_BATTLE_TEAM':
+        # The page opens with nobody picked, and its Battle! button is dark until
+        # at least one card is in the team (live: window-20261006-030750 has
+        # 0/12 and a dim button; window-20261006-030941 has 12/12 and a bright
+        # one). Selecting is per card and never touches the identity, so the only
+        # safe move is to pick the first card that still has no badge.
+        states = list((team or {}).get('states') or [])
+        for index, state in enumerate(states):
+            box = controls.get('pre_battle.card_%02d' % (index + 1))
+            if state is None and box is not None:
+                return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                             reason='team_card_joins_the_next_unpicked_identity',
+                             detail={'card_index': index + 1})
         box = controls.get('pre_battle.battle_button')
         if box is None:
             return _refuse(page, 'battle_button_not_anchored')
@@ -165,23 +198,33 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 
 def successor_ok(plan, page):
-    """True when the successor page is inside the plan's expected set.
+    """True when the successor page satisfies the plan's expectation.
 
     An empty expectation set means the plan sent no input, so any page is fine.
+    :data:`ANY` is the dismissal case: the click is proven by the covered page
+    being gone, so every successor except the plan's own page passes.
     """
     if plan.get('action') not in (CLICK, NODE):
         return True
     expect = plan.get('expect') or []
+    if ANY in expect:
+        return page != plan.get('page')
     return page in expect
 
 
-def step_result(plan, *, sent, before, after, page):
-    """Assemble the recorded step verdict for one planned input."""
+def step_result(plan, *, sent, before, after, page, frame_changed=False):
+    """Assemble the recorded step verdict for one planned input.
+
+    ``frame_changed`` is the pixel evidence that the screen moved on. An
+    ``advance`` plan is one whose own page is expected to stay: the tutorial
+    overlay walks card after card, so a changed frame is the proof that the click
+    landed even while the page label is unchanged.
+    """
     if not sent:
         return {'action': plan['action'], 'reason': plan['reason'], 'passed': False,
                 'page_before': before, 'page_after': after or before,
                 'clicks_sent': 0}
-    ok = successor_ok(plan, page)
+    ok = successor_ok(plan, page) or (plan.get('advance') and frame_changed)
     return {'action': plan['action'], 'reason': plan['reason'] if ok else 'unexpected_successor',
             'passed': ok, 'page_before': before, 'page_after': page,
             'expect': list(plan.get('expect') or []), 'clicks_sent': 1}

@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 from maalimbus.map_vision import (HEADER_PATTERN, MapHeader, enter_target, map_header,
-                                  map_page, node_panel, route_decision)
+                                  map_page, node_panel, pre_battle_team_page,
+                                  route_decision)
 from maalimbus.vision import Text, classify
 
 SIZE = (1920, 1080)
@@ -195,3 +196,30 @@ def test_header_pattern_matches_only_the_two_supported_wordings():
     assert re.match(HEADER_PATTERN, 'Before Entry Floor 5', re.I)
     assert not re.match(HEADER_PATTERN, 'Explore the Floor 1', re.I)
     assert not re.match(HEADER_PATTERN, 'Exploring Floor 6', re.I)
+
+def test_pre_battle_page_survives_the_captions_it_actually_renders():
+    # Live proof: evidence/runtime/window-20261006-030941/frame-0022.json (a team of
+    # 12/12) reads the button as "To" + "Battle!" under a Chain badge and the clear
+    # action as " Clear Selection" with a leading space, which the strict patterns
+    # missed and the page fell back to TEAM_LIBRARY.
+    recs = [Text('To', (1622, 865, 54, 36), 1.0),
+            Text('Battle!', (1674, 859, 144, 44), 1.0),
+            Text(' Clear Selection', (1616, 704, 214, 26), .975),
+            Text('12/12', (1698, 754, 128, 57), .993)]
+    page = pre_battle_team_page(recs, SIZE)
+    assert page is not None
+    assert page.participants == ('12/12',)
+    # The disabled state renders as a single Battle! caption.
+    disabled = [Text('Battle!', (1678, 857, 136, 46), 1.0),
+                Text('Clear Selection', (1640, 702, 190, 26), .997)]
+    assert pre_battle_team_page(disabled, SIZE) is not None
+    # Both captions stay required together.
+    assert pre_battle_team_page([Text('Battle!', (1678, 857, 136, 46), 1.0)], SIZE) is None
+    # A second Battle! inside the button band makes the page ambiguous, while one
+    # outside it is just another page's caption and is ignored.
+    in_band = [Text('Battle!', (1678, 857, 136, 46), 1.0),
+               Text('Battle!', (1700, 870, 100, 40), 1.0),
+               Text('Clear Selection', (1640, 702, 190, 26), .997)]
+    assert pre_battle_team_page(in_band, SIZE) is None
+    off_band = in_band[:1] + [Text('Battle!', (200, 100, 136, 46), 1.0)] + in_band[2:]
+    assert pre_battle_team_page(off_band, SIZE).battle.box == (1678, 857, 136, 46)

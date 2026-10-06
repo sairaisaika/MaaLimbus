@@ -18,3 +18,8 @@ docs/agents/
 AGENTS.md
 CONTEXT.md
 CONTEXT-MAP.md
+
+# read-only upstream reference clones fetched by research subagents
+.research/deps/
+build/
+

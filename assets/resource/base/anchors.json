@@ -75,28 +75,31 @@
       "title": "出战前队伍页（Preset + Clear Selection + Battle!）",
       "evidence": [
         "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
-        "evidence/runtime/team-page-battle-20261006-010230/frame-0001.json"
+        "evidence/runtime/team-page-battle-20261006-010230/frame-0001.json",
+        "evidence/runtime/window-20261006-030750/frame-0001.json",
+        "evidence/runtime/window-20261006-030941/frame-0022.json"
       ],
       "identity": [
         {
           "id": "pre_battle.clear_selection",
           "kind": "ocr",
-          "pattern": "^Clear\\s+Selection$",
+          "pattern": "^\\s*Clear\\s+Selection\\s*$",
           "roi": [0.86, 0.62, 0.95, 0.71],
-          "threshold": 0.8
+          "threshold": 0.8,
+          "note": "实机在队伍选满后读成带前导空格的 ' Clear Selection'（window-20261006-030941/frame-0022.json）"
         },
         {
           "id": "pre_battle.battle",
           "kind": "ocr",
-          "pattern": "^Battle!$",
+          "pattern": "^\\s*(?:Chain\\s+)?(?:To\\s+)?Battle!?\\s*$",
           "roi": [0.86, 0.77, 0.96, 0.86],
           "threshold": 0.8,
-          "note": "两个角标同时成立才认页：这一页与「Sinners 图鉴」共用大量视觉元素"
+          "note": "两个角标同时成立才认页：这一页与「Sinners 图鉴」共用大量视觉元素。按钮禁用时 OCR 只读 'Battle!'，选满人后读成 'To' + 'Battle!'（上方多一个 Chain 角标）"
         },
         {
           "id": "pre_battle.preset",
           "kind": "ocr",
-          "pattern": "^Preset\\s*#\\s*\\d+$",
+          "pattern": "^\\s*Preset\\s*#\\s*\\d+\\s*$",
           "roi": [0.04, 0.19, 0.16, 0.30],
           "threshold": 0.8,
           "note": "当前选中预设队号＝选队路径 0 的入口证据"
@@ -110,6 +113,123 @@
             "frame": "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
             "box": [1674, 859, 144, 44],
             "source": "tools/team_page_battle.py：battle_box inset 后落点 (1755,883)，实测进入战斗 HUD"
+          }
+        },
+        {
+          "id": "pre_battle.card_grid",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [355, 236, 1173, 544],
+            "source": "12 张人格卡的整体网格（1920×1080 帧像素）。列边界由金色竖线峰值给出 ≈355/545/750/935/1140/1345/1520，行 y 236–484 与 531–782；单卡 190×248。实测点任一张卡只切换参与/不参与（SELECTED/BACKUP 徽章），不改人格"
+          }
+        },
+        {
+          "id": "pre_battle.card_01",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [355, 236, 190, 248],
+            "source": "实机点击命中 SELECTED 徽章 [384,357,120,36]、计数 0/12→1/12（window-20261006-030901）"
+          }
+        },
+        {
+          "id": "pre_battle.card_02",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [553, 236, 190, 248],
+            "source": "SELECTED 徽章实测在 [582,357,120,36]"
+          }
+        },
+        {
+          "id": "pre_battle.card_03",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [748, 236, 190, 248],
+            "source": "SELECTED 徽章实测在 [780,357,122,36]"
+          }
+        },
+        {
+          "id": "pre_battle.card_04",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [943, 236, 190, 248],
+            "source": "SELECTED 徽章实测在 [978,357,120,36]"
+          }
+        },
+        {
+          "id": "pre_battle.card_05",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [1148, 236, 190, 248],
+            "source": "SELECTED 徽章实测在 [1176,355,120,36]"
+          }
+        },
+        {
+          "id": "pre_battle.card_06",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [1338, 236, 190, 248],
+            "source": "SELECTED 徽章实测在 [1376,357,118,36]"
+          }
+        },
+        {
+          "id": "pre_battle.card_07",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [355, 532, 190, 248],
+            "source": "第 7 张在 12/12 帧上仍是 SELECTED（红条）[382,655,120,35]，即 7 名出战之一"
+          }
+        },
+        {
+          "id": "pre_battle.card_08",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [553, 532, 190, 248],
+            "source": "BACKUP 徽章实测在 [590,651,104,41]"
+          }
+        },
+        {
+          "id": "pre_battle.card_09",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [748, 532, 190, 248],
+            "source": "BACKUP 徽章实测在 [788,651,104,41]"
+          }
+        },
+        {
+          "id": "pre_battle.card_10",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [943, 532, 190, 248],
+            "source": "BACKUP 徽章实测在 [986,651,104,41]"
+          }
+        },
+        {
+          "id": "pre_battle.card_11",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [1148, 532, 190, 248],
+            "source": "BACKUP 徽章实测在 [1184,651,104,41]"
+          }
+        },
+        {
+          "id": "pre_battle.card_12",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-030941/frame-0022.json",
+            "box": [1338, 532, 190, 248],
+            "source": "BACKUP 徽章实测在 [1386,653,98,37]"
           }
         }
       ]
@@ -311,7 +431,10 @@
     {
       "id": "tutorial",
       "title": "镜牢教学/说明浮层（压在 Before Entry 之上，底层 Enter 失效）",
-      "evidence": ["evidence/runtime/window-20261006-023714/frame-0001.json"],
+      "evidence": [
+        "evidence/runtime/window-20261006-023714/frame-0001.json",
+        "evidence/runtime/window-20261006-025839/frame-0001.json"
+      ],
       "identity": [
         {
           "id": "tutorial.next_glyph",
@@ -342,9 +465,9 @@
           "id": "tutorial.next_button",
           "kind": "geometry",
           "verified_on": {
-            "frame": "evidence/runtime/window-20261006-023714/frame-0001.json",
-            "box": [1782, 505, 76, 52],
-            "source": "右侧橙色 ▶ 三角（裁图 build/crop-tutorial-arrow.png，源区 1700,380-1830,560）；浮层上唯一可点的「继续」控件"
+            "frame": "evidence/runtime/window-20261006-025839/frame-0001.json",
+            "box": [1787, 517, 39, 44],
+            "source": "橙色 ▶ 三角的橙色像素包围盒（R>190,G>140,B<160,R-B>60 取 bbox）：在 024050/frame-0002 与 025839/frame-0001 上都是 (1787,517,39,44)。旧框 [1782,505,76,52] 来自 023714 那一帧，把整块卡片底色也算成橙色，导致 inset 落点常常落在三角右侧空白（实测点击后浮层一动不动）"
           }
         }
       ]

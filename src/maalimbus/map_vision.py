@@ -190,11 +190,17 @@ def advance_plan(markers, player=None, index=0):
                 reason='nearest_node_away_from_player' if player else 'topmost_node_first')
 
 
-BATTLE_PATTERN = r'^Battle!?$'
+# The page's own captions drift between runs: the live frames read the button as
+# "Battle!" while it is disabled and as "To" + "Battle!" (with a Chain badge over
+# it) once a team is picked, and the clear action as " Clear Selection" with a
+# leading space. Anchoring the captions loosely keeps this page recognisable in
+# both states; both captions are still required together, so a looser pattern
+# cannot promote an unrelated page.
+BATTLE_PATTERN = r'^\s*(?:Chain\s+)?(?:To\s+)?Battle!?\s*$'
 BATTLE_ROI = (.83, .77, .97, .87)
-CLEAR_SELECTION_PATTERN = r'^Clear\s+Selection$'
+CLEAR_SELECTION_PATTERN = r'^\s*Clear\s+Selection\s*$'
 CLEAR_SELECTION_ROI = (.83, .62, .98, .70)
-PARTICIPANTS_PATTERN = r'^\d{1,2}\s*/\s*\d{1,2}$'
+PARTICIPANTS_PATTERN = r'^\s*\d{1,2}\s*/\s*\d{1,2}\s*$'
 
 
 @dataclass(frozen=True)

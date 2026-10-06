@@ -1,5 +1,5 @@
 import pytest
-from maalimbus.team_vision import team_row,team_header
+from maalimbus.team_vision import card_states, team_row,team_header
 from maalimbus.policies import Team
 from maalimbus.vision import Text,classify
 from test_vision import LOCALES
@@ -31,3 +31,44 @@ def test_library_never_claimed_as_dungeon_deployment():
              Text('SIN | COST',(800,100,100,30),.99)]
     assert classify(records,words,(1000,1000))=='TEAM_LIBRARY'
     assert classify(records[:2],words,(1000,1000))=='UNKNOWN'
+
+
+CARD = (190, 248)
+
+
+def cards(badges):
+    """Twelve card boxes in reading order, and a badge caption per badge."""
+    boxes = [(355 + 195 * (index % 6), 236 + 296 * (index // 6)) + CARD
+             for index in range(12)]
+    records = []
+    for index, badge in enumerate(badges):
+        if badge:
+            x, y, w, h = boxes[index]
+            records.append(Text(badge, (x + 29, y + 121, 120, 36), 1.0))
+    return records, boxes
+
+
+def test_card_states_read_badges_in_reading_order():
+    # Live proof: evidence/runtime/window-20261006-030941/frame-0022.json is 12/12 —
+    # seven SELECTED then five BACKUP — while window-20261006-030750 is 0/12.
+    records, boxes = cards(['SELECTED'] * 7 + ['BACKUP'] * 5)
+    assert card_states(records, boxes, (1920, 1080)) == ['selected'] * 7 + ['backup'] * 5
+    assert card_states([], boxes, (1920, 1080)) == [None] * 12
+
+
+def test_card_state_ignores_identity_artwork_that_wears_the_badge_colour():
+    # The 0/12 frame has four identities painted in exactly the SELECTED red and one
+    # in the BACKUP teal; only the caption may count, never the pixels.
+    records, boxes = cards([None] * 12)
+    records.append(Text('Kurokumo Clan', (400, 700, 148, 22), .99))
+    assert card_states(records, boxes, (1920, 1080)) == [None] * 12
+
+
+def test_card_state_needs_a_caption_inside_the_card():
+    records, boxes = cards([None] * 12)
+    # A SELECTED caption from a different card, and one below the badge threshold.
+    records.append(Text('SELECTED', (1600, 640, 120, 36), 1.0))
+    records.append(Text('BACKUP', (355 + 29, 532 + 121, 104, 41), .42))
+    assert card_states(records, boxes, (1920, 1080)) == [None] * 12
+    # A missing card box is reported as unknown rather than guessed at.
+    assert card_states(records, [None] + boxes[1:], (1920, 1080)) == [None] * 12
