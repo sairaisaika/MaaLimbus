@@ -40,6 +40,25 @@ def preview_labels(records, size):
     return sorted(result,key=lambda t:t['box'][0])
 
 
+def start_button(records, size):
+    """The battle's `START` action, which appears once a turn is assigned."""
+    matches = find(records, r'^START$', (.52, .66, .62, .74), size, .85)
+    if len(matches) != 1:
+        return None
+    return matches[0].box
+
+
+def begin_turn_plan(records, size):
+    """Plan one bounded turn-submission click, or refuse with an explicit reason."""
+    hud = battle_hud(records, size)
+    if hud is None:
+        return dict(target=None, reason='battle_hud_not_identified')
+    box = start_button(records, size)
+    if box is None:
+        return dict(target=None, reason='turn_start_not_present')
+    return dict(target=box, reason='submit_turn', wave=hud['wave'], turn=hud['turn'])
+
+
 def auto_assign_buttons(records, size):
     """The battle's `Win Rate` and `Damage` auto-assignment buttons.
 

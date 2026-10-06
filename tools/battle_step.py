@@ -1,11 +1,15 @@
-"""One bounded Android touch step in battle: tap the game's own `Win Rate` button.
+"""One bounded Android touch step in a battle, chosen from the page itself.
 
-This is the touch equivalent of the upstream win-rate step. It refuses without the
-nonce in `build/map-probe-authorization.json`, only acts when a fresh read-only
-observation identifies the combat HUD, performs exactly one Maa `Click` through the
-pipeline node `BattleAutoAssign` (inset target, randomized bounded delay), then
-settles the page with bounded read-only observations. It never selects a skill,
-never picks an enemy target, never presses the turn button and never sends a key.
+The step is exactly one of:
+  * `start_turn` — the assigned battle shows `START`, so submit the turn;
+  * `auto_assign` — the battle shows `Win Rate`/`Damage`, so ask the game to assign
+    the turn by win rate (the touch equivalent of the upstream win-rate step).
+
+It refuses without the nonce in `build/map-probe-authorization.json`, refuses when
+the fresh read-only observation is not the combat HUD, performs at most one Maa
+`Click` through the matching pipeline node, then settles the page with bounded
+read-only observations. It never picks a skill or an enemy target and never sends a
+key; victory and floor clears are never inferred here.
 """
 import argparse
 from datetime import datetime
@@ -53,9 +57,9 @@ def run_node(tasker, name, deadline):
 
 
 def events_of(directory, name):
-    events = [json.loads(line) for line in
-              (directory / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
-    return [e for e in events if e['event'] == name]
+    return [json.loads(line) for line in
+            (directory / 'events.jsonl').read_text(encoding='utf-8').splitlines()
+            if json.loads(line).get('event') == name]
 
 
 def main() -> int:
@@ -64,7 +68,7 @@ def main() -> int:
     parser.add_argument('--adb', type=Path, required=True)
     parser.add_argument('--address', required=True)
     parser.add_argument('--authorize', required=True)
-    parser.add_argument('--rounds', type=int, default=4)
+    parser.add_argument('--rounds', type=int, default=5)
     parser.add_argument('--interval', type=float, default=5.0)
     args = parser.parse_args()
     if not authorized(args.authorize):
@@ -72,16 +76,17 @@ def main() -> int:
                           'hint': f'{AUTHORIZATION} must grant live_input_authorized '
                                   'with this nonce'}, ensure_ascii=False))
         return 2
-    directory = ROOT / ('evidence/runtime/battle-auto-assign-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
+    directory = ROOT / ('evidence/runtime/battle-step-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     directory.mkdir(parents=True)
     lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
-    deadline = time.monotonic() + 120 + args.rounds * (args.interval + 25)
+    deadline = time.monotonic() + 150 + args.rounds * (args.interval + 25)
     result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
-                  clicks_sent=0, turn_submitted=False, verified_clear=False,
+                  clicks_sent=0, turn_submitted=False, victory_verified=False,
+                  verified_clear=False,
                   foreground_before=foreground(args.adb, args.address))
     try:
         Library.open(args.binary, agent_server=False)
-        Toolkit.init_option(ROOT / 'build/battle-auto-debug')
+        Toolkit.init_option(ROOT / 'build/battle-step-debug')
         controller = AdbController(args.adb, args.address, MaaAdbScreencapMethodEnum.Encode,
                                    MaaAdbInputMethodEnum.Maatouch)
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
@@ -99,38 +104,49 @@ def main() -> int:
         result['before'] = run_node(tasker, 'BattleObserve', deadline)
         before = events_of(directory, 'battle_observed')
         result['before_observation'] = before[-1] if before else None
-        if not before or before[-1]['scene'] != 'BATTLE_HUD':
+        page = before[-1] if before else None
+        if page is None or page['scene'] != 'BATTLE_HUD':
             result.update(refused='page_is_not_the_combat_hud', passed=False)
             return 1
-
-        result['assign'] = run_node(tasker, 'BattleAutoAssign', deadline)
-        intents = events_of(directory, 'battle_auto_assign_intent')
-        result['intent'] = intents[-1] if intents else None
-        result['clicks_sent'] = len(intents)
-        if not intents:
-            blocked = events_of(directory, 'battle_auto_assign_blocked')
-            result.update(refused='auto_assign_blocked', blocked=blocked[-1] if blocked else None,
-                          passed=False)
+        if page.get('start_box'):
+            result['action'] = 'start_turn'
+            node = 'BattleStartTurn'
+        elif page.get('auto_assign_buttons'):
+            result['action'] = 'auto_assign'
+            node = 'BattleAutoAssign'
+        else:
+            result.update(refused='battle_page_has_no_known_action', passed=False)
             return 1
-        after = events_of(directory, 'battle_observed')
+
+        result['step'] = run_node(tasker, node, deadline)
+        intents = events_of(directory, 'battle_turn_intent')
+        if result['action'] == 'start_turn':
+            result['intent'] = intents[-1] if intents else None
+            result['clicks_sent'] = len(intents)
+            result['turn_submitted'] = bool(intents)
+            if not intents:
+                result.setdefault('blocked', events_of(directory, 'battle_turn_blocked')[-1:])
+        else:
+            assigns = events_of(directory, 'battle_auto_assign_intent')
+            result['intent'] = assigns[-1] if assigns else None
+            result['clicks_sent'] = len(assigns)
+            if not assigns:
+                result.setdefault('blocked', events_of(directory, 'battle_auto_assign_blocked')[-1:])
+
         rounds = []
         for index in range(args.rounds):
             if index:
                 time.sleep(args.interval)
                 run_node(tasker, 'BattleObserve', deadline)
-            observed = events_of(directory, 'battle_observed')[-1]
-            rounds.append(observed)
-            if observed['scene'] != 'BATTLE_HUD':
-                break
+            rounds.append(events_of(directory, 'battle_observed')[-1])
         result['rounds'] = rounds
         result['settled'] = rounds[-1] if rounds else None
-        result['clicks_sent'] = len(events_of(directory, 'battle_auto_assign_intent'))
         result['foreground_after'] = foreground(args.adb, args.address)
-        result['reason'] = 'auto_assign_click_recorded'
-        result['passed'] = (result['clicks_sent'] == 1
+        result['reason'] = 'bounded_battle_step_recorded'
+        result['passed'] = (result['clicks_sent'] <= 1
                             and result['foreground_after'] == result['foreground_before'])
     except Exception as error:
-        result.update(reason='battle_auto_assign_failed', error=str(error), passed=False)
+        result.update(reason='battle_step_failed', error=str(error), passed=False)
         raise
     finally:
         (directory / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n',

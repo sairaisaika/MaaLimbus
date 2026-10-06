@@ -23,218 +23,636 @@
     ]
   },
   "DifficultyProofStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["DifficultyProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "DifficultyProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "HardModeStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "ThemeHardToggle"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "ThemeHardToggle"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "ThemeHardToggle": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "THEME_PACKS", "theme_mode": "enable_hard"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["DifficultyProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "THEME_PACKS",
+      "theme_mode": "enable_hard"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "DifficultyProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "DifficultyProof": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_difficulty_proof",
-    "max_hit": 1, "next": [], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_difficulty_proof",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "GiftSearchForgoStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "GiftSearchForgo"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "GiftSearchForgo"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "GiftSearchForgo": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "GIFT_SEARCH_FORGO", "initial_mode": "confirm_forgo"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "GIFT_SEARCH_FORGO",
+      "initial_mode": "confirm_forgo"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "GiftSearchRefuseStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "GiftSearchRefuse"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "GiftSearchRefuse"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "GiftSearchRefuse": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "GIFT_SEARCH", "initial_mode": "refuse_search"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "GIFT_SEARCH",
+      "initial_mode": "refuse_search"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialReceiptProofStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["InitialReceiptProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "InitialReceiptProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialReceiptStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "InitialReceipt"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "InitialReceipt"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialReceipt": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "GIFT_GET", "initial_mode": "receipt"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["InitialReceiptProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "GIFT_GET",
+      "initial_mode": "receipt"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "InitialReceiptProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialReceiptProof": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_initial_receipt_proof",
-    "max_hit": 1, "next": [], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_initial_receipt_proof",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialReceiptObserve": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "GIFT_GET"},
-    "action": "DoNothing", "max_hit": 1, "next": []
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "GIFT_GET"
+    },
+    "action": "DoNothing",
+    "max_hit": 1,
+    "next": []
   },
   "InitialGiftCommitStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "InitialGiftCommit"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "InitialGiftCommit"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftCommit": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "INITIAL_GIFTS", "initial_mode": "commit", "slot": 1},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "INITIAL_GIFTS",
+      "initial_mode": "commit",
+      "slot": 1
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftProofStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["InitialGiftProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "InitialGiftProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftProof": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_initial_gift_proof",
-    "max_hit": 1, "next": [], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_initial_gift_proof",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftPickStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "InitialGiftPick"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "InitialGiftPick"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftPick": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "INITIAL_GIFTS", "initial_mode": "pick", "slot": 1},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["InitialGiftProof"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "INITIAL_GIFTS",
+      "initial_mode": "pick",
+      "slot": 1
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "InitialGiftProof"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftGroupStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "InitialGiftGroup"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "InitialGiftGroup"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "InitialGiftGroup": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "INITIAL_GIFTS", "initial_mode": "group", "slot": 1},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "INITIAL_GIFTS",
+      "initial_mode": "group",
+      "slot": 1
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarConfirmStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "StarConfirm"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "StarConfirm"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarConfirm": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "STAR_CONFIRM", "star_mode": "confirm"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "STAR_CONFIRM",
+      "star_mode": "confirm"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarDisableConversionStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "StarDisableConversion"], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "StarDisableConversion"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarDisableConversion": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "STAR_CONFIRM", "star_mode": "disable_conversion"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "STAR_CONFIRM",
+      "star_mode": "disable_conversion"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarEnterStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "LimbusDefeat", "StarEnter"],
-    "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "StarEnter"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarEnter": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "STAR_GRACES", "star_mode": "enter"},
-    "action": "Click", "max_hit": 1,
-    "next": ["LimbusUnknown"], "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "STAR_GRACES",
+      "star_mode": "enter"
+    },
+    "action": "Click",
+    "max_hit": 1,
+    "next": [
+      "LimbusUnknown"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarStart": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_preflight",
-    "next": ["LimbusSafety", "LimbusDefeat", "StarStep"],
-    "timeout": 5000, "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_preflight",
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "StarStep"
+    ],
+    "timeout": 5000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarStep": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "STAR_GRACES", "star_mode": "select_once"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["StarProof"], "timeout": 5000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "STAR_GRACES",
+      "star_mode": "select_once"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "StarProof"
+    ],
+    "timeout": 5000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "StarProof": {
-    "recognition": "DirectHit", "action": "Custom", "custom_action": "limbus_star_proof",
-    "max_hit": 1, "next": [], "on_error": ["LimbusUnknown"]
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_star_proof",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "LevelWarningConfigure": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "LEVEL_WARNING"},
-    "action": "Custom", "custom_action": "limbus_team",
-    "custom_action_param": {"mode": "configure", "slot": 1},
-    "next": ["LimbusSafety", "LimbusDefeat", "LevelWarningProceed"],
-    "timeout": 5000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "LEVEL_WARNING"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "configure",
+      "slot": 1
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "LevelWarningProceed"
+    ],
+    "timeout": 5000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "LevelWarningProceed": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "LEVEL_WARNING", "team_mode": "level_warning"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1500,
-    "next": ["LimbusSafety", "LimbusExpired", "LimbusDefeat"],
-    "timeout": 5000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "LEVEL_WARNING",
+      "team_mode": "level_warning"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1500,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat"
+    ],
+    "timeout": 5000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "DungeonTeamConfigure": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "DUNGEON_TEAM"},
-    "action": "Custom", "custom_action": "limbus_team",
-    "custom_action_param": {"mode": "configure", "slot": 1},
-    "next": ["LimbusSafety", "LimbusDefeat", "DungeonTeamVerified", "DungeonTeamRow"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DUNGEON_TEAM"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "configure",
+      "slot": 1
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "DungeonTeamVerified",
+      "DungeonTeamRow"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "DungeonTeamVerified": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "DUNGEON_TEAM", "team_mode": "verified"},
-    "action": "Custom", "custom_action": "limbus_team",
-    "custom_action_param": {"mode": "verified", "scene": "DUNGEON_TEAM"},
-    "next": ["LimbusSafety", "LimbusDefeat", "DungeonTeamConfirm"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DUNGEON_TEAM",
+      "team_mode": "verified"
+    },
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "verified",
+      "scene": "DUNGEON_TEAM"
+    },
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "DungeonTeamConfirm"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "DungeonTeamRow": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "DUNGEON_TEAM", "team_mode": "row"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusSafety", "LimbusDefeat", "DungeonTeamVerified"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DUNGEON_TEAM",
+      "team_mode": "row"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusSafety",
+      "LimbusDefeat",
+      "DungeonTeamVerified"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "DungeonTeamConfirm": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "DUNGEON_TEAM", "team_mode": "confirm"},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1500,
-    "next": ["LimbusSafety", "LimbusExpired", "LimbusDefeat", "LevelWarningConfigure"],
-    "timeout": 5000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "DUNGEON_TEAM",
+      "team_mode": "confirm"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1500,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "LevelWarningConfigure"
+    ],
+    "timeout": 5000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "MirrorEntryConfirm": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "ENTRY_CONFIRM", "token": "enter", "roi": [0.53,0.63,0.67,0.71]},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1500,
-    "next": ["LimbusSafety", "LimbusExpired", "LimbusDefeat", "DungeonTeamConfigure", "MirrorTeamEvidence"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "ENTRY_CONFIRM",
+      "token": "enter",
+      "roi": [
+        0.53,
+        0.63,
+        0.67,
+        0.71
+      ]
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1500,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "DungeonTeamConfigure",
+      "MirrorTeamEvidence"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "MirrorTutorialBack": {
-    "recognition": "Custom", "custom_recognition": "limbus_scene",
-    "custom_recognition_param": {"scene": "TUTORIAL", "tutorial_back": true},
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1500,
-    "next": ["LimbusSafety", "LimbusExpired", "LimbusDefeat", "MirrorEnter", "MirrorDrive", "MirrorHome", "MirrorTeamEvidence"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "TUTORIAL",
+      "tutorial_back": true
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1500,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorEnter",
+      "MirrorDrive",
+      "MirrorHome",
+      "MirrorTeamEvidence"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "MirrorHome": {
     "recognition": "Custom",
     "custom_recognition": "limbus_scene",
     "custom_recognition_param": {
-      "scene": "HOME", "token": "home_drive", "roi": [0.73, 0.86, 0.81, 0.96]
+      "scene": "HOME",
+      "token": "home_drive",
+      "roi": [
+        0.73,
+        0.86,
+        0.81,
+        0.96
+      ]
     },
-    "action": "Click", "target": true, "max_hit": 1, "post_delay": 1200,
-    "next": ["LimbusSafety", "LimbusExpired", "LimbusDefeat", "MirrorDrive"],
-    "timeout": 8000, "on_error": ["LimbusUnknown"]
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1200,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorDrive"
+    ],
+    "timeout": 8000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   },
   "LimbusSafety": {
     "recognition": "Custom",
@@ -702,18 +1120,8 @@
     "max_hit": 1,
     "post_delay": 1200,
     "next": [
-      "BattleAutoAssignObserve"
+      "BattleObserve"
     ],
-    "on_error": [
-      "LimbusUnknown"
-    ]
-  },
-  "BattleAutoAssignObserve": {
-    "recognition": "DirectHit",
-    "action": "Custom",
-    "custom_action": "limbus_battle_observe",
-    "max_hit": 1,
-    "next": [],
     "on_error": [
       "LimbusUnknown"
     ]
@@ -993,6 +1401,34 @@
       "DeploymentNext"
     ],
     "timeout": 3000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "BattleObserve": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_battle_observe",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "BattleStartTurn": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "BATTLE_HUD",
+      "battle_mode": "start_turn"
+    },
+    "action": "Click",
+    "target": true,
+    "max_hit": 1,
+    "post_delay": 1500,
+    "next": [
+      "BattleObserve"
+    ],
     "on_error": [
       "LimbusUnknown"
     ]
