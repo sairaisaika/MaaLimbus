@@ -159,13 +159,31 @@ def test_battle_without_a_proven_control_refuses():
 
 
 def test_unproven_pages_are_observe_only():
-    for page in ('EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
-                 'BATTLE_RESULT', 'UNKNOWN'):
+    for page in ('EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS', 'UNKNOWN'):
         plan = plan_step(page, controls=CONTROLS,
                          start_box=[1, 2, 3, 4], candidates=[[5, 6, 7, 8]])
         assert plan['action'] == RECORD, page
         assert plan['reason'] == 'page_is_observe_only'
         assert plan['target'] is None
+
+
+def test_the_victory_screen_names_the_anchor_it_is_missing():
+    plan = plan_step('BATTLE_RESULT', controls=CONTROLS, start_box=[1, 2, 3, 4])
+    assert plan['action'] == RECORD
+    assert plan['reason'] == 'battle_result_control_not_anchored'
+    assert plan['target'] is None
+
+
+def test_the_entry_page_has_one_plan_under_both_spellings():
+    def body(plan):
+        return {key: value for key, value in plan.items() if key != 'page'}
+
+    controls = dict(CONTROLS, **{'entry.enter_button': [11, 22, 33, 44]})
+    assert body(plan_step('BEFORE_ENTRY', controls=controls)) == \
+        body(plan_step('MIRROR_ENTRY', controls=controls))
+    without = plan_step('BEFORE_ENTRY', controls=CONTROLS)
+    assert body(without) == body(plan_step('MIRROR_ENTRY', controls=CONTROLS))
+    assert without['reason'] != 'page_is_observe_only'
 
 
 def test_successor_outside_the_expected_set_is_recorded_as_a_failure():
