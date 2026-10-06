@@ -589,6 +589,16 @@
     "next": [],
     "on_error": []
   },
+  "MapObserve": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_map_observe",
+    "max_hit": 1,
+    "next": [],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
   "DeploymentStart": {
     "recognition": "DirectHit",
     "action": "Custom",

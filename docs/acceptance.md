@@ -1,5 +1,31 @@
 # Acceptance evidence
 
+## 2026-10-06 live MuMu verification of the map identity
+
+- A read-only MuMu probe (`tools/probe_adb.py`, actual address `127.0.0.1:16416`,
+  foreground `com.ProjectMoon.LimbusCompany`, input method `Null`, no input) shows
+  the game is still on `Exploring Floor 1 / To be Cleaved`, 7548 Starlight and 600
+  Enkephalin, matching the retained `231221/terminal.png` state.
+- `tools/verify_map_live_crosscheck.py` ran the real Maa OCR over that live capture
+  and over the retained frame: both classify as scene `MAP` and both identify floor
+  `1` with pack `To be Cleaved`; the header box scales exactly 1.5x between the
+  1280x720 and 1920x1080 captures. No controller input in either run
+  (`build/map-live-crosscheck-verification.json`).
+- `tools/map_live_observe.py` then executed the real pipeline node against the live
+  emulator through an `Maa AdbController` with `Null` input: scene `MAP`, floor `1`,
+  pack `To be Cleaved`, and route `current_position_not_proven` with `next_node`
+  null. `stop_confirmed` true and no click, swipe or key was ever sent
+  (`evidence/runtime/map-live-20261006-000159/result.json`).
+- The node is now the first legal continuation from the stopped session:
+  `MapObserve` (DirectHit, `limbus_map_observe`, `max_hit` 1, `on_error`
+  `LimbusUnknown`) in `assets/resource/base/pipeline/mirror.json`, with its action
+  registered in `tools/run_native.py`. `tools/verify_map_observe_replay.py` replays
+  that exact node: the map frame succeeds with zero input, the pack page fails
+  closed (`build/map-observe-replay-verification.json`).
+- Still unproven and still un-clicked: node identity, current-position proof, floor
+  routing, battle, floor clear, reward and rotation. Route stays an explicit
+  refusal until a live frame proves a current position and an unvisited node.
+
 ## 2026-10-05 offline map identity repair
 
 - `src/maalimbus/map_vision.py` now identifies the Mirror Dungeon map page from the

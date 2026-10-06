@@ -839,6 +839,31 @@ class BattlePlanObservation(CustomAction):
         return True
 
 
+class MapObservation(CustomAction):
+    """Read-only map identity check: records the page and sends no input."""
+    def __init__(self,recognition):
+        super().__init__();self.recognition=recognition
+
+    @guarded_callback(False)
+    def run(self,context,argv):
+        try:
+            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        except (TimeoutError,RuntimeError):return False
+        image=context.tasker.controller.cached_image
+        records,scene,frame=self.recognition.observe(context,image)
+        size=(image.shape[1],image.shape[0])
+        header=map_header(records,size) if scene=='MAP' else None
+        self.recognition.journal.record('map_observed',frame=frame,scene=scene,
+            floor=None if header is None else header.floor,
+            pack=None if header is None else header.pack,
+            header_box=None if header is None else header.exploring_text.box,
+            pack_box=None if header is None else header.pack_text.box,
+            route=route_decision(header,size),
+            input_sent=False,verified_clear=False,
+            scope='fresh page identity and bounded route refusal; no node input')
+        return header is not None
+
+
 class InputPreflight(CustomAction):
     def __init__(self,recognition):
         super().__init__(); self.recognition=recognition

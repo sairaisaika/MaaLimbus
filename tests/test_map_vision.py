@@ -70,6 +70,24 @@ def test_header_pattern_matches_only_the_two_supported_wordings():
     assert not re.match(HEADER_PATTERN, 'Exploring Floor 6', re.I)
 
 
+def test_map_observe_node_is_a_bounded_read_only_continuation():
+    """The stopped-session continuation must observe the map and never click."""
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    nodes = json.loads((root / 'assets/resource/base/pipeline/mirror.json').read_text(encoding='utf-8'))
+    node = nodes['MapObserve']
+    assert node['recognition'] == 'DirectHit'
+    assert node['action'] == 'Custom' and node['custom_action'] == 'limbus_map_observe'
+    assert node['max_hit'] == 1 and node['next'] == []
+    assert node['on_error'] == ['LimbusUnknown']
+    # It must not be reachable from the theme-pack drag, which stays a stop point.
+    drag = nodes['ThemePackDrag']
+    assert 'MapObserve' not in drag['next']
+    run_native = (root / 'tools/run_native.py').read_text(encoding='utf-8')
+    assert "'limbus_map_observe'" in run_native
+
+
 def test_live_231221_terminal_records_identify_the_map_page():
     """Regression pinned to the retained actual session, not a derived frame."""
     import json

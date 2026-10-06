@@ -9,8 +9,25 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-05 23:45 local
-- Map recognition repaired offline as required after231221. `src/maalimbus/map_vision.py`
+## Latest continuation: 2026-10-06 00:05 local
+- Live MuMu verification of the map identity, read-only first and then through the
+  real pipeline. The game is still on `Exploring Floor 1 / To be Cleaved` (7548
+  Starlight, 600 Enkephalin). Actual Maa OCR on a fresh MuMu capture and on the
+  retained `231221/terminal.png` both give scene MAP, floor1 and pack `To be
+  Cleaved`, with the header box scaling exactly1.5x between1280x720 and1920x1080:
+  `build/map-live-crosscheck-verification.json`. `tools/map_live_observe.py` ran the
+  new `MapObserve` pipeline node (DirectHit + `limbus_map_observe`, registered in
+  `tools/run_native.py`) through an `Maa AdbController` with `Null` input and
+  recorded route `current_position_not_proven`, `next_node` null, zero input:
+  `evidence/runtime/map-live-20261006-000159/result.json`.
+- Offline replay of that same node passes on the map frame and fails closed on the
+  pack page with no input: `build/map-observe-replay-verification.json`. Node
+  identity, current-position proof, floor routing, battle, floor clear, reward and
+  rotation remain unproven; route stays an explicit refusal until a live frame
+  proves a current position and an unvisited node. No previous input was repeated
+  and no pack was dragged again.
+
+## Prior continuation: 2026-10-05 23:45 local- Map recognition repaired offline as required after231221. `src/maalimbus/map_vision.py`
   identifies the map page from the `Exploring|Before Entry Floor 1-5` header plus its
   pack line only; `agent/recognition.py` promotes that to scene MAP and
   `ThemeObservation` now records `theme_map_postcondition`, selected true only when the
