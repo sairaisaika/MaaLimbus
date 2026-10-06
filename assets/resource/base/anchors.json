@@ -2114,6 +2114,69 @@
           }
         }
       ]
+    },
+    {
+      "id": "gift_search",
+      "title": "E.G.O Gift Search 页（关键词列＋搜索池＋Selected E.G.O Gift ⭐0＋Select 0/3）",
+      "evidence": [
+        "evidence/runtime/window-20261006-195803/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "gift_search.title",
+          "kind": "ocr",
+          "pattern": "^E\\.?G\\.?O Gift Search$",
+          "roi": [
+            0.09,
+            0.02,
+            0.32,
+            0.1
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "gift_search.tray_label",
+          "kind": "ocr",
+          "pattern": "^Selected E\\.?G\\.?O Gift$",
+          "roi": [
+            0.62,
+            0.2,
+            0.85,
+            0.27
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "gift_search.select_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-195803/frame-0001.json",
+            "box": [
+              1568,
+              845,
+              88,
+              30
+            ],
+            "source": "实测 OCR 框；0/3 计数在右边 [1670,843,50,32]。搜索礼物要花星标（面板写 ⭐0），故默认 0 花费离页"
+          }
+        },
+        {
+          "id": "gift_search.refuse_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-195803/frame-0001.json",
+            "box": [
+              1302,
+              843,
+              152,
+              34
+            ],
+            "source": "只登记以拒点：Refuse Gift 会放弃本阶段的搜索机会"
+          }
+        }
+      ]
     }
   ],
   "pending": [

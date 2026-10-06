@@ -48,7 +48,8 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
-                      'star_confirm.cancel_button', 'initial_gifts.refuse_button')
+                      'star_confirm.cancel_button', 'initial_gifts.refuse_button',
+                      'gift_search.refuse_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -390,6 +391,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
                      reason='the_graces_page_is_left_with_its_own_enter')
+    if page == 'GIFT_SEARCH':
+        # The run's optional gift search: picking up to three gifts off the pool costs
+        # starlight (the tray header prints the running price), so the planner leaves
+        # with nothing selected and spends none of it. Live:
+        # evidence/runtime/window-20261006-195803/frame-0001.json reads the title, the
+        # tray label, Select [1568,845,88,30] and its '0/3' counter.
+        box = controls.get('gift_search.select_button')
+        if box is None:
+            return _refuse(page, 'gift_search_select_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('MAP', 'THEME_PACKS', 'UNKNOWN'),
+                     reason='the_gift_search_is_left_without_spending_starlight')
     if page == 'INITIAL_GIFTS':
         # The run opens on the starting E.G.O Gift picker: eight keyword columns, a
         # "Selected E.G.O Gift" tray, and a Select button that stays inert until the
