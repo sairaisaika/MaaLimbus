@@ -78,7 +78,12 @@ def start_button(records, size, image=None):
     The banner sits above whichever gear the board layout puts it over, so the band
     spans the middle of the row rather than one fixed x.
     """
-    matches = find(records, r'^START$', (.45, .63, .80, .79), size, .85)
+    # The band is read by the label's centre, and the banner sits right of the middle
+    # gears: live evidence/runtime/window-20261006-103550/frame-0044.json puts "START"
+    # at [1518,738,60,28], whose centre is x=0.806, just outside the old 0.80 edge.
+    # That made the control appear on some frames and vanish on others, and the driver
+    # then fell back to re-assigning skills instead of submitting the turn.
+    matches = find(records, r'^START$', (.40, .63, .88, .80), size, .85)
     if len(matches) != 1:
         return None
     label = matches[0].box

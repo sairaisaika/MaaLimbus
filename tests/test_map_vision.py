@@ -543,3 +543,37 @@ def test_the_battle_hud_survives_a_frame_that_drops_the_wave_caption():
     # A page with neither caption nor a wave counter in that corner is not the HUD.
     made_up = [Text('TURN', (20, 97, 42, 22), 1.0), Text('WS', (24, 182, 34, 91), 0.385)]
     assert battle_hud(made_up, tuple(data['size'])) is None
+
+
+def test_the_start_control_is_read_at_the_right_edge_of_the_band():
+    """The START banner's own centre sits at x=0.806 on a live floor-3 frame.
+
+    Live evidence/runtime/window-20261006-103550/frame-0044.json reads "START"
+    [1518,738,60,28] beside the Win/Damage labels; a band that ended at 0.80 dropped
+    it, and the driver re-assigned skills for eight turns without submitting one.
+    """
+    from pathlib import Path
+    import json
+    import cv2
+    import pytest as _pytest
+    cv2 = _pytest.importorskip('cv2')
+    from maalimbus.battle_vision import start_button
+    root = Path(__file__).resolve().parents[1]
+    json_path = root / 'evidence/runtime/window-20261006-103550/frame-0044.json'
+    png_path = json_path.with_suffix('.png')
+    if not json_path.exists():
+        pytest.skip('retained live battle evidence is not present')
+    data = json.loads(json_path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    size = tuple(data['size'])
+    label = start_button(records, size)
+    assert label == (1518, 738, 60, 28)
+    if not png_path.exists():
+        return
+    control = start_button(records, size, cv2.imread(str(png_path)))
+    assert control is not None
+    x, y, w, h = control
+    assert (x, y, w, h) == (1495, 772, 122, 134)
+    # The banner is drawn above its button, so the control hangs under the label.
+    assert y >= label[1] + label[3] - 10
+    assert abs((x + w / 2) - (label[0] + label[2] / 2)) < 40
