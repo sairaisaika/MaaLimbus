@@ -99,9 +99,14 @@
 
 ### 5.2 锚点注册表与自检（人只需修坏掉的那几条）
 
-- `tools/verify_anchors.py --frame <png>`：对当前实机帧逐条跑锚点，输出 `docs/anchor-drift-<版本>.md`：命中/漂移了多少像素/失配。
-- 每个 pipeline 节点在注释/字段里**声明依赖的锚点名**；自检失败时直接指出「哪些 Task 会因此挂」。
-- 版本更新后的维护闭环：跑自检 → 只修失配锚点 → 跑 `verify_*_replay` 回归 → 提交。LALC 的做法是「改 action 里的魔数 + 注释留痕 + 发整包」，我们的做法是「改注册表一条 + 回归」。
+**已实现（2026-10-06，离线）**：`assets/resource/base/anchors.json` 是唯一的锚点真源，三类条目
+- `ocr`：正则 + 中心归一化 `roi` + 阈值（沿用 `vision.find` 语义）；
+- `template`：1280 基准的模板图 + `roi` + 阈值（验证时按帧宽等比放大，实测 `image/battle/win_rate.png` 在 1920 帧上命中）；
+- `geometry`：控件框 + `verified_on{frame, sha256, box, source}`——**只在同一帧 sha 上算「被证明」**，换帧即报 `stale`，绝不静默沿用旧坐标。
+
+`tools/verify_anchors.py` 把注册表逐条回放到留档观测（`evidence/runtime/**/frame-*.json` + 同名 png），打印逐锚点命中表并写 `build/anchors-report.json`；任一页的 identity 锚点在**所有**证据帧上都失配即 exit 1。注册表还带 `pending` 清单，显式列出「尚未被证明的页面」（人格 filter、结算领奖、层礼赠、商店、事件、下一层、轮换再入场），避免把「没验证」当成「已验证」。
+- 下一步（验证窗口里做）：`tools/verify_anchors.py --frame <png>` 直接对当前实机帧跑，输出漂移像素数；`tools/capture_anchors.py --label <名>` 一次点击式采集模板（§5.3）。
+- 维护闭环：跑自检 → 只修失配锚点 → 跑 `verify_*_replay` 回归 → 提交。LALC 的做法是「改 action 里的魔数 + 注释留痕 + 发整包」，我们的做法是「改注册表一条 + 回归」。
 
 ### 5.3 资源自动采集（把「截资源」变成一条命令）
 

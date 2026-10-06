@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "reference_width": 1280,
+  "reference_height": 720,
+  "note": "每个由画面推导出来的假设都在这里登记，并由 tools/verify_anchors.py 用留档观测离线复检。roi 是 maalimbus.vision.find 使用的中心归一化框；geometry 锚点是「在某一帧上被证明过」的控件几何（用 image_sha256 对齐，换帧即报 stale，绝不静默沿用）。",
+  "pages": [
+    {
+      "id": "map",
+      "title": "楼层地图（Exploring Floor N）",
+      "evidence": [
+        "evidence/runtime/map-advance-20261006-014737/frame-0001.json",
+        "evidence/runtime/battle-step-20261006-014432/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "map.floor",
+          "kind": "ocr",
+          "pattern": "^(?:Exploring|Before\\s+Entry)\\s+Floor\\s*([1-5])\\b",
+          "roi": [0.0, 0.06, 0.30, 0.22],
+          "threshold": 0.85,
+          "note": "楼层号＝捕获组 1；OCR 退化（Exploring FloorT）会失配，故必须与 map.pack_name 同时成立"
+        },
+        {
+          "id": "map.pack_name",
+          "kind": "ocr",
+          "pattern": "\\S",
+          "roi": [0.0, 0.14, 0.30, 0.28],
+          "threshold": 0.8,
+          "note": "抬头下方一行＝本层主题包名（随包变化，故只要求存在文本）"
+        }
+      ],
+      "controls": [],
+      "live_derived": [
+        "map_vision.node_markers(image)：节点框＝亮连通域现算，不写死坐标",
+        "map_vision.flame_player(markers, image)：玩家位置＝金色火焰（mean G>120 且 G-B 最大）现算",
+        "map_vision.route_decision()：无可达候选时给出拒绝原因，而不是猜一个坐标"
+      ]
+    },
+    {
+      "id": "node_panel",
+      "title": "节点信息面板（Clear Rewards + Enter）",
+      "evidence": ["evidence/runtime/map-probe-20261006-000748/frame-0002.json"],
+      "identity": [
+        {
+          "id": "node_panel.rewards",
+          "kind": "ocr",
+          "pattern": "^Clear\\s+Rewards$",
+          "roi": [0.50, 0.64, 0.68, 0.75],
+          "threshold": 0.85,
+          "note": "打卡片节点成功打开的面板；同时说明「点地图节点＝打开信息面板」而不是直接进战斗"
+        },
+        {
+          "id": "node_panel.enter",
+          "kind": "ocr",
+          "pattern": "^Enter$",
+          "roi": [0.82, 0.68, 0.95, 0.80],
+          "threshold": 0.85,
+          "note": "面板确认键；用 inset 随机落点（勿点边缘）"
+        }
+      ],
+      "controls": [
+        {
+          "id": "node_panel.enter_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/map-probe-20261006-000748/frame-0002.json",
+            "box": [1668, 780, 124, 63],
+            "source": "tools/map_panel_enter.py：enter_box inset 后落点 (1705,815)，实测进入 CONNECTING 过渡态"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pre_battle_team",
+      "title": "出战前队伍页（Preset + Clear Selection + Battle!）",
+      "evidence": [
+        "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
+        "evidence/runtime/team-page-battle-20261006-010230/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "pre_battle.clear_selection",
+          "kind": "ocr",
+          "pattern": "^Clear\\s+Selection$",
+          "roi": [0.86, 0.62, 0.95, 0.71],
+          "threshold": 0.8
+        },
+        {
+          "id": "pre_battle.battle",
+          "kind": "ocr",
+          "pattern": "^Battle!$",
+          "roi": [0.86, 0.77, 0.96, 0.86],
+          "threshold": 0.8,
+          "note": "两个角标同时成立才认页：这一页与「Sinners 图鉴」共用大量视觉元素"
+        },
+        {
+          "id": "pre_battle.preset",
+          "kind": "ocr",
+          "pattern": "^Preset\\s*#\\s*\\d+$",
+          "roi": [0.04, 0.19, 0.16, 0.30],
+          "threshold": 0.8,
+          "note": "当前选中预设队号＝选队路径 0 的入口证据"
+        }
+      ],
+      "controls": [
+        {
+          "id": "pre_battle.battle_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
+            "box": [1674, 859, 144, 44],
+            "source": "tools/team_page_battle.py：battle_box inset 后落点 (1755,883)，实测进入战斗 HUD"
+          }
+        }
+      ]
+    },
+    {
+      "id": "battle_hud",
+      "title": "战斗 HUD（WAVE/TURN + Win Rate/Damage）",
+      "evidence": ["evidence/runtime/team-page-battle-20261006-010230/frame-0007.json"],
+      "identity": [
+        {
+          "id": "battle.wave",
+          "kind": "ocr",
+          "pattern": "^WAVE$",
+          "roi": [0.0, 0.02, 0.07, 0.09],
+          "threshold": 0.8
+        },
+        {
+          "id": "battle.turn",
+          "kind": "ocr",
+          "pattern": "^TURN$",
+          "roi": [0.0, 0.06, 0.07, 0.14],
+          "threshold": 0.8,
+          "note": "回合数本身是位图（OCR 读不出），所以「回合是否推进」必须靠 START/结算页等别的证据判定"
+        },
+        {
+          "id": "battle.win_rate_glyph",
+          "kind": "template",
+          "template": "image/battle/win_rate.png",
+          "roi": [0.60, 0.65, 1.0, 1.0],
+          "threshold": 0.8,
+          "note": "模板在 1280 基准下采集，验证时按帧宽等比放大；这条同时验证「模板锚点」通路"
+        },
+        {
+          "id": "battle.damage",
+          "kind": "ocr",
+          "pattern": "^Damage$",
+          "roi": [0.56, 0.74, 0.72, 0.88],
+          "threshold": 0.8
+        }
+      ],
+      "controls": [
+        {
+          "id": "battle.start_control",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/battle-step-20261006-012951/frame-0006.json",
+            "box": [1038, 771, 121, 133],
+            "source": "battle_vision.warm_control()：START 标签(1060,738,66,30) 下方暖色圆钮＝真正按钮；submit 一次使 turn1→turn2"
+          }
+        },
+        {
+          "id": "battle.win_rate_label",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/team-page-battle-20261006-010230/frame-0007.json",
+            "box": [1198, 796, 48, 41],
+            "source": "battle_vision.auto_assign_buttons()：Win+Rate 两行并成一块，点它触发游戏自带评估"
+          }
+        }
+      ]
+    },
+    {
+      "id": "battle_result",
+      "title": "战斗结果演出（fatal blow / Gain / TOTAL）",
+      "evidence": ["evidence/runtime/battle-step-20261006-013320/frame-0001.json"],
+      "identity": [
+        {
+          "id": "result.gain",
+          "kind": "ocr",
+          "pattern": "^Gain\\s+Corpus\\s+Ingredient$",
+          "roi": [0.16, 0.36, 0.31, 0.50],
+          "threshold": 0.8,
+          "note": "掉落行；不同敌人掉落物名会变，需按包扩展"
+        },
+        {
+          "id": "result.total",
+          "kind": "ocr",
+          "pattern": "^TOTAL$",
+          "roi": [0.05, 0.70, 0.18, 0.86],
+          "threshold": 0.8,
+          "note": "演出页，不是可交互的结算页；两者必须分开识别"
+        }
+      ],
+      "controls": []
+    }
+  ],
+  "pending": [
+    {"id": "identity_filter", "what": "人格选择页的 filter（按状态关键词多选）与列表排序", "why": "自动配队 §6.1 的前提；必须现场证明「多选关键词 + 等级排序」"},
+    {"id": "reward_settle", "what": "结算领奖页（Enkephalin 5、周加成 3 档、按已清层数比例）", "why": "P0 的终点；确认后可关闭整轮"},
+    {"id": "floor_gifts", "what": "层奖励/礼赠三选一页", "why": "每层必经，且与 GIFT_GET 弹窗不同"},
+    {"id": "shop", "what": "商店（Boss 前必有）", "why": "预算体力兑换与购买策略的入口"},
+    {"id": "event_dialog", "what": "异想体事件（问号节点）选项页", "why": "问号节点是寻路主力，选项分支需要数字契约"},
+    {"id": "next_floor", "what": "下一层入口 / 楼层切换", "why": "五层推进的状态机"},
+    {"id": "run_end_entry_return", "what": "轮换再入场（回到镜牢入口）", "why": "收据＋轮换 index 推进的终点"}
+  ]
+}

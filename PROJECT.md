@@ -9,7 +9,25 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 02:17 local
+## Latest continuation: 2026-10-06 04:05 local
+- 按 Plan v1 先补两件「线上只读数值」的地基，全部离线（无设备、无点击、未改运行行为）：
+- ① 社区数据管道：`tools/fetch_identity_catalog.py`（`GitHubState` ETag/限流缓存 + 按 pinned commit 取 raw 与 commit 日期）
+  → `src/maalimbus/identity_catalog.py`（纯函数合并）→ `assets/resource/base/identity-catalog.json`：
+  **128 人格 / 122 带关键词**，关键词由技能里的 `buffKeyword` 反推（`Burst`=破裂、`Breath`=呼吸法、
+  `Bleeding`/`Laceration`=流血、`Vibration*`=震颤、`Sinking`=沉沦、`Charge`=充能）；抽查吻合（剑契组杀手=Poise、
+  Seven 南部 6 科=Rupture、多裂纹事务所收尾人=Charge、脑叶 E.G.O 赤瞳=Bleed）。**覆盖率限制**：
+  `flaglow/LimbusStaticData` 停在 2025-01-23（LLC 中文包活跃），catalog 只是离线事实快照，**不能**当作
+  「玩家现有的全部人格」，线上仍以游戏内 filter 为权威。提交 `74f53fb`。
+- ② 锚点注册表 + 自检：`assets/resource/base/anchors.json` + `tools/verify_anchors.py` + `src/maalimbus/anchors.py`
+  （8 个单测）。三类锚点 `ocr` / `template`(1280 基准，验证时按帧宽等比放大) / `geometry`
+  （`verified_on{frame,sha256,box,source}`，**只在自己那一帧算已证明**，换帧即 `stale`，绝不静默沿用旧坐标）。
+  注册表带 `pending` 清单，显式列出尚未证明的页面：人格 filter、结算领奖、层礼赠、商店、事件、下一层、轮换再入场。
+  离线回放 5 个已验证页面全绿（模板锚点实测在 1920 帧上 1.5× 命中 `image/battle/win_rate.png`），
+  报告写 `build/anchors-report.json`。全量测试 **180 passed**。
+- 下一步＝**验证窗口**（用户 m01490 的选择）：把 `pending` 里的页面在一次连续实机里一次看完并钉进注册表，
+  之后线上只读「验证过的数值接口」。
+
+## Prior continuation: 2026-10-06 02:17 local
 - 用户要求（m01490）：写脚本前先参考 LALC，再参考 Limbus 中文 wiki/攻略摸清机制，然后**先 plan 一个最聪明的脚本模式**；
   「把需要图片验证的部分尽量压缩到一个时间段去做，其他地方在线上保留一个验证后的数值接口就好，而不是走一步看一步」。
   框架 MaaFramework、实现参考 MaaEnd、原型/机制参考 LALC。
