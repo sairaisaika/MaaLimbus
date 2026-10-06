@@ -343,6 +343,29 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
+def test_the_grace_selection_prompt_confirms_and_never_cancels():
+    # Live: evidence/runtime/window-20261006-194533/frame-0001.json is the prompt the
+    # Graces page hands off to.
+    confirm = [1040, 778, 148, 35]
+    cancel = [740, 774, 148, 41]
+    plan = plan_step('STAR_CONFIRM', controls={'star_confirm.confirm_button': confirm,
+                                               'star_confirm.cancel_button': cancel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == confirm
+    assert plan['reason'] == 'the_grace_selection_is_confirmed_before_the_run_starts'
+    assert successor_ok(plan, 'INITIAL_GIFTS') and successor_ok(plan, 'MAP')
+    assert not successor_ok(plan, 'STAR_CONFIRM')
+    # Cancel is the way back to the Graces page: it is never a target.
+    assert plan_step('STAR_CONFIRM',
+                     controls={'star_confirm.cancel_button': cancel})['reason'] == \
+        'star_confirm_button_not_anchored'
+    # The driver always hands over every anchor of the page, so a mis-registered
+    # confirm box that coincides with Cancel is refused.
+    stolen = plan_step('STAR_CONFIRM', controls={'star_confirm.confirm_button': cancel,
+                                                 'star_confirm.cancel_button': cancel})
+    assert stolen['reason'] == 'control_is_forbidden'
+
+
 def test_the_level_warning_proceeds_and_never_cancels():
     # Live proof: evidence/runtime/window-20261006-193730/frame-0003.json is the
     # prompt the rotation team raises (avg level 55 against a recommended 60).

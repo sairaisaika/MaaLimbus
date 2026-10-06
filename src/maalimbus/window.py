@@ -47,7 +47,8 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: start and cancelling it costs the step, not the run.
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
-                      'entry_confirm.cancel_button', 'level_warning.cancel_button')
+                      'entry_confirm.cancel_button', 'level_warning.cancel_button',
+                      'star_confirm.cancel_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -388,6 +389,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
                      reason='the_graces_page_is_left_with_its_own_enter')
+    if page == 'STAR_CONFIRM':
+        # The Graces page hands off to this prompt ("Continue with selected effects?").
+        # Live: evidence/runtime/window-20261006-194533/frame-0001.json reads its title,
+        # the prompt, Confirm [1040,778,148,35] and X Cancel [740,774,148,41]. Confirm
+        # keeps whatever the page selected and starts the run; Cancel only goes back.
+        box = controls.get('star_confirm.confirm_button')
+        if box is None:
+            return _refuse(page, 'star_confirm_button_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'STAR_GRACES', 'UNKNOWN'),
+                     reason='the_grace_selection_is_confirmed_before_the_run_starts')
     if page == 'LEVEL_WARNING':
         # A rotation team whose average level sits below the recommendation raises
         # this prompt; the rotation is the instruction, so the run proceeds and Cancel

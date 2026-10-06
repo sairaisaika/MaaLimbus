@@ -1988,6 +1988,69 @@
           }
         }
       ]
+    },
+    {
+      "id": "star_confirm",
+      "title": "Select Grace of Stars 确认弹窗（Continue with selected effects?）",
+      "evidence": [
+        "evidence/runtime/window-20261006-194533/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "star_confirm.title",
+          "kind": "ocr",
+          "pattern": "^Select Grace of Stars$",
+          "roi": [
+            0.38,
+            0.2,
+            0.62,
+            0.28
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "star_confirm.prompt",
+          "kind": "ocr",
+          "pattern": "^Continue with selected effects\\?$",
+          "roi": [
+            0.38,
+            0.27,
+            0.62,
+            0.35
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "star_confirm.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-194533/frame-0001.json",
+            "box": [
+              1040,
+              778,
+              148,
+              35
+            ],
+            "source": "实测 OCR 框 [1040,778,148,35]；左同排是 ×Cancel [740,774,148,41]，永不点"
+          }
+        },
+        {
+          "id": "star_confirm.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-194533/frame-0001.json",
+            "box": [
+              740,
+              774,
+              148,
+              41
+            ],
+            "source": "只登记以拒点：Cancel 会退回 Grace 页"
+          }
+        }
+      ]
     }
   ],
   "pending": [
