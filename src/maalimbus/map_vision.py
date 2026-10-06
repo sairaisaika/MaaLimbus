@@ -528,15 +528,20 @@ def map_clicks(image, *, template=None, node_side=190):
         add(point, 'highlighted_node', CLICK_SIDE)
     for point in chevrons:
         add(point, 'chevron_target', node_side)
-    # A step away from the player on the lattice is connected to the player by a path
-    # in the live game, and a click on an unconnected node only does nothing, so the
-    # four lattice steps are offered before the badge nodes when there is a player.
-    for point in lattice_neighbours(player):
-        if 0 <= point[0] < width and 0 <= point[1] < height:
-            add(point, 'lattice_step', node_side)
+    # The badge nodes are read off the frame, so they outrank a guessed lattice step:
+    # live run build/window-run35 clicked four lattice points around the player while
+    # the one real node (center 1095,429) sat 48 px from the third guess and was
+    # deduplicated away, which ended the run with no_candidate_node_observed.
     for marker in advance_candidates(markers, player):
         add((marker.node[0] + marker.node[2] // 2,
              marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)
+    # A step away from the player on the lattice is connected to the player by a path
+    # in the live game, and a click on an unconnected node only does nothing, so the
+    # four lattice steps are the last resort, kept for floors whose badges are not
+    # drawn (live: window-20261006-051323 read only one badge on the whole floor).
+    for point in lattice_neighbours(player):
+        if 0 <= point[0] < width and 0 <= point[1] < height:
+            add(point, 'lattice_step', node_side)
     return clicks
 
 

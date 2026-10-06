@@ -4,12 +4,14 @@ The planner decides which single input a live page may receive; every case here
 is a page that the live tools have already met, plus the refusals that keep an
 unproven page from receiving a guessed coordinate.
 """
+import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
+from maalimbus.vision import Text, classify  # noqa: E402
 from maalimbus.window import (ANY, CLICK, NODE, RECORD, SWIPE, plan_step,
                               resolve_overlay,
                               step_result, successor_ok)  # noqa: E402
@@ -407,6 +409,13 @@ def test_the_floor_gift_pick_is_counter_driven_and_refuse_is_never_the_target():
                     gift={'chosen': 1, 'required': None, 'ready': True})
     assert lit['target'] == [1620, 851, 100, 36]
     assert lit['reason'] == 'select_takes_the_picked_floor_gifts'
+    # The button lights up as soon as one choice is made, so a readable counter has to
+    # outrank brightness: live window-20261006-052152 pressed Select at "1/2" and the
+    # game answered with "You have remaining E.G.O Gift choices."
+    early = plan_step('GIFT_PICK', controls=controls,
+                      gift={'chosen': 1, 'required': 2, 'ready': True})
+    assert early['target'] == [732, 300, 240, 200]
+    assert early['reason'] == 'the_floor_gift_card_must_be_picked_before_select'
     # Four cards offered and the button still dark: repeating a pick would be a
     # guess, so the page refuses instead of clicking a card again.
     exhausted = plan_step('GIFT_PICK', controls=controls,
@@ -533,3 +542,34 @@ def test_the_deployment_view_only_starts_the_fight():
     assert 'DEPLOYMENT' in team['expect']
     assert successor_ok(team, 'DEPLOYMENT') is True
     assert plan_step('DEPLOYMENT', controls={})['reason'] == 'deployment_battle_button_not_anchored'
+
+
+def test_the_left_over_gift_warning_cancels_and_never_trades_the_gifts():
+    # Live proof: pressing Select at "1/2" raised "You have remaining E.G.O Gift
+    # choices. Will you proceed without selecting an E.G.O Gift?" (evidence/runtime/
+    # window-20261006-052152/frame-0003.json). Its Confirm trades the remaining gifts
+    # for random Trials -- the refusal the user forbade -- so Cancel is the only input.
+    cancel = [704, 718, 142, 42]
+    controls = {'gift_warning.cancel_button': cancel,
+                'gift_warning.confirm_button': [1068, 718, 156, 36]}
+    plan = plan_step('GIFT_WARNING', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == cancel
+    assert plan['reason'] == 'the_warning_is_cancelled_to_keep_the_remaining_gift_choices'
+    assert successor_ok(plan, 'GIFT_PICK')
+    missing = plan_step('GIFT_WARNING', controls={'gift_warning.confirm_button': controls['gift_warning.confirm_button']})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'gift_warning_cancel_not_anchored'
+    named = plan_step('GIFT_WARNING',
+                      controls={'gift_warning.cancel_button': controls['gift_warning.confirm_button'],
+                                'gift_warning.confirm_button': controls['gift_warning.confirm_button']})
+    assert named['action'] == RECORD
+    assert named['reason'] == 'control_is_forbidden'
+
+def test_the_gift_warning_is_named_from_a_live_frame():
+    locale = json.loads((Path(__file__).resolve().parents[1]
+                         / 'assets/resource/en/locale.json').read_text())
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261006-052152/frame-0003.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert classify(records, locale, tuple(frame['size'])) == 'GIFT_WARNING'

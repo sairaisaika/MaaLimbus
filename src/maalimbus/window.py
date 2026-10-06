@@ -44,7 +44,7 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: page refuses a reward the run has already earned, so both stay registered as
 #: anchors (their labels are how the page is identified) but are refused as targets.
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
-                      'gift_pick.refuse_button')
+                      'gift_pick.refuse_button', 'gift_warning.confirm_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -282,6 +282,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_GET', 'REWARD_CARD', 'MAP', 'UNKNOWN'),
                      reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
+    if page == 'GIFT_WARNING':
+        # Select pressed with choices still outstanding: the game offers to trade the
+        # rest for random Trials. Taking that trade is the "refuse a reward" the user
+        # forbade, so the warning is always cancelled and the pick resumes there.
+        box = controls.get('gift_warning.cancel_button')
+        if box is None:
+            return _refuse(page, 'gift_warning_cancel_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('GIFT_PICK', 'UNKNOWN'),
+                     reason='the_warning_is_cancelled_to_keep_the_remaining_gift_choices')
     if page == 'GIFT_PICK':
         # The floor hands out its gifts here: a row of cards and a Select button that
         # stays dark until the pick is satisfied. Two live variants exist — a
@@ -294,11 +303,16 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         chosen = int(state.get('chosen') or 0)
         required = state.get('required')
         ready = state.get('ready')
-        # The counter settles the pick when it reads; without one (the three-card
-        # round) the button's own brightness is the only completion signal, so a
-        # missing counter is never rounded up into "confirm now".
-        counted = required is not None and chosen >= int(required)
-        settled = ready is True or counted
+        # The counter settles the pick whenever it reads: the button lights up with a
+        # single choice made ("Select 1/2" is bright), so brightness alone confirms
+        # early — live window-20261006-052152 raised the "remaining E.G.O Gift
+        # choices" warning exactly that way. Without a counter (the three-card round)
+        # brightness is the only completion signal, and an early Select is
+        # recoverable because that warning's own Cancel brings the pick straight back.
+        if required is not None:
+            settled = chosen >= int(required)
+        else:
+            settled = ready is True
         if not settled and chosen < 4:
             box = controls.get('gift_pick.card_%02d' % (chosen + 1))
             if box is None:

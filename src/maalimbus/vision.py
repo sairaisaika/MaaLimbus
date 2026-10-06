@@ -95,6 +95,15 @@ def classify(records, locale, size):
     if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
         and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)):
         return 'SHOP'
+    # Pressing Select with choices left over raises this warning on top of the pick
+    # page ("You have remaining E.G.O Gift choices. Will you proceed without selecting
+    # an E.G.O Gift?"). Its Confirm trades the gifts for random Trials, so the page has
+    # to be named -- and its Cancel is the input this project sends -- before both the
+    # pick page underneath and the generic dialog veto claim the frame.
+    # Live evidence evidence/runtime/window-20261006-052152/frame-0003.json.
+    if (find(records, locale.get('gift_warning_proceed', r'(?!)'), (.32, .38, .72, .52), size, .85)
+        and find(records, locale.get('gift_warning_remaining', r'(?!)'), (.34, .34, .68, .46), size, .85)):
+        return 'GIFT_WARNING'
     # The floor's gift pick ("Acquire E.G.O Gift" cards + Select N/2 + Refuse Gift)
     # hands the run its floor rewards. Refuse Gift is a forbidden input, so the page
     # has to be named before the generic dialog veto and before FLOOR_GIFTS (which

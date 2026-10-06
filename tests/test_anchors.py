@@ -38,7 +38,7 @@ def test_shipped_registry_files_validate():
     assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud',
                    'battle_result', 'home', 'drive', 'before_entry', 'tutorial',
                    'resume_dialog', 'reward_card', 'shop', 'shop_leave', 'gift_get',
-                   'gift_pick', 'theme_packs', 'cutscene', 'event_choice',
+                   'gift_pick', 'gift_warning', 'theme_packs', 'cutscene', 'event_choice',
                    'deployment', 'event_result', 'event_result_ready']
     assert loaded['reference_width'] == 1280
     assert loaded['pending'], 'the registry must keep naming what is not proven yet'

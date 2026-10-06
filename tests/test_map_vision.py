@@ -471,3 +471,28 @@ def test_a_panel_frame_carries_no_node_badges():
             round(badge.shape[0] * frame.shape[0] / 1280))
     scaled = cv2.resize(badge, size, interpolation=cv2.INTER_LINEAR)
     assert float(cv2.matchTemplate(frame, scaled, cv2.TM_CCOEFF_NORMED).max()) < 0.80
+
+
+def test_a_read_node_outranks_a_guessed_lattice_step():
+    """The badge node must never be deduplicated away by a lattice guess.
+
+    Live run build/window-run35 (floor 3) clicked four lattice points and stopped with
+    no_candidate_node_observed: the one badge on that floor (center 1095,429) sat 48 px
+    from the third guess, inside the 50 px dedupe radius, so the verified node was
+    dropped from the list entirely.
+    """
+    from pathlib import Path
+    from maalimbus.map_vision import map_clicks
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261006-052530/frame-0020.png')
+    clicks = map_clicks(image, template=template)
+    assert clicks, 'the floor had one badge node to offer'
+    first = clicks[0]
+    assert first['kind'] == 'node_away_from_player'
+    assert first['box'] == (1000, 334, 190, 190)
+    # The guess that used to swallow it is gone: every remaining lattice step keeps
+    # clear of the node the frame actually read.
+    centre = (1000 + 190 // 2, 334 + 190 // 2)
+    for item in clicks[1:]:
+        x, y, w, h = item['box']
+        assert ((x + w // 2 - centre[0]) ** 2 + (y + h // 2 - centre[1]) ** 2) > 50 * 50

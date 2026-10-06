@@ -1220,6 +1220,71 @@
       ]
     },
     {
+      "id": "gift_warning",
+      "title": "层礼物页的「还有剩余礼物」警告（Confirm＝拿随机 Trials 换掉礼物，禁止；Cancel 才是唯一输入）",
+      "evidence": [
+        "evidence/runtime/window-20261006-052152/frame-0003.json"
+      ],
+      "identity": [
+        {
+          "id": "gift.warning_remaining",
+          "kind": "ocr",
+          "pattern": "^You have remaining E\\.?G\\.?O Gift choices\\.$",
+          "roi": [
+            0.34,
+            0.34,
+            0.68,
+            0.46
+          ],
+          "threshold": 0.85,
+          "note": "实测 [750,424,416,36] 0.962"
+        },
+        {
+          "id": "gift.warning_proceed",
+          "kind": "ocr",
+          "pattern": "^Will you proceed without selecting an E\\.?G\\.?O Gift\\?$",
+          "roi": [
+            0.32,
+            0.38,
+            0.72,
+            0.52
+          ],
+          "threshold": 0.85,
+          "note": "实测 [700,486,518,34] 0.991"
+        }
+      ],
+      "controls": [
+        {
+          "id": "gift_warning.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-052152/frame-0003.json",
+            "box": [
+              704,
+              718,
+              142,
+              42
+            ],
+            "source": "实测 OCR 框 '× Cancel' [704,718,142,42] 0.93；按下＝回到礼物选择页继续选，不丢任何奖励"
+          }
+        },
+        {
+          "id": "gift_warning.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-052152/frame-0003.json",
+            "box": [
+              1068,
+              718,
+              156,
+              36
+            ],
+            "source": "实测 OCR 框 'Confirm' [1068,718,156,36] 0.996；它把剩余礼物换成随机 Trials＝用户禁止的「拒绝领奖」，登记它只为让 window.FORBIDDEN_CONTROLS 拒点"
+          }
+        }
+      ]
+    },
+    {
       "id": "theme_packs",
       "title": "下一层主题包选择页（SELECT FLOOR n THEME PACK；拖动卡包往下「Pull」才生效）",
       "evidence": [
