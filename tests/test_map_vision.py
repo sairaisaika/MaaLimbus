@@ -518,3 +518,28 @@ def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
     assert hud is not None
     assert hud['wave_box'] == (28, 41, 38, 24)
     assert hud['diagnostics'] == ['Damage', 'Rate', 'Win']
+
+
+def test_the_battle_hud_survives_a_frame_that_drops_the_wave_caption():
+    """The red floor can cost the whole WAVE word, not just a stroke.
+
+    Live evidence/runtime/window-20261006-053923/frame-0056.json reads "TURN" and the
+    wave value "0/10" while the caption itself is missing ("WS" is the left skill
+    column), and the driver sat on UNKNOWN until it gave up.
+    """
+    from pathlib import Path
+    import json
+    from maalimbus.battle_vision import battle_hud
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-053923/frame-0056.json'
+    if not path.exists():
+        pytest.skip('retained live battle evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    hud = battle_hud(records, tuple(data['size']))
+    assert hud is not None
+    assert hud['turn_box'] == (20, 97, 42, 22)
+    assert hud['wave'] == '0/10'
+    # A page with neither caption nor a wave counter in that corner is not the HUD.
+    made_up = [Text('TURN', (20, 97, 42, 22), 1.0), Text('WS', (24, 182, 34, 91), 0.385)]
+    assert battle_hud(made_up, tuple(data['size'])) is None

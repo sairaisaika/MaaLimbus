@@ -134,17 +134,25 @@ def auto_assign_plan(records, size):
 def battle_hud(records, size):
     """Identify the combat HUD from its own WAVE/TURN captions.
 
-    Both captions must appear exactly once in the top-left band. Their rendered
-    values are gold bitmap glyphs that this OCR often misses, so a missing value is
-    recorded as None rather than treated as a different page. Damage/Win-Rate
-    readouts are diagnostics, never victory evidence.
+    The TURN caption must appear exactly once in the top-left band, and the WAVE
+    caption must be readable there or, when this OCR drops the whole word, its own
+    ``n/m`` value standing in the same band. Their rendered values are gold bitmap
+    glyphs that this OCR often misses, so a missing value is recorded as None rather
+    than treated as a different page. Damage/Win-Rate readouts are diagnostics, never
+    victory evidence.
     """
     # The W stays readable, but the red battlefield backdrop makes the OCR drop a
-    # stroke off it: live evidence/runtime/window-20261006-053000/frame-0031.json reads
+    # stroke off it: live evidence/runtime/window-20261006-053000/frame-0030.json reads
     # "NAVE" [28,41,38,24] beside a clean "TURN", and the whole page then fell back to
-    # UNKNOWN for a full turn. Both captions are still required together, so the
-    # widened vowel does not promote another page.
+    # UNKNOWN for a full turn. On window-20261006-053923/frame-0056.json the caption is
+    # gone altogether ("WS" is the left skill column) while "0/10" [78,37,58,32] and
+    # "TURN" [20,97,42,22] are both read, so the value stands in for the caption. The
+    # two captions live in neighbouring bands of the same corner, and no other page
+    # puts a turn counter with a wave counter there, so neither form promotes a
+    # different page.
     wave = find(records, r'^[WN]AVE$', (.0, .02, .06, .08), size, .85)
+    if not wave:
+        wave = find(records, r'^\d{1,2}\s*/\s*\d{1,2}$', (.0, .02, .09, .08), size, .85)
     turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
     if len(wave) != 1 or len(turn) != 1:
         return None
