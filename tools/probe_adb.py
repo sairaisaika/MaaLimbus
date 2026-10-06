@@ -15,6 +15,7 @@ from maa.define import MaaAdbInputMethodEnum, MaaAdbScreencapMethodEnum
 from maa.library import Library
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job
+from maalimbus.adb_device import build, discover, input_policy, names
 from maalimbus.storage import write_json
 from maalimbus.adb_preflight import foreground
 
@@ -34,8 +35,9 @@ def main():
     try:
         result['foreground_before'] = foreground(args.adb, args.address)
         Library.open(args.binary, agent_server=False)
-        controller = AdbController(args.adb, args.address,
-            MaaAdbScreencapMethodEnum.Encode, MaaAdbInputMethodEnum.Null)
+        device = discover(args.address, args.adb)
+        controller = build(device, input_enabled=False)
+        result['device'] = device
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
         controller.set_screenshot_target_long_side(1920)
         wait_job(controller.post_screencap(), timeout=15, deadline=deadline)

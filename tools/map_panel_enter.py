@@ -29,6 +29,7 @@ from maa.toolkit import Toolkit
 from maalimbus.adb_preflight import foreground
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
+from maalimbus.adb_device import build, discover, input_policy, names
 from maalimbus.vision import inset_box
 from recognition import Journal, LimbusRecognition, MapObservation
 
@@ -97,8 +98,15 @@ def main() -> int:
     try:
         Library.open(args.binary, agent_server=False)
         Toolkit.init_option(prepare())
-        controller = AdbController(args.adb, args.address, MaaAdbScreencapMethodEnum.Encode,
-                                   MaaAdbInputMethodEnum.Maatouch)
+        device = discover(args.address, args.adb)
+        allowed, reason = input_policy(device)
+        if not allowed:
+            result.update(refused=reason, passed=False)
+            print(json.dumps(result, ensure_ascii=False, indent=1))
+            return 1
+        device['input_policy'] = reason
+        controller = build(device, input_enabled=True)
+        result['device'] = device
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
         controller.set_screenshot_target_long_side(1920)
         journal = Journal(directory)

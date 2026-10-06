@@ -14,6 +14,7 @@ from maalimbus.runtime_paths import ROOT
 from maa.controller import Win32Controller, AdbController
 from maa.define import MaaAdbInputMethodEnum, MaaAdbScreencapMethodEnum
 from maalimbus.adb_preflight import foreground, controller_foreground
+from maalimbus.adb_device import build, discover, input_policy
 from maa.define import MaaWin32ScreencapMethodEnum, MaaWin32InputMethodEnum
 from maa.library import Library
 from maa.resource import Resource
@@ -75,9 +76,15 @@ def execute(args, directory, journal, state):
         identity = {'foreground': foreground(args.adb, args.address), 'address': args.address}
         profile = {'name': 'mumu-adb', 'win32': {}}
         window = None
-        controller = AdbController(args.adb, args.address, MaaAdbScreencapMethodEnum.Encode,
-            MaaAdbInputMethodEnum.Null if args.observe else MaaAdbInputMethodEnum.Maatouch)
-        journal.record('preflight_passed', controller='Maa AdbController', **identity)
+        # Methods come from MaaToolkit discovery (MuMu 12 native EmulatorExtras
+        # screencap), never from a hand-picked combination.
+        device = discover(args.address, args.adb)
+        allowed, reason = input_policy(device)
+        if not args.observe and not allowed:
+            raise RuntimeError('ADB input refused: ' + reason)
+        controller = build(device, input_enabled=not args.observe)
+        journal.record('preflight_passed', controller='Maa AdbController',
+                       device=device, input_policy=reason, **identity)
     else:
         controller, window, profile = windows_controller(args, directory, journal)
     wait_job(controller.post_connection(), deadline=deadline)

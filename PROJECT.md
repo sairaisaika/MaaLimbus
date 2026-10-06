@@ -9,7 +9,24 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 01:05 local
+## Latest continuation: 2026-10-06 01:20 local
+- ADB binding corrected to the documented path. Manual
+  `docs/zh_cn/2.4-控制方式说明.md` (and the official Python sample `sample/python/demo1.py`)
+  require an ADB controller's screencap/input methods to come from
+  `MaaToolkitAdbDeviceFind`, never a hand-picked combination. New
+  `src/maalimbus/adb_device.py` (`discover`/`input_policy`/`pin_input`/`build`) and
+  `tools/adb_discover.py` implement it; every live tool plus `tools/run_native.py`
+  now discovers the device first. Read-only discovery reports MuMu as
+  `MuMu安卓设备-1-MuMuPlayer v5+` (127.0.0.1:16416, MuMu's own
+  `D:\Program Files\Netease\MuMu\nx_main\adb.exe`, `screencap EmulatorExtras=64`,
+  `input AdbShell|MinitouchAndAdbKey|Maatouch` with `extras.mumu.enable=true`), i.e.
+  EmulatorExtras screencap is available while EmulatorExtras input is not.
+- The previous binding hardcoded platform-tools adb with `Encode` + `Maatouch`,
+  which bypassed MuMu's native channel; that is the change the user flagged
+  (paraphrased m00950: the clicking interfered with their mouse). No input has been
+  sent since; 166 tests pass, including new pure offline contracts for the policy.
+
+## Prior continuation: 2026-10-06 01:05 local
 - The real entry chain is now established by three authorized single clicks on MuMu:
   map node click -> **node info panel** (`Clear Rewards` + `Enter`, scene `NODE_PANEL`)
   -> `Enter` -> **pre-battle team page** (`Preset #1 / Zilu/Zigong`, `2/12`,

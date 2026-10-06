@@ -27,6 +27,7 @@ from maa.toolkit import Toolkit
 from maalimbus.adb_preflight import foreground
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
+from maalimbus.adb_device import build, discover, input_policy, names
 from maalimbus.map_vision import map_header, route_decision
 from maalimbus.vision import Text
 from recognition import Journal, LimbusRecognition, MapObservation
@@ -65,8 +66,9 @@ def main() -> int:
     try:
         Library.open(args.binary, agent_server=False)
         Toolkit.init_option(prepare())
-        controller = AdbController(args.adb, args.address, MaaAdbScreencapMethodEnum.Encode,
-                                   MaaAdbInputMethodEnum.Null)
+        device = discover(args.address, args.adb)
+        controller = build(device, input_enabled=False)
+        result['device'] = device
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
         controller.set_screenshot_target_long_side(1920)
         wait_job(controller.post_screencap(), timeout=15, deadline=deadline)
