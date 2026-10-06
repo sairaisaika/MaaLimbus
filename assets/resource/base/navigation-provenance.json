@@ -1,0 +1,48 @@
+{
+  "template": "assets\\resource\\base\\image\\navigation\\tutorial-back.png",
+  "source": "private retained Maa Android capture",
+  "source_sha256": "830f27e4e62c81611f35706ae2b804be76d2829adce890089e3b491916153d5a",
+  "source_size": [
+    1920,
+    1080
+  ],
+  "crop": [
+    111,
+    50,
+    64,
+    42
+  ],
+  "purpose": "outer tutorial back arrow only; require independent tutorial instruction; no cover/account content",
+  "star_controls": [
+    {
+      "template": "navigation/star-convert-checked.png",
+      "source_sha256": "cd33798e615b9fe367c02624d18c58ec6287af5b2ce5edcfaa3586e9a70ac0ce",
+      "source_size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        1071,
+        529,
+        36,
+        36
+      ],
+      "purpose": "neutral confirmation checkbox only; no buff artwork"
+    },
+    {
+      "template": "navigation/star-convert-unchecked.png",
+      "source_sha256": "9afb8072cf20af0fcaa1a8923c26fe14abe14fcf5cf5b5831ea59e1483256ad7",
+      "source_size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        1071,
+        529,
+        36,
+        36
+      ],
+      "purpose": "neutral confirmation checkbox only; no buff artwork"
+    }
+  ]
+}

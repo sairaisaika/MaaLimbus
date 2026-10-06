@@ -1,5 +1,107 @@
 # Acceptance evidence
 
+## 2026-10-05 23:13 actual downward pack selection
+
+- Real-frame Maa intercepted replay passed five cases: one downward Swipe on the
+  original230455/frame-0001.png, zero on missing mode/header/Refresh and altered
+  covers with uncertain HARD OCR. No device in replay; unchanged post-frame keeps
+  selected false. Terminal frame OCR also failed closed, retained as a robustness
+  issue rather than a threshold relaxation.
+- Actual MuMu session231221 used Maatouch once to drag To be Cleaved downward,
+  after foreground/process/lease checks. Fresh terminal.png visibly proves entry
+  into Exploring Floor1 / To be Cleaved map. Result stoppedconfirmed, UNKNOWN,
+  verified_clear false. Map classification/routing must be repaired offline before
+  further input. This is live pack-selection evidence, not floor completion.
+
+## 2026-10-05 23:05 free receipts and Hard selection page
+
+-224322 acknowledged first named free gift, exposing the second named receipt.
+  224508 acknowledged second receipt, exposing extra gift search. Fresh224916
+  verifies both Owned labels and distinct catalog icons; this is initial gift
+  ownership evidence, not final dungeon rewards. Unknown new page stopped input
+  until classification and ownership proof were repaired offline.
+-225222 refused extra gift search at0/3 and zero selected cost.225439 confirmed
+  Forgo;225512 read-only capture showed Normal floor1 packs.230146 toggled Hard
+  once; highlighted mode recognition failed closed and was repaired offline.
+  230455 fresh native proof confirms HARD, clears only difficulty pending, and
+  retains `terminal.png` with all three pack names. No pack drag has occurred.
+- Latest complete Python suite:145 passed. Maa replay checks cover wrapped receipt
+  names, Owned icon identity, modal veto, free-search refusal and highlighted Hard
+  mode. Derived images are not live selection or map proof. User's downward-drag
+  instruction agrees with native Swipe; actual-frame geometry validation and live
+  map postcondition remain pending. No floor or final reward is accepted.
+
+## 2026-10-05 22:36 initial gifts
+
+- Read-only actual MuMu222911 unchanged at0/2. Native223048 clicked the independently
+  OCR-identified Bleed header for saved team1, exposing three actual candidates.
+- Native223230 selected first priority Wound Clerid. Read-only proof task223418
+  verified fresh exact title, row1 selection border and1/2; uncertain intent was
+  retained until that proof. Native223506 selected second priority Little and
+  To-be-Naughty Plushie; fresh exact title, rows1/2 and2/2 confirmed in-frame.
+- Native223639 submitted2/2 once. Actual terminal screenshot shows Wound Clerid
+  E.G.O Gift GET modal. Task is stoppedconfirmed; no receipt Confirm sent yet.
+  Retained private pending prevents repeat Commit. Gift GET does not prove any
+  floor clear or Enkephalin-module reward receipt.
+- Actual Maa intercepted group/pick/proof/commit replays passed original/changed
+  icon cases and rejected missing counters, wrong profile/foreground, wrong title
+  and absent selection marker. No incomplete/unverified intent is reset by replay.
+  Retained GET observation native Maa OCR passed with zero input; GET title without
+  independent Confirm vetoes underlying selection UI. Python full143 passed before
+  last veto change;12 focused tests passed afterwards.
+- Next: bounded per-gift acknowledgements, actual Hard difficulty and floor1 entry;
+  all remaining full-goal acceptance remains open. FGO was not reopened.
+
+## 2026-10-05 22:27 MuMu star stage
+
+- Latest usage refresh allowed ordinary work (58% five-hour/76% weekly consumed).
+  No credits purchase/reset. Verified one foreground Android package and shared
+  controller lease for each bounded session. CLI now records its actual Windows
+  executable/PID/integrity before constructing the controller; latest PID35540
+  ended with `stop_confirmed:true`. No MaaLimbus/FGO controller remained in CIM.
+- Real entry confirmation, saved team1 row/header confirmation, low-level warning
+  and star page retained in215631,220118,220441 sessions. Tutorial was already
+  absent at the relevant initial frames: no native tutorial-exit success claimed.
+- Real single-choice sessions222020/222045/222108/222131 selected Lix1,3,4,6.
+  Each fresh available balance matched prior minus10/20/30/40, ending7. No Enhance.
+- Session222313 entered the confirmation modal and stopped; its default conversion
+  was checked. Session222509 disabled it; actual terminal frame shows unchecked
+  checkbox and Cost0. Session222652 confirmed and actual terminal capture shows
+  initial E.G.O Gift selection, count0/2. All are retained real Maa captures, not
+  derived images. Owned7541 is visible before confirmation; final settlement and
+  clear still unproved. No gifts/floors/rewards have been accepted yet.
+- `build/star-replay-verification.json`: source/changed-buff/derived-balance plus
+  missing-grid/over-budget/pending-input. Derived balance is explicitly synthetic.
+  Entry/conversion/confirmation replay reports retain native Maa OCR/TemplateMatch
+  with intercepted clicks and zero-input negative cases. Full suite143 passed.
+- Local Lix import saved/read back seven profiles and preserved rotation/deployment;
+  latest user's1,3,4,6 overrides older1,4,5,6. Highest-level compatible identity policy
+  is offline-only; no actual automatic roster/filter/identity-switch acceptance yet.
+- Remaining: initial gifts/native Hard floors1–5, reward receipt and module budget,
+  team rotation/re-entry, native automatic formation/MXU settings, JP real pages,
+  Windows/PI/package/update validation and FGO error option/Release. Goal stays active.
+
+## 2026-10-05 MuMu continuation
+
+- Usage allowed: 26% five-hour and 72% weekly consumed at start. No credits bought/reset.
+- Clean initial git state; latest previous Limbus evidence was October 1. Old recorded
+  PID39436 absent. New controllers65148/47524 paths/arguments/parents read via CIM;
+  shared OS lease held throughout and confirmed task stop before subsequent observation.
+- Maa AdbController Encode screenshot + Null input captured already foreground Android
+  `com.ProjectMoon.LimbusCompany` at 1920x1080. No game restart.
+- Maatouch actual navigation: HOME -> Drive -> mirror entry. Retained original and
+  changed-art home/menu frames pass actual Maa OCR/Pipeline with intercepted clicks;
+  missing independent anchor produces zero input. Random inset targets and 180..480ms
+  pre-delay retained in recognition journals. Full suite128 passed before tutorial guard.
+- Enter was attempted against underlying text while a tutorial was present. Postcondition
+  did not occur; session stopped confirmed. Read-only terminal frame proves tutorial remains.
+  Added tutorial veto; dismissal and this final guard require offline/native verification.
+- `evidence/runtime/live-20261005-214739`, `live-20261005-215020`,
+  `adb-probe-20261005-215059`; `build/home-replay-verification.json`,
+  `build/drive-adb-replay-verification.json`. No resource purchase/refill/conversion.
+- No five-floor clear, reward receipt, deployment/rotation/re-entry, JP live acceptance,
+  MXU Android preflight integration, new Windows package or FGO Release claimed.
+
 ## Custom deployment choices and callback failure boundary
 
 - Twelve PI child dropdowns apply only in custom mode. All twelve positions must

@@ -9,6 +9,74 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
+## Latest continuation: 2026-10-05 23:13 local
+- Actual native downward Swipe selected To be Cleaved and reached the floor1 map.
+  `evidence/runtime/live-20261005-231221/terminal.png` visibly shows Exploring
+  Floor1 / To be Cleaved, party portraits and connected route nodes. Process60476
+  stoppedconfirmed. Scene UNKNOWN triggered the bounded boundary; no further input.
+- `tools/verify_real_theme_drag.py` now intercepts native Maa Swipe over the retained
+  230455/frame-0001.png: real case1 downward drag, missing mode/header/Refresh and
+  changed-cover OCR uncertainty0 drags. Unchanged post-frame never proves selection.
+  `build/real-theme-drag-verification.json` retains the report. Terminal frame mode
+  OCR was below threshold; do not lower thresholds to force it. Local mode OCR
+  robustness and native map/routes must be repaired offline before next live input.
+- Next implement floor1 map recognition/routing on231221 retained frame. No floor
+  clear, battle, final reward, rotation or reentry evidence. Preserve all progress.
+
+## Prior continuation: 2026-10-05 23:05 local
+- Current authoritative frame: `evidence/runtime/live-20261005-230455/terminal.png`.
+  Fresh native read-only proof confirms HARD floor1 theme packs; task stopped.
+  Both free initial gifts are owned, validated by Owned labels plus catalog icons
+  in224916. Extra gift search was refused without purchase (225222/225439).
+  Mode switched once from Normal to Hard in230146; fresh230455 resolved pending.
+- Pack selection has not happened. User confirms the card must be dragged downward.
+  Existing native Swipe uses an inset randomized start/end and480–680ms duration;
+  next validate its geometry on this actual1920x1080 frame before bounded input.
+  Current cards: To be Cleaved, Faith & Erosion, The Forgotten. All three local
+  Lix configured weights are10; no pack preference has been invented.
+-145 Python tests pass. Actual/derived replay evidence is distinguished. Android
+  battle input rejects Windows P-key action until a verified touch target exists.
+  No floor clear, final reward, rotation or next entry is proven. Module budget0
+  remains pending. Do not repeat previous grace/gift/search/mode transactions.
+
+## Prior continuation: 2026-10-05 22:36 local
+- Read-only current MuMu capture222911 revalidated the gift page and target package.
+  Native223048 opened Bleed category. Native223230 selected Wound Clerid; fresh
+ 223418 verified title, highlighted row1 and1/2. Native223506 selected Little and
+  To-be-Naughty Plushie; fresh same-session row/title/count proof verified2/2.
+  Native223639 submitted the exact two selections and reached the first
+  `E.G.O Gift GET!` modal (Wound Clerid), confirmed stopped. Latest actual frame:
+  `evidence/runtime/live-20261005-223639/terminal.png`.
+- Next: acknowledge each explicit free gift receipt with retained name/postcondition,
+  verify actual Hard difficulty and floor1 entry. Do not repeat initial Commit:
+  private `initial-gift-progress.json` retains selected1,2 and commit_pending.
+  `GIFT_GET` blocks the underlying gift page; incomplete receipt modal is unknown.
+- Maa group/pick/proof/commit replays include changed icons and missing counter,
+  foreground/profile/title/selection negative cases; no device input in replay.
+  Full suite143 passed before receipt veto; latest12 vision/callback tests and real
+  Maa retained receipt observation pass. No floor, battle or final reward evidence.
+- Private grace/gift progress JSON is excluded from Git as well as packaging.
+
+## Star stage: 2026-10-05 22:27 local
+- MuMu Maa-native entry/team-confirm/level-warning -> star selection -> initial
+  E.G.O Gift page verified with retained actual captures. Current stopping point:
+  `evidence/runtime/live-20261005-222652/terminal.png`, 0/2 gifts selected.
+- User's final Lix zero-based grace choice is 1,3,4,6, no Enhance. Actual Maa
+  selections showed available107 ->97 ->77 ->47 ->7. Base costs10+20+30+40=100.
+  Extra remaining-starlight conversion was explicitly disabled and visually proved
+  (unchecked box, converted Cost0). Confirmation entered the gift page. Owned
+  starlight was7541 in the confirmation; no final resource settlement claim.
+- Imported seven whitelisted team profiles from user's local Lix configuration;
+  rotation5,4,1,6,2,7,3 and deployment orders preserved. Highest-level keyword
+  identity selection policy exists with tests; native filter/paging/selection and
+  MXU controls are still pending. Never substitute the policy test for live proof.
+- Full Python suite143 passed; actual Maa star-selection/entry/checkbox/confirm
+  replays passed including zero-input negative cases. Last task confirmed stopped;
+  no floor, battle, reward, rotation or repeat-run success yet.
+- Next: native initial gift selection with real postconditions, five-floor flow,
+  reward budget (modules remain0/pending), native automatic formation and MXU,
+  cached Windows packaging, and FGO error options/Release without reopening FGO.
+
 ## Development contract
 - Read this file and docs/design.md before changes. Preserve existing work.
 - Maa owns screenshot/input and bounded Pipeline scheduling. Pure Python ranks choices;
@@ -25,6 +93,13 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 See docs/acceptance.md. No live dungeon completion has been verified yet.
 
 ## History
+- 2026-10-05: User switched priority to MuMu after cancelled Windows UAC.
+  Added bounded Maa AdbController CLI and shared lease/read-only probe. Actual
+  Maatouch navigated HOME to Drive to mirror entry; tutorial overlay blocks entry.
+  Source home and outlined-menu OCR replays pass original/changed-art/negative;
+  128 Python tests pass before tutorial guard. No floors/rewards/spending/rotation.
+  Latest live sessions/evidence: live-20261005-214739, live-20261005-215020 and
+  adb-probe-20261005-215059. Both tasks stopped confirmed. No FGO launch or UAC.
 - 2026-10-01: Switched idle native MXU to d14d119 after the old GUI exited.
   Actually displayed twelve deployment choices, changed positions1/3 and verified
   persistence after normal restart. Actual saved options resolved against installed

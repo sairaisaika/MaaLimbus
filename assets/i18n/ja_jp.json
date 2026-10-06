@@ -1,4 +1,6 @@
 {
+  "mumu_adb": "Android · MuMu / ADB",
+  "mumu_adb_description": "Maa の Android キャプチャとタッチ。Limbus が起動済みで前面にある必要があります。",
   "description": "MaaFramework による Windows 版 Limbus 自動操作",
   "windows": "Windows · Limbus Company",
   "mirror_group": "鏡ダンジョン",

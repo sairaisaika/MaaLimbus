@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 from .gift_vision import normalized
-from .vision import Text
+from .vision import Text,find
 
 
 @dataclass(frozen=True)
@@ -77,14 +77,26 @@ class ThemeCatalog:
         return sorted(unique)
 
 
-def theme_page(image,catalog):
+def theme_page(image,catalog,records=(),locale=None):
     details=catalog.matches(image,'theme_pack_detail',(.06,.14,.96,.36))
     hard=catalog.matches(image,'hard_mode',(.61,0,.83,.13))
     normal=catalog.matches(image,'normal_mode',(.61,0,.83,.13))
     search=catalog.matches(image,'pack_search',(.76,0,.93,.13))
-    if not 1<=len(details)<=6 or len(search)!=1 or len(hard)+len(normal)!=1:
+    text_controls=(locale is not None
+        and len(find(records,locale.get('theme_floor_select',r'(?!)'),(.38,.13,.63,.20),(image.shape[1],image.shape[0]),.85))==1
+        and len(find(records,locale.get('theme_refresh',r'(?!)'),(.79,0,.91,.10),(image.shape[1],image.shape[0]),.85))==1)
+    if not 1<=len(details)<=6 or (len(search)!=1 and not text_controls):
         return None
-    return 'hard' if hard else 'normal'
+    size=(image.shape[1],image.shape[0])
+    hard_text=find(records,r'^HARD[\s/]*$',(.61,0,.83,.13),size,.9)
+    normal_text=find(records,r'^[\s/]*NORMAL$',(.61,0,.83,.13),size,.9)
+    if len(hard_text)+len(normal_text)>1:return None
+    text_mode=('hard' if hard_text else 'normal') if len(hard_text)+len(normal_text)==1 else None
+    if len(hard)+len(normal)==1:
+        glyph_mode='hard' if hard else 'normal'
+        return glyph_mode if text_mode in (None,glyph_mode) else None
+    if not hard and not normal and text_controls:return text_mode
+    return None
 
 
 def pack_candidates(image,records,catalog):

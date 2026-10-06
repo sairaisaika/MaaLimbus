@@ -1,4 +1,6 @@
 {
+  "mumu_adb": "Android · MuMu / ADB",
+  "mumu_adb_description": "Maa 原生 Android 截图与模拟触摸。必须已有 Limbus 在前台，不自动启动游戏。",
   "description": "Limbus Company 原生 Windows 助手",
   "windows": "Windows · Limbus Company",
   "windows_window": "Windows · 窗口操作（推荐）",

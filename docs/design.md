@@ -1,5 +1,42 @@
 # Native design and requirement ledger
 
+## Pack input and initial receipt proof (October5 late continuation)
+
+Theme selection drags a positively identified card downward using Maa Swipe,
+randomized inset rectangles and480–680ms duration. Neither task success nor fresh
+post-drag capture proves selection: ThemeObservation deliberately records selected
+false until a real map postcondition is implemented. Validate geometry against
+the retained actual Hard frame before continuing. Highlighted Hard mode may use
+strict mode/header/Refresh OCR fallback plus detail geometry; conflicting mode
+evidence fails closed. Cover color and artwork are not the mode identity.
+
+Free initial receipt acknowledgement persists each intent and resolves only after
+the next named receipt or both specific Owned icons with labels. Search refusal
+requires0/3 or equivalent counter, explicit Refuse, then explicit Forgo modal.
+Underlying search classification never overrides modal veto. Android controllers
+must not execute Windows P-key battle planning; verified touch control is pending.
+
+## User configuration and grace transaction (October 5 continuation)
+
+Import Lix's local team data through a whitelist, preserving rotation slots,
+ordered sinners, keyword/style and initial-gift priorities. Do not import its
+input runtime. Optional automatic formation filters each sinner's owned/selectable
+identities by requested keyword union and selects maximum actual level; equal-level
+ties favor hybrid keyword coverage. Complete inventory or independently verified
+descending-level ordering is required. Missing identity evidence stops selection.
+This pure policy is implemented; native UI execution remains pending.
+
+Grace indices follow Lix0..9, left-to-right then top-to-bottom. Current user's
+1,3,4,6 are base-only. Read each configured cost and available balance through Maa
+numeric OCR. Persist intent before input, then require fresh balance decrease before
+adding a selected index. Pending/changed balances veto retries. Full selection and
+budget must be verified again before Enter. The confirmation independently checks
+the conversion checkbox and numeric Cost0; remaining starlight conversion is off.
+All targets use inset boxes with350..750ms randomized delay. Structural card edges,
+ordinal position and page control text replace seasonal icons/colors/buff prose;
+changed geometry fails closed. Confirmation progress cannot be reset merely because
+the process ended. A fresh page proves navigation only, not final resource settlement.
+
 ## User-facing task labels
 
 | Task | Options |

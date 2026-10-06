@@ -8,13 +8,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'agent'))
 from recognition import (LimbusRecognition, TeamAction, ThemeObservation,
                          DeploymentProof, BattlePlanObservation, InputPreflight,
-                         LimbusTerminal, Journal)
+                         LimbusTerminal, StarProof, InitialGiftProof, InitialReceiptProof, DifficultyProof, Journal)
 
 
 def test_every_native_callback_has_exception_boundary():
     assert hasattr(LimbusRecognition.analyze, '__wrapped__')
     for cls in (TeamAction, ThemeObservation, DeploymentProof,
-                BattlePlanObservation, InputPreflight, LimbusTerminal):
+                BattlePlanObservation, InputPreflight, LimbusTerminal, StarProof, InitialGiftProof, InitialReceiptProof, DifficultyProof):
         assert hasattr(cls.run, '__wrapped__')
 
 

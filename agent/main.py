@@ -12,6 +12,7 @@ if getattr(sys, 'frozen', False):
 from maa.agent.agent_server import AgentServer
 from maa.library import Library
 from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof, BattlePlanObservation
+from recognition import StarProof,InitialGiftProof,InitialReceiptProof,DifficultyProof
 
 
 def main():
@@ -39,6 +40,10 @@ def main():
     AgentServer.register_custom_recognition('limbus_scene', recognition)
     AgentServer.register_custom_action('limbus_terminal', LimbusTerminal(recognition))
     AgentServer.register_custom_action('limbus_team', TeamAction(recognition))
+    AgentServer.register_custom_action('limbus_star_proof',StarProof(recognition))
+    AgentServer.register_custom_action('limbus_initial_gift_proof',InitialGiftProof(recognition))
+    AgentServer.register_custom_action('limbus_initial_receipt_proof',InitialReceiptProof(recognition))
+    AgentServer.register_custom_action('limbus_difficulty_proof',DifficultyProof(recognition))
     AgentServer.register_custom_action('limbus_preflight',InputPreflight(recognition))
     AgentServer.register_custom_action('limbus_theme_observe',ThemeObservation(recognition))
     AgentServer.register_custom_action('limbus_deployment_proof',DeploymentProof(recognition))

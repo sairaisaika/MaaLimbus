@@ -10,7 +10,11 @@ INTERFACE = ROOT / 'assets/interface.json'
 
 
 def test_reference_profiles_resolve_to_native_methods_and_keep_existing_name():
-    profiles = json.loads(INTERFACE.read_text(encoding='utf-8'))['controller']
+    all_profiles = json.loads(INTERFACE.read_text(encoding='utf-8'))['controller']
+    profiles = [p for p in all_profiles if p['type']=='Win32']
+    android=[p for p in all_profiles if p['type']=='Adb']
+    assert len(android)==1 and android[0]['name']=='mumu-adb'
+    assert android[0]['display_long_side']==1920
     assert profiles[0]['name'] == DEFAULT_CONTROLLER
     assert {p['name'] for p in profiles} == {'windows-window', 'windows-background', 'windows'}
     for profile in profiles:

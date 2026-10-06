@@ -49,12 +49,15 @@ def team_from_json(value):
     keywords = frozenset(value.get('keywords', ()))
     if not keywords <= set(KEYWORDS):
         raise ValueError('Unknown gift keyword')
+    formation_keywords=frozenset(value.get('formation_keywords',()))
+    if not formation_keywords<=set(KEYWORDS):raise ValueError('Unknown formation keyword')
     name = value.get('name', '')
     if not isinstance(name, str) or len(name) > 80:
         raise ValueError('Team name must be at most 80 characters')
     return Team(slot, keywords, name, frozenset(value.get('allow', ())),
                 frozenset(value.get('block', ())), deployment,
-                tuple(tuple(p) for p in value.get('pack_weights', ())))
+                tuple(tuple(p) for p in value.get('pack_weights', ())), formation_keywords,
+                tuple(value.get('graces',())),tuple(value.get('initial_gifts',())),value.get('auto_team',False))
 
 
 class ProfileStore:
@@ -74,7 +77,7 @@ class ProfileStore:
         data = []
         for team in teams:
             value = asdict(team)
-            for key in ('keywords', 'allow', 'block'):
+            for key in ('keywords', 'allow', 'block', 'formation_keywords'):
                 value[key] = sorted(value[key])
             team_from_json(value)
             data.append(value)

@@ -119,3 +119,26 @@ def recommend(candidates, team):
     # Duplicate identities use the leftmost visible candidate, not an arbitrary dict overwrite.
     target = min((c for c in candidates if c.gift.name==ranking[0]['name']),key=lambda c:c.box[0])
     return target, ranking
+
+
+def search_owned_names(frame,records,catalog):
+    """Per-tile Owned label plus exposed lower icon, excluding its label overlay."""
+    h,w=frame.shape[:2]
+    if (w,h)!=(1920,1080):return []
+    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+    names=[]
+    for label in find(records,r'^Owned$',(.06,.30,.59,.85),(w,h),.9):
+        x,y,bw,bh=label.box
+        crop=gray[y+30:y+124,max(0,x-22):x+118]
+        scores={}
+        for name,icon in catalog.icons:
+            for factor in (.95,1.0,1.05):
+                scaled=cv2.resize(icon,None,fx=1.5*factor,fy=1.5*factor)
+                template=cv2.cvtColor(scaled[round(scaled.shape[0]*.25):],cv2.COLOR_BGR2GRAY)
+                if template.shape[0]>crop.shape[0] or template.shape[1]>crop.shape[1]:continue
+                score=float(cv2.matchTemplate(crop,template,cv2.TM_CCOEFF_NORMED).max())
+                if np.isfinite(score):scores[name]=max(score,scores.get(name,-1))
+        ranking=sorted(((v,k) for k,v in scores.items()),reverse=True)
+        if ranking and ranking[0][0]>=.82 and (len(ranking)==1 or ranking[0][0]-ranking[1][0]>=.12):
+            names.append(dict(name=ranking[0][1],score=ranking[0][0],owned_label=label.box))
+    return names

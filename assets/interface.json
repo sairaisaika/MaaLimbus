@@ -56,6 +56,10 @@
         "keyboard": "Seize"
       },
       "description": "$windows_front_description"
+    },
+    {
+      "name": "mumu-adb", "label": "$mumu_adb", "type": "Adb",
+      "display_long_side": 1920, "adb": {}, "description": "$mumu_adb_description"
     }
   ],
   "resource": [

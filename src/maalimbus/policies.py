@@ -21,12 +21,27 @@ class Team:
     block: frozenset[str] = frozenset()
     deployment: tuple[str, ...] = ()
     pack_weights: tuple[tuple[str, int], ...] = ()
+    formation_keywords: frozenset[str] = frozenset()
+    graces: tuple[str, ...] = ()
+    initial_gifts: tuple[int, ...] = ()
+    auto_team: bool = False
 
     def __post_init__(self):
         if not 1 <= self.slot <= 20:
             raise ValueError('Saved team slot must be 1..20')
         if len(self.deployment) != len(set(self.deployment)):
             raise ValueError('A sinner cannot be deployed twice')
+        if type(self.auto_team) is not bool:
+            raise ValueError('Automatic formation must be explicitly enabled')
+        if any(
+            not isinstance(g,str) or len(g) not in (1,2,3) or g[:1] not in '0123456789'
+            or g[1:] not in ('','+','++') for g in self.graces):
+            raise ValueError('Graces use Lix zero-based 0..9 with optional +/++')
+        if len({g[0] for g in self.graces})!=len(self.graces):
+            raise ValueError('A grace cannot be configured twice')
+        if len(set(self.initial_gifts))!=len(self.initial_gifts) or any(
+            type(g) is not int or not 1<=g<=10 for g in self.initial_gifts):
+            raise ValueError('Initial gift priorities must be unique one-based positions')
         names = set()
         for pair in self.pack_weights:
             if not isinstance(pair,(tuple,list)) or len(pair)!=2:

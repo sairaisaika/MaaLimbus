@@ -1,4 +1,6 @@
 {
+  "mumu_adb": "Android · MuMu / ADB",
+  "mumu_adb_description": "Maa native Android capture and touch. Requires Limbus already in the foreground; does not launch the game.",
   "description": "Native Windows Limbus automation with MaaFramework",
   "windows": "Windows · Limbus Company",
   "mirror_group": "Mirror Dungeon",

@@ -8,6 +8,7 @@ evidence/runtime/
 build/
 dist/
 config/user*.json
+config/*-progress.json
 config/*.tmp
 config/*.json.*.tmp
 *.log
