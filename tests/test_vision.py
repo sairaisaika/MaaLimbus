@@ -66,6 +66,9 @@ def test_box_inset_always_remains_inside_recognition():
 def test_tutorial_and_incomplete_modal_veto_underlying_enter():
     words=json.loads((LOCALES/'en/locale.json').read_text())
     underneath=[Text('Enter',(830,680,80,35),.99),Text('Before Entry',(760,160,100,30),.99)]
+    # Live proof (evidence/runtime/window-20261006-023714/frame-0001.json): this
+    # overlay shows the entry page and its sentence underneath, and the click on
+    # Enter did nothing, so the tutorial veto has to keep winning.
     assert classify(underneath+[Text('Select the door',(630,510,180,30),.99)],words,(1000,1000))=='TUTORIAL'
     prompt=Text('Will you enter Anything?',(330,460,300,30),.99)
     cancel=Text('Cancel',(370,650,80,30),.99)

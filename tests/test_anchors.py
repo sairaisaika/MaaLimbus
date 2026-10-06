@@ -35,7 +35,8 @@ def ocr_anchor(anchor_id='a.one', pattern='^Enter$', roi=(.82, .68, .95, .80), t
 def test_shipped_registry_files_validate():
     loaded = anchors.load(REGISTRY)
     ids = [entry['id'] for entry in loaded['pages']]
-    assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud', 'battle_result']
+    assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud',
+                   'battle_result', 'home', 'drive', 'before_entry', 'tutorial']
     assert loaded['reference_width'] == 1280
     assert loaded['pending'], 'the registry must keep naming what is not proven yet'
 

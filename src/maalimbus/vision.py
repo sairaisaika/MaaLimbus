@@ -30,6 +30,9 @@ def inset_box(box, ratio=.2):
 def classify(records, locale, size):
     # Tutorial overlays expose inactive underlying Enter/menu text.
     # Never treat those underlying labels as actionable entry evidence.
+    # Live proof: evidence/runtime/window-20261006-023714/frame-0001.json is that
+    # overlay — "Enter" and "Before Entry" are visible, yet a click on them did
+    # nothing and the frame stayed byte-identical for 10 s (sha 830f27e4e62c...).
     if find(records, locale.get('tutorial', r'(?!)'), (.10,.30,.98,.85), size, .7):
         return 'TUTORIAL'
     # Shop/extraction/resource dialogs are separate tasks, never generic mirror buttons.
@@ -71,10 +74,14 @@ def classify(records, locale, size):
     if (find(records,locale['acquire_gift'],(.06,.13,.95,.26),size,.8)
         and find(records,locale['gift_confirm'],(.77,.72,.97,.91),size,.8)):
         return 'FLOOR_GIFTS'
+    # The Before Entry page is the concrete two-token exit from the mirror menu.
+    # It has to stay after the tutorial veto above: the live overlay carries these
+    # same two labels while the underlying Enter is inert.
+    if (find(records, locale['enter'], (.76, .55, .97, .85), size)
+        and find(records, locale['exploring'], (.68, .10, .96, .3), size)):
+        return 'MIRROR_ENTRY'
     if find(records, locale['mirror_menu'], (.23, .25, .46, .55), size) and find(records, locale['inferno'], (.70, .07, .99, .3), size):
         return 'DRIVE'
-    if find(records, locale['enter'], (.76, .55, .97, .85), size) and find(records, locale['exploring'], (.68, .10, .96, .3), size):
-        return 'MIRROR_ENTRY'
     # The supplied Sinners page is a library, not the dungeon deployment page.
     if (find(records, locale['details'], (.6, .04, .95, .35), size)
         and find(records, locale['teams'], (.03, .08, .20, .8), size)

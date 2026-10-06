@@ -194,6 +194,152 @@
         }
       ],
       "controls": []
+    },
+    {
+      "id": "home",
+      "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
+      "evidence": ["evidence/runtime/window-20261006-023206/frame-0001.json"],
+      "identity": [
+        {
+          "id": "home.drive",
+          "kind": "ocr",
+          "pattern": "^Drive$",
+          "roi": [0.73, 0.86, 0.81, 0.96],
+          "threshold": 0.9,
+          "note": "vision.classify 的 HOME 规则要求底部导航三格同时在位且右上无 Inferno 标题"
+        },
+        {
+          "id": "home.sinners",
+          "kind": "ocr",
+          "pattern": "^Sinners$",
+          "roi": [0.67, 0.86, 0.74, 0.96],
+          "threshold": 0.9
+        },
+        {
+          "id": "home.window",
+          "kind": "ocr",
+          "pattern": "^Window$",
+          "roi": [0.61, 0.86, 0.68, 0.96],
+          "threshold": 0.9
+        }
+      ],
+      "controls": [
+        {
+          "id": "home.drive_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-023206/frame-0001.json",
+            "box": [1438, 968, 68, 28],
+            "source": "实测 OCR 框＝底部 Drive 导航标签；点它只进镜牢入口菜单，不消耗资源、不切换难度"
+          }
+        }
+      ]
+    },
+    {
+      "id": "drive",
+      "title": "镜牢入口菜单（Drive 导航后的 MIRROR OF NAMES AND SPIDERS / Dungeons 卡片）",
+      "evidence": ["evidence/runtime/window-20261006-023525/frame-0003.json"],
+      "identity": [
+        {
+          "id": "drive.dungeons",
+          "kind": "ocr",
+          "pattern": "^Dungeons$",
+          "roi": [0.30, 0.42, 0.40, 0.49],
+          "threshold": 0.9,
+          "note": "locale.mirror_menu = '^Mirro(?:r)?$|Mirror\\s*Dungeons?|^Dungeons$' 在 roi[.23,.25,.46,.55] 命中它，识别自带的命中框就是点击框"
+        },
+        {
+          "id": "drive.inferno",
+          "kind": "ocr",
+          "pattern": "^Inferno$",
+          "roi": [0.82, 0.16, 0.96, 0.25],
+          "threshold": 0.9
+        }
+      ],
+      "controls": [
+        {
+          "id": "drive.dungeons_label",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-023525/frame-0003.json",
+            "box": [605, 477, 148, 30],
+            "source": "实测 OCR 框＝入口卡片标题；WindowDrive 节点用 limbus_scene 的 mirror_menu 命中框点击"
+          }
+        }
+      ]
+    },
+    {
+      "id": "before_entry",
+      "title": "镜牢进入页 Before Entry（本赛季门口，Enter 免费开局）",
+      "evidence": ["evidence/runtime/window-20261006-023549/frame-0003.json"],
+      "identity": [
+        {
+          "id": "entry.enter",
+          "kind": "ocr",
+          "pattern": "^Enter$",
+          "roi": [0.78, 0.64, 0.88, 0.72],
+          "threshold": 0.9
+        },
+        {
+          "id": "entry.before_entry",
+          "kind": "ocr",
+          "pattern": "^Before Entry$",
+          "roi": [0.78, 0.24, 0.87, 0.29],
+          "threshold": 0.9,
+          "note": "Lobbies 下的状态；显示 Before Entry 表示当前没有进行中的镜牢"
+        },
+        {
+          "id": "entry.season_title",
+          "kind": "ocr",
+          "pattern": "^Mirror of Names and Spiders$",
+          "roi": [0.10, 0.02, 0.50, 0.10],
+          "threshold": 0.9
+        }
+      ],
+      "controls": [
+        {
+          "id": "entry.enter_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-023549/frame-0003.json",
+            "box": [1534, 716, 96, 36],
+            "source": "实测 OCR 框＝右侧 Enter 按钮文字；屏幕原话 Select the door or the \"Enter\" button to begin your Mirror Dungeon run.；开局免费，不消耗脑啡肽"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tutorial",
+      "title": "镜牢教学/说明浮层（压在 Before Entry 之上，底层 Enter 失效）",
+      "evidence": ["evidence/runtime/window-20261006-023714/frame-0001.json"],
+      "identity": [
+        {
+          "id": "tutorial.season_intro",
+          "kind": "ocr",
+          "pattern": "^Season 7's Mirror Dungeon is called$",
+          "roi": [0.64, 0.42, 0.92, 0.48],
+          "threshold": 0.85
+        },
+        {
+          "id": "tutorial.enter_hint",
+          "kind": "ocr",
+          "pattern": "^Select the door or the \"Enter\" button to$",
+          "roi": [0.62, 0.51, 0.92, 0.57],
+          "threshold": 0.85,
+          "note": "这句话属于浮层而不是可操作的进入页；实测在此状态下点底层 Enter 完全无效（帧 sha 逐字节不变）"
+        }
+      ],
+      "controls": [
+        {
+          "id": "tutorial.next_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-023714/frame-0001.json",
+            "box": [1782, 505, 76, 52],
+            "source": "右侧橙色 ▶ 三角（裁图 build/crop-tutorial-arrow.png，源区 1700,380-1830,560）；浮层上唯一可点的「继续」控件"
+          }
+        }
+      ]
     }
   ],
   "pending": [
