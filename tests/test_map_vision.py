@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
-from maalimbus.map_vision import (HEADER_PATTERN, MapHeader, enter_target, map_header,
-                                  map_page, node_panel, pre_battle_team_page,
-                                  route_decision)
+from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, MapHeader, ORNAMENT_LIFT,
+                                  enter_target, map_header, map_page, node_markers,
+                                  node_panel, pre_battle_team_page, route_decision,
+                                  advance_candidates, yellow_flame_player)
 from maalimbus.vision import Text, classify
 
 SIZE = (1920, 1080)
@@ -265,3 +266,120 @@ def test_pre_battle_page_survives_the_captions_it_actually_renders():
     assert pre_battle_team_page(in_band, SIZE) is None
     off_band = in_band[:1] + [Text('Battle!', (200, 100, 136, 46), 1.0)] + in_band[2:]
     assert pre_battle_team_page(off_band, SIZE).battle.box == (1678, 857, 136, 46)
+
+
+def live_map(root, name):
+    """The retained map frame and its badge template, or a skip."""
+    cv2 = pytest.importorskip('cv2')
+    image = root / 'evidence/runtime' / name
+    template = root / 'assets/resource/base/image/map/node_badge.png'
+    if not (image.exists() and template.exists()):
+        pytest.skip('retained live map evidence is not present')
+    return cv2.imread(str(image)), cv2.imread(str(template))
+
+
+def test_the_node_badge_enumerates_every_node_on_the_page():
+    """The badge under each hexagon is the complete node list; the old scan was not.
+
+    Pinned to the frame that stopped the run: the bright-ornament scan saw only the
+    leftmost node there (1 of 5) and the window then exhausted its candidates
+    (evidence/runtime/window-20261006-035828). The orange path line runs through
+    y 428 and the badges hang at y 506, so a node is BADGE_TO_CENTRE above its badge.
+    """
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261006-035828/frame-0008.png')
+    markers = node_markers(image, template=template)
+    centres = [(m.node[0] + m.node[2] // 2, m.node[1] + m.node[3] // 2) for m in markers]
+    assert centres == [(327, 109), (711, 109), (1364, 109), (327, 429), (711, 429)]
+    assert {m.node[2] for m in markers} == {190}
+    # The badge box itself is the template, scaled to the frame.
+    badge = markers[-1].ornament
+    assert badge[2] == round(template.shape[1] * image.shape[1] / 1280)
+    assert badge[1] + badge[3] // 2 - BADGE_TO_CENTRE == 429
+
+
+def test_the_player_is_the_node_burning_a_yellow_flame():
+    """Only the player's locomotive is lit yellow: 211 px against 0-17 everywhere else."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261006-035828/frame-0008.png')
+    markers = node_markers(image, template=template)
+    assert yellow_flame_player(markers, image) == (711, 429)
+
+
+def test_map_candidates_never_offer_the_players_own_node():
+    """The player's node is dropped by radius, and the rest are ordered nearest first.
+
+    A far chest two columns away opened the panel live while its neighbour did not, so
+    the list is only an order; what it must never do is hand the player's own node back
+    as the sole candidate (that is what made an unreachable-node retry loop pointless).
+    """
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261006-033107/frame-0005.png')
+    markers = node_markers(image, template=template)
+    player = yellow_flame_player(markers, image)
+    assert player == (711, 429)
+    centres = [(m.node[0] + m.node[2] // 2, m.node[1] + m.node[3] // 2)
+               for m in advance_candidates(markers, player)]
+    assert player not in centres
+    assert centres[0] == (1095, 429)
+    # Without a player reading the list is still complete, just ordered topmost first.
+    topmost = [(m.node[0] + m.node[2] // 2, m.node[1] + m.node[3] // 2)
+               for m in advance_candidates(markers)]
+    assert topmost[0] == (327, 109)
+    assert len(topmost) == len(markers)
+
+
+def test_the_ornament_fallback_lifts_the_node_box_below_the_glyph():
+    """A bright interior orbit sits near the top of the hexagon, not at its centre."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    image, _ = live_map(root, 'window-20261006-035828/frame-0008.png')
+    markers = node_markers(image)
+    assert len(markers) == 1
+    ornament, node = markers[0].ornament, markers[0].node
+    # The component's centroid is not exactly its bounding-box centre (the glyph is
+    # irregular), so this only has to show the box was lifted, not by a pixel-exact 70.
+    lifted = node[1] + node[3] // 2 - (ornament[1] + ornament[3] // 2)
+    assert abs(lifted - ORNAMENT_LIFT) <= 4
+
+
+def test_the_map_survives_a_header_ocr_merges_into_one_token():
+    """The third live shape: 'Exploring Floor' as a single token, digit dropped.
+
+    evidence/runtime/window-20261006-040651/frame-0001.json reads the header as
+    'Exploring Floor' [60,133,330,41] with no floor number anywhere, which neither the
+    combined pattern (it demanded a digit) nor the split one (it demanded the token be
+    exactly 'Exploring') accepted, so the live page fell back to UNKNOWN.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-040651/frame-0001.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert (header.floor, header.pack) == (None, 'To be Cleaved')
+    assert header.exploring_text.box == (60, 133, 330, 41)
+    assert map_page(records, tuple(data['size'])) is True
+
+
+def test_a_panel_frame_carries_no_node_badges():
+    """The reward-card panel's bright art must not read as a map (0.695 at the same ROI)."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    cv2 = pytest.importorskip('cv2')
+    image = root / 'evidence/runtime/window-20261006-034714/frame-0022.png'
+    template = root / 'assets/resource/base/image/map/node_badge.png'
+    if not (image.exists() and template.exists()):
+        pytest.skip('retained live panel evidence is not present')
+    frame, badge = cv2.imread(str(image)), cv2.imread(str(template))
+    size = (round(badge.shape[1] * frame.shape[1] / 1280),
+            round(badge.shape[0] * frame.shape[0] / 1280))
+    scaled = cv2.resize(badge, size, interpolation=cv2.INTER_LINEAR)
+    assert float(cv2.matchTemplate(frame, scaled, cv2.TM_CCOEFF_NORMED).max()) < 0.80

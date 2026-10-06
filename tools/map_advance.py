@@ -29,11 +29,22 @@ from maa.toolkit import Toolkit
 from maalimbus.adb_device import build, discover, foreground_of, input_policy
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.map_vision import advance_plan, flame_player, likely_player, node_markers, player_marker
+from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, advance_plan, flame_player,
+                                  likely_player, node_markers, player_marker,
+                                  yellow_flame_player)
 from maalimbus.vision import inset_box
 from recognition import Journal, LimbusRecognition, MapObservation
 
 AUTHORIZATION = ROOT / 'build/map-probe-authorization.json'
+
+
+def node_badge_template():
+    """The crescent emblem every map node hangs under its hexagon, or None."""
+    if not hasattr(node_badge_template, 'cache'):
+        path = ROOT / 'assets/resource/base' / NODE_BADGE_TEMPLATE
+        node_badge_template.cache = cv2.imread(str(path)) if path.exists() else None
+    return node_badge_template.cache
+
 PIPELINE_DIR = ROOT / 'build/map-advance-debug'
 PIPELINE = {
     'MapObserve': {
@@ -139,8 +150,9 @@ def main() -> int:
         if image is None:
             result.update(refused='no_frame_image_to_read_nodes_from', passed=False)
             return 1
-        markers = node_markers(image)
-        player = player_marker(image) or flame_player(markers, image) or likely_player(markers)
+        markers = node_markers(image, template=node_badge_template())
+        player = (yellow_flame_player(markers, image) or player_marker(image)
+                  or flame_player(markers, image) or likely_player(markers))
         plan = advance_plan(markers, player, args.index)
         result.update(frame=frame_name, markers=[m.node for m in markers], plan=plan,
                       index=args.index)

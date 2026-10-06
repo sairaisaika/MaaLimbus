@@ -40,8 +40,9 @@ from maalimbus import anchors
 from maalimbus.adb_device import build, discover, foreground_of, input_policy
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.map_vision import (advance_candidates, flame_player, likely_player,
-                                  node_markers, player_marker)
+from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, advance_candidates, flame_player,
+                                  likely_player, node_markers, player_marker,
+                                  yellow_flame_player)
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import counter_state
 from maalimbus.team_vision import CARD_COUNT, card_states
@@ -185,6 +186,14 @@ def observe(tasker, directory, deadline):
     return record
 
 
+def node_badge_template():
+    """The crescent emblem every map node hangs under its hexagon, or None."""
+    if not hasattr(node_badge_template, 'cache'):
+        path = ROOT / 'assets/resource/base' / NODE_BADGE_TEMPLATE
+        node_badge_template.cache = cv2.imread(str(path)) if path.exists() else None
+    return node_badge_template.cache
+
+
 def candidates_of(directory, record):
     """Node boxes for a MAP page, nearest to the player's own node first.
 
@@ -199,24 +208,12 @@ def candidates_of(directory, record):
     image, name = latest_frame(directory)
     if image is None:
         return None, None
-    markers = node_markers(image)
+    markers = node_markers(image, template=node_badge_template())
     if not markers:
         return name, []
-
-    def distance(marker, player):
-        x, y, w, h = marker.node
-        return (x + w // 2 - player[0]) ** 2 + (y + h // 2 - player[1]) ** 2
-
-    player = flame_player(markers, image) or likely_player(markers)
-    ordered = list(markers)
-    if player is not None:
-        ordered.sort(key=lambda marker: distance(marker, player))
-        # The player stands on one of the detected nodes, and that node is not a
-        # candidate; drop by radius instead of blindly dropping the first entry.
-        elsewhere = [m for m in ordered if distance(m, player) > 40 * 40]
-        ordered = elsewhere or ordered
-    else:
-        ordered.sort(key=lambda m: (m.ornament[1], m.ornament[0]))
+    player = (yellow_flame_player(markers, image) or flame_player(markers, image)
+              or likely_player(markers))
+    ordered = advance_candidates(markers, player)
     return name, [list(marker.node) for marker in ordered]
 
 
@@ -323,10 +320,12 @@ def main() -> int:
                              'not refusals; the victory banner alone held the screen for '
                              'about 25 s in window-20261006-033014)')
     parser.add_argument('--interval', type=float, default=4.0)
-    parser.add_argument('--map-tries', type=int, default=1,
+    parser.add_argument('--map-tries', type=int, default=6,
                         help='how many map nodes one MAP step may try: a node that is not '
                              'connected to where the run stands opens no panel and is a '
-                             'no-op, so the next candidate is tried instead of stopping')
+                             'no-op, so the next candidate is tried instead of stopping '
+                             '(a floor-1 frame shows up to six nodes, and only the ones '
+                             'joined to the player by a path can open a panel)')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one run: a misleading overlay once produced twelve '
