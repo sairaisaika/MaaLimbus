@@ -83,7 +83,7 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-              reward=None, gift=None, cards=None):
+              reward=None, gift=None, cards=None, graces=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -93,7 +93,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     plan = _plan_step(page, controls=controls, start_box=start_box,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
-                      team=team, reward=reward, gift=gift, cards=cards)
+                      team=team, reward=reward, gift=gift, cards=cards, graces=graces)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -103,7 +103,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-               reward=None, gift=None, cards=None):
+               reward=None, gift=None, cards=None, graces=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -367,6 +367,27 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_GET', 'GIFT_PICK', 'MAP', 'UNKNOWN'),
                      reason='select_takes_the_picked_floor_gifts')
+    if page == 'STAR_GRACES':
+        # The Graces page sells buffs for starlight. The rotation's own card order is
+        # the instruction and the budget is what the run may still spend, so the
+        # planner buys exactly the next card the driver says is affordable and leaves
+        # through the page's Enter otherwise (live:
+        # evidence/runtime/window-20261006-193843/frame-0004.json reads the page title
+        # and Enter [1740,986,102,42]).
+        buy = graces or {}
+        point = buy.get('point')
+        if point is not None and buy.get('card'):
+            return _plan(page, CLICK,
+                         target=[point[0] - 45, point[1] - 23, 90, 46],
+                         expect=(ANY,), advance=True,
+                         reason='grace_card_is_bought_within_the_available_starlight',
+                         detail={'card': buy['card']})
+        box = controls.get('graces.enter_button')
+        if box is None:
+            return _refuse(page, 'graces_enter_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+                     reason='the_graces_page_is_left_with_its_own_enter')
     if page == 'LEVEL_WARNING':
         # A rotation team whose average level sits below the recommendation raises
         # this prompt; the rotation is the instruction, so the run proceeds and Cancel

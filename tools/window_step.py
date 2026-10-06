@@ -43,6 +43,7 @@ from maalimbus.event_vision import choice_options, gift_hints, preferred_choice
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus import session_flow as flows
+from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, counter_state,
                                      gift_cards, select_ready)
@@ -456,6 +457,14 @@ def main() -> int:
                         help='which TEAMS slot the rotation brings on the loadout page '
                              '(1..7): the official ledger stands at team 5, so the '
                              'planner clicks that slot once and then Confirm')
+    parser.add_argument('--graces', default='1,3,5,6,8',
+                        help='Grace cards the run buys, as 1-based board positions in '
+                             'the order to try; unaffordable ones are skipped (the '
+                             'player asked for 1,3,5,6,8 while testing)')
+    parser.add_argument('--grace-budget', type=int, default=60,
+                        help='starlight the Graces page may spend when its own '
+                             '"Available" counter does not read; the live page showed '
+                             'Owned 7541 -> Available 60')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one run: a misleading overlay once produced twelve '
@@ -545,6 +554,9 @@ def main() -> int:
         page = None
         tutorial_cards = set()
         team_slot_picked = None
+        grace_wanted = [int(part) for part in str(args.graces).replace(' ', '').split(',')
+                        if part.strip().isdigit()]
+        grace_bought = set()
         boxes = []
         if args.observe_page:
             record = observe(tasker, directory, deadline)
@@ -732,14 +744,29 @@ def main() -> int:
                     record.get('size') or (1920, 1080))
             else:
                 gift_picks = 0
+            graces = None
+            if page == 'STAR_GRACES':
+                texts = [Text(t['text'], tuple(t['box']), t['score'])
+                         for t in record.get('ocr') or []]
+                available = available_starlight(texts, record.get('size') or (1920, 1080))
+                if available is None:
+                    available = args.grace_budget - sum(cost_of(i) for i in grace_bought)
+                wanted = plan_purchases(grace_wanted, available, bought=grace_bought)
+                points = plus_points(texts, record.get('size') or (1920, 1080))
+                if wanted and wanted[0] in points:
+                    graces = {'card': wanted[0], 'point': points[wanted[0]],
+                              'available': available}
+            else:
+                grace_bought = set()
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
-                             team=team, reward=reward, gift=gift, cards=cards)
+                             team=team, reward=reward, gift=gift, cards=cards,
+                             graces=graces)
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
-                     'reward': reward, 'gift': gift, 'cards': cards,
+                     'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
@@ -808,6 +835,9 @@ def main() -> int:
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.
                 team_slot_picked = plan['detail']['slot']
+            if entry['passed'] and plan.get('detail', {}).get('card'):
+                # That grace is paid for; the next step buys the next affordable card.
+                grace_bought.add(plan['detail']['card'])
             if not entry['passed'] and entry['reason'] == 'unexpected_successor':
                 # Live run build/window-run36 pressed To Battle! on a full 12/12 team
                 # page, and the settle loop still read PRE_BATTLE_TEAM while the game

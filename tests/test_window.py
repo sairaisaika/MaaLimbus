@@ -319,6 +319,30 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
+    # Live: evidence/runtime/window-20261006-193843/frame-0004.json reads the page
+    # title at the top left and its own Enter at [1740,986,102,42]; the + button of
+    # card 1 sits at (271,534).
+    enter = [1740, 986, 102, 42]
+    buy = plan_step('STAR_GRACES', controls={'graces.enter_button': enter},
+                    graces={'card': 1, 'point': (271, 534)})
+    assert buy['action'] == CLICK
+    assert buy['target'] == [226, 511, 90, 46]
+    assert buy['advance'] is True
+    assert buy['reason'] == 'grace_card_is_bought_within_the_available_starlight'
+    assert buy['detail'] == {'card': 1}
+    leave = plan_step('STAR_GRACES', controls={'graces.enter_button': enter})
+    assert leave['target'] == enter
+    assert leave['reason'] == 'the_graces_page_is_left_with_its_own_enter'
+    assert successor_ok(leave, 'INITIAL_GIFTS') and successor_ok(leave, 'MAP')
+    assert not successor_ok(leave, 'STAR_GRACES')
+    # A grace the driver could not locate must not turn into a blind click.
+    assert plan_step('STAR_GRACES', controls={})['reason'] == 'graces_enter_not_anchored'
+    # A located grace is still bought even when the page anchor is missing.
+    assert plan_step('STAR_GRACES', controls={},
+                     graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
+
+
 def test_the_level_warning_proceeds_and_never_cancels():
     # Live proof: evidence/runtime/window-20261006-193730/frame-0003.json is the
     # prompt the rotation team raises (avg level 55 against a recommended 60).

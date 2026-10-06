@@ -1951,6 +1951,43 @@
           }
         }
       ]
+    },
+    {
+      "id": "star_graces",
+      "title": "Grace of the Star 页（十张 Grace 卡各带 ⭐价格与 +/++，右下 Enter）",
+      "evidence": [
+        "evidence/runtime/window-20261006-193843/frame-0004.json"
+      ],
+      "identity": [
+        {
+          "id": "graces.title",
+          "kind": "ocr",
+          "pattern": "^Grace of the Star of Names$",
+          "roi": [
+            0.08,
+            0.01,
+            0.34,
+            0.07
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "graces.enter_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-193843/frame-0004.json",
+            "box": [
+              1740,
+              986,
+              102,
+              42
+            ],
+            "source": "实测 OCR 框＝右下 Enter；不买任何 Grace 时用它进局"
+          }
+        }
+      ]
     }
   ],
   "pending": [
