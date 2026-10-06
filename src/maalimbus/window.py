@@ -410,7 +410,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if box is None:
             return _refuse(page, 'initial_gift_select_not_anchored')
         return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'THEME_PACKS', 'UNKNOWN'),
+                     expect=('GIFT_GET', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason='select_takes_the_starting_gift')
     if page == 'STAR_CONFIRM':
         # The Graces page hands off to this prompt ("Continue with selected effects?").
