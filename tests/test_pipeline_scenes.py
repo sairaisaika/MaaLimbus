@@ -82,9 +82,23 @@ def test_a_plain_click_node_carries_a_click_bound():
     assert unbounded == [], 'plain click nodes without a click bound: %s' % unbounded
 
 
-def _routes(name: str) -> bool:
+def _all_nodes() -> dict:
+    nodes = {}
     for path in sorted((ROOT / 'assets' / 'resource').glob('**/pipeline/*.json')):
-        node = json.loads(path.read_text(encoding='utf-8')).get(name)
-        if node is not None:
-            return bool(node.get('next') or node.get('on_error'))
-    return False
+        for name, node in json.loads(path.read_text(encoding='utf-8')).items():
+            assert name not in nodes, 'node %s is defined twice' % name
+            nodes[name] = node
+    return nodes
+
+
+def test_every_route_target_is_a_node_that_exists():
+    """A `next`/`on_error` pointing at a missing node is a runtime dead end."""
+    nodes = _all_nodes()
+    missing = sorted({
+        '%s -> %s' % (name, target)
+        for name, node in nodes.items()
+        for key in ('next', 'on_error')
+        for target in (node.get(key) or [])
+        if target not in nodes
+    })
+    assert missing == [], 'routes pointing at missing nodes: %s' % missing
