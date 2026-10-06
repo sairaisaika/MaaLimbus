@@ -2051,6 +2051,69 @@
           }
         }
       ]
+    },
+    {
+      "id": "initial_gifts",
+      "title": "开局初始 E.G.O Gift 选择页（八列关键词、Selected E.G.O Gift 托盘、Select 0/1）",
+      "evidence": [
+        "evidence/runtime/window-20261006-194741/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "initial_gifts.title",
+          "kind": "ocr",
+          "pattern": "^Selected E\\.?G\\.?O Gift$",
+          "roi": [
+            0.58,
+            0.18,
+            0.78,
+            0.26
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "initial_gifts.bleed_column",
+          "kind": "ocr",
+          "pattern": "^Bleed$",
+          "roi": [
+            0.24,
+            0.19,
+            0.32,
+            0.26
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "initial_gifts.select_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-194741/frame-0001.json",
+            "box": [
+              1524,
+              859,
+              110,
+              42
+            ],
+            "source": "实测 OCR 框；计数 0/1 在它右边 [1684,851,62,52]"
+          }
+        },
+        {
+          "id": "initial_gifts.refuse_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-194741/frame-0001.json",
+            "box": [
+              1256,
+              865,
+              150,
+              28
+            ],
+            "source": "只登记以拒点：Refuse Gift 会放弃开局礼物"
+          }
+        }
+      ]
     }
   ],
   "pending": [

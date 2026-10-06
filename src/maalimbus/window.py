@@ -48,7 +48,7 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
-                      'star_confirm.cancel_button')
+                      'star_confirm.cancel_button', 'initial_gifts.refuse_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -84,7 +84,7 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-              reward=None, gift=None, cards=None, graces=None):
+              reward=None, gift=None, cards=None, graces=None, initial=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -94,7 +94,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     plan = _plan_step(page, controls=controls, start_box=start_box,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
-                      team=team, reward=reward, gift=gift, cards=cards, graces=graces)
+                      team=team, reward=reward, gift=gift, cards=cards, graces=graces,
+                      initial=initial)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -104,7 +105,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-               reward=None, gift=None, cards=None, graces=None):
+               reward=None, gift=None, cards=None, graces=None, initial=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -389,6 +390,26 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
                      reason='the_graces_page_is_left_with_its_own_enter')
+    if page == 'INITIAL_GIFTS':
+        # The run opens on the starting E.G.O Gift picker: eight keyword columns, a
+        # "Selected E.G.O Gift" tray, and a Select button that stays inert until the
+        # counter fills. The rotation's keyword names the column and the first icon
+        # under it is the gift (live:
+        # evidence/runtime/window-20261006-195104/frame-0001.json reads 'Bleed'
+        # [510,236,64,32], Select [1524,859,110,42] and '0/1' [1684,851,62,52]).
+        state = initial or {}
+        point = state.get('point')
+        if point is not None:
+            return _plan(page, CLICK, target=[point[0] - 30, point[1] - 30, 60, 60],
+                         expect=(ANY,), advance=True,
+                         reason='the_starting_gift_is_picked_from_the_rotation_keyword',
+                         detail={'keyword': state.get('keyword')})
+        box = controls.get('initial_gifts.select_button')
+        if box is None:
+            return _refuse(page, 'initial_gift_select_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('MAP', 'THEME_PACKS', 'INITIAL_GIFTS', 'UNKNOWN'),
+                     reason='select_takes_the_starting_gift')
     if page == 'STAR_CONFIRM':
         # The Graces page hands off to this prompt ("Continue with selected effects?").
         # Live: evidence/runtime/window-20261006-194533/frame-0001.json reads its title,

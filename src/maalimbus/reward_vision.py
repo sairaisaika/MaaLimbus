@@ -44,6 +44,39 @@ COUNTER_BAND = (0.60, 0.05, 1.0, 0.30)
 #: Live evidence evidence/runtime/window-20261006-043102/frame-0003.json.
 GIFT_COUNTER_BAND = (0.84, 0.74, 1.0, 0.90)
 
+#: the starting E.G.O Gift page's pick counter ("0/1") sits under its Select button.
+#: Live evidence evidence/runtime/window-20261006-195104/frame-0001.json: '0/1'
+#: [1684,851,62,52] floating over the page's DANGER! strip, with Select
+#: [1524,859,110,42].
+INITIAL_COUNTER_BAND = (0.82, 0.76, 0.98, 0.89)
+
+#: from a keyword panel's title centre to the first gift icon under it, in 1920-wide
+#: pixels. Live: 'Bleed' [510,236,64,32] with the first icon of its column at (503,360)
+#: and the second at (503,510) on evidence/runtime/window-20261006-195104/frame-0001.json.
+KEYWORD_TO_ICON = (-39, 108)
+
+
+def keyword_panel_point(records, size, keyword):
+    """Centre of the first gift icon under ``keyword``'s panel, or ``None``.
+
+    The starting page shows eight keyword columns (Burn, Bleed, Tremor, Rupture,
+    Sinking, Poise, Charge, Slash) whose titles OCR reads reliably while the icons
+    themselves carry no text at all, so the rotation's keyword is what locates the
+    gift to take.
+    """
+    wanted = (keyword or '').strip().lower()
+    if not wanted:
+        return None
+    for record in records or []:
+        if (getattr(record, 'text', '') or '').strip().lower() != wanted:
+            continue
+        box = list(getattr(record, 'box', None) or [])
+        if len(box) != 4:
+            continue
+        return (int(box[0] + box[2] / 2 + KEYWORD_TO_ICON[0]),
+                int(box[1] + box[3] / 2 + KEYWORD_TO_ICON[1]))
+    return None
+
 #: grayscale mean over the floor gift page's Select button that counts as lit.
 #:
 #: The three-card round prints no counter at all (a bare ``Select``), so the button's

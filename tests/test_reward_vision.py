@@ -149,3 +149,17 @@ def test_a_derived_gift_card_is_used_before_the_anchored_slot():
                                    'gift_pick.card_02': [732, 300, 240, 200],
                                    'gift_pick.select_button': [1620, 851, 100, 36]})
     assert fallback['target'] == [337, 300, 240, 200]
+
+
+def test_the_starting_gift_column_names_the_icon_under_it():
+    # Live: evidence/runtime/window-20261006-194741/frame-0001.json reads 'Bleed'
+    # [510,236,64,32], while the icons under it carry no text at all — the first one
+    # sits at (503,360), which is what the planner clicks.
+    from maalimbus.reward_vision import INITIAL_COUNTER_BAND, keyword_panel_point
+    assert INITIAL_COUNTER_BAND == (0.82, 0.76, 0.98, 0.89)
+    records = [Text('Bleed', (510, 236, 64, 32), 1.0),
+               Text('Burn', (294, 238, 52, 28), 1.0)]
+    assert keyword_panel_point(records, SIZE, 'bleed') == (503, 360)
+    assert keyword_panel_point(records, SIZE, 'Bleed') == (503, 360)
+    assert keyword_panel_point(records, SIZE, 'slash') is None
+    assert keyword_panel_point(records, SIZE, '') is None

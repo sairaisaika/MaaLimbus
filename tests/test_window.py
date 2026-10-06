@@ -343,6 +343,34 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
+def test_the_starting_gift_comes_from_the_rotation_keyword_then_select():
+    # Live: evidence/runtime/window-20261006-194741/frame-0001.json reads the tray
+    # title, the Bleed column and Select [1524,859,110,42] with its '0/1' counter.
+    select = [1524, 859, 110, 42]
+    take = plan_step('INITIAL_GIFTS', controls={'initial_gifts.select_button': select},
+                     initial={'point': (503, 360), 'keyword': 'bleed',
+                              'chosen': 0, 'required': 1})
+    assert take['action'] == CLICK
+    assert take['target'] == [473, 330, 60, 60]
+    assert take['advance'] is True
+    assert take['reason'] == 'the_starting_gift_is_picked_from_the_rotation_keyword'
+    assert take['detail'] == {'keyword': 'bleed'}
+    leave = plan_step('INITIAL_GIFTS', controls={'initial_gifts.select_button': select},
+                      initial={'point': None, 'keyword': 'bleed'})
+    assert leave['target'] == select
+    assert leave['reason'] == 'select_takes_the_starting_gift'
+    assert successor_ok(leave, 'MAP') and successor_ok(leave, 'THEME_PACKS')
+    # A keyword the frame does not show must never become a blind click.
+    assert plan_step('INITIAL_GIFTS', controls={})['reason'] == \
+        'initial_gift_select_not_anchored'
+    # Refuse Gift abandons the starting gift, so it is never a target.
+    refused = [1256, 865, 150, 28]
+    stolen = plan_step('INITIAL_GIFTS',
+                       controls={'initial_gifts.select_button': refused,
+                                 'initial_gifts.refuse_button': refused})
+    assert stolen['reason'] == 'control_is_forbidden'
+
+
 def test_the_grace_selection_prompt_confirms_and_never_cancels():
     # Live: evidence/runtime/window-20261006-194533/frame-0001.json is the prompt the
     # Graces page hands off to.

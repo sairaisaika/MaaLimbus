@@ -45,8 +45,9 @@ from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus import session_flow as flows
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
-from maalimbus.reward_vision import (GIFT_COUNTER_BAND, counter_state,
-                                     gift_cards, select_ready)
+from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
+                                     counter_state, gift_cards, keyword_panel_point,
+                                     select_ready)
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import (NODE, SWIPE, plan_step, resolve_overlay,
@@ -465,6 +466,10 @@ def main() -> int:
                         help='starlight the Graces page may spend when its own '
                              '"Available" counter does not read; the live page showed '
                              'Owned 7541 -> Available 60')
+    parser.add_argument('--gift-keyword', default='bleed',
+                        help='keyword column the starting E.G.O Gift comes from; the '
+                             'rotation currently runs the Bleed team, so its column '
+                             'names the first gift to take')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one run: a misleading overlay once produced twelve '
@@ -661,6 +666,7 @@ def main() -> int:
         map_skips = set()
         map_attempts = 0
         gift_picks = 0
+        initial_picked = 0
         repeated_plans = {}
         while step < goal:
             record = observe(tasker, directory, deadline)
@@ -744,6 +750,17 @@ def main() -> int:
                     record.get('size') or (1920, 1080))
             else:
                 gift_picks = 0
+            initial = None
+            if page == 'INITIAL_GIFTS':
+                texts = [Text(t['text'], tuple(t['box']), t['score'])
+                         for t in record.get('ocr') or []]
+                state = counter_state(record, band=INITIAL_COUNTER_BAND) or {}
+                # One icon click per visit: the tray holds a single gift, and a second
+                # click would either be ignored or toggle the first one back off.
+                point = (keyword_panel_point(texts, record.get('size') or (1920, 1080))
+                         if initial_picked == 0 else None)
+                initial = {'chosen': state.get('chosen'), 'required': state.get('required'),
+                           'point': point, 'keyword': args.gift_keyword}
             graces = None
             if page == 'STAR_GRACES':
                 texts = [Text(t['text'], tuple(t['box']), t['score'])
@@ -763,10 +780,11 @@ def main() -> int:
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
                              team=team, reward=reward, gift=gift, cards=cards,
-                             graces=graces)
+                             graces=graces, initial=initial)
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                      'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
+                     'initial': initial,
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
@@ -874,6 +892,8 @@ def main() -> int:
             map_attempts = 0
             if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
                 gift_picks += 1
+            if plan.get('detail', {}).get('keyword') and entry.get('passed'):
+                initial_picked += 1
             if page not in LOOP_GUARD_EXEMPT:
                 # A plan that keeps succeeding while the page never moves on is a
                 # loop, not progress: live run window-20261006-034009 passed twelve
