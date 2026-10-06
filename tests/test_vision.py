@@ -76,3 +76,17 @@ def test_tutorial_and_incomplete_modal_veto_underlying_enter():
     assert classify(underneath+[prompt,cancel,confirm],words,(1000,1000))=='ENTRY_CONFIRM'
     for incomplete in ([prompt,confirm],[cancel,confirm],[prompt,cancel]):
         assert classify(underneath+incomplete,words,(1000,1000))=='UNKNOWN_DIALOG'
+
+
+def test_dungeon_progress_prompt_is_a_named_resume_page():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-025617/frame-0002.json is the
+    # prompt an in-progress run shows when Enter is pressed again. Halt
+    # Exploration would throw that run away, so the page has to be named here
+    # instead of being vetoed as an unnamed dialog.
+    page = [Text('Dungeon Progress', (445, 310, 120, 26), .99),
+            Text('Resume', (470, 536, 62, 30), .99),
+            Text('Halt Exploration', (440, 600, 140, 30), .99),
+            Text('Cancel', (455, 666, 70, 28), .99)]
+    assert classify(page, words, (1000, 1000)) == 'RESUME_DIALOG'
+    assert classify(page[1:], words, (1000, 1000)) == 'UNKNOWN_DIALOG'

@@ -31,5 +31,8 @@
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
   "acquire_gift": "^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^Owned$",
-  "gift_confirm": "^Confirm$"
+  "gift_confirm": "^Confirm$",
+  "resume_dialog": "^Dungeon Progress$",
+  "resume": "^Resume$",
+  "halt_exploration": "^Halt Exploration$"
 }

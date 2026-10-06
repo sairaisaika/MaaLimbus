@@ -314,6 +314,14 @@
       "evidence": ["evidence/runtime/window-20261006-023714/frame-0001.json"],
       "identity": [
         {
+          "id": "tutorial.next_glyph",
+          "kind": "template",
+          "template": "image/navigation/tutorial_next.png",
+          "roi": [0.89, 0.44, 1.0, 0.55],
+          "threshold": 0.85,
+          "note": "橙色 ▶ 继续控件本身＝浮层身份：浮层每张卡片的文案都会换，只有这个控件不变，故用它判定「浮层还压在上面」。阈值必须 ≥.85：真实浮层卡命中 0.9984，而没有浮层的真实进入页会在 [1833,494] 一带误命中 0.7607（那里压着灰掉的 INFINITY MIRROR 按钮）"
+        },
+        {
           "id": "tutorial.season_intro",
           "kind": "ocr",
           "pattern": "^Season 7's Mirror Dungeon is called$",
@@ -340,6 +348,55 @@
           }
         }
       ]
+    },
+    {
+      "id": "resume_dialog",
+      "title": "中途再入场确认（Dungeon Progress：Resume / Halt Exploration / Cancel）",
+      "evidence": ["evidence/runtime/window-20261006-025617/frame-0002.json"],
+      "identity": [
+        {
+          "id": "resume.progress_title",
+          "kind": "ocr",
+          "pattern": "^Dungeon Progress$",
+          "roi": [0.42, 0.29, 0.58, 0.35],
+          "threshold": 0.85
+        },
+        {
+          "id": "resume.resume_label",
+          "kind": "ocr",
+          "pattern": "^Resume$",
+          "roi": [0.45, 0.52, 0.55, 0.58],
+          "threshold": 0.85
+        },
+        {
+          "id": "resume.halt_label",
+          "kind": "ocr",
+          "pattern": "^Halt Exploration$",
+          "roi": [0.43, 0.58, 0.57, 0.64],
+          "threshold": 0.85,
+          "note": "这行字存在只用来确认「这是中途再入场弹窗」；它上面的按钮永远不许点"
+        }
+      ],
+      "controls": [
+        {
+          "id": "resume.resume_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-025617/frame-0002.json",
+            "box": [902, 579, 114, 34],
+            "source": "实测 OCR 框＝Resume；点它回到进行中的那一局（F1 / To be Cleaved [HARD]），不消耗脑啡肽"
+          }
+        },
+        {
+          "id": "resume.halt_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-025617/frame-0002.json",
+            "box": [848, 647, 222, 33],
+            "source": "Halt Exploration＝放弃当前这一局；登记它只为让 window.FORBIDDEN_CONTROLS 拒点，绝不允许任何计划以它为落点"
+          }
+        }
+      ]
     }
   ],
   "pending": [
@@ -349,6 +406,6 @@
     {"id": "shop", "what": "商店（Boss 前必有）", "why": "预算体力兑换与购买策略的入口"},
     {"id": "event_dialog", "what": "异想体事件（问号节点）选项页", "why": "问号节点是寻路主力，选项分支需要数字契约"},
     {"id": "next_floor", "what": "下一层入口 / 楼层切换", "why": "五层推进的状态机"},
-    {"id": "run_end_entry_return", "what": "轮换再入场（回到镜牢入口）", "why": "收据＋轮换 index 推进的终点"}
+    {"id": "run_end_entry_return", "what": "一局结束后的结算出口与回到镜牢入口再入场", "why": "收据＋轮换 index 推进的终点；「中途再入场」的 Dungeon Progress 弹窗已在 resume_dialog 页证明，仍缺一局结束后的出口路径"}
   ]
 }

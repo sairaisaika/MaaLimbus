@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.window import (CLICK, NODE, RECORD, plan_step, step_result,
-                              successor_ok)  # noqa: E402
+from maalimbus.window import (CLICK, NODE, RECORD, plan_step, resolve_overlay,
+                              step_result, successor_ok)  # noqa: E402
 
 CONTROLS = {'node_panel.enter_button': [1668, 780, 124, 63],
             'pre_battle.battle_button': [1674, 859, 144, 44],
@@ -140,3 +140,38 @@ def test_tutorial_overlay_advances_before_entry_is_live():
     unanchored = plan_step('TUTORIAL', controls={})
     assert unanchored['action'] == RECORD
     assert unanchored['reason'] == 'tutorial_next_button_not_anchored'
+
+
+def test_tutorial_overlay_outranks_the_page_it_covers():
+    # Live proof: card 2 of the overlay (evidence/runtime/window-20261006-024050/
+    # frame-0002.json) is not in the OCR token, so the covered entry page would be
+    # planned and its inert Enter would swallow the step. The continue control is
+    # the overlay's stable identity, so it outranks the label underneath.
+    assert resolve_overlay('MIRROR_ENTRY', overlay_hit=True) == 'TUTORIAL'
+    assert resolve_overlay('TUTORIAL', overlay_hit=True) == 'TUTORIAL'
+    assert resolve_overlay('MIRROR_ENTRY', overlay_hit=False) == 'MIRROR_ENTRY'
+    assert resolve_overlay('MAP', overlay_hit=None) == 'MAP'
+
+
+def test_resume_dialog_resumes_and_never_halts_the_run():
+    # Live proof: evidence/runtime/window-20261006-025617/frame-0002.json is the
+    # "Dungeon Progress" prompt of a run that a second Enter press re-opens.
+    resume = [902, 579, 114, 34]
+    plan = plan_step('RESUME_DIALOG', controls={'resume.resume_button': resume})
+    assert plan['action'] == CLICK
+    assert plan['target'] == resume
+    assert plan['reason'] == 'resume_rejoins_the_run_that_is_already_in_progress'
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'SHOP')
+    missing = plan_step('RESUME_DIALOG', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'resume_button_not_anchored'
+    # The page carries Halt Exploration, and no plan may ever land on it: not by
+    # naming it as the control to click, and not by a mis-registered resume anchor.
+    halt = [848, 647, 222, 33]
+    named = plan_step('RESUME_DIALOG', controls={'resume.halt_button': halt})
+    assert named['action'] == RECORD
+    misregistered = plan_step('RESUME_DIALOG',
+                              controls={'resume.resume_button': halt,
+                                        'resume.halt_button': halt})
+    assert misregistered['action'] == RECORD
+    assert misregistered['reason'] == 'control_is_forbidden'

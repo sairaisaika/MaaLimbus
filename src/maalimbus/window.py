@@ -32,6 +32,23 @@ OBSERVE_ONLY = ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
 #: pages whose only input is an existing, already proven pipeline node.
 PAGE_NODES = {'DRIVE': 'WindowDrive'}
 
+#: controls a window must never click, whatever else is on the same page. Halt
+#: Exploration throws an in-progress run away, so it stays registered as an
+#: anchor (its label is how the page is identified) but is refused as a target.
+FORBIDDEN_CONTROLS = ('resume.halt_button',)
+
+
+def resolve_overlay(page, *, overlay_hit):
+    """Return the page the tutorial overlay covers, while its control is visible.
+
+    Live proof: ``evidence/runtime/window-20261006-024050/frame-0002.json`` is the
+    overlay's second card ("Weekly Bonuses"). The OCR token only knew the first
+    card, so the covered entry page was planned and its inert ``Enter`` swallowed
+    the step. The overlay's own continue control does not change from card to
+    card, so a visible continue control outranks the label underneath it.
+    """
+    return 'TUTORIAL' if overlay_hit else page
+
 
 def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=None):
     plan = {'page': page, 'action': action,
@@ -48,6 +65,24 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None):
+    """Return the one input (or the refusal) allowed on ``page``.
+
+    A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
+    here, so a mis-registered anchor can never abandon a run by itself.
+    """
+    controls = controls or {}
+    plan = _plan_step(page, controls=controls, start_box=start_box,
+                      auto_assign=auto_assign, candidates=candidates,
+                      candidate_index=candidate_index, nodes=nodes)
+    forbidden = {tuple(box) for name, box in controls.items()
+                 if name in FORBIDDEN_CONTROLS}
+    if plan.get('target') and tuple(plan['target']) in forbidden:
+        return _refuse(page, 'control_is_forbidden')
+    return plan
+
+
+def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
+               candidates=None, candidate_index=0, nodes=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -87,6 +122,13 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
                              'LEVEL_WARNING', 'ENTRY_CONFIRM', 'UNKNOWN'),
                      reason='before_entry_enter_starts_the_free_run')
+    if page == 'RESUME_DIALOG':
+        box = controls.get('resume.resume_button')
+        if box is None:
+            return _refuse(page, 'resume_button_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('MAP', 'THEME_PACKS', 'STAR_GRACES', 'INITIAL_GIFTS', 'UNKNOWN'),
+                     reason='resume_rejoins_the_run_that_is_already_in_progress')
     if page == 'MAP':
         if not candidates:
             return _refuse(page, 'no_candidate_node_observed')

@@ -35,13 +35,14 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
+from maalimbus import anchors
 from maalimbus.adb_device import build, discover, foreground_of, input_policy
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (advance_candidates, flame_player, likely_player,
                                   node_markers, player_marker)
 from maalimbus.vision import inset_box
-from maalimbus.window import NODE, plan_step, step_result
+from maalimbus.window import NODE, plan_step, resolve_overlay, step_result
 from recognition import (BattleObservation, Journal, LimbusRecognition,
                          MapObservation)
 
@@ -144,6 +145,35 @@ def candidates_of(directory, record):
     return name, [list(marker.node) for marker in advance_candidates(markers, player)]
 
 
+def overlay_hit(registry, directory, record):
+    """True when the tutorial overlay's own continue control is on screen.
+
+    The overlay's wording changes from card to card, so its identity is the
+    control itself: a visible continue glyph means whatever is behind it is still
+    covered and must not be treated as actionable.
+    """
+    image, name = latest_frame(directory)
+    if image is None:
+        return None
+    height, width = image.shape[:2]
+    observation = {'size': [width, height],
+                   'image_sha256': record.get('image_sha256')}
+    report = anchors.evaluate(registry, observation, page='tutorial',
+                              image_path=str(directory / name),
+                              template_root=ROOT / 'assets/resource/base')
+    for page in report['pages']:
+        for anchor in list(page.get('identity') or []) + list(page.get('controls') or []):
+            if anchor.get('id') == 'tutorial.next_glyph':
+                return anchor.get('hit')
+    return None
+
+
+def resolve_scene(registry, directory, record):
+    """Page identity, with the tutorial overlay taking precedence while it is up."""
+    return resolve_overlay(record['scene'],
+                           overlay_hit=bool(overlay_hit(registry, directory, record)))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
@@ -200,16 +230,28 @@ def main() -> int:
         assert tasker.bind(resource=resource, controller=controller)
 
         page = None
+        tutorial_cards = set()
         for step in range(max(0, args.steps)):
             record = observe(tasker, directory, deadline)
-            page = record['scene']
+            page = resolve_scene(registry, directory, record)
             frame, candidates = candidates_of(directory, record)
+            sha = record.get('image_sha256')
+            if page == 'TUTORIAL' and sha in tutorial_cards:
+                result['steps'].append({
+                    'step': step, 'page_before': page, 'scene_before': record['scene'],
+                    'frame': frame, 'observation': record, 'plan': None,
+                    'candidates': candidates, 'passed': False, 'clicks_sent': 0,
+                    'reason': 'tutorial_card_repeated',
+                    'stopped': 'tutorial_card_repeated'})
+                break
+            if page == 'TUTORIAL' and sha:
+                tutorial_cards.add(sha)
             plan = plan_step(page, controls=controls,
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates)
-            entry = {'step': step, 'page_before': page, 'frame': frame,
-                     'observation': record, 'plan': plan,
+            entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
+                     'frame': frame, 'observation': record, 'plan': plan,
                      'candidates': candidates}
             if plan['action'] not in ('click', NODE) or args.observe_only:
                 entry.update(step_result(plan, sent=False, before=page, after=None,
@@ -235,15 +277,23 @@ def main() -> int:
             entry.update(click_point=None if point is None else list(point), delay_ms=delay)
             time.sleep(delay / 1000)
             settled = None
+            settled_page = None
+            before_sha = record.get('image_sha256')
             for index in range(max(1, args.rounds)):
                 if index:
                     time.sleep(args.interval)
                 settled = observe(tasker, directory, deadline)
-                if settled['scene'] not in (page, 'UNKNOWN'):
+                settled_page = resolve_scene(registry, directory, settled)
+                if settled_page not in (page, 'UNKNOWN'):
                     break
-            entry.update(page_after=settled['scene'], settled=settled)
+                # A tutorial card keeps the same page label but changes the pixels,
+                # so a changed frame is the only evidence that the click landed.
+                if settled.get('image_sha256') not in (None, before_sha):
+                    break
+            entry.update(page_after=settled_page, settled=settled,
+                         scene_after=settled['scene'])
             entry.update(step_result(plan, sent=True, before=page,
-                                     after=settled['scene'], page=settled['scene']))
+                                     after=settled_page, page=settled_page))
             result['steps'].append(entry)
             if not entry['passed']:
                 entry['stopped'] = entry['reason']

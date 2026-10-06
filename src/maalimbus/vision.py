@@ -66,6 +66,15 @@ def classify(records, locale, size):
         and len(find(records,locale['gift_confirm'],(.53,.64,.68,.72),size,.85))==1
         and len(find(records,locale.get('cancel',r'(?!)'),(.34,.64,.48,.72),size,.85))==1):
         return 'LEVEL_WARNING'
+    # "Dungeon Progress" is the prompt a run that is already in progress shows
+    # when you press Enter again. Live evidence
+    # evidence/runtime/window-20261006-025617/frame-0002.json carries Resume,
+    # Halt Exploration and Cancel. Halt Exploration throws the run away, so this
+    # page must be named here instead of falling into the generic dialog veto.
+    if (find(records, locale.get('resume_dialog', r'(?!)'), (.42, .29, .58, .35), size, .85)
+        and find(records, locale.get('resume', r'(?!)'), (.45, .52, .55, .58), size, .85)
+        and find(records, locale.get('halt_exploration', r'(?!)'), (.43, .58, .57, .64), size, .85)):
+        return 'RESUME_DIALOG'
     if (find(records, locale.get('cancel', r'(?!)'), (.25,.25,.75,.80), size,.8)
         or find(records, locale.get('entry_confirm', r'(?!)'), (.30,.42,.70,.54), size,.8)):
         return 'UNKNOWN_DIALOG'

@@ -94,7 +94,9 @@ def resolve_evidence(registry, root):
     root = Path(root)
     for page in registry['pages']:
         for anchor in page.get('controls') or ():
-            record = anchor['verified_on']
+            record = anchor.get('verified_on')
+            if not isinstance(record, dict):
+                continue
             if record.get('sha256') or not record.get('frame'):
                 continue
             try:

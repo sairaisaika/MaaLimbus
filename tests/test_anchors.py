@@ -36,7 +36,8 @@ def test_shipped_registry_files_validate():
     loaded = anchors.load(REGISTRY)
     ids = [entry['id'] for entry in loaded['pages']]
     assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud',
-                   'battle_result', 'home', 'drive', 'before_entry', 'tutorial']
+                   'battle_result', 'home', 'drive', 'before_entry', 'tutorial',
+                   'resume_dialog']
     assert loaded['reference_width'] == 1280
     assert loaded['pending'], 'the registry must keep naming what is not proven yet'
 
