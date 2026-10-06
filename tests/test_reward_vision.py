@@ -1,5 +1,6 @@
 """The encounter reward page's pick counter (no device, no image)."""
 from pathlib import Path
+import json
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -7,8 +8,9 @@ sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.reward_vision import (COUNTER_BAND, GIFT_COUNTER_BAND,
                                      SELECT_READY_MEAN, button_mean,
-                                     counter_state,
+                                     counter_state, gift_cards,
                                      select_ready)  # noqa: E402
+from maalimbus.vision import Text  # noqa: E402
 
 import numpy as np  # noqa: E402
 
@@ -99,3 +101,51 @@ def test_an_unreadable_button_is_unknown_not_dark():
     assert button_mean(frame_with(200), None) is None
     assert select_ready(frame_with(200), (10, 10, 0, 20)) is None
     assert SELECT_READY_MEAN == 45.0
+
+
+def test_floor_gift_cards_come_from_the_frames_own_plates():
+    """The card's size follows how many gifts are offered, so the plate places it.
+
+    Four-card round evidence/runtime/window-20261006-051524/frame-0036.json hangs its
+    plates at [778,232,150,28] and [1176,232,146,28] with the cards' titles centred at
+    758 and 1155; the single-card round
+    evidence/runtime/window-20261006-103855/frame-0113.json hangs one plate at
+    [976,228,150,28] with nothing but "Rebate Token" under it, and the anchored slots
+    [337,300,240,200] miss that card entirely.
+    """
+    from pathlib import Path
+    import json
+    from maalimbus.reward_vision import gift_cards
+    root = Path(__file__).resolve().parents[1]
+    cases = {
+        'window-20261006-051524/frame-0036.json': [361, 758, 1154, 1551],
+        'window-20261006-103855/frame-0113.json': [956],
+    }
+    for name, centres in cases.items():
+        path = root / 'evidence/runtime' / name
+        if not path.exists():
+            pytest.skip('retained live floor-gift evidence is not present')
+        data = json.loads(path.read_text(encoding='utf-8'))
+        records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+        cards = gift_cards(records, tuple(data['size']))
+        assert [box[0] + box[2] // 2 for box in cards] == centres, name
+        assert all(box[2:] == [240, 200] for box in cards)
+
+
+def test_a_derived_gift_card_is_used_before_the_anchored_slot():
+    from maalimbus.window import plan_step
+    plan = plan_step('GIFT_PICK', gift={'chosen': 0, 'required': None, 'ready': False},
+                     cards=[[836, 248, 240, 200]],
+                     controls={'gift_pick.card_01': [337, 300, 240, 200],
+                               'gift_pick.card_02': [732, 300, 240, 200],
+                               'gift_pick.select_button': [1620, 851, 100, 36]})
+    assert plan['action'] == 'click'
+    assert plan['target'] == [836, 248, 240, 200]
+    assert plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select'
+    # Without a derived card the anchored slot is still the fallback.
+    fallback = plan_step('GIFT_PICK',
+                         gift={'chosen': 0, 'required': None, 'ready': False},
+                         controls={'gift_pick.card_01': [337, 300, 240, 200],
+                                   'gift_pick.card_02': [732, 300, 240, 200],
+                                   'gift_pick.select_button': [1620, 851, 100, 36]})
+    assert fallback['target'] == [337, 300, 240, 200]

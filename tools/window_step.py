@@ -44,7 +44,7 @@ from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, counter_state,
-                                     select_ready)
+                                     gift_cards, select_ready)
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import (NODE, SWIPE, plan_step, resolve_overlay,
@@ -524,20 +524,23 @@ def main() -> int:
             team = team_state(record, controls) if page == 'PRE_BATTLE_TEAM' else None
             reward = reward_state(record) if page == 'REWARD_CARD' else None
             gift = None
+            cards = None
             if page == 'GIFT_PICK':
                 gift = gift_state(record, image=latest_frame(directory)[0],
                                   select_box=controls.get('gift_pick.select_button'),
                                   picks=gift_picks)
+                cards = gift_cards(record.get('ocr') or [], record.get('size') or (1920, 1080))
             else:
                 gift_picks = 0
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
-                             team=team, reward=reward, gift=gift)
+                             team=team, reward=reward, gift=gift, cards=cards)
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
-                     'reward': reward, 'gift': gift, 'arrows': arrows_of(directory),
+                     'reward': reward, 'gift': gift, 'cards': cards,
+                     'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
                 entry.update(step_result(plan, sent=False, before=page, after=None,

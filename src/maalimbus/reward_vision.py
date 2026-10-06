@@ -23,6 +23,20 @@ import re
 #: the pick counter, as its own token or inside the label's token.
 COUNTER = re.compile(r'(\d{1,2})\s*/\s*(\d{1,2})')
 
+#: the plate every offered floor gift card hangs at its own top-right corner.
+PLATE = re.compile(r'^Acq\S{2,4}re E\.?G\.?O Gift$', re.IGNORECASE)
+
+#: how far the plate's centre sits to the right of the card's own content, in pixels.
+#: Measured at 1920 wide on both live floor-gift layouts: the four-card round
+#: (evidence/runtime/window-20261006-051524/frame-0036.json) plate [778,232,150,28]
+#: over the card whose title centre is 758, and the single-card round
+#: (evidence/runtime/window-20261006-103855/frame-0113.json) plate [976,228,150,28]
+#: over the card whose title centre is 955.
+PLATE_TO_BODY = 95
+
+#: the card body under a plate, as width and height at 1920 wide.
+CARD_SIZE = (240, 200)
+
 #: x0, y0, x1, y1 fractions of the frame the counter lives in.
 COUNTER_BAND = (0.60, 0.05, 1.0, 0.30)
 
@@ -95,3 +109,31 @@ def counter_state(record, *, band=COUNTER_BAND):
                 continue
         return {'chosen': int(match.group(1)), 'required': int(match.group(2))}
     return None
+
+
+def gift_cards(records, size, *, threshold=.85):
+    """One clickable box per offered floor gift card, read from the frame itself.
+
+    The card's own frame is not a fixed size: the round that offers a single gift
+    draws one card about 390x585 at [760,240] while the four-card round draws 240x200
+    slots, so the anchored slots only ever fit the latter. Every card hangs its
+    "Acquire E.G.O Gift" plate at its top-right corner, and clicking the card's body
+    is what selects it, so the box is placed ``PLATE_TO_BODY`` left of the plate.
+
+    :param records: the frame's OCR tokens.
+    :param size: the frame's ``(width, height)``.
+    """
+    width, height = size
+    boxes = []
+    for record in records:
+        if record.score < threshold or not PLATE.match(record.text.strip()):
+            continue
+        x, y, w, h = record.box
+        cx = x + w / 2
+        card_w, card_h = CARD_SIZE
+        left = int(cx - PLATE_TO_BODY - card_w / 2)
+        top = int(y + 20)
+        if left < 0 or top + card_h > height:
+            continue
+        boxes.append([max(0, left), top, card_w, card_h])
+    return sorted(boxes, key=lambda box: box[0])

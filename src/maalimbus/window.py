@@ -80,7 +80,7 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-              reward=None, gift=None):
+              reward=None, gift=None, cards=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -90,7 +90,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     plan = _plan_step(page, controls=controls, start_box=start_box,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
-                      team=team, reward=reward, gift=gift)
+                      team=team, reward=reward, gift=gift, cards=cards)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -100,7 +100,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-               reward=None, gift=None):
+               reward=None, gift=None, cards=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -314,7 +314,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         else:
             settled = ready is True
         if not settled and chosen < 4:
-            box = controls.get('gift_pick.card_%02d' % (chosen + 1))
+            # The number of offered gifts changes the card's own size (a single-card
+            # round draws one card about 390x585, the four-card round draws 240x200
+            # slots), so the boxes read from this frame's plates come first and the
+            # anchored slot is only the fallback.
+            derived = list(cards or [])
+            box = (derived[chosen] if chosen < len(derived)
+                   else controls.get('gift_pick.card_%02d' % (chosen + 1)))
             if box is None:
                 return _refuse(page, 'gift_pick_card_not_anchored')
             return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
