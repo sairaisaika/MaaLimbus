@@ -9,7 +9,27 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 00:20 local
+## Latest continuation: 2026-10-06 01:05 local
+- The real entry chain is now established by three authorized single clicks on MuMu:
+  map node click -> **node info panel** (`Clear Rewards` + `Enter`, scene `NODE_PANEL`)
+  -> `Enter` -> **pre-battle team page** (`Preset #1 / Zilu/Zigong`, `2/12`,
+  `To Battle!`, scene `PRE_BATTLE_TEAM`) -> `Battle!` -> **combat HUD** (`WAVE`/`TURN`
+  corner + `Win Rate`/`Damage`, scene `BATTLE_HUD`).
+- The user authorized pressing `Battle!` exactly as the page showed. Evidence:
+  `evidence/runtime/map-probe-20261006-000748/`,
+  `evidence/runtime/map-panel-enter-20261006-000900/`,
+  `evidence/runtime/map-settle-20261006-000930/`,
+  `evidence/runtime/team-page-battle-20261006-010230/`. Each step used the gated probe
+  (nonce in `build/map-probe-authorization.json`), one click, no key, foreground
+  unchanged.
+- New/updated: `map_vision.pre_battle_team_page()`+`battle_target()`,
+  `battle_vision.battle_hud()`, scenes `PRE_BATTLE_TEAM`/`BATTLE_HUD`,
+  `tools/team_page_battle.py`; 157 tests pass. Not claimed: any turn, skill, damage,
+  victory, floor clear, reward or rotation. Android touch battle control is still not
+  implemented and the Windows `P`-key path stays forbidden on Android, so the battle
+  is parked for a decision.
+
+## Prior continuation: 2026-10-06 00:20 local
 - Two user-authorized bounded clicks on MuMu established the real entry flow.
   (1) One click at sampled target (997,452) inside the node requested at (1005,465)
   opened the **node info panel** (`Clear Rewards`, `85` reward icon, `Enter`), not a

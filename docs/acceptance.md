@@ -1,5 +1,28 @@
 # Acceptance evidence
 
+## 2026-10-06 authorized entry into the first battle from the map
+
+- With the same gated authorization, one click on the pre-battle team page's
+  `Battle!` action (`battle_box (1674,859,144,44)`, sampled target `(1755,883)`,
+  delay `689ms`, foreground unchanged) started the run's first battle. The team page
+  was the one reached from the map node, showing `Preset #1 / Zilu/Zigong` with
+  `2/12` participants; the user authorized proceeding exactly as shown.
+- Successor page: the combat HUD — `WAVE` `(16,39,54,30)` and `TURN` `(18,95,44,24)`
+  captions with the `Win` / `Rate` / `Damage` readouts, skill slots with SP counters
+  and the twelve-slot party bar (`evidence/runtime/team-page-battle-20261006-010230/frame-0007.png`).
+  So the real entry chain is: map click -> node info panel -> `Enter` -> pre-battle
+  team page -> `Battle!` -> combat.
+- `map_vision.pre_battle_team_page()` / `battle_target()` identify that page from its
+  own `Clear Selection` and `Battle!` captions (participant counts recorded as
+  context), and the agent now reports scene `PRE_BATTLE_TEAM` instead of the generic
+  `TEAM_LIBRARY`. `battle_vision.battle_hud()` identifies the combat HUD from its
+  `WAVE`/`TURN` captions and the agent reports scene `BATTLE_HUD`; its gold bitmap
+  values are recorded as `None` when this OCR misses them rather than being guessed.
+- Not claimed: no turn was submitted, no skill was selected, no damage, victory,
+  floor clear, reward or rotation follows from this. Android touch battle control is
+  **not implemented** (the Windows `P`-key planning path is forbidden on Android by
+  `docs/design.md`), so the battle is parked awaiting a decision.
+
 ## 2026-10-06 authorized single-node probe and the panel -> team flow
 
 - With an explicit user authorization and the gated probe (nonce in

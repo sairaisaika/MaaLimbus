@@ -70,6 +70,33 @@ def test_header_pattern_matches_only_the_two_supported_wordings():
     assert not re.match(HEADER_PATTERN, 'Exploring Floor 6', re.I)
 
 
+def test_battle_hud_identity_is_pinned_to_the_live_battle_frame():
+    """The HUD is the WAVE/TURN corner; bitmap values may be absent from OCR."""
+    import json
+    from pathlib import Path
+    from maalimbus.battle_vision import battle_hud
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/team-page-battle-20261006-010230/frame-0007.json'
+    if not path.exists():
+        pytest.skip('retained live battle evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    hud = battle_hud(records, tuple(data['size']))
+    assert hud is not None
+    assert hud['wave_box'] == (16, 39, 54, 30) and hud['turn_box'] == (18, 95, 44, 24)
+    assert hud['wave'] is None and hud['turn'] is None   # gold bitmap glyphs
+    assert hud['diagnostics'] == ['Damage', 'Rate', 'Win']
+    for other in ('live-20261005-231221/frame-0002.json',
+                  'map-settle-20261006-000930/frame-0001.json',
+                  'map-probe-20261006-000748/frame-0002.json'):
+        other_path = root / 'evidence/runtime' / other
+        if not other_path.exists():
+            continue
+        other_data = json.loads(other_path.read_text(encoding='utf-8'))
+        other_records = [Text(r['text'], tuple(r['box']), r['score']) for r in other_data['ocr']]
+        assert battle_hud(other_records, tuple(other_data['size'])) is None, other
+
+
 def test_node_panel_is_distinct_from_the_map_and_names_its_enter_action():
     """Regression pinned to the actual post-click panel from the MuMu probe."""
     import json

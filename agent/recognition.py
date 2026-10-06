@@ -26,10 +26,10 @@ from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import SINNERS
-from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels
+from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud
 from maalimbus import star_vision
 from maalimbus import initial_gifts
-from maalimbus.map_vision import map_header, route_decision, node_panel
+from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
 from maalimbus.storage import read_json, write_json
 
 
@@ -184,6 +184,15 @@ class LimbusRecognition(CustomRecognition):
             # A click on the map opens this node info panel; it is a distinct page
             # from the map itself and must never be mistaken for one.
             scene='NODE_PANEL'
+        if scene in ('UNKNOWN','TEAM_LIBRARY') and pre_battle_team_page(records,size) is not None:
+            # Reached from the node panel's Enter: the pre-battle team/identity page
+            # carries its own `Clear Selection` and `Battle!` actions, so the generic
+            # team-library judgement above is corrected only with both captions.
+            scene='PRE_BATTLE_TEAM'
+        if scene=='UNKNOWN' and battle_hud(records,size) is not None:
+            # The combat HUD's own WAVE/TURN captions; a battle is never inferred
+            # from artwork, and this identifies the page only.
+            scene='BATTLE_HUD'
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
         name = self.journal.frame(image, records, scene,local_ocr=local)
@@ -858,6 +867,7 @@ class MapObservation(CustomAction):
         size=(image.shape[1],image.shape[0])
         header=map_header(records,size) if scene=='MAP' else None
         panel=node_panel(records,size) if scene=='NODE_PANEL' else None
+        team=pre_battle_team_page(records,size) if scene=='PRE_BATTLE_TEAM' else None
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
             floor=None if header is None else header.floor,
             pack=None if header is None else header.pack,
@@ -867,10 +877,13 @@ class MapObservation(CustomAction):
             panel_enter_box=None if panel is None else panel.enter.box,
             panel_clear_rewards=None if panel is None else panel.clear_rewards.box,
             panel_cost_texts=None if panel is None else list(panel.cost_texts),
+            battle_box=None if team is None else team.battle.box,
+            clear_selection_box=None if team is None else team.clear_selection.box,
+            participant_texts=None if team is None else list(team.participants),
             route=route_decision(header,size),
             input_sent=False,verified_clear=False,
             scope='fresh page identity and bounded route refusal; no node input')
-        return header is not None or panel is not None
+        return header is not None or panel is not None or team is not None
 
 
 class InputPreflight(CustomAction):

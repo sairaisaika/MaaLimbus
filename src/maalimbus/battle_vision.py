@@ -38,3 +38,30 @@ def preview_labels(records, size):
             result.append({'label':label,'box':text.box,'score':text.score,
                            'attention':label in ('hopeless','struggling','neutral')})
     return sorted(result,key=lambda t:t['box'][0])
+
+
+def battle_hud(records, size):
+    """Identify the combat HUD from its own WAVE/TURN captions.
+
+    Both captions must appear exactly once in the top-left band. Their rendered
+    values are gold bitmap glyphs that this OCR often misses, so a missing value is
+    recorded as None rather than treated as a different page. Damage/Win-Rate
+    readouts are diagnostics, never victory evidence.
+    """
+    wave = find(records, r'^WAVE$', (.0, .02, .06, .08), size, .85)
+    turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
+    if len(wave) != 1 or len(turn) != 1:
+        return None
+    corner = [t for t in records
+              if t.score >= .85 and t.text.strip()
+              and .0 <= (t.box[0] + t.box[2] / 2) / size[0] <= .12
+              and .0 <= (t.box[1] + t.box[3] / 2) / size[1] <= .16]
+    wave_value = next((t.text.strip() for t in sorted(corner, key=lambda t: (t.box[1], t.box[0]))
+                       if '/' in t.text), None)
+    turn_value = next((t.text.strip() for t in sorted(corner, key=lambda t: (t.box[1], t.box[0]))
+                       if t.text.strip().isdigit()), None)
+    diagnostics = sorted(t.text.strip() for t in records
+                         if t.score >= .85 and t.text.strip() in ('Win', 'Rate', 'Damage'))
+    return {'wave': wave_value, 'turn': turn_value, 'wave_box': wave[0].box,
+            'turn_box': turn[0].box, 'diagnostics': diagnostics,
+            'scope': 'HUD identity only; no turn submission, coverage or victory claim'}

@@ -70,6 +70,43 @@ def enter_target(panel):
     return panel.enter.box
 
 
+BATTLE_PATTERN = r'^Battle!?$'
+BATTLE_ROI = (.83, .77, .97, .87)
+CLEAR_SELECTION_PATTERN = r'^Clear\s+Selection$'
+CLEAR_SELECTION_ROI = (.83, .62, .98, .70)
+PARTICIPANTS_PATTERN = r'^\d{1,2}\s*/\s*\d{1,2}$'
+
+
+@dataclass(frozen=True)
+class TeamPage:
+    """The pre-battle team / identity page reached from a node panel.
+
+    Identity is two stable captions in their own bands: the `Clear Selection`
+    action and the `Battle!` action. Participant counts are recorded context only.
+    """
+    battle: Text
+    clear_selection: Text
+    participants: tuple
+
+
+def pre_battle_team_page(records, size):
+    """Return the pre-battle team page, or None when this is not that page."""
+    battle = find(records, BATTLE_PATTERN, BATTLE_ROI, size, .8)
+    clear = find(records, CLEAR_SELECTION_PATTERN, CLEAR_SELECTION_ROI, size, .8)
+    if len(battle) != 1 or len(clear) != 1:
+        return None
+    participants = tuple(t.text.strip() for t in
+                         find(records, PARTICIPANTS_PATTERN, (.80, .66, .98, .76), size, .8))
+    return TeamPage(battle[0], clear[0], participants)
+
+
+def battle_target(page):
+    """The bounded click box for `Battle!`, or None when the page is not current."""
+    if page is None or page.battle is None:
+        return None
+    return page.battle.box
+
+
 def map_header(records, size):
     """Return the map header only when floor text and the pack line both parse.
 
