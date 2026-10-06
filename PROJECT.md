@@ -9,7 +9,24 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 01:40 local
+## Latest continuation: 2026-10-06 02:17 local
+- 用户要求（m01490）：写脚本前先参考 LALC，再参考 Limbus 中文 wiki/攻略摸清机制，然后**先 plan 一个最聪明的脚本模式**；
+  「把需要图片验证的部分尽量压缩到一个时间段去做，其他地方在线上保留一个验证后的数值接口就好，而不是走一步看一步」。
+  框架 MaaFramework、实现参考 MaaEnd、原型/机制参考 LALC。
+- 产出 `docs/script-mode-plan.md`（Plan v1，只读设计，未连设备、未点击、未改运行行为）：四份「数字/契约」文件
+  （`anchors.json` / `floor-graph.json` / `inventory.json` / `run-ledger.json`）、三个感知窗口（开轮前标定 / 每层一次整图解析 /
+  战斗与结算）、分层锚点 + 锚点注册表 + `verify_anchors.py` 自检 + `capture_anchors.py` 一次点击采集、自动配队四条路径
+  （成队码/已存队槽 → 排序法 → 一次扫描 → 人工导入）、镜牢机制基线（5 层、Boss 前必有商店、领奖耗 5 Enkephalin、周加成 3 档、
+  星光是 +层数/Hard +4×层数、融合点数与 60/90/99% 命中、关键词内名 `Burst`=破裂）、照抄清单、P0–P4 路线与验收。
+- 四个只读调研（子代理）要点：**MaaEnd 不是边狱巴士项目**（是《终末地》，只作 MaaFramework 工程范本：`"task":[]`+`"import"`、
+  `Interface/` vs `__` 节点、`SceneManager`+`[JumpBack]`、ExpressionRecognition、ImageCropper「文件名即 ROI」、CI schema 校验、
+  MirrorChyan OTA、已弃用后台 Win32 截图）；真正的 MFW 边狱项目 `MaaXYZ/MAALimbusCompany` 66★ **2024-08 已弃坑**，
+  是反面教材（只点自带 WinRate/推荐阵容、无地图数据层 → 遇镜牢即崩）；LALC 硬编码 1280×720、缺图即 `raise KeyError`、
+  整包覆盖更新、AGPL-3.0；人格数据源 = `LocalizeLimbusCompany`（中文名/关键词/礼物，活跃）＋`flaglow/LimbusStaticData`
+  （rank/抗性/被动，2025-01 停更），**id 对齐**；中文 wiki（huijiwiki/fandom）实测 Cloudflare 403，改 `wiki.biligame.com`。
+- 待用户拍板项见该文档 §13（许可、游戏内 filter 能否多选、是否自建数据镜像、AALC 框架归属未核实）。
+
+## Prior continuation: 2026-10-06 01:40 local
 - First real combat from the stopped231221 session, using the discovery-based binding
   (MuMu 自带 adb、EmulatorExtras 截图、AdbShell|MinitouchAndAdbKey|Maatouch 输入) and one
   bounded click per step: START 点击把战斗从 turn1 推到 turn2，随后回合结算出现胜利演出
