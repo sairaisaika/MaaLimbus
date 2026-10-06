@@ -9,7 +9,18 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 11:30 local
+## Latest continuation: 2026-10-06 11:55 local
+- **P1 自检与采集闭环补齐（离线，`docs/script-mode-plan.md` §5.2/§5.3 的两条「下一步」）**：
+  - `tools/capture_anchors.py`：一条命令采集并登记锚点。`--label/--from/--box/--page`，裁图→缩到 1280 基准→写 `assets/resource/base/image/<组>/<名>.png`→登记
+    `{id,kind:'template',template,roi,threshold,box,note:'captured from …'}`（`--kind geometry` 登记 `verified_on{frame,sha256,box,source}`）。
+    写完**立刻回放这一帧**：不命中就 exit 1 并删掉半成品；重复 id 要 `--force`；`--dry-run` 只校验不落盘。真实帧实测
+    `--label battle.start_label --from evidence/runtime/window-20261006-103550/frame-0044.json --box 1518,738,60,28 --dry-run` → `score=0.9932`、`observed box=[1518,738,60,28]`、journal sha 与 png sha 一致。
+  - `tools/verify_anchors.py --frame <png|json>`：只对 template/geometry 控件跑「当前帧自检」，逐条打印 `box / expected / drift / score`，漂移即 exit 1；裸帧没有 OCR 所以 identity 锚点不校验（报告里显式写明），`geometry` 在别的帧 sha 上是 `skip`（未证明）而非失配，`--strict-geometry` 才判失败。
+  - 关键坑：`anchors._pixels()` 用 `int()` 截断而不是四舍五入，所以按框算出的 roi 可能比模板**少一个像素**（表现为 `roi smaller than the template`）——采集时把 roi 远端各 pad 1 px 并在条目里另存精确的 `box`，自检的漂移就以 `box` 为准。
+  - 测试：新增 `tests/test_capture_anchors.py`（8 条）与 `tests/test_verify_anchors_frame.py`（5 条）；全量 **281 passed**；`tools/verify_anchors.py` 仍是 **22 page(s), 0 broken**。
+- 实机仍停在「floor 3 地图不接受节点点击」的状态（上一段记录），本轮**没有再对设备发任何输入**。
+
+## Prior continuation: 2026-10-06 11:30 local
 - 实机（MuMu / ADB 127.0.0.1:16416）在 floor 3 地图（`Exploring Floor 3` / `Repressed Wrath`）停住：
   **地图可以拖动、HUD 按钮可以点，但地图节点层不接受任何点击**（点节点后 `page_after` 仍是 MAP，无 NODE_PANEL）。
 - 已排除的三种解释：坐标空间（`adb shell wm size` = `Physical size: 720x1280`、density 240 ⇒ 横屏 1280×720，

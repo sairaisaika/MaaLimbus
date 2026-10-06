@@ -105,12 +105,14 @@
 - `geometry`：控件框 + `verified_on{frame, sha256, box, source}`——**只在同一帧 sha 上算「被证明」**，换帧即报 `stale`，绝不静默沿用旧坐标。
 
 `tools/verify_anchors.py` 把注册表逐条回放到留档观测（`evidence/runtime/**/frame-*.json` + 同名 png），打印逐锚点命中表并写 `build/anchors-report.json`；任一页的 identity 锚点在**所有**证据帧上都失配即 exit 1。注册表还带 `pending` 清单，显式列出「尚未被证明的页面」（人格 filter、结算领奖、层礼赠、商店、事件、下一层、轮换再入场），避免把「没验证」当成「已验证」。
-- 下一步（验证窗口里做）：`tools/verify_anchors.py --frame <png>` 直接对当前实机帧跑，输出漂移像素数；`tools/capture_anchors.py --label <名>` 一次点击式采集模板（§5.3）。
+- **已实现（2026-10-06，离线）**：`tools/verify_anchors.py --frame <png|json>` 直接对一帧（实机截图或留档帧）只校验 template/geometry 控件，逐条打印 `box / expected / drift / score`，并显式说明「裸帧没有 OCR，identity 锚点不校验」；`geometry` 锚点在别的帧 sha 上是 `skip`（本就算未证明）而不是失配，`--strict-geometry` 才把它算失败。漂移非零即 exit 1。采集侧见 §5.3。
 - 维护闭环：跑自检 → 只修失配锚点 → 跑 `verify_*_replay` 回归 → 提交。LALC 的做法是「改 action 里的魔数 + 注释留痕 + 发整包」，我们的做法是「改注册表一条 + 回归」。
 
 ### 5.3 资源自动采集（把「截资源」变成一条命令）
 
-- 沿用 LALC `get_save_*` 范式（模板匹配 + OCR 命名 → 自动裁图入库），我们补 `tools/capture_anchors.py --label <名> [--lang zh|en|jp]`：一次点击式采集，人工只给名字。
+- 沿用 LALC `get_save_*` 范式（模板匹配 + OCR 命名 → 自动裁图入库），**已实现（2026-10-06，离线）** `tools/capture_anchors.py`：人工只给名字、帧与框，例如
+  `python tools/capture_anchors.py --label battle.start_label --from evidence/runtime/window-20261006-103550/frame-0044.json --box 1518,738,60,28 --page battle_hud --image-dir image/battle`
+  —— 裁图→缩到 1280 基准→写 `<template-root>/image/<组>/<名>.png`→登记 `{id,kind:'template',template,roi,threshold,box,note:'captured from …'}`（`--kind geometry` 则登记 `verified_on{frame,sha256,box,source}`）。写完立刻用 `anchors.check_template` 回放这一帧，**不命中就退出 1 且不留半个文件**；重复登记要 `--force`，`--dry-run` 只校验不落盘。（`--lang` 尚未接：多语言词表仍在 `assets/i18n`，采集只登记锚点，不生成词条。）
 - 主题包：`theme-catalog.json` 已有 glyphs/names；新增包自动登记（OCR 卡包名 → 查库 → 未命中则采集）。
 - 分辨率：统一 720p 基准（`display_short_side=720`），MaaFramework 自动换算回原始截图坐标；录制帧一律「无损原图缩到 720p 再裁」。
 
@@ -252,8 +254,8 @@ config/user-team-profiles.json            # 轮换与队伍偏好
 
 - **P0 五层跑通 + 真实领奖**（进行中）：地图→节点→面板→队伍→战斗→胜利→回地图已实机验证；待补「层奖励选择 → 下一层 → 第 5 层结算领奖 → 轮换再入场」。
   验收：`run-ledger.json` 记录 5 层、真实领奖证据帧、轮换 index 递增。
-- **P1 自检与采集**：`anchors.json` + `verify_anchors.py` + `capture_anchors.py`。
-  验收：故意改一版 UI 后自检能列出失配锚点及其影响的 Task；采集命令能新增一条模板并登记。
+- **P1 自检与采集（已完成，2026-10-06 离线）**：`anchors.json` + `verify_anchors.py`（留档回放，以及 `--frame` 对当前帧的漂移自检）+ `capture_anchors.py`（一条命令采集模板/几何并登记，写完即回放，不命中不留文件）。
+  验收：故意改一版 UI 后自检能列出失配锚点及其影响的 Task（`--frame` 逐条 `drift`/`MISS` 且 exit 1）；采集命令能新增一条模板并登记（`tests/test_capture_anchors.py`）。
 - **P2 自动配队**：filter/sort 契约验证 + `select_best_identity` 原语 + `inventory.json`（排序法优先）。
   验收：对每个罪人给出「符合关键词且等级最高」的人格名 + 证据帧；未证明完整/降序时**拒绝**并回落预设队。
 - **P3 路线与礼赠策略**：`floor-graph.json` 路线打分、商店/融合计划、Wishmaking 决策。
