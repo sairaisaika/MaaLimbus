@@ -40,9 +40,7 @@ from maalimbus import anchors
 from maalimbus.adb_device import build, discover, foreground_of, input_policy
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, advance_candidates, flame_player,
-                                  likely_player, node_markers, player_marker,
-                                  yellow_flame_player)
+from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import counter_state
 from maalimbus.team_vision import CARD_COUNT, card_states
@@ -195,26 +193,22 @@ def node_badge_template():
 
 
 def candidates_of(directory, record):
-    """Node boxes for a MAP page, nearest to the player's own node first.
+    """Ordered click boxes for a MAP page, the step the game marks first.
 
-    Which nodes the run is allowed to step to depends on the paths drawn under the
-    dots on this page, and that connectivity is not readable from the frame. So the
-    list is only ordered, never filtered: the window tries them in turn and stops at
-    the first node that really is connected (live: a far chest swallowed the click
-    while its neighbour two columns left opened the panel).
+    Which nodes the run may step to depends on the paths drawn under the dots, and
+    that connectivity is not readable from a frame, so the list is ordered and never
+    filtered: the window tries them in turn and stops at the first that really opens
+    the panel, and a click on an unreachable node is a harmless no-op. The order comes
+    from map_vision.map_clicks: the desaturated-bright glyph the game uses to mark the
+    step it will accept, then the crescent-badge nodes away from the player.
     """
     if record['scene'] != 'MAP':
         return None, None
     image, name = latest_frame(directory)
     if image is None:
         return None, None
-    markers = node_markers(image, template=node_badge_template())
-    if not markers:
-        return name, []
-    player = (yellow_flame_player(markers, image) or flame_player(markers, image)
-              or likely_player(markers))
-    ordered = advance_candidates(markers, player)
-    return name, [list(marker.node) for marker in ordered]
+    clicks = map_clicks(image, template=node_badge_template())
+    return name, [list(item['box']) for item in clicks]
 
 
 def overlay_hit(registry, directory, record):
@@ -320,7 +314,7 @@ def main() -> int:
                              'not refusals; the victory banner alone held the screen for '
                              'about 25 s in window-20261006-033014)')
     parser.add_argument('--interval', type=float, default=4.0)
-    parser.add_argument('--map-tries', type=int, default=6,
+    parser.add_argument('--map-tries', type=int, default=8,
                         help='how many map nodes one MAP step may try: a node that is not '
                              'connected to where the run stands opens no panel and is a '
                              'no-op, so the next candidate is tried instead of stopping '

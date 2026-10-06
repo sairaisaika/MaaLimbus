@@ -105,3 +105,23 @@ def test_encounter_reward_card_is_named_before_the_generic_dialog():
     without_title = [item for item in page
                      if item.text != 'Select Encounter Reward Card']
     assert classify(without_title, words, (1920, 1080)) == 'UNKNOWN_DIALOG'
+
+
+def test_the_shop_node_is_named_by_its_title_and_leave_button():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-042123/frame-0001.json is what
+    # the "Thick Rumbling Hum" encounter panel's Enter handed back (a Shop node).
+    # Leave is the only budget-safe input there, so the page has to be named
+    # instead of falling into the generic dialog veto.
+    page = [Text('Shop', (334, 154, 98, 54), .99),
+            Text('Super Shop', (1000, 176, 128, 28), .99),
+            Text('Leave', (1622, 945, 150, 53), 1.0)]
+    assert classify(page, words, (1920, 1080)) == 'SHOP'
+    without_leave = [item for item in page if item.text != 'Leave']
+    assert classify(without_leave, words, (1920, 1080)) != 'SHOP'
+    # Leaving asks first, and the shop labels stay visible behind the prompt, so
+    # the question has to outrank SHOP (live: window-20261006-042529/frame-0002).
+    asking = page + [Text('Leave the shop?', (846, 496, 224, 40), .99),
+                     Text('Confirm', (1116, 722, 110, 34), 1.0),
+                     Text('X Cancel', (706, 720, 138, 36), .94)]
+    assert classify(asking, words, (1920, 1080)) == 'SHOP_LEAVE'

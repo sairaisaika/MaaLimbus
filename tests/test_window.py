@@ -69,7 +69,7 @@ def test_node_panel_uses_the_anchored_enter_button():
     plan = plan_step('NODE_PANEL', controls=CONTROLS)
     assert plan['action'] == CLICK
     assert plan['target'] == CONTROLS['node_panel.enter_button']
-    assert plan['expect'] == ['PRE_BATTLE_TEAM', 'UNKNOWN']
+    assert plan['expect'] == ['PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'UNKNOWN']
 
 
 def test_node_panel_without_the_anchor_refuses():
@@ -135,7 +135,7 @@ def test_battle_without_a_proven_control_refuses():
 
 
 def test_unproven_pages_are_observe_only():
-    for page in ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
+    for page in ('EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
                  'BATTLE_RESULT', 'UNKNOWN'):
         plan = plan_step(page, controls=CONTROLS,
                          start_box=[1, 2, 3, 4], candidates=[[5, 6, 7, 8]])
@@ -302,3 +302,59 @@ def test_reward_card_is_picked_before_confirm_and_cancel_is_never_the_target():
                                                'reward_card.cancel_button': cancel})
     assert named['action'] == RECORD
     assert named['reason'] == 'control_is_forbidden'
+
+
+def test_the_shop_page_only_ever_leaves():
+    # Live proof: evidence/runtime/window-20261006-042123/frame-0001.json is the
+    # Shop node the encounter panel's Enter handed back. The module budget is
+    # 0/pending, so Leave is the only input; buying, refreshing, healing, fusing
+    # and selling stay unanchored on purpose.
+    controls = {'shop.leave_button': [1622, 945, 150, 53]}
+    plan = plan_step('SHOP', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [1622, 945, 150, 53]
+    assert plan['reason'] == 'leaving_the_shop_is_the_only_budget_safe_input'
+    assert successor_ok(plan, 'SHOP_LEAVE')
+    assert successor_ok(plan, 'MAP')
+    assert not successor_ok(plan, 'BATTLE_HUD')
+    missing = plan_step('SHOP', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'shop_leave_button_not_anchored'
+
+
+def test_the_shop_exit_confirmation_confirms_and_never_cancels():
+    # Live proof: evidence/runtime/window-20261006-042529/frame-0002.json is what
+    # leaving the shop asks back ("Leave the shop?" with X Cancel / Confirm).
+    controls = {'shop.leave_confirm_button': [1116, 722, 110, 34]}
+    plan = plan_step('SHOP_LEAVE', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [1116, 722, 110, 34]
+    assert plan['reason'] == 'confirming_the_shop_exit_is_the_only_forward_input'
+    assert successor_ok(plan, 'MAP')
+    missing = plan_step('SHOP_LEAVE', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'shop_leave_confirm_not_anchored'
+
+
+def test_the_gift_get_notice_is_cleared_with_its_own_confirm():
+    # Live proof: evidence/runtime/window-20261006-042956/frame-0001.json is the
+    # "E.G.O Gift GET!" notice the reward card's Confirm raised.
+    controls = {'gift_get.confirm_button': [922, 774, 136, 45]}
+    plan = plan_step('GIFT_GET', controls=controls)
+    assert plan['action'] == CLICK
+    assert plan['target'] == [922, 774, 136, 45]
+    assert plan['reason'] == 'the_gift_get_notice_is_cleared_with_its_own_confirm'
+    assert successor_ok(plan, 'REWARD_CARD')
+    assert successor_ok(plan, 'MAP')
+    missing = plan_step('GIFT_GET', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'gift_get_confirm_not_anchored'
+
+
+def test_the_node_panel_enter_may_fade_back_through_the_map():
+    # Live: window-20261006-042056 shows Enter landing on a MAP frame before the
+    # node content (that run's next observation was the Shop page).
+    plan = plan_step('NODE_PANEL', controls=CONTROLS)
+    assert successor_ok(plan, 'MAP')
+    assert successor_ok(plan, 'SHOP')
+    assert successor_ok(plan, 'PRE_BATTLE_TEAM')

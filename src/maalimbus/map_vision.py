@@ -73,19 +73,31 @@ PANEL_TITLE_PATTERN = r'^[A-Za-z][A-Za-z\s\'&.\-]{2,40}$'
 def node_panel(records, size):
     """Return the open node info panel, or None when the page is not a panel.
 
-    Identity is the stable `Clear Rewards` caption plus the `Enter` action in their
-    own bands; the theme name is used only as recorded context, never as identity.
+    Identity is the `Enter` action in its own band plus one of two things: the
+    `Clear Rewards` caption that a reward panel carries, or the floor header that the
+    panel does not hide. The game renders two panel shapes -- the reward panel
+    (`Clear Rewards` above the reward icons) and the encounter panel, which only names
+    the encounter and has no reward caption at all
+    (evidence/runtime/window-20261006-041345/frame-0002.json, 'Thick Rumbling Hum' with
+    its Enter at [1670,784,122,57]). Requiring `Clear Rewards` made the second shape
+    read as MAP -- the header stays legible behind the panel -- so the click that
+    opened it looked like a no-op. The Mirror-Dungeon entry page carries an `Enter` in
+    the same slot but never a floor header, so it is still excluded. The theme name is
+    used only as recorded context, never as identity.
     """
-    rewards = find(records, REWARDS_PATTERN, REWARDS_ROI, size, .8)
     enters = find(records, ENTER_PATTERN, ENTER_ROI, size, .8)
-    if len(rewards) != 1 or len(enters) != 1:
+    if len(enters) != 1:
+        return None
+    rewards = find(records, REWARDS_PATTERN, REWARDS_ROI, size, .8)
+    if len(rewards) != 1 and map_header(records, size) is None:
         return None
     titles = find(records, PANEL_TITLE_PATTERN, PANEL_TITLE_ROI, size, .8)
     titles.sort(key=lambda t: (t.box[1], t.box[0]))
     costs = tuple(t.text for t in records
                   if re.fullmatch(r'\d{1,4}', t.text.strip()) and t.score >= .8
                   and .62 <= (t.box[1] + t.box[3] / 2) / size[1] <= .92)
-    return NodePanel(titles[0].text.strip() if titles else None, rewards[0], enters[0], costs)
+    return NodePanel(titles[0].text.strip() if titles else None,
+                     rewards[0] if rewards else None, enters[0], costs)
 
 
 def enter_target(panel):
@@ -300,6 +312,125 @@ def advance_plan(markers, player=None, index=0):
     return dict(target=chosen.node, ornament=chosen.ornament, index=index,
                 candidates=len(markers), player=list(player) if player else None,
                 reason='nearest_node_away_from_player' if player else 'topmost_node_first')
+
+
+#: The step the game will accept is drawn with a desaturated-bright glyph. Two shapes
+#: were observed on the floor-1 map: the pale hexagon of a highlighted node
+#: (evidence/runtime/window-20261006-040938/frame-0001.png, box 1016,40,142,127, which
+#: opened the encounter panel when the ADB tap landed on it) and the wide grey double
+#: chevron that sits on the path towards the reachable node (box 774,417,242,30 in
+#: evidence/runtime/window-20261006-033107/frame-0005.png). Both are brighter than the
+#: map's own lines and far less saturated than the orange path glow, which is what this
+#: mask keeps. A hint for ordering clicks only, never an identity anchor.
+MARKER_MIN_BRIGHTNESS = 105
+MARKER_MAX_SATURATION = 50
+MARKER_MIN_PIXELS = 400
+MARKER_MAP_BOTTOM = .62
+MARKER_MAP_RIGHT = .88
+#: columns run 384 px apart and rows 320 px apart on a 1920 frame (LALC's 260/210 in
+#: 1280-space, times 1.5). Used only to guess which node a chevron points at.
+LATTICE_PITCH = (384, 320)
+CLICK_SIDE = 40
+
+
+def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_SATURATION,
+                 min_pixels=MARKER_MIN_PIXELS, bottom=MARKER_MAP_BOTTOM, right=MARKER_MAP_RIGHT):
+    """Bright desaturated glyph boxes on a map page, largest first; no input."""
+    if image is None:
+        return []
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    pixels = image.astype(np.int16)
+    high = pixels.max(axis=2)
+    low = pixels.min(axis=2)
+    mask = ((high > minimum) & ((high - low) < saturation)).astype(np.uint8)
+    mask[round(bottom * height):] = 0
+    mask[:, round(right * width):] = 0
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    boxes = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if area < min_pixels or not (40 <= box_w <= 320) or not (24 <= box_h <= 220):
+            continue
+        boxes.append((int(x), int(y), int(box_w), int(box_h), int(area)))
+    boxes.sort(key=lambda box: -box[4])
+    return boxes
+
+
+def chevron_target(player, marker, pitch=LATTICE_PITCH):
+    """The lattice node a desaturated glyph on the path points at, or None."""
+    if player is None:
+        return None
+    dx, dy = marker[0] - player[0], marker[1] - player[1]
+    if dx == 0 and dy == 0:
+        return None
+    if abs(dx) >= abs(dy):
+        return (player[0] + (pitch[0] if dx > 0 else -pitch[0]), player[1])
+    return (player[0], player[1] + (pitch[1] if dy > 0 else -pitch[1]))
+
+
+def map_clicks(image, *, template=None, node_side=190):
+    """Ordered click boxes for a MAP page: the marked step first, then the nodes.
+
+    Live run window-20261006-040751 is why the highlight is consulted first: four
+    crescent-badge nodes around the player were all refused clicks while the
+    highlighted, badge-less gate in the row above opened the encounter panel. Node
+    connectivity is still not readable from a frame, so this only orders candidates --
+    the caller tries them in turn and stops at the first one that opens the panel, and
+    a click on an unreachable node is a harmless no-op.
+    """
+    if image is None:
+        return []
+    height, width = image.shape[:2]
+    markers = node_markers(image, template=template, node_side=node_side)
+    player = (yellow_flame_player(markers, image) or flame_player(markers, image)
+              or likely_player(markers))
+    clicks = []
+
+    def add(point, kind, side):
+        x = min(max(0, point[0] - side // 2), max(0, width - side))
+        y = min(max(0, point[1] - side // 2), max(0, height - side))
+        for item in clicks:
+            box_x, box_y, box_w, box_h = item['box']
+            if ((x + side // 2 - box_x - box_w // 2) ** 2
+                    + (y + side // 2 - box_y - box_h // 2) ** 2 <= 50 * 50):
+                return
+        clicks.append(dict(box=(x, y, side, side), kind=kind, point=(point[0], point[1])))
+
+    highlighted = []
+    chevrons = []
+    for box in marker_boxes(image):
+        x, y, box_w, box_h, area = box
+        centre = (x + box_w // 2, y + box_h // 2)
+        if player and (centre[0] - player[0]) ** 2 + (centre[1] - player[1]) ** 2 <= 70 * 70:
+            continue
+        fill = area / float(max(1, box_w * box_h))
+        ratio = box_w / float(max(1, box_h))
+        # A highlighted hexagon is a compact ring (live fill 0.12-0.21); the path glow
+        # that shares this mask is a large sparse wash (fill 0.03) and the chevron is a
+        # flat bar (ratio above 3), so neither can pass for the marked node.
+        if box_w >= 90 and ratio <= 3.0 and fill >= 0.08:
+            highlighted.append(centre)
+        elif ratio > 3.0:
+            target = chevron_target(player, centre)
+            if target:
+                chevrons.append(target)
+    if player:
+        nearby = lambda point: (point[0] - player[0]) ** 2 + (point[1] - player[1]) ** 2
+        highlighted.sort(key=nearby)
+        chevrons.sort(key=nearby)
+    # The highlighted node is the step the game will accept, so it goes first; the
+    # chevron only points along the path towards it, and the badge nodes are the
+    # ordinary case where nothing on the page is marked at all.
+    for point in highlighted:
+        add(point, 'highlighted_node', CLICK_SIDE)
+    for point in chevrons:
+        add(point, 'chevron_target', node_side)
+    for marker in advance_candidates(markers, player):
+        add((marker.node[0] + marker.node[2] // 2,
+             marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)
+    return clicks
 
 
 # The page's own captions drift between runs: the live frames read the button as

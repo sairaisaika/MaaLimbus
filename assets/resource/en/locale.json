@@ -36,5 +36,9 @@
   "resume": "^Resume$",
   "halt_exploration": "^Halt Exploration$",
   "encounter_reward": "^Select Encounter Reward Card$",
-  "selectable": "^Selectable(?:\\s*\\d{1,2}\\s*/\\s*\\d{1,2})?$"
+  "selectable": "^Selectable(?:\\s*\\d{1,2}\\s*/\\s*\\d{1,2})?$",
+  "shop": "^Shop$",
+  "super_shop": "^Super Shop$",
+  "leave": "^Leave$",
+  "leave_shop_question": "^Leave the shop\\?$"
 }

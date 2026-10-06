@@ -176,14 +176,16 @@ class LimbusRecognition(CustomRecognition):
                 local.append(dict(sinner=sinner,roi=roi,only_rec=True,results=found))
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog(),records,self.locale):
             scene='THEME_PACKS'
+        if scene=='UNKNOWN' and node_panel(records,size) is not None:
+            # A click on the map opens this node info panel. It is judged before the
+            # map on purpose: the panel leaves the floor header readable behind it, so
+            # MAP would otherwise swallow the panel and the click that opened it would
+            # look like a no-op (evidence/runtime/window-20261006-041345/frame-0002.json).
+            scene='NODE_PANEL'
         if scene=='UNKNOWN' and map_header(records,size) is not None:
             # The floor header plus its pack line is the only map identity anchor;
             # artwork, currency and season icons are never consulted.
             scene='MAP'
-        if scene=='UNKNOWN' and node_panel(records,size) is not None:
-            # A click on the map opens this node info panel; it is a distinct page
-            # from the map itself and must never be mistaken for one.
-            scene='NODE_PANEL'
         if scene in ('UNKNOWN','TEAM_LIBRARY') and pre_battle_team_page(records,size) is not None:
             # Reached from the node panel's Enter: the pre-battle team/identity page
             # carries its own `Clear Selection` and `Battle!` actions, so the generic
@@ -909,7 +911,8 @@ class MapObservation(CustomAction):
             pack_box=None if header is None else header.pack_text.box,
             panel_title=None if panel is None else panel.title,
             panel_enter_box=None if panel is None else panel.enter.box,
-            panel_clear_rewards=None if panel is None else panel.clear_rewards.box,
+            panel_clear_rewards=None if panel is None or panel.clear_rewards is None
+            else panel.clear_rewards.box,
             panel_cost_texts=None if panel is None else list(panel.cost_texts),
             battle_box=None if team is None else team.battle.box,
             clear_selection_box=None if team is None else team.clear_selection.box,

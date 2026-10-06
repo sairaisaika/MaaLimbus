@@ -82,6 +82,19 @@ def classify(records, locale, size):
         and find(records, locale.get('selectable', r'(?!)'), (.66, .13, .82, .25), size, .85)
         and find(records, locale['gift_confirm'], (.56, .68, .72, .78), size, .85)):
         return 'REWARD_CARD'
+    # Leaving the shop asks first ("Leave the shop?" with X Cancel / Confirm). The
+    # plain shop labels stay on screen behind it, so this veto has to sit above
+    # SHOP or the confirm could never be reached.
+    # Live evidence evidence/runtime/window-20261006-042529/frame-0002.json.
+    if (find(records, locale.get('leave_shop_question', r'(?!)'), (.40, .40, .60, .56), size, .85)
+        and find(records, locale['gift_confirm'], (.55, .63, .67, .74), size, .85)):
+        return 'SHOP_LEAVE'
+    # The Shop node hands back a shop instead of a battle. Leave is the only input
+    # this project sends there: the module budget is 0, so nothing is bought.
+    # Live evidence evidence/runtime/window-20261006-042123/frame-0001.json.
+    if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
+        and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)):
+        return 'SHOP'
     if (find(records, locale.get('cancel', r'(?!)'), (.25,.25,.75,.80), size,.8)
         or find(records, locale.get('entry_confirm', r'(?!)'), (.30,.42,.70,.54), size,.8)):
         return 'UNKNOWN_DIALOG'

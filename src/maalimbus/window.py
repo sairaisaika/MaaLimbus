@@ -176,8 +176,39 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('node_panel.enter_button')
         if box is None:
             return _refuse(page, 'enter_button_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('PRE_BATTLE_TEAM', 'UNKNOWN'),
+        # Enter hands the node over to the game: it fades back through MAP
+        # (evidence/runtime/window-20261006-042056/frame-0002.json) before the node
+        # itself shows up (the same run reached the Shop page).
+        return _plan(page, CLICK, target=box,
+                     expect=('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
+    if page == 'SHOP':
+        # Spending is out of budget (module budget is 0/pending), so Leave is the
+        # only input this project sends in a shop: it returns to the map with the
+        # cost untouched. Refresh/Heal/Enhance/Fuse/Sell and every gift card are
+        # deliberately left unanchored so no plan can ever land on them.
+        box = controls.get('shop.leave_button')
+        if box is None:
+            return _refuse(page, 'shop_leave_button_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('SHOP_LEAVE', 'MAP', 'UNKNOWN'),
+                     reason='leaving_the_shop_is_the_only_budget_safe_input')
+    if page == 'SHOP_LEAVE':
+        # Leaving the shop asks first. Confirm is the forward input; the Cancel
+        # next to it only stays in the shop, so it is never a target.
+        box = controls.get('shop.leave_confirm_button')
+        if box is None:
+            return _refuse(page, 'shop_leave_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('MAP', 'UNKNOWN'),
+                     reason='confirming_the_shop_exit_is_the_only_forward_input')
+    if page == 'GIFT_GET':
+        # The gift-get notice sits on top of the reward-card page and carries one
+        # Confirm. The gift was already granted by the reward card's own Confirm,
+        # so this only clears the notice (live: window-20261006-042956).
+        box = controls.get('gift_get.confirm_button')
+        if box is None:
+            return _refuse(page, 'gift_get_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('REWARD_CARD', 'MAP', 'UNKNOWN'),
+                     reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
     if page == 'PRE_BATTLE_TEAM':
         # The page opens with nobody picked, and its Battle! button is dark until
         # at least one card is in the team (live: window-20261006-030750 has

@@ -127,6 +127,62 @@ def test_node_panel_is_distinct_from_the_map_and_names_its_enter_action():
         assert node_panel(map_records, tuple(map_data['size'])) is None
 
 
+def test_an_encounter_panel_without_clear_rewards_is_still_a_panel():
+    """The second panel shape names the encounter and hides only half the map.
+
+    Live run window-20261006-040751 clicked the map six times and reported every click
+    as opening no panel, because this shape carries no `Clear Rewards` caption: the
+    page fell back to MAP (its floor header stays legible behind the panel) and the
+    window walked on to the next candidate.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-041345/frame-0002.json'
+    if not path.exists():
+        pytest.skip('retained live encounter-panel evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    size = tuple(data['size'])
+    assert map_header(records, size) is not None     # the header really is still readable
+    panel = node_panel(records, size)
+    assert panel is not None
+    assert panel.title == 'Thick Rumbling Hum'
+    assert panel.clear_rewards is None               # this shape has no reward caption
+    assert panel.enter.box == (1670, 784, 122, 57)
+    assert enter_target(panel) == (1670, 784, 122, 57)
+    # ...and a page with an Enter but no floor header is still not a panel.
+    entry = [Text('Enter', (1670, 784, 122, 57), .99)]
+    assert node_panel(entry, size) is None
+
+
+def test_the_marked_step_is_offered_before_the_badge_nodes():
+    """Live run window-20261006-040751: four badge nodes refused, the marked gate opened.
+
+    The gate is the pale hexagon the game draws around the step it will accept; the
+    ADB tap that landed on it (device 730,73) opened the encounter panel, while every
+    crescent-badge node around the player was a no-op.
+    """
+    import json
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import NODE_BADGE_TEMPLATE, map_clicks
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-040938/frame-0001.png'
+    template_path = root / 'assets/resource/base' / NODE_BADGE_TEMPLATE
+    if not path.exists() or not template_path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    clicks = map_clicks(image, template=cv2.imread(str(template_path)))
+    assert clicks, 'the live map must offer at least one candidate'
+    assert clicks[0]['kind'] == 'highlighted_node'
+    point = clicks[0]['point']
+    assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
+    assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'node_away_from_player')
+               for item in clicks)
+
+
 def test_map_observe_node_is_a_bounded_read_only_continuation():
     """The stopped-session continuation must observe the map and never click."""
     import json

@@ -918,6 +918,172 @@
           }
         }
       ]
+    },
+    {
+      "id": "shop",
+      "title": "商店页（Shop；节点内容之一，Boss 前常见）",
+      "evidence": [
+        "evidence/runtime/window-20261006-042123/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "shop.title",
+          "kind": "ocr",
+          "pattern": "^Shop$",
+          "roi": [
+            0.1,
+            0.1,
+            0.3,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "左侧面板抬头；实测 [334,154,98,54] score 1.0"
+        },
+        {
+          "id": "shop.super_shop",
+          "kind": "ocr",
+          "pattern": "^Super Shop$",
+          "roi": [
+            0.42,
+            0.11,
+            0.7,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "「Super Shop / On Next Floor? N%」概率行；实测 [1000,176,128,28] 0.997"
+        },
+        {
+          "id": "shop.leave",
+          "kind": "ocr",
+          "pattern": "^Leave$",
+          "roi": [
+            0.78,
+            0.82,
+            0.97,
+            0.96
+          ],
+          "threshold": 0.85,
+          "note": "右下 Leave＝离开商店；实测 [1622,945,150,53] score 1.0"
+        }
+      ],
+      "controls": [
+        {
+          "id": "shop.leave_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-042123/frame-0001.json",
+            "box": [
+              1622,
+              945,
+              150,
+              53
+            ],
+            "source": "实测 OCR 框＝Leave；本页唯一被允许的落点（模块预算 0/pending，任何购买/Refresh/Heal 都是越权支出），离开后回到 MAP"
+          }
+        }
+      ]
+    },
+    {
+      "id": "shop_leave",
+      "title": "离开商店的确认框（Leave the shop?；X Cancel / Confirm）",
+      "evidence": [
+        "evidence/runtime/window-20261006-042529/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "shop.leave_question",
+          "kind": "ocr",
+          "pattern": "^Leave the shop\\?$",
+          "roi": [
+            0.4,
+            0.4,
+            0.6,
+            0.56
+          ],
+          "threshold": 0.85,
+          "note": "实测 [846,496,224,40] score 0.992"
+        },
+        {
+          "id": "shop.leave_confirm",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.55,
+            0.63,
+            0.67,
+            0.74
+          ],
+          "threshold": 0.85,
+          "note": "实测 [1116,722,110,34] score 1.0；同排 X Cancel [706,720,138,36] 只作识别，绝不作为落点"
+        }
+      ],
+      "controls": [
+        {
+          "id": "shop.leave_confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-042529/frame-0002.json",
+            "box": [
+              1116,
+              722,
+              110,
+              34
+            ],
+            "source": "实测 OCR 框＝确认离开商店的 Confirm；点它才真的退出商店回到 MAP（Cancel 会留在商店，故本页只有这一个落点）"
+          }
+        }
+      ]
+    },
+    {
+      "id": "gift_get",
+      "title": "获得 E.G.O 礼物的公示页（E.G.O Gift GET!，压在奖励卡页之上）",
+      "evidence": [
+        "evidence/runtime/window-20261006-042956/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "gift.get_title",
+          "kind": "ocr",
+          "pattern": "^E\\.?G\\.?O Gift GET!$",
+          "roi": [
+            0.4,
+            0.21,
+            0.62,
+            0.29
+          ],
+          "threshold": 0.85,
+          "note": "实测 [828,250,258,41] score 0.966"
+        },
+        {
+          "id": "gift.get_confirm",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.44,
+            0.7,
+            0.58,
+            0.78
+          ],
+          "threshold": 0.85,
+          "note": "实测 [922,774,136,45] score 0.999；礼物本身已在上一步 reward_card 的 Confirm 领取，这里只是公示"
+        }
+      ],
+      "controls": [
+        {
+          "id": "gift_get.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-042956/frame-0001.json",
+            "box": [
+              922,
+              774,
+              136,
+              45
+            ],
+            "source": "实测 OCR 框＝Confirm；点它关掉公示、露出底下的奖励卡页（不改变任何资源归属）"
+          }
+        }
+      ]
     }
   ],
   "pending": [
@@ -935,11 +1101,6 @@
       "id": "floor_gifts",
       "what": "层奖励/礼赠三选一页",
       "why": "每层必经，且与 GIFT_GET 弹窗不同"
-    },
-    {
-      "id": "shop",
-      "what": "商店（Boss 前必有）",
-      "why": "预算体力兑换与购买策略的入口"
     },
     {
       "id": "event_dialog",
