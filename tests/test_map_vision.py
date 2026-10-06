@@ -61,6 +61,33 @@ def test_pack_line_must_sit_in_its_own_band():
     assert map_page(records, SIZE) is False
 
 
+def test_header_pattern_matches_only_the_two_supported_wordings():
+    assert HEADER_PATTERN
+    import re
+    assert re.match(HEADER_PATTERN, 'Exploring Floor 1', re.I)
+    assert re.match(HEADER_PATTERN, 'Before Entry Floor 5', re.I)
+    assert not re.match(HEADER_PATTERN, 'Explore the Floor 1', re.I)
+    assert not re.match(HEADER_PATTERN, 'Exploring Floor 6', re.I)
+
+
+def test_live_231221_terminal_records_identify_the_map_page():
+    """Regression pinned to the retained actual session, not a derived frame."""
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/live-20261005-231221/frame-0002.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    size = tuple(data['size'])
+    assert data['scene'] == 'UNKNOWN'
+    header = map_header(records, size)
+    assert header is not None
+    assert (header.floor, header.pack) == (1, 'To be Cleaved')
+    assert header.exploring_text.box == (58, 127, 332, 47)
+
+
 def test_other_scene_text_is_not_promoted_to_map():
     assert map_page([Text('Drive', (100, 100, 60, 20), .99)], SIZE) is False
     # The entry page carries `Exploring` in the upper right without a floor header.
