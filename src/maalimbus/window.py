@@ -402,13 +402,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if point is not None:
             return _plan(page, CLICK, target=[point[0] - 30, point[1] - 30, 60, 60],
                          expect=(ANY,), advance=True,
-                         reason='the_starting_gift_is_picked_from_the_rotation_keyword',
-                         detail={'keyword': state.get('keyword')})
+                         reason=state.get('reason')
+                         or 'the_starting_gift_is_picked_from_the_rotation_keyword',
+                         detail={'keyword': state.get('keyword'),
+                                 'gift': state.get('gift')})
         box = controls.get('initial_gifts.select_button')
         if box is None:
             return _refuse(page, 'initial_gift_select_not_anchored')
         return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'THEME_PACKS', 'INITIAL_GIFTS', 'UNKNOWN'),
+                     expect=('MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason='select_takes_the_starting_gift')
     if page == 'STAR_CONFIRM':
         # The Graces page hands off to this prompt ("Continue with selected effects?").

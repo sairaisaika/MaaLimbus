@@ -354,7 +354,15 @@ def test_the_starting_gift_comes_from_the_rotation_keyword_then_select():
     assert take['target'] == [473, 330, 60, 60]
     assert take['advance'] is True
     assert take['reason'] == 'the_starting_gift_is_picked_from_the_rotation_keyword'
-    assert take['detail'] == {'keyword': 'bleed'}
+    assert take['detail'] == {'keyword': 'bleed', 'gift': None}
+    # The second click takes the tray row the rotation names; the third leaves.
+    named = plan_step('INITIAL_GIFTS', controls={'initial_gifts.select_button': select},
+                      initial={'point': (1386, 350), 'gift': True,
+                               'reason': 'the_starting_gift_row_is_taken_from_the_tray',
+                               'chosen': 0, 'required': 1})
+    assert named['advance'] is True
+    assert named['reason'] == 'the_starting_gift_row_is_taken_from_the_tray'
+    assert named['detail'] == {'keyword': None, 'gift': True}
     leave = plan_step('INITIAL_GIFTS', controls={'initial_gifts.select_button': select},
                       initial={'point': None, 'keyword': 'bleed'})
     assert leave['target'] == select

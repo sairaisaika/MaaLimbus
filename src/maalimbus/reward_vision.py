@@ -77,6 +77,44 @@ def keyword_panel_point(records, size, keyword):
                 int(box[1] + box[3] / 2 + KEYWORD_TO_ICON[1]))
     return None
 
+
+#: the tray on the right of the starting page, where the gifts it offers are listed
+#: by name once a keyword column has been opened.
+INITIAL_TRAY_BAND = (0.60, 0.26, 0.95, 0.80)
+
+#: the gifts the rotation asks for by name, best first: the player named Wound Clerid
+#: and Little and To-be-Naughty Plushie for the Bleed team.
+INITIAL_GIFT_PREFERENCE = ('Wound Clerid', 'Little and To-be-Naughty Plushie')
+
+
+def initial_gift_box(records, size, *, wanted=INITIAL_GIFT_PREFERENCE,
+                     band=INITIAL_TRAY_BAND):
+    """Box of the tray row to take, preferring the rotation's own gift names.
+
+    Live: evidence/runtime/window-20261006-194741/frame-0001.json lists 'Wound Clerid'
+    [1298,333,176,34] above its description and 'Little and To-be-Naughty Plushie'
+    [1298,488,430,38] below it. With no name of ours on screen the topmost row of the
+    tray wins, which is the game's own first offer.
+    """
+    rows = []
+    for record in records or []:
+        box = list(getattr(record, 'box', None) or [])
+        text = (getattr(record, 'text', '') or '').strip()
+        if len(box) != 4 or len(text) < 6:
+            continue
+        centre = ((box[0] + box[2] / 2) / size[0], (box[1] + box[3] / 2) / size[1])
+        if band[0] <= centre[0] <= band[2] and band[1] <= centre[1] <= band[3]:
+            rows.append((box, text))
+    if not rows:
+        return None
+    for name in wanted:
+        key = (name or '').strip().lower()
+        for box, text in rows:
+            if key and key in text.lower():
+                return box
+    rows.sort(key=lambda row: row[0][1])
+    return rows[0][0]
+
 #: grayscale mean over the floor gift page's Select button that counts as lit.
 #:
 #: The three-card round prints no counter at all (a bare ``Select``), so the button's

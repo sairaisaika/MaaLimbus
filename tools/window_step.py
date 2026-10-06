@@ -46,8 +46,8 @@ from maalimbus import session_flow as flows
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
-                                     counter_state, gift_cards, keyword_panel_point,
-                                     select_ready)
+                                     counter_state, gift_cards, initial_gift_box,
+                                     keyword_panel_point, select_ready)
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import (NODE, SWIPE, plan_step, resolve_overlay,
@@ -755,12 +755,23 @@ def main() -> int:
                 texts = [Text(t['text'], tuple(t['box']), t['score'])
                          for t in record.get('ocr') or []]
                 state = counter_state(record, band=INITIAL_COUNTER_BAND) or {}
-                # One icon click per visit: the tray holds a single gift, and a second
-                # click would either be ignored or toggle the first one back off.
-                point = (keyword_panel_point(texts, record.get('size') or (1920, 1080))
-                         if initial_picked == 0 else None)
-                initial = {'chosen': state.get('chosen'), 'required': state.get('required'),
-                           'point': point, 'keyword': args.gift_keyword}
+                chosen, required = state.get('chosen'), state.get('required')
+                point, reason, gift = None, None, None
+                if required is None or (chosen or 0) < int(required):
+                    # 0: open the rotation's keyword column; then take the gift the
+                    # rotation names from the tray it fills.
+                    if initial_picked == 0:
+                        point = keyword_panel_point(
+                            texts, record.get('size') or (1920, 1080), args.gift_keyword)
+                    else:
+                        box = initial_gift_box(texts, record.get('size') or (1920, 1080))
+                        if box:
+                            point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
+                            gift = True
+                            reason = 'the_starting_gift_row_is_taken_from_the_tray'
+                initial = {'chosen': chosen, 'required': required, 'point': point,
+                           'keyword': args.gift_keyword if gift is None else None,
+                           'reason': reason, 'gift': gift}
             graces = None
             if page == 'STAR_GRACES':
                 texts = [Text(t['text'], tuple(t['box']), t['score'])

@@ -163,3 +163,21 @@ def test_the_starting_gift_column_names_the_icon_under_it():
     assert keyword_panel_point(records, SIZE, 'Bleed') == (503, 360)
     assert keyword_panel_point(records, SIZE, 'slash') is None
     assert keyword_panel_point(records, SIZE, '') is None
+
+
+def test_the_starting_gift_tray_prefers_the_rotation_names():
+    # Live: evidence/runtime/window-20261006-194741/frame-0001.json lists 'Wound
+    # Clerid' [1298,333,176,34] and 'Little and To-be-Naughty Plushie' [1298,488,430,38]
+    # in the tray, each above its own description line.
+    from maalimbus.reward_vision import initial_gift_box
+    tray = [Text('Wound Clerid', (1298, 333, 176, 34), 1.0),
+            Text('When hitting an enemy with a Skill that inflicts Bleed',
+                 (1298, 367, 442, 26), .96),
+            Text('Little and To-be-Naughty Plushie', (1298, 488, 430, 38), 1.0),
+            Text('Deal +10% damage against enemies with Bleed', (1300, 528, 426, 25), .95)]
+    assert initial_gift_box(tray, SIZE) == [1298, 333, 176, 34]
+    # With none of our names on screen the topmost row is the game's own first offer.
+    plain = [Text('Some Other Gift', (1298, 488, 300, 34), 1.0),
+             Text('Another Gift Here', (1298, 333, 300, 34), 1.0)]
+    assert initial_gift_box(plain, SIZE) == [1298, 333, 300, 34]
+    assert initial_gift_box([], SIZE) is None
