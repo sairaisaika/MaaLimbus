@@ -264,6 +264,8 @@ config/user-team-profiles.json            # 轮换与队伍偏好
   - 待办：① 商店/融合（Wishmaking）计划与预算门限；② 验收需要一次实机映射出的真实 floor-graph（节点 id 与种类怎么从帧里读出来是它自己的问题）。
   验收：同一层给出可复现的路线与购买/融合计划；预算门限生效。
 - **P4 预算/邮件/每日 + 打包**：体力兑换预算、邮件每日奖励、Windows 包（含 OTA）。
+  - 已实现（2026-10-06，离线）：`assets/resource/base/budget.json`（`status: pending` + `module_budget: 0` 是按用户硬约束发的出厂态）与 `src/maalimbus/budget.py`（`load_budget` / `plan_spend` / `apply_spend`：**未交给额度前一律拒绝**——`budget_not_configured`（无表或 `status != active`，出厂即此）、`budget_amount_must_be_positive`、`purpose_not_allowed`、`budget_zero`、`budget_exhausted` / `request_exceeds_remaining`、`amount_not_multiple_of_step`；允许时才给出 `spent_after`/`spent_next` 供调用方持久化）。调用约定：**先问预算、再发输入**，拒绝即是「没有点击」的理由。
+  - 待办：① 把体力兑换/补体的实机入口接上这个闸门并记录 refusals；② 邮件每日奖励的锚点与计划；③ Windows 包的 OTA 部分。
   验收：预算不越界；每日奖励幂等（有 receipt）；打包产物可跑 `verify_deployment_replay`。
 
 ---

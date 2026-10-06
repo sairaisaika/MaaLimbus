@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "status": "pending",
+  "module_budget": 0,
+  "spent": 0,
+  "conversion_step": 1,
+  "allowed_purposes": ["enkephalin_refill", "module_conversion"],
+  "note": "Standing user constraint: module budget is 0 / pending, so nothing may be converted or refilled. Flip status to \"active\" and raise module_budget only when the user hands over an explicit allowance; while pending or 0 every request is refused with a reason instead of clicking anything."
+}

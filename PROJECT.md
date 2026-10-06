@@ -9,7 +9,16 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 12:40 local
+## Latest continuation: 2026-10-06 13:00 local
+- **P4 的第一块（离线、可测）：预算闸门——出厂即「什么都不许花」**
+  - 新增 `assets/resource/base/budget.json`：`status: "pending"`、`module_budget: 0`、`spent: 0`、`conversion_step: 1`、`allowed_purposes: ["enkephalin_refill","module_conversion"]`，`note` 写明这是用户硬约束（模块预算 0/pending）的出厂态，**只有用户明确给额度才可把 status 改成 active 并提高 module_budget**。
+  - 新增 `src/maalimbus/budget.py`：`load_budget(path)`（校验 version/status/module_budget≥0/spent≥0/conversion_step≥1/allowed_purposes 合法性，非法即 `BudgetError`）、`plan_spend(amount, *, budget, spent=None, purpose=...)`、`apply_spend(...)`（额外给出 `spent_next` 供持久化）。拒绝理由按检查顺序：`budget_not_configured`（无表或 `status != active`，**出厂态就是它**）、`budget_amount_must_be_positive`、`purpose_not_allowed`、`budget_zero`、`budget_exhausted`、`request_exceeds_remaining`、`amount_not_multiple_of_step`；全部通过才是 `within_budget` 并给出 `spent_after`。
+  - 调用约定（写进模块 docstring）：**先问预算、再发输入**——一次拒绝就是「没有点击」的理由，符合「不买额度不重置」与「有界点击」。
+  - 测试 `tests/test_budget.py` 7 条：出厂态/Pending/零预算/无表全部拒绝、六种非法表被拒、金额与 purpose 校验、账本触顶与超限、允许时给出应持久化的账本（拒绝时 `spent_next` 不变）、`conversion_step` 整步门、显式 `spent` 覆盖表值且表本身不被改动（纯函数）。全量 **299 passed**（原 292）；`tools/verify_anchors.py` 仍 **22 page(s), 0 broken**。
+  - `docs/script-mode-plan.md` §12 的 P4 条目改为「已实现（离线）＋三条待办」（接实机兑换入口并记录 refusals、邮件每日锚点、Windows 包 OTA）。
+- **实机侧**：floor 3 地图软锁**依旧**（本轮未拍帧核对以外未发任何输入）；需要用户手工结算/结束那一局或重启客户端后才能继续 P0 实机验证。
+
+## Prior continuation: 2026-10-06 12:40 local
 - **P3 接线：`map_vision.route_decision` 用策略表排序（离线，可测）**
   - `route_decision(header, size, *, current=None, cleared=(), candidates=(), policy=None, kinds=None, context=None)`：仍是「先证后选」——`map_header_not_identified` / `current_position_not_proven` / `no_unvisited_candidate_observed` / `no_unvisited_reachable_node` 四道拒绝不变；**多个未访问候选**时若给了 `policy`（`route_plan.load_policy` 的表）与 `kinds`（节点 id → 本帧读到的种类），改由 `route_plan.plan_route` 排序，返回 `{'next_node', 'reason': 'policy_ranked_candidate', 'plan'}`；种类读不出的候选被跳过，**全体读不出则拒为 `route_kind_unknown`**（仍是拒绝，不是猜）；只有一个候选时不做多余排序，仍返回 `single_unvisited_candidate`。凡不传 `policy` 的调用方（含 `tools/map_live_observe.py:120`）语义逐字不变。
   - 实机冒烟（离线喂 `{'floor':3,'pack':'Repressed Wrath'}` + 三个候选 kinds `shop/abnormality/boss`）→ `next_node='r'`、`reason='policy_ranked_candidate'`、`plan.score=3.0`，`ranked` 依次为 boss 3.0 / abnormality 1.8 / shop 1.2。
