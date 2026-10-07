@@ -652,6 +652,11 @@ def main() -> int:
                              'storing and reading a screenshot, and it sends no input')
     parser.add_argument('--observe-only', action='store_true',
                         help='record the page and send no input at all')
+    parser.add_argument('--stop-page', default=None,
+                        help='stop the window the moment this page is observed: a long '
+                             'session (a run that ends with the settlement and then goes '
+                             'straight back in) can be handed back before the next input '
+                             'starts something the caller did not ask for')
     parser.add_argument('--click-box', action='append', default=None,
                         help='x,y,w,h: send exactly one click and record the before/'
                              'after frames, for a control the anchors do not cover yet. '
@@ -962,8 +967,11 @@ def main() -> int:
             if page == 'DUNGEON_TEAM':
                 # The rotation decides which loadout to bring; the planner clicks the
                 # slot once, and once that click has been sent the next step falls
-                # through to Confirm.
-                team = {'wanted': args.team, 'selected': team_slot_picked}
+                # through to Confirm. The slot is read from the ledger on every loadout
+                # page, not frozen at startup: a window long enough to claim one reward
+                # and re-enter another run would otherwise bring the retired team again.
+                team = {'wanted': run_store.team_slot if run_store is not None else args.team,
+                        'selected': team_slot_picked}
             else:
                 team_slot_picked = None
             reward = reward_state(record) if page == 'REWARD_CARD' else None
@@ -1145,6 +1153,13 @@ def main() -> int:
                                              page=late_page,
                                              frame_changed=late.get('image_sha256') not in (None, before_sha)))
             result['steps'].append(entry)
+            if args.stop_page and (entry.get('page_after') or page) == args.stop_page:
+                # The caller asked to hand control back the moment this page shows, so
+                # nothing further is sent from it; the run keeps its state untouched.
+                entry['stopped'] = 'stop_page_reached'
+                journal.record('window_stop_page', page=args.stop_page,
+                               step=entry.get('step'))
+                break
             if not entry['passed']:
                 # The map fades in and out between nodes, so an observation caught mid
                 # fade carries no candidate at all (live build/window-run75.json step26
