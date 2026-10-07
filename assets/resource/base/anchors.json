@@ -2177,6 +2177,57 @@
           }
         }
       ]
+    },
+    {
+      "id": "gift_search_forgo",
+      "title": "Forgo E.G.O Gift Search? 确认弹窗（右下 Confirm，左下 X Cancel）",
+      "evidence": [
+        "evidence/runtime/window-20261006-200357/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "gift_search_forgo.prompt",
+          "kind": "ocr",
+          "pattern": "^Forgo E\\.?G\\.?O Gift Search\\?$",
+          "roi": [
+            0.36,
+            0.43,
+            0.64,
+            0.52
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "gift_search_forgo.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-200357/frame-0001.json",
+            "box": [
+              1116,
+              722,
+              112,
+              38
+            ],
+            "source": "实测 OCR 框；同排左边是 X Cancel [700,720,142,40]，永不点"
+          }
+        },
+        {
+          "id": "gift_search_forgo.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-200357/frame-0001.json",
+            "box": [
+              700,
+              720,
+              142,
+              40
+            ],
+            "source": "只登记以拒点：Cancel 会退回礼物搜索页"
+          }
+        }
+      ]
     }
   ],
   "pending": [

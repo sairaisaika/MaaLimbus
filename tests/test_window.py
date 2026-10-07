@@ -343,6 +343,26 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
+def test_the_forgone_gift_search_is_confirmed_and_never_cancelled():
+    # Live: evidence/runtime/window-20261006-200357/frame-0001.json is the prompt the
+    # refused search raises.
+    confirm = [1116, 722, 112, 38]
+    cancel = [700, 720, 142, 40]
+    plan = plan_step('GIFT_SEARCH_FORGO',
+                     controls={'gift_search_forgo.confirm_button': confirm,
+                               'gift_search_forgo.cancel_button': cancel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == confirm
+    assert plan['reason'] == 'the_forgone_gift_search_is_confirmed'
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'GIFT_SEARCH_FORGO')
+    assert plan_step('GIFT_SEARCH_FORGO', controls={})['reason'] == \
+        'gift_search_forgo_confirm_not_anchored'
+    stolen = plan_step('GIFT_SEARCH_FORGO',
+                       controls={'gift_search_forgo.confirm_button': cancel,
+                                 'gift_search_forgo.cancel_button': cancel})
+    assert stolen['reason'] == 'control_is_forbidden'
+
+
 def test_the_gift_search_is_refused_and_the_select_path_still_exists():
     # Live: evidence/runtime/window-20261006-195803/frame-0001.json. The tray header
     # prints the running starlight price, so the player asked for the optional search

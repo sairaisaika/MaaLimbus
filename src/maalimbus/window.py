@@ -48,7 +48,8 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
-                      'star_confirm.cancel_button', 'initial_gifts.refuse_button')
+                      'star_confirm.cancel_button', 'initial_gifts.refuse_button',
+                      'gift_search_forgo.cancel_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -413,8 +414,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if box is None:
             return _refuse(page, missing)
         return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'THEME_PACKS', 'UNKNOWN'),
+                     expect=('GIFT_SEARCH_FORGO', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason=reason)
+    if page == 'GIFT_SEARCH_FORGO':
+        # Refusing the search raises its own confirmation. Live:
+        # evidence/runtime/window-20261006-200357/frame-0001.json reads "Forgo E.G.O
+        # Gift Search?", Confirm [1116,722,112,38] and X Cancel [700,720,142,40].
+        box = controls.get('gift_search_forgo.confirm_button')
+        if box is None:
+            return _refuse(page, 'gift_search_forgo_confirm_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('MAP', 'THEME_PACKS', 'GIFT_SEARCH', 'UNKNOWN'),
+                     reason='the_forgone_gift_search_is_confirmed')
     if page == 'INITIAL_GIFTS':
         # The run opens on the starting E.G.O Gift picker: eight keyword columns, a
         # "Selected E.G.O Gift" tray, and a Select button that stays inert until the
