@@ -682,17 +682,27 @@ def main() -> int:
                              'frame coordinates and record the before/after frames, '
                              'for a gesture the anchors do not cover yet (the map '
                              'scroll and the team page both need one)')
-    parser.add_argument('--flow', default=None, choices=flows.names(),
-                        help='run a named session flow (see maalimbus.session_flow): '
-                             'the walk from a cold client to the Mirror Dungeon card is '
-                             'data, so repeating it is one command instead of a chain of '
-                             'hand-aimed one-shot clicks')
+    parser.add_argument('--flow', default=None,
+                        help='run one or more named session flows, comma-separated and in '
+                             'order (see maalimbus.session_flow): the walk from a cold '
+                             'client to the Mirror Dungeon card is data, so repeating it is '
+                             'one command instead of a chain of hand-aimed one-shot clicks. '
+                             'The window stops when the flows are done unless --after-flow '
+                             'is given, which keeps driving the page loop for --steps')
+    parser.add_argument('--after-flow', action='store_true',
+                        help='after the flow chain, keep driving the page loop (--steps) '
+                             'instead of stopping at the last flow step')
     parser.add_argument('--flow-list', action='store_true',
                         help='print the named flows and exit, without touching a device')
     parser.add_argument('--label', default='one_shot_click',
                         help='what --click-box is aiming at, for the evidence record')
     parser.add_argument('--report', type=Path, default=None)
     args = parser.parse_args()
+    flow_names = [name.strip() for name in (args.flow or '').split(',') if name.strip()]
+    unknown_flows = [name for name in flow_names if name not in flows.names()]
+    if unknown_flows:
+        raise SystemExit('unknown flow(s): %s; known: %s'
+                         % (', '.join(unknown_flows), ', '.join(flows.names())))
     if args.flow_list:
         for name in flows.names():
             for step in flows.flow(name):
@@ -751,7 +761,7 @@ def main() -> int:
         # down: the window that is actually in front is recorded first, and Maa's own
         # start-app call (never a desktop launcher) is what brings Limbus up. Every other
         # session still refuses to touch a window it has not identified.
-        cold_start = bool(args.flow) and flows.flow(args.flow)[0].kind == 'start_app'
+        cold_start = bool(flow_names) and flows.flow(flow_names[0])[0].kind == 'start_app'
         if cold_start:
             result.update(device=device, launched_by_flow=True,
                           foreground_before=foreground_any_of(device))
@@ -805,15 +815,21 @@ def main() -> int:
             result['passed'] = True
             result['reason'] = 'page_observed'
             return 0
-        if args.flow:
-            problems = flows.validate(args.flow)
-            if problems:
-                raise SystemExit('; '.join(problems))
-            result['flow'] = args.flow
-            result['flow_steps'] = run_flow(
-                tasker, controller, journal, directory, deadline, flows.flow(args.flow),
-                observe_only=bool(args.observe_only), interval=args.interval,
-                rounds=args.rounds)
+        if flow_names:
+            for name in flow_names:
+                problems = flows.validate(name)
+                if problems:
+                    raise SystemExit('; '.join(problems))
+            result['flow'] = ','.join(flow_names)
+            result['flow_steps'] = []
+            for name in flow_names:
+                # The chain is walked in the order given, and each flow's steps land in
+                # one flat record: a cold start is launch -> to_mirror -> enter_mirror,
+                # and a window that stopped between them would leave the client idle.
+                result['flow_steps'].extend(run_flow(
+                    tasker, controller, journal, directory, deadline, flows.flow(name),
+                    observe_only=bool(args.observe_only), interval=args.interval,
+                    rounds=args.rounds))
         for spec in (args.click_box or []):
             parts = [int(value) for value in spec.replace(' ', '').split(',')]
             if len(parts) != 4:
@@ -882,7 +898,8 @@ def main() -> int:
                 'observation': before, 'settled': after, 'passed': bool(changed),
                 'reason': ('one_shot_screen_changed' if changed
                            else 'one_shot_screen_unchanged')})
-        goal = 0 if (boxes or swipes or args.flow) else max(0, args.steps)
+        goal = 0 if (boxes or swipes) else (
+            max(0, args.steps) if (not flow_names or args.after_flow) else 0)
         step = 0
         unknown_seen = 0
         battle_sig = None
