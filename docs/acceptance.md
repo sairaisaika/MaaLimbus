@@ -1,5 +1,55 @@
 # Acceptance evidence
 
+## 2026-10-07 the factory floor's cyan path is walked, and the player is read from the flame
+
+- **What stalled.** `run-continue-13` (report `build/window-run-continue-13.json`) stopped at
+  step 113 on floor 2, "Automated Factory": two clicks
+  (`map_node_click_is_the_only_proven_forward_input`) opened no panel
+  (`map_click_opened_no_panel`, targets `[599,609,190,190]` then `[599,0,190,190]`), and
+  three reads then found no candidate at all (`no_candidate_node_observed`). The page
+  (`build/live-stall-113.png`) shows the flame in the lower middle with a bright cyan line
+  leaving it for a `?` node in the upper right, with another `?` on the left and a grey node
+  between them; `node_markers` found only two nodes on that frame and both were the player's
+  own -- its flame and a reward chip under it.
+- **Why.** `map_vision.path_end`'s mask only accepted the violet path floors 1 and 3 draw.
+  Floor 2 draws it cyan, so the mask read nothing, the walk returned nothing, and the ladder
+  of candidates fell through to the player's own node and the chip. Sampling the frame fixed
+  the thresholds: a cyan mask needs `max >= 180` (below it the floor's own cyan grid joins the
+  line into one 5.6k-pixel component; at 200 it breaks the line into three), and the target
+  node sits about 470 px away, past the old `PATH_WALK_LIMIT` of 320.
+- **What the script does now** (commit `3ee766d`). The mask takes the cyan line as well; the
+  walk limit reaches one lattice step (560); and a far end within `PATH_SNAP` (70 px) of a
+  ringed cyan node snaps to that node's pixel -- the path names which node, the ring names
+  which pixel, and on the floor-1 frame the two disagree by 66 px. The archived floor-3
+  reading `path_end(image, (960,672)) = (1123,641)` is unchanged at every cap.
+- **The next window's first click still missed, for a second reason.** `run-continue-14` step
+  0 read `frame-0002` -- caught mid-fade -- where the locomotive pair lands at (636,510) and
+  the badge lift at (751,425) while the flame burns at (694,384). The old order believed the
+  locomotive, which is 137 px from the flame, past `PATH_REACH`, so `path_end` again returned
+  nothing and the click went to the hexagon between them. `player_readings()` now scores every
+  reading by the flame under it -- restricted to the map band, because the header's sin
+  counters are saturated yellow too and the whole-map centroid has already returned one of
+  them (`evidence/runtime/window-20261006-233633/frame-0001.png`) -- and `map_clicks` walks
+  the path from the other readings when the best one walks nowhere, since a path is drawn
+  from the player and so can testify to where the player is.
+- **Third stall of the same window: the story box over the victory banner.** Step 60 stopped
+  `page_unreadable_after_waiting` after the wait budget (12 rounds) ran out. Frame
+  `evidence/runtime/window-20261007-174525/frame-0159.json` reads `ICTORY` `[830,444,342,187]`
+  .85 with the story lines ("... It's all thanks to their excellent classes. I've learned a"
+  `[460,83,480,20]` .96) over the V, so `^VICTORY$` did not match and the result screen --
+  which is only waited out, never clicked (`WAIT_PAGES`) -- was never named. The caption is
+  now matched without its first letter. The story itself does advance on its own: consecutive
+  frames keep changing (`frame-0191` .. `frame-0196`, six different hashes), so the next
+  window runs with a larger `--unknown-rounds` rather than a click the player did not ask for.
+- Tests: `tests/test_map_vision.py::test_the_player_is_the_reading_the_flame_agrees_with`,
+  `::test_the_cyan_path_is_walked_even_when_the_player_is_read_mid_fade` (both pinned to
+  frame-0002), `tests/test_vision.py::test_the_result_screen_is_named_when_the_story_box_covers_its_first_letter`
+  (pinned to frame-0159), and the caption pin in `tests/test_battle_result_scene.py` follows
+  the widened token. 422 passed; `tools/verify_anchors.py` 45 pages, 0 broken.
+- Not claimed: that every floor's path colour is covered (floor 2's cyan and floors 1/3's
+  violet are the two seen), and that the larger `--unknown-rounds` is the right budget for a
+  long story rather than a named story page.
+
 ## 2026-10-07 the claim's second question is answered from the ledger, not the page
 
 - **The page asks before it spends.** Claiming the rewards a weekly reset left behind
