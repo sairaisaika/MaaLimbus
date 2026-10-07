@@ -9,7 +9,17 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 19:30 local
+## Latest continuation: 2026-10-07 17:55 local (journal UTC 21:54)
+- **停机点一：工厂层（Floor 2）的青色光路读不到，驱动把玩家自己和奖品图标当节点点（提交 `3ee766d`）。** `run-continue-13` step 113：`node_markers` 只认出 2 个（玩家自己 (751,425) 与它下方的奖品图标），青色 `?` 节点、左侧 `?`、中间灰节点全没找到 ⇒ `advance_candidates` 把玩家与图标当候选，点两次 `map_click_opened_no_panel` 后 `no_candidate_node_observed`（证据帧 `evidence/runtime/window-20261007-172225/frame-0406.png`；现场 `build/live-stall-113.png`）。根因是 `path_end` 的掩码只认紫罗兰色的路（Floor 1/3），Floor 2 画的是**青色虚线**。
+- **处理**：`path_end` 的掩码加一条 `(g>=140)&(b>=140)&(r<=150)&(g-r>=40)&(max>=180)`（`max>=180` 是采样出来的：再低青色地板网格会连成一块，再高光路断成几截）；`PATH_WALK_LIMIT` 320 → 560（目标节点在一个格子步之外约 470px）；光路末端若在 `PATH_SNAP`(70px) 内落着被环标记的青色节点，就**吸附到那个节点**（光路说明是哪个节点，环说明点哪个像素）。`clicks[0]` 变成 `path_node (1039,155)`。
+- **停机点二：光路修复后同一局的第一下仍点空（同一次提交）。** `run-continue-14` step 0 观察的是 `frame-0002`（过渡帧），那一帧上各玩家读数互相矛盾：机车对 `train_player` 给 (636,510)、徽章抬起给 (751,425)，而火焰烧在 (694,384)。旧链先信机车 ⇒ 玩家点错 137px（超出 `PATH_REACH`）⇒ `path_end` 拿不到光路 ⇒ 退回 `cyan_node (872,296)`，点空一次后重试才对。
+- **处理**：新增 `flame_count(image, point, *, radius=110, band=(.12,.80))`（只在地图带里数玩家的火焰像素，不然会数到顶部的罪孽计数器）与 `player_readings(image, markers)`／`player_of(image, markers)`：把五个玩家读数按「它底下有多少火焰」排序，票多的当玩家（火焰是页面上唯一确定属于玩家的东西）；`map_clicks` 再把光路从其余读数各走一遍，取第一个走得出光路的（光路是从玩家画出来的，所以它也能反过来验证玩家）。
+- **测试**：`tests/test_map_vision.py` 加 `test_the_player_is_the_reading_the_flame_agrees_with` 与 `test_the_cyan_path_is_walked_even_when_the_player_is_read_mid_fade`（都钉 frame-0002）。**全量 422 passed；`tools/verify_anchors.py` 45 page(s), 0 broken。**
+- **停机点三：战后剧情把胜利横幅的首字母盖住（同一次提交）。** `run-continue-14` step 60 `page_unreadable_after_waiting`：VICTORY 横幅上面压着剧情框（`'ICTORY' [830,444,342,187] .85`，剧情行 `'... I've learned a' [460,83,480,20] .96` 正盖住 V），`^VICTORY$` 匹配不上 ⇒ 整页 UNKNOWN ⇒ 等满 `--unknown-rounds`（默认 12 轮 ×6s）停机。处理：`locale` 的 `victory` 改成 `^V?ICTORY$`（只有一个页面画这个词），并解掉 `tests/test_battle_result_scene.py` 里对正则原文的过度钉死。BATTLE_RESULT 本身在 `WAIT_PAGES` 里（只等不点），所以这只是**认清**，不是加点。
+- **仍在观察**：战后剧情会自己走（连续帧 sha 一直变），但比默认等待预算长；再驱动时把 `--unknown-rounds` 放大（例如 40）而不改默认值——它同时兜着真正的卡页。
+- **仍未申报**：JP/MXU 实机、体力（Enkephalin）兑换、Windows 包 `dist/`（三个输入归档在本机，可用 `tools/build_windows_package.py --mxu … --maa … --mxu-source … --verified-dungeon-clear` 重出）。
+
+## Prior continuation: 2026-10-07 19:30 local
 - **停机点：花掉周奖励后，通行证升级通知盖在镜牢入口页上（提交 `36c7902`）**。`run-continue-12` step 0 在第二问点 Confirm（花了 1/3 次周奖励、把这一局的残余奖励领到手：Weekly Bonuses 变 2/3、Weekly Projection Cap 变 10/1000），游戏随即弹出 **Pass Level Up** 通知（`Pass Level 67`／`Battle Pass XP` 十格／`✓ Confirm`），它盖在 **Before Entry** 之上，而入口页自己的 `Enter` 仍可读 ⇒ 驱动把这一帧判成 `MIRROR_ENTRY`，对着被盖住的 Enter 空点，`unexpected_successor` 停机（证据帧 `evidence/runtime/window-20261007-171928/frame-0005.json`，sha `aa7c595bbc77`；现场 `build/live-run12.png`）。
 - **处理**：`locale` 加 `pass_level_up`／`battle_pass_xp`，`vision.py` 把 `PASS_LEVEL_UP` 判在 `MIRROR_ENTRY` **之前**（浮层要赢过它盖住的页面），`window.py` 点它唯一的 `pass_level_up.confirm_button`（reason `the_pass_level_up_notice_is_acknowledged_to_clear_the_menu`），`MIRROR_ENTRY` 的 expect 接受 `PASS_LEVEL_UP`；anchors 新增 `pass_level_up` 页（Confirm 几何 `[884,682,160,46]`），`pending` 里已被证明的 `previous_session_expired` 移除。
 - **同时修掉一个会乱花钱的兜底**：`run_wiring.earned_its_payout()` 原先在缺少时间戳时退回「receipt 有 victory/reward 就算挣到」，而账本里那张 team 4 的 receipt 写于「receipt 带 `settled_at`」之前，于是这一问被判成「打过的一局」而点了 Confirm —— 实际那一局的奖励来自被周重置作废的 run。现在只要账本里有 `abandoned` 而时间戳无法比较，就**不花**周奖励（不知道就不花）。

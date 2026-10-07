@@ -57,6 +57,13 @@ ORNAMENT_LIFT = 70
 #: the player's locomotive burns a saturated yellow flame worth ~211 px; every other
 #: node ornament measures 0-17 px there (four archived map frames).
 PLAYER_FLAME = 60
+#: The player readings are checked against the flame itself, because they disagree on
+#: frames caught mid-fade and each one is right on the frames the others fail. Live
+#: evidence/runtime/window-20261007-174525/frame-0002.png: the locomotive pair reads
+#: (636,510) and the badge lift reads (751,425) while the flame burns at (694,384), so a
+#: radius has to cover the flame's own height above its node (~70 px) plus the reading's
+#: own error.
+PLAYER_FLAME_RADIUS = 110
 
 
 @dataclass(frozen=True)
@@ -342,6 +349,70 @@ def flame_centroid(image, *, bottom=None, right=None, minimum=PLAYER_FLAME):
         if best is None or area > best[0]:
             best = (area, (int(round(centroids[index][0])), int(round(centroids[index][1]))))
     return None if best is None else best[1]
+
+
+def flame_count(image, point, *, radius=PLAYER_FLAME_RADIUS, band=(.12, .80)):
+    """How many of the player's own flame pixels sit within ``radius`` of ``point``.
+
+    The count is taken inside the map band only: the header strip carries the sin
+    counters, whose icons are saturated yellow too, and the whole-map centroid has
+    already landed on one of them (live evidence/runtime/window-20261006-233633/frame-0001.png,
+    where ``flame_centroid`` returns the counter at (1616,82) and that reading would
+    otherwise outrank the player on the floor it was taken from).
+    """
+    if image is None or point is None:
+        return 0
+    import numpy as np
+    height, width = image.shape[:2]
+    x, y = int(point[0]), int(point[1])
+    x0, x1 = max(0, x - radius), min(width, x + radius)
+    y0, y1 = max(round(band[0] * height), y - radius), min(round(band[1] * height), y + radius)
+    if x1 <= x0 or y1 <= y0:
+        return 0
+    crop = image[y0:y1, x0:x1].astype(int)
+    blue, green, red = crop[:, :, 0], crop[:, :, 1], crop[:, :, 2]
+    return int(((red > 180) & (green > 150) & (blue < 120)).sum())
+
+
+def player_readings(image, markers):
+    """Every point a reader claims the player stands at, the flame's favourite first.
+
+    Ordering them is only ever a guess -- see ``player_of`` for the frames where the
+    readings disagree -- so this returns all of them and lets the caller check the guess
+    against the page itself. The flame score is the tie-break because the flame is the
+    one thing on the page that is certainly the player's, but a reader that put its point
+    slightly off can still outscore the right one (the locomotive's own lamp is yellow
+    too), which is why the caller may look at the rest.
+    """
+    readings = []
+    for guess in (train_player(image), yellow_flame_player(markers, image),
+                  flame_centroid(image), flame_player(markers, image),
+                  likely_player(markers)):
+        if guess and guess not in readings:
+            readings.append(guess)
+    return sorted(readings, key=lambda guess: -flame_count(image, guess))
+
+
+def player_of(image, markers):
+    """The player's point: the reading with the most of the flame under it, or None.
+
+    No single reading is right on every frame, so ordering them cannot settle which one
+    to believe. The badge lift needs the badge scan to have found the player's ornament,
+    the locomotive pair needs the flame and its body to be picked out of the floor's own
+    glow, and the whole-map centroid needs the largest yellow blob on the page to be the
+    flame rather than a reward chip: live
+    evidence/runtime/window-20261006-050106/frame-0003.json is a frame where only the
+    locomotive finds it (one badge node on the page), while live
+    evidence/runtime/window-20261007-174525/frame-0002.png -- caught mid-fade -- is a
+    frame where the locomotive pair lands at (636,510) and the badge lift at (751,425)
+    while the flame burns at (694,384); believing the locomotive first is what sent that
+    run's first click to the hexagon between them. So each reading is scored against the
+    flame itself and the reading with the most of it wins. A frame whose flame is not
+    visible at all still returns its best reading rather than nothing, because a wrong
+    point costs one candidate while no point costs the path reading.
+    """
+    readings = player_readings(image, markers)
+    return readings[0] if readings else None
 
 
 def train_player(image, *, bottom=None, right=None, min_area=60, max_side=32,
@@ -766,9 +837,25 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # where train_player is None and flame_centroid returns a header icon -- and the path
     # reading, which is the one proven to open the panel, would be lost with it.
     if player is None:
-        player = (train_player(image)
-                  or yellow_flame_player(markers, image) or flame_player(markers, image)
-                  or likely_player(markers))
+        readings = player_readings(image, markers)
+        player = readings[0] if readings else None
+    else:
+        readings = []
+    # The lit path is drawn from the player, so it is also the one reading on the page
+    # that can settle which point really is the player: live
+    # evidence/runtime/window-20261007-174525/frame-0002.png is a frame where the
+    # flame-scored reading is the badge lift at (751,425) and the path off it lands on
+    # the node the click really opened, while the locomotive pair reads (636,510) -- 137
+    # px away, outside PATH_REACH -- and leaves the path with nothing to start from. So
+    # when the best reading walks nowhere, the other readings are tried before the page
+    # is given back without a path candidate at all.
+    walk = path_end(image, player) if player else None
+    if walk is None:
+        for other in readings[1:]:
+            walk = path_end(image, other)
+            if walk:
+                player = other
+                break
     clicks = []
 
     def add(point, kind, side):
@@ -823,7 +910,6 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # end is the strongest reading on the page: live evidence/runtime/
     # window-20261006-233633/frame-0001.png, where an ADB tap on it opened the node panel
     # after the ring and every badge candidate had been refused.
-    walk = path_end(image, player)
     if walk:
         # The path names which node the run may step to; the node's own ring names the
         # pixel the game accepts. Live evidence/runtime/window-20261006-201831/frame-0065.png

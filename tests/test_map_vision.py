@@ -928,3 +928,58 @@ def test_the_map_survives_the_header_word_being_misread():
     assert header is not None
     assert header.floor is None
     assert header.pack == 'Repressed Wrath'
+
+
+def test_the_player_is_the_reading_the_flame_agrees_with():
+    """Live evidence/runtime/window-20261007-174525/frame-0002.png, caught mid-fade.
+
+    The readings of that frame disagree: the locomotive pair lands at (636,510) and the
+    badge lift at (751,425) while the flame burns at (694,384). map_clicks believed the
+    locomotive first, so the path reading started from a point 137 px off -- outside
+    PATH_REACH -- and returned nothing, and the run's first click went to the hexagon
+    between them (window-run-continue-14, step 0: MAP [852,276,40,40], passed false, the
+    panel only opened on the retry from the next observation).
+    """
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import flame_count, node_markers, player_of, train_player
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-174525/frame-0002.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    markers = node_markers(image)
+    player = player_of(image, markers)
+    assert player is not None
+    # The badge lift is the reading the flame stands under, and the locomotive's own
+    # lamp is why the flame score, not the reading order, has to settle it.
+    assert abs(player[0] - 751) <= 25 and abs(player[1] - 425) <= 25, player
+    locomotive = train_player(image)
+    assert locomotive is not None, 'the live mid-fade frame must still offer the pair'
+    assert abs(locomotive[0] - 636) <= 30 and abs(locomotive[1] - 510) <= 30, locomotive
+    assert flame_count(image, player) > flame_count(image, locomotive)
+
+
+def test_the_cyan_path_is_walked_even_when_the_player_is_read_mid_fade():
+    """The same mid-fade frame: the path candidate has to survive the wrong player.
+
+    ``player_of`` settles the reading above, and this pins what the caller gets: the node
+    the cyan line points at (1054,124) is the first candidate, ahead of the hexagon the
+    run actually clicked.
+    """
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import map_clicks
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-174525/frame-0002.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    clicks = map_clicks(image)
+    assert clicks, 'the live factory floor must offer candidates'
+    first = clicks[0]
+    assert first['kind'] == 'path_node', clicks[:3]
+    point = first['point']
+    assert abs(point[0] - 1054) <= 40 and abs(point[1] - 124) <= 40, point

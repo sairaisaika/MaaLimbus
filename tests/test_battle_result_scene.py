@@ -20,7 +20,12 @@ FRAMES = ROOT / 'evidence' / 'runtime' / 'window-20261006-105647'
 
 def test_the_victory_caption_is_what_names_the_result_screen():
     words = json.loads((LOCALES / 'en' / 'locale.json').read_text(encoding='utf-8'))
-    assert words['victory'] == '^VICTORY$'
+    # The caption's first letter is optional: the post-battle story box sits over the V
+    # on live evidence/runtime/window-20261007-174525/frame-0159.json, where OCR reads
+    # 'ICTORY' and the run stalled as UNKNOWN (see tests/test_vision.py for that frame).
+    # The negative control below still removes the whole word, so the branch is still lit
+    # by the caption alone.
+    assert words['victory'] == '^V?ICTORY$'
     for name in ('frame-0066.json', 'frame-0067.json'):
         data = json.loads((FRAMES / name).read_text(encoding='utf-8'))
         records = [Text(t['text'], tuple(t['box']), t['score']) for t in data['ocr']]

@@ -46,6 +46,13 @@ def classify(records, locale, size):
     # [732,434,470,209] score 1.0 (evidence/runtime/window-20261006-105647/
     # frame-0066.json and frame-0067.json), so this band is tight around it and
     # the threshold is high on purpose.
+    # The post-battle story box can cover the banner's first letter and the page is
+    # still the result screen: live evidence/runtime/window-20261007-174525/frame-0159.json
+    # (window-run-continue-14, stalled as UNKNOWN with window_unknown_wait) reads 'ICTORY'
+    # [830,444,342,187] 0.85 while the story box '... It's all thanks to their excellent
+    # classes. I've learned a' [460,83,480,20] 0.96 sits over the V. The word is huge and
+    # no other page draws it, so the token is matched without its first letter; the result
+    # screen is only waited out (WAIT_PAGES), never clicked.
     if find(records, locale.get('victory', r'(?!)'), (.33, .36, .68, .64), size, .85):
         return 'BATTLE_RESULT'
     # The other victory layout is the one that carries a Confirm: live

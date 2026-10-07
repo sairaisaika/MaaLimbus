@@ -590,3 +590,23 @@ def test_the_reward_modal_is_named_before_the_summary_behind_it():
     # Without the modal's own title the page is the summary behind it.
     without = [t for t in records if t.text.strip() != 'Exploration Reward']
     assert classify(without, words, tuple(frame['size'])) == 'RUN_CLAIM'
+
+
+def test_the_result_screen_is_named_when_the_story_box_covers_its_first_letter():
+    """Live evidence/runtime/window-20261007-174525/frame-0159.json.
+
+    window-run-continue-14 stalled there as UNKNOWN with window_unknown_wait: the
+    post-battle story box sits over the V of the banner, so OCR returns 'ICTORY'
+    [830,444,342,187] .85 next to the story lines, and the result screen -- which is
+    only ever waited out, never clicked -- was not recognised at all.
+    """
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = Path(__file__).resolve().parents[1] / 'evidence/runtime/window-20261007-174525/frame-0159.json'
+    if not frame.exists():
+        pytest.skip('retained live result-screen evidence is not present')
+    data = json.loads(frame.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    assert classify(records, words, tuple(data['size'])) == 'BATTLE_RESULT'
+    # Take the banner away and the page is nothing this reader knows.
+    trimmed = [r for r in records if 'ICTORY' not in r.text]
+    assert classify(trimmed, words, tuple(data['size'])) == 'UNKNOWN'

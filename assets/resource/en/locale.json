@@ -29,7 +29,7 @@
   "forbidden_dialog": "Purchase\\s*Lunacy|Refill\\s*Enkephalin|Extract\\s*10|Exchange\\s*Lunacy",
   "expired": "previous session has expired",
   "defeat": "^DEFEAT$",
-  "victory": "^VICTORY$",
+  "victory": "^V?ICTORY$",
   "victory_banner": "^Victory$",
   "victory_clear": "^EX-CLEAR$",
   "floor_in_progress": "^Floor\\s*In\\s*Progress$",
