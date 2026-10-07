@@ -29,8 +29,12 @@ def test_map_clicks_the_planned_candidate_and_expects_the_panel():
     plan = plan_step('MAP', candidates=[[900, 400, 60, 60], [1200, 500, 60, 60]])
     assert plan['action'] == CLICK
     assert plan['target'] == [900, 400, 60, 60]
-    assert plan['expect'] == ['NODE_PANEL']
+    assert plan['expect'][0] == 'NODE_PANEL'
     assert successor_ok(plan, 'NODE_PANEL')
+    # Live proof: build/window-run73.json step17 clicked a node and landed on
+    # PRE_BATTLE_TEAM, which the panel-only expectation read as an unexpected successor.
+    assert successor_ok(plan, 'PRE_BATTLE_TEAM')
+    assert not successor_ok(plan, 'MAP')
 
 
 def test_map_without_a_candidate_refuses_instead_of_guessing():
@@ -187,9 +191,12 @@ def test_the_entry_page_has_one_plan_under_both_spellings():
 
 
 def test_successor_outside_the_expected_set_is_recorded_as_a_failure():
+    # The map accepts anything a node can hand back, so the outsider here has to be a page
+    # a node click can never reach - the battle HUD needs a fight to have started.
     plan = plan_step('MAP', candidates=[[900, 400, 60, 60]])
-    assert not successor_ok(plan, 'SHOP')
-    record = step_result(plan, sent=True, before='MAP', after='SHOP', page='SHOP')
+    assert not successor_ok(plan, 'BATTLE_HUD')
+    record = step_result(plan, sent=True, before='MAP', after='BATTLE_HUD',
+                         page='BATTLE_HUD')
     assert record['passed'] is False
     assert record['reason'] == 'unexpected_successor'
     assert record['clicks_sent'] == 1

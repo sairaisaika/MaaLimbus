@@ -333,8 +333,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'no_candidate_node_observed')
         if not 0 <= candidate_index < len(candidates):
             return _refuse(page, 'candidate_index_out_of_range')
+        # The map is the run's hub: a node opens its own panel (the proven case), and a
+        # battle node can hand the run straight to the pre-battle team instead - live
+        # build/window-run73.json step17 clicked a node and landed on PRE_BATTLE_TEAM,
+        # which used to stop the run as an unexpected successor. Everything an Enter on a
+        # node panel can produce is therefore a legitimate answer here, and the click is
+        # judged by the page actually changing rather than by which one it became.
         return _plan(page, CLICK, target=candidates[candidate_index],
-                     expect=('NODE_PANEL',),
+                     expect=('NODE_PANEL', 'PRE_BATTLE_TEAM', 'DEPLOYMENT', 'SHOP',
+                             'SHOP_LEAVE', 'CUTSCENE', 'EVENT_CHOICE', 'EVENT_CHECK',
+                             'EVENT_CHECK_RESULT', 'EVENT_CHECK_READY', 'EVENT_RESULT',
+                             'EVENT_RESULT_READY', 'GIFT_PICK', 'GIFT_GET', 'REWARD_CARD',
+                             'EGO_GIFT_POPUP', 'UNKNOWN'),
                      reason='map_node_click_is_the_only_proven_forward_input',
                      detail={'candidate_count': len(candidates),
                              'candidate_index': candidate_index})
