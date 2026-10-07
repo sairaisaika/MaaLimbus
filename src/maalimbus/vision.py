@@ -111,13 +111,16 @@ def classify(records, locale, size):
     if (find(records, locale.get('gift_warning_proceed', r'(?!)'), (.32, .38, .72, .52), size, .85)
         and find(records, locale.get('gift_warning_remaining', r'(?!)'), (.34, .34, .68, .46), size, .85)):
         return 'GIFT_WARNING'
-    # The floor's gift pick ("Acquire E.G.O Gift" cards + Select N/2 + Refuse Gift)
+    # The floor's gift pick ("Acquire E.G.O Gift" cards + Select N/1 + Refuse Gift)
     # hands the run its floor rewards. Refuse Gift is a forbidden input, so the page
     # has to be named before the generic dialog veto and before FLOOR_GIFTS (which
     # wants a plain Confirm the live page does not carry).
     # Live evidence evidence/runtime/window-20261006-043102/frame-0003.json.
+    # The Select caption itself is not required: on the live three-card round the OCR
+    # reads its counter as a lone low-score "1" (window-20261006-203033/frame-0001.json,
+    # score 0.44) and the button text is missed, while the card label and Refuse Gift
+    # both read cleanly, so those two identify the page.
     if (find(records, locale.get('gift_pick_label', r'(?!)'), (.06, .13, .95, .26), size, .85)
-        and len(find(records, locale.get('select', r'(?!)'), (.78, .74, .96, .88), size, .85)) == 1
         and find(records, locale.get('refuse_gift', r'(?!)'), (.62, .74, .82, .88), size, .85)):
         return 'GIFT_PICK'
     # The event's "Choices" page (abnormality events) puts two to four option rows in
