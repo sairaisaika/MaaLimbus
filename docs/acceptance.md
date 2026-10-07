@@ -1,5 +1,29 @@
 # Acceptance evidence
 
+## 2026-10-07 a weekly reset invalidates a run and the script files it
+
+- **The game, not the script, ends the run.** Window `--label run-continue-8`
+  (`evidence/runtime/window-20261007-164753`) met the weekly reset notice over floor 3
+  (`frame-0252.json`, sha `525d45cc4e7b`: "The weekly record has been reset. / Moving over
+  to the Window." with `Cancel` and `Confirm`). Declining it did not save the run: the
+  window drove to `DRIVE`, entered the mirror dungeon again, and landed on
+  `EXPIRED_SESSION` -- "The previous session has expired. / Please claim your rewards."
+  (`evidence/runtime/window-20261007-170653/frame-0009.json`, sha `323539fd0c19`), which
+  run-continue-9 reported as `DRIVE -> EXPIRED_SESSION unexpected_successor` at step 2.
+- **What the script does now.** The notice is its own page and clicks `Cancel` (its
+  `Confirm` is a forbidden control: it would leave the dungeon); the expired session is
+  its own page and clicks `Confirm`, because the run is already gone and only the reward
+  is left on the table (its `Cancel` is forbidden). After that Confirm the driver calls
+  `run_wiring.expire()`, which files the run under `abandoned` with the floors it did
+  reach and the proving frame, journals `run_expired`, and **leaves the rotation on the
+  same team** -- an expired run was never completed, so no receipt is invented for it.
+- **Why it is in the ledger at all.** Before this, a run the game threw away stayed
+  `active` forever and no command could clear it (`seed_run_store` refuses a ledger that
+  already holds receipts); `tools/run_ledger.py abandon --note` and this automatic path
+  are the two ways out.
+- Not claimed: that a weekly reset is predictable from anywhere the script can read
+  before it fires.
+
 ## 2026-10-07 the rotation ledger advanced on its own after a completed run
 
 - **The driven run closed its own loop.** Window `--label run-continue-7`

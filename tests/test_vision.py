@@ -109,6 +109,25 @@ def test_the_weekly_reset_notice_is_named_and_its_confirm_is_not_the_identified_
     assert classify(labels, words, size) == 'UNKNOWN'
 
 
+def test_the_reward_modal_is_named_whichever_way_the_game_leaves_it():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261007-171021/frame-0006.json (sha
+    # 24ab86917b97) is what the game leaves behind when a weekly reset expires a run and
+    # the player claims what it earned: 'Exploration Reward' over 'To List' and 'Claim',
+    # with 'GiveUpRewards' beside them. run-continue-10 waited on it as UNKNOWN because
+    # the modal was only recognised when that button read 'To Window'.
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261007-171021/frame-0006.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    size = tuple(frame['size'])
+    assert classify(records, words, size) == 'RUN_REWARD_DIALOG'
+    # Neither label: then the modal is not named, and the window watches instead of
+    # clicking a button it cannot read.
+    unlabelled = [t for t in records if t.text.strip() not in ('To List', 'To Window')]
+    assert not [t for t in unlabelled if t.text.strip() == 'To List']
+    assert classify(unlabelled, words, size) == 'UNKNOWN'
+
+
 def test_the_gift_pickup_popup_is_named_over_the_map_behind_it():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261006-201621/frame-0001.json — the modal

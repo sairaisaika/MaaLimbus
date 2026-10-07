@@ -96,8 +96,16 @@ def classify(records, locale, size):
             and find(records, locale.get('gift_confirm', r'(?!)'), (.56, .65, .66, .73), size, .85)
             and find(records, locale.get('cancel', r'(?!)'), (.34, .64, .46, .73), size, .85)):
         return 'RUN_REWARD_CONFIRM'
+    # The same modal also opens from the Drive list, where that button reads 'To List'
+    # instead of 'To Window': live evidence/runtime/window-20261007-171021/frame-0006.json
+    # (sha 24ab86917b97) reads 'Exploration Reward' [790,156,340,42] over 'To List'
+    # [904,798,112,35] and 'Claim' [1240,796,96,41] with 'GiveUpRewards' [450,796,278,39]
+    # in the same strip. That frame is what a run the game expired is left with, and the
+    # window spent its whole watch budget on it before this was read.
+    leave_labels = (locale.get('to_window', r'(?!)'), locale.get('to_list', r'(?!)'))
     if (find(records, locale.get('exploration_reward', r'(?!)'), (.36, .10, .64, .17), size, .85)
-            and find(records, locale.get('to_window', r'(?!)'), (.42, .71, .58, .78), size, .85)
+            and any(find(records, label, (.42, .71, .58, .78), size, .85)
+                    for label in leave_labels)
             and find(records, locale.get('claim', r'(?!)'), (.61, .70, .70, .77), size, .85)):
         return 'RUN_REWARD_DIALOG'
     if (find(records, locale.get('exploration', r'(?!)'), (.10, .11, .28, .20), size, .85)

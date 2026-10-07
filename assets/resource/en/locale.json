@@ -45,6 +45,7 @@
   "total_progress": "^Total Progress$",
   "exploration_reward": "^Exploration Reward$",
   "to_window": "^To Window$",
+  "to_list": "^To List$",
   "give_up_rewards": "^\\s*Give\\s?Up\\s?Rewards$",
   "claim_the_rewards": "^Claim the rewards\\?$",
   "weekly_reset": "^The weekly record has been reset\\.?$",
