@@ -27,6 +27,15 @@ def test_archive_prevalidation_creates_no_files_for_unsafe_members(tmp_path, nam
     assert not destination.exists()
 
 
+def test_the_five_floor_gap_leaves_the_list_only_with_the_claim():
+    unproven = package.pending_items(verified_dungeon_clear=False)
+    claimed = package.pending_items(verified_dungeon_clear=True)
+    assert 'full five-floor loop' in unproven
+    assert 'full five-floor loop' not in claimed
+    # Every other gap is a property of the package, not of the live loop.
+    assert [p for p in unproven if p != 'full five-floor loop'] == claimed
+
+
 def test_public_source_archive_excludes_configuration_and_evidence(tmp_path, monkeypatch):
     for name in ('src', 'agent', 'tools', 'tests', 'docs', 'assets', 'THIRD_PARTY_NOTICES'):
         (tmp_path/name).mkdir()

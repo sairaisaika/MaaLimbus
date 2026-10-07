@@ -52,11 +52,35 @@ def freeze(entry, name, work):
     return work/'dist'/name
 
 
+def pending_items(*, verified_dungeon_clear):
+    """What the package still does not claim, in one place.
+
+    The five-floor loop only leaves the list when the caller passes
+    --verified-dungeon-clear, which also hashes the acceptance record into
+    build-info.json: an unproven claim about the live game is worse than a listed
+    gap.
+    """
+    pending = ['MXU UI validation', 'live input postcondition',
+               'artwork redistribution rights',
+               'complete native dependency source/notices release audit']
+    if not verified_dungeon_clear:
+        pending.insert(0, 'full five-floor loop')
+    return pending
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ARCHIVES:
         parser.add_argument('--'+key.replace('_', '-'), type=Path, required=True)
+    parser.add_argument('--verified-dungeon-clear', action='store_true',
+                        help='the live acceptance run cleared five floors, claimed the '
+                             'rewards and re-entered; only pass it with that evidence')
+    parser.add_argument('--clear-evidence', type=Path, default=ROOT/'docs/acceptance.md',
+                        help='the acceptance record hashed into build-info when the clear '
+                             'is claimed')
     args = parser.parse_args()
+    if args.clear_evidence is not None and not args.clear_evidence.is_file():
+        raise ValueError(f'Missing acceptance record: {args.clear_evidence}')
     inputs = {key: getattr(args, key).resolve() for key in ARCHIVES}
     for key, path in inputs.items():
         verify(path, ARCHIVES[key][0])
@@ -101,14 +125,19 @@ def main():
         raise RuntimeError('Packaged Agent resolved the wrong resource directory')
     subprocess.run([str(app/'runner/MaaLimbusRunner.exe'), '--help'], cwd=stage,
                    capture_output=True, check=True, timeout=30)
-    info = {'project':'MaaLimbus', 'development_only':True, 'verified_dungeon_clear':False,
+    pending = pending_items(verified_dungeon_clear=args.verified_dungeon_clear)
+    info = {'project':'MaaLimbus', 'development_only':True,
+            'verified_dungeon_clear':bool(args.verified_dungeon_clear),
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
             'source_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
             'built_at':datetime.now(timezone.utc).isoformat(), 'self_test':self_test,
             'inputs':{k:{'sha256':digest(path),'source':ARCHIVES[k][1]} for k,path in inputs.items()},
             'mxu_modified':False, 'maa_modified':False,
-            'pending':['MXU UI validation','live input postcondition','full five-floor loop',
-                       'artwork redistribution rights','complete native dependency source/notices release audit']}
+            'pending':pending}
+    if args.verified_dungeon_clear:
+        # The claim is only as good as the record it points at, so hash that record.
+        info['clear_evidence'] = {'path':str(args.clear_evidence.resolve()),
+                                  'sha256':digest(args.clear_evidence)}
     (app/'build-info.json').write_text(json.dumps(info,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     manifest = {p.relative_to(app).as_posix():digest(p) for p in sorted(app.rglob('*'))
                 if p.is_file() and 'evidence' not in p.relative_to(app).parts}
