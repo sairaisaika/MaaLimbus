@@ -51,7 +51,7 @@ from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
                                      keyword_panel_point, select_ready)
 from maalimbus.team_vision import CARD_COUNT, card_states
 from maalimbus.vision import Text, inset_box
-from maalimbus.window import (NODE, SWIPE, plan_step, resolve_overlay,
+from maalimbus.window import (NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
                               step_result)
 from recognition import (BattleObservation, Journal, LimbusRecognition,
                          MapObservation)
@@ -692,7 +692,7 @@ def main() -> int:
             if page == 'MAP':
                 candidates = [box for box in candidates if tuple(box) not in map_skips]
             sha = record.get('image_sha256')
-            if not args.observe_only and page == 'UNKNOWN':
+            if not args.observe_only and page in WAIT_PAGES:
                 unknown_seen += 1
                 if unknown_seen > args.unknown_rounds:
                     result['steps'].append({
@@ -702,9 +702,10 @@ def main() -> int:
                         'reason': 'page_unreadable_after_waiting', 'passed': False,
                         'clicks_sent': 0, 'stopped': 'page_unreadable_after_waiting'})
                     break
-                # Loading screens and turn animations read as UNKNOWN; they are not a
-                # refusal, so wait them out instead of stopping the window.
-                journal.record('window_unknown_wait', round=unknown_seen,
+                # Loading screens, turn animations and the battle result clear
+                # themselves; they are not a refusal, so wait them out instead of
+                # stopping the window.
+                journal.record('window_unknown_wait', page=page, round=unknown_seen,
                                interval_s=args.interval)
                 time.sleep(args.interval)
                 continue

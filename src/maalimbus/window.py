@@ -51,6 +51,13 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'star_confirm.cancel_button', 'initial_gifts.refuse_button',
                       'gift_search_forgo.cancel_button')
 
+#: Pages that clear themselves: the planner has no control to send, so the driver
+#: waits for the page to change instead of treating it as the end of the run.
+#: Live: build/window-run62.json stopped on BATTLE_RESULT (step 31) with nothing sent,
+#: and the very next observation already showed the post-battle story and then the map
+#: ("Exploring Floor 1" / "Flat-broke Gamblers"), so the result screen needs no click.
+WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT')
+
 
 def resolve_overlay(page, *, overlay_hit):
     """Return the page the tutorial overlay covers, while its control is visible.

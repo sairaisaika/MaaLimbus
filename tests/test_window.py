@@ -343,6 +343,14 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
+def test_the_battle_result_is_waited_out_rather_than_stopped_on():
+    # Live: build/window-run62.json stopped on BATTLE_RESULT with nothing sent, and the
+    # next observation already showed the post-battle story and then the map.
+    from maalimbus.window import WAIT_PAGES
+    assert WAIT_PAGES == ('UNKNOWN', 'BATTLE_RESULT')
+    assert 'MAP' not in WAIT_PAGES and 'PRE_BATTLE_TEAM' not in WAIT_PAGES
+
+
 def test_the_forgone_gift_search_is_confirmed_and_never_cancelled():
     # Live: evidence/runtime/window-20261006-200357/frame-0001.json is the prompt the
     # refused search raises.
