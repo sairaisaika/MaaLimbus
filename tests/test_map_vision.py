@@ -426,6 +426,30 @@ def test_the_map_survives_a_frame_where_ocr_drops_the_floor_token():
     assert (header.floor, header.pack) == (None, 'To be Cleaved')
 
 
+def test_the_map_survives_a_label_whose_tail_ocr_dropped():
+    """Live run window-20261007-030756: the label read as 'Explorin' on every frame.
+
+    The run sat on floor 3 "To be Cleaved" with the truncated label, so map_header
+    returned None, the page stayed UNKNOWN and the window stopped after five rounds
+    (build/window-run111.json). The pack line below is still what gates identity.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-030756/frame-0096.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    assert data['scene'] == 'UNKNOWN'
+    assert not any(r.text.strip().startswith('Exploring') for r in records)
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert header.exploring_text.text.strip() == 'Explorin'
+    assert header.pack == 'To be Cleaved'
+    assert map_page(records, tuple(data['size'])) is True
+
+
 def test_other_scene_text_is_not_promoted_to_map():
     assert map_page([Text('Drive', (100, 100, 60, 20), .99)], SIZE) is False
     # The entry page carries `Exploring` in the upper right without a floor header.

@@ -16,7 +16,8 @@ import re
 from .route_plan import plan_route
 from .vision import Text, find
 
-HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+(?:F\w{3,5}|F\s*\d)\s*([1-5])?\s*$'
+HEADER_WORD = r'(?:Explori\w{0,3}|Before\s+Entry)'
+HEADER_PATTERN = r'^' + HEADER_WORD + r'\s+(?:F\w{3,5}|F\s*\d)\s*([1-5])?\s*$'
 #: the same header in the shapes the game really renders on the floor-1 map page. OCR
 #: has produced all three: 'Exploring Floor 1' as one token, 'Exploring' [56,127,202,53]
 #: plus 'Floor' [236,133,122,43] as two (evidence/runtime/window-20261006-033107),
@@ -27,7 +28,11 @@ HEADER_PATTERN = r'^(?:Exploring|Before\s+Entry)\s+(?:F\w{3,5}|F\s*\d)\s*([1-5])
 #: and carry three to five more characters (or an F followed by the digit). So the
 #: floor digit is optional and the label may or may not carry the word "Floor"; the
 #: pack line below is what keeps an unrelated page from being promoted into MAP.
-HEADER_LABEL_PATTERN = r'^(?:Exploring|Before\s+Entry)(?:\s+Floor)?$'
+#: The label's tail also drops off: live run build/window-run111.json sat on floor 3
+#: "To be Cleaved" while every frame read the label as 'Explorin' (no trailing g) and
+#: the page stayed UNKNOWN for five rounds, so the word is matched by its opening six
+#: letters plus at most three more.
+HEADER_LABEL_PATTERN = r'^' + HEADER_WORD + r'(?:\s+Floor)?$'
 HEADER_FLOOR_PATTERN = r'^Floor\s*([1-5])?$'
 HEADER_ROI = (.0, .06, .30, .22)
 PACK_ROI = (.0, .14, .30, .28)
