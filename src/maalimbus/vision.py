@@ -157,6 +157,14 @@ def classify(records, locale, size):
         return 'UNKNOWN_DIALOG'
     if find(records,locale.get('gift_search',r'(?!)'),(.10,.02,.29,.10),size,.85):
         return 'GIFT_SEARCH'
+    # A gift the run just picked up opens its own modal over the map: the "E.G.O Gifts"
+    # title, the gift's name, a "View Desc." button and a Confirm along the bottom.
+    # Live: evidence/runtime/window-20261006-201621/frame-0001.json reads 'E.G.O Gifts'
+    # [832,170,256,58], 'Wound Clerid' [546,327,252,42], 'View Desc.'
+    # [482,428,152,38] and Confirm [916,825,126,40] over the map behind it.
+    if (find(records, locale.get('ego_gifts', r'(?!)'), (.42,.14,.60,.23), size,.85)
+        and find(records, locale.get('gift_confirm', r'(?!)'), (.45,.73,.56,.81), size,.85)):
+        return 'EGO_GIFT_POPUP'
     if (find(records,locale['acquire_gift'],(.06,.13,.95,.26),size,.8)
         and find(records,locale['gift_confirm'],(.77,.72,.97,.91),size,.8)):
         return 'FLOOR_GIFTS'

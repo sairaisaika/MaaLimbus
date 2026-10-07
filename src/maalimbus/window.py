@@ -423,6 +423,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_SEARCH_FORGO', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason=reason)
+    if page == 'EGO_GIFT_POPUP':
+        # A gift the run just picked up opens its own modal over the map; its Confirm
+        # acknowledges the pickup and returns to the floor. Live:
+        # evidence/runtime/window-20261006-201621/frame-0001.json reads 'E.G.O Gifts'
+        # [832,170,256,58] and Confirm [916,825,126,40] over 'Exploring Floor 1'.
+        box = controls.get('ego_gift_popup.confirm_button')
+        if box is None:
+            return _refuse(page, 'ego_gift_popup_confirm_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('MAP', 'NODE_PANEL', 'UNKNOWN'),
+                     reason='the_ego_gift_popup_is_acknowledged_with_its_confirm')
     if page == 'GIFT_SEARCH_FORGO':
         # Refusing the search raises its own confirmation. Live:
         # evidence/runtime/window-20261006-200357/frame-0001.json reads "Forgo E.G.O

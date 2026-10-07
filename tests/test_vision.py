@@ -92,6 +92,20 @@ def test_dungeon_progress_prompt_is_a_named_resume_page():
     assert classify(page[1:], words, (1000, 1000)) == 'UNKNOWN_DIALOG'
 
 
+def test_the_gift_pickup_popup_is_named_over_the_map_behind_it():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261006-201621/frame-0001.json — the modal
+    # the run raises over the map after picking a gift up.
+    page = [Text('E.G.O Gifts', (832, 170, 256, 58), 1.0),
+            Text('Wound Clerid', (546, 327, 252, 42), 1.0),
+            Text('View Desc.', (482, 428, 152, 38), .96),
+            Text('Confirm', (916, 825, 126, 40), 1.0)]
+    assert classify(page, words, (1920, 1080)) == 'EGO_GIFT_POPUP'
+    # The title alone is not enough: without the modal's Confirm it is not that page.
+    assert classify([item for item in page if item.text != 'Confirm'],
+                    words, (1920, 1080)) != 'EGO_GIFT_POPUP'
+
+
 def test_encounter_reward_card_is_named_before_the_generic_dialog():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261006-034714/frame-0022.json is the

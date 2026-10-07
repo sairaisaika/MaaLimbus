@@ -4,6 +4,7 @@
   "initial_refuse": "^Refuse Gift$",
   "gift_get": "^E\\.?G\\.?O Gift GET!$",
   "gift_search": "^E\\.?G\\.?O Gift Search$",
+  "ego_gifts": "^E\\.?G\\.?O Gifts$",
   "gift_search_forgo": "^Forgo E\\.?G\\.?O Gift Search\\?$",
   "theme_floor_select": "^SELECT\\s*FLOOR\\s*[1-5]\\s*THEME\\s*PACK$",
   "theme_refresh": "^Refresh$",

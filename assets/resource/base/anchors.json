@@ -2228,6 +2228,43 @@
           }
         }
       ]
+    },
+    {
+      "id": "ego_gift_popup",
+      "title": "E.G.O Gifts 拾取弹窗（地图上浮层：礼物名＋View Desc.＋底部 Confirm）",
+      "evidence": [
+        "evidence/runtime/window-20261006-201621/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "ego_gift_popup.title",
+          "kind": "ocr",
+          "pattern": "^E\\.?G\\.?O Gifts$",
+          "roi": [
+            0.42,
+            0.14,
+            0.6,
+            0.23
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "ego_gift_popup.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-201621/frame-0001.json",
+            "box": [
+              916,
+              825,
+              126,
+              40
+            ],
+            "source": "实测 OCR 框；同一浮层里的 + 是强化入口，永不点"
+          }
+        }
+      ]
     }
   ],
   "pending": [

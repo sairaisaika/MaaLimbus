@@ -343,6 +343,19 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
+def test_the_gift_pickup_popup_is_acknowledged_with_its_confirm():
+    # Live: evidence/runtime/window-20261006-201456/frame-0001.json, the modal the run
+    # raises over the map after picking a gift up.
+    confirm = [916, 825, 126, 40]
+    plan = plan_step('EGO_GIFT_POPUP', controls={'ego_gift_popup.confirm_button': confirm})
+    assert plan['action'] == CLICK
+    assert plan['target'] == confirm
+    assert plan['reason'] == 'the_ego_gift_popup_is_acknowledged_with_its_confirm'
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'EGO_GIFT_POPUP')
+    assert plan_step('EGO_GIFT_POPUP', controls={})['reason'] == \
+        'ego_gift_popup_confirm_not_anchored'
+
+
 def test_the_battle_result_is_waited_out_rather_than_stopped_on():
     # Live: build/window-run62.json stopped on BATTLE_RESULT with nothing sent, and the
     # next observation already showed the post-battle story and then the map.
