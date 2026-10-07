@@ -419,3 +419,23 @@ def test_the_victory_result_with_confirm_is_its_own_page():
     # Only one of the two words is not enough: the pair is the page.
     half = [t for t in records if t.text.strip() != 'EX-CLEAR']
     assert classify(half, words, tuple(frame['size'])) != 'BATTLE_VICTORY'
+
+
+def test_the_run_summary_is_named_so_its_rewards_can_be_claimed():
+    """Live evidence/runtime/window-20261007-020715/frame-0006.json (run 101).
+
+    The first time the script ever reached the five-floor settlement: Floor1..Floor5 all
+    6/6, Total Progress 100% and a Claim Rewards button beside Previous/Next.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-020715/frame-0006.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    for word in ('Exploration', 'Complete', 'Total Progress', 'Claim', 'Rewards'):
+        assert any(t.text.strip() == word for t in records), word
+    assert classify(records, words, tuple(frame['size'])) == 'RUN_CLAIM'
+    # Claim and Rewards are required together: a frame that only shows Previous/Next is
+    # not this page and must not be clicked through.
+    without = [t for t in records if t.text.strip() != 'Claim']
+    assert classify(without, words, tuple(frame['size'])) != 'RUN_CLAIM'

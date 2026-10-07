@@ -58,6 +58,17 @@ def classify(records, locale, size):
             and find(records, locale.get('victory_clear', r'(?!)'), (.66, .12, .82, .26),
                      size, .85)):
         return 'BATTLE_VICTORY'
+    # The run's own summary, which is where the five floors are claimed: live evidence
+    # evidence/runtime/window-20261007-020715/frame-0006.json reads 'Exploration'
+    # [234,138,238,48] and 'Complete' [250,188,202,50] at 1.0 over 'Total Progress'
+    # [234,704,232,44] and '100%' [274,760,154,89], with 'Claim' [1682,865,82,30] and
+    # 'Rewards' [1662,901,124,28] as the only forward control. The four words are read
+    # together because Previous/Next sit beside Claim and must never be mistaken for it.
+    if (find(records, locale.get('exploration', r'(?!)'), (.10, .11, .28, .20), size, .85)
+            and find(records, locale.get('complete', r'(?!)'), (.11, .16, .25, .24), size, .85)
+            and find(records, locale.get('claim', r'(?!)'), (.86, .78, .93, .85), size, .85)
+            and find(records, locale.get('rewards', r'(?!)'), (.85, .81, .96, .88), size, .85)):
+        return 'RUN_CLAIM'
     # Tapping a skill card on the battle board opens that skill's detail over the left
     # half of the screen: live evidence/runtime/window-20261007-014613/frame-0094.json
     # reads 'Skill Effects' [420,83,142,28] 1.0 with the keyword list under it and no

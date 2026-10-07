@@ -180,6 +180,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
+    if page == 'RUN_CLAIM':
+        # The run summary -- five floors cleared, Total Progress 100% -- is claimed here
+        # and nowhere else: live evidence/runtime/window-20261007-020715/frame-0006.json
+        # reads 'Claim' [1682,865,82,30] and 'Rewards' [1662,901,124,28] beside a dim
+        # 'Next' [1382,895,80,36] and a live 'Previous' [1096,895,148,36]. Only the claim
+        # is sent; paging the summary back and forth proves nothing and is not done.
+        box = controls.get('run.claim_button')
+        if box is None:
+            return _refuse(page, 'run_claim_button_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='claiming_is_the_only_forward_input_on_the_run_summary')
     if page == 'BATTLE_VICTORY':
         # The victory screen with a Confirm button is the one battle result page that
         # does not clear itself: live evidence/runtime/window-20261007-015542/frame-0130.json

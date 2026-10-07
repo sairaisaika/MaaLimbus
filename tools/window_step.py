@@ -84,6 +84,9 @@ LOOP_GUARD_EXEMPT_REASONS = (
     # and the page name does not move until it goes: live window-20261007-015542 shows
     # 130 frames of that one page.
     'victory_confirm_clears_the_result_and_carries_the_rewards',
+    # Claiming the run summary plays its own reward animation before the page moves, so
+    # the same reason repeats a few times without the page name changing.
+    'claiming_is_the_only_forward_input_on_the_run_summary',
 )
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {

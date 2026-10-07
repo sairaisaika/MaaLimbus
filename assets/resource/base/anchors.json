@@ -578,6 +578,104 @@
       ]
     },
     {
+      "id": "run_claim",
+      "title": "镜牢通关结算（Exploration Complete / Total Progress 100% / Claim Rewards）",
+      "why": "五层打完后的总结算页：左边列 Floor1..Floor5 各 6/6 与 Total Progress 100%，右边是 Starlight 明细与 Net Amount，底部是 Previous/Next 与唯一的前进控件 Claim Rewards。2026-10-07 实机第一次走到这里（build/window-run101.json 之后），此前脚本从未领过奖。Previous/Next 只是翻页、不能证明任何进度，所以本页只发 Claim。",
+      "evidence": [
+        "evidence/runtime/window-20261007-020715/frame-0006.json"
+      ],
+      "identity": [
+        {
+          "id": "run.complete_title",
+          "kind": "ocr",
+          "pattern": "^Exploration$",
+          "roi": [
+            0.10,
+            0.11,
+            0.28,
+            0.2
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [234,138,238,48] score 1.0；'Complete' 是同一标题的第二行，另有独立锚点"
+        },
+        {
+          "id": "run.complete_title_2",
+          "kind": "ocr",
+          "pattern": "^Complete$",
+          "roi": [
+            0.11,
+            0.16,
+            0.25,
+            0.24
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [250,188,202,50] score 1.0"
+        },
+        {
+          "id": "run.total_progress",
+          "kind": "ocr",
+          "pattern": "^Total Progress$",
+          "roi": [
+            0.1,
+            0.63,
+            0.26,
+            0.72
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [234,704,232,44] score 1.0；100% 是位图，靠它证明这一页是通关结算"
+        },
+        {
+          "id": "run.claim_label",
+          "kind": "ocr",
+          "pattern": "^Claim$",
+          "roi": [
+            0.86,
+            0.78,
+            0.93,
+            0.85
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1682,865,82,30] score 1.0"
+        },
+        {
+          "id": "run.rewards_label",
+          "kind": "ocr",
+          "pattern": "^Rewards$",
+          "roi": [
+            0.85,
+            0.81,
+            0.96,
+            0.88
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1662,901,124,28] score 1.0；Claim+Rewards 两行合成一个按钮"
+        }
+      ],
+      "controls": [
+        {
+          "id": "run.claim_button",
+          "kind": "geometry",
+          "box": [
+            1638,
+            855,
+            180,
+            80
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-020715/frame-0006.json",
+            "box": [
+              1638,
+              855,
+              180,
+              80
+            ],
+            "source": "实机 OCR 'Claim'[1682,865,82,30] 与 'Rewards'[1662,901,124,28] 合成的按钮框；同帧 'Next'[1382,895,80,36] 是灰的、'Previous'[1096,895,148,36] 是亮的，所以只点这一块"
+          },
+          "note": "只点 Claim Rewards；绝不点 Previous/Next（翻页不产生任何进度）"
+        }
+      ]
+    },
+    {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
       "evidence": [

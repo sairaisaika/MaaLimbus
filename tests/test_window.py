@@ -141,6 +141,27 @@ def test_pre_battle_team_battles_when_the_counter_already_reads_full():
     assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
 
 
+def test_the_run_summary_is_claimed_and_never_paged_back_and_forth():
+    # Live proof: window-20261007-020715/frame-0006.json is the five-floor settlement
+    # (Floor1..Floor5 6/6, Total Progress 100%) with 'Claim' [1682,865,82,30] beside a dim
+    # 'Next' [1382,895,80,36] and a live 'Previous' [1096,895,148,36].
+    box = [1638, 855, 180, 80]
+    plan = plan_step('RUN_CLAIM', controls={'run.claim_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'claiming_is_the_only_forward_input_on_the_run_summary'
+    assert plan['advance'] is True and plan['expect'] == [ANY]
+    # The claim plays its own animation, so one tap is not proof the page moved.
+    assert step_result(plan, sent=True, before='RUN_CLAIM', after='RUN_CLAIM',
+                       page='RUN_CLAIM', frame_changed=False)['passed'] is False
+    assert step_result(plan, sent=True, before='RUN_CLAIM', after='RUN_CLAIM',
+                       page='RUN_CLAIM', frame_changed=True)['passed'] is True
+    # Nowhere else on that page is clicked: without the anchor nothing is sent at all.
+    blind = plan_step('RUN_CLAIM', controls={'battle_result.page_previous': [1096, 895, 148, 36]})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'run_claim_button_not_anchored'
+
+
 def test_the_victory_screen_is_cleared_by_its_own_confirm():
     # Live proof: window-20261007-015542/frame-0130.json is that page -- 'Victory' 1.0,
     # 'EX-CLEAR' 0.96, 'Confirm' [1638,831,164,48] 1.0 -- and the driver waited thirty
