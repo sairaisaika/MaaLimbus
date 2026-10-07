@@ -215,7 +215,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon')
+                                'lit_node', 'lit_icon', 'path_node')
                for item in clicks)
 
 
@@ -239,9 +239,14 @@ def test_the_ring_is_read_in_whatever_colour_the_floor_draws_it():
     lit = lit_nodes(image)
     assert abs(lit[0][0] - 318) <= 20 and abs(lit[0][1] - 140) <= 20, lit
     clicks = map_clicks(image)
-    assert clicks[0]['kind'] == 'lit_node'
-    point = clicks[0]['point']
-    assert abs(point[0] - 318) <= 20 and abs(point[1] - 140) <= 20, point
+    kinds = [item['kind'] for item in clicks]
+    # The lit path is the strongest reading and may lead it (it does on the zoomed
+    # frames), but the ring must still come before every badge and lattice guess.
+    ring = next(item for item in clicks if item['kind'] == 'lit_node')
+    assert abs(ring['point'][0] - 318) <= 20 and abs(ring['point'][1] - 140) <= 20, ring
+    for kind in ('node_away_from_player', 'badge_mark', 'lattice_step'):
+        if kind in kinds:
+            assert kinds.index('lit_node') < kinds.index(kind)
 
 
 def test_the_lattice_offers_the_diagonals_before_the_straight_neighbours():
@@ -258,6 +263,32 @@ def test_the_lattice_offers_the_diagonals_before_the_straight_neighbours():
     assert (500, 400 - LATTICE_PITCH[1]) in lattice_neighbours((500, 400))
     assert lattice_neighbours((500, 400))[-1] == (500, 400 - LATTICE_PITCH[1])
     assert lattice_neighbours(None) == []
+
+
+def test_the_lit_path_leaving_the_player_names_the_next_node():
+    """Live evidence/runtime/window-20261006-233633/frame-0001.png (floor 3).
+
+    The run had been clicking the ring the game lit around a node and every badge
+    candidate (build/window-run81.json: six clicks, all no-ops), while the path the run
+    may still walk -- drawn bright violet, against the dull grey of the paths already
+    spent -- leaves the player at (960,672) up and to the right. An ADB tap on its far
+    end (1920 1162,607) opened the node panel, which is what the reader now offers first.
+    """
+    import cv2
+    from pathlib import Path
+    from maalimbus.map_vision import path_end
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-233633/frame-0001.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    image = cv2.imread(str(path))
+    point = path_end(image, (960, 672))
+    assert point is not None
+    assert abs(point[0] - 1162) <= 60 and abs(point[1] - 625) <= 60, point
+    clicks = map_clicks(image, player=(960, 672))
+    assert clicks[0]['kind'] == 'path_node'
+    assert abs(clicks[0]['point'][0] - point[0]) <= 40
+    assert abs(clicks[0]['point'][1] - point[1]) <= 40
 
 
 def test_the_locomotive_names_the_player_when_no_badge_node_does():

@@ -54,6 +54,7 @@
   "rec": "^REC$",
   "choices": "^Choices$",
   "who_should_do_it": "^Who should do it\\?$",
+  "who_will_take_the_challenge": "^Who will take the challenge\\?$",
   "choose_character": "^Choose a character to perform$",
   "commence": "^Commence$",
   "check_outcome": "^Check (?:Passed|Failed)$"

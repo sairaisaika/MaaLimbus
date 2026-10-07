@@ -546,6 +546,12 @@ LIT_BAND = (.08, .78)
 #: 186x79 while the icons on the same page fill 0.46-0.78 over 47x47 or less.
 LIT_RING_MAX_FILL = 0.42
 LIT_RING_MIN_SIDE = 60
+#: The lit path leaving the player, read from live window-20261006-233633/frame-0001: the
+#: line is dashed, so 21 px of closing merges its glow into one component, and the walk
+#: stops well short of the 320 px that would let a merged graph reach another node.
+PATH_MERGE = 41
+PATH_REACH = 130
+PATH_WALK_LIMIT = 320
 
 
 def lit_components(image, *, min_value=LIT_MIN_VALUE, min_chroma=LIT_MIN_CHROMA,
@@ -612,6 +618,58 @@ def lit_rings(image, **kwargs):
             and max(record['box'][2], record['box'][3]) >= LIT_RING_MIN_SIDE]
 
 
+def path_end(image, player, *, max_distance=PATH_WALK_LIMIT, reach=PATH_REACH,
+             merge=PATH_MERGE):
+    """The node at the far end of the lit path leaving the player, or None.
+
+    The game draws the path a run may still walk as a bright violet line and the paths it
+    has already spent as a dull grey one, so the walkable neighbour is the far end of the
+    bright line that touches the player's node. This is the reading that finally moved the
+    run on floor 3: live evidence/runtime/window-20261006-233633/frame-0001.png has the
+    player at (960,672) with the bright line running down-right to (1036,711) and up to
+    (1162,590), and an ADB tap on that far end (1920 1162,607) opened the node panel the
+    lit ring and every badge candidate had refused -- the player had said the lower path
+    was gone and the run had to go diagonally up (m10702).
+
+    The line is drawn as a dashed glow, so the segments are merged before walking; the
+    walk is capped at ``max_distance`` from the player so that a merged graph cannot hand
+    back a node somewhere else on the floor.
+    """
+    if image is None or player is None:
+        return None
+    import cv2
+    import numpy as np
+    from collections import deque
+    height, width = image.shape[:2]
+    blue = image[:, :, 0].astype(int)
+    green = image[:, :, 1].astype(int)
+    red = image[:, :, 2].astype(int)
+    mask = ((red > 110) & (blue > 110) & (green < 95) & (np.abs(red - blue) < 70))
+    mask = mask.astype(np.uint8)
+    mask[round(.86 * height):] = 0
+    mask[:round(.08 * height)] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((merge, merge), np.uint8))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    px, py = player
+    limit = max_distance * max_distance
+    far = None
+    for index in range(1, count):
+        if stats[index][4] < 20:
+            continue
+        ys, xs = np.nonzero(labels == index)
+        d = (xs - px) ** 2 + (ys - py) ** 2
+        if int(d.min()) > reach * reach:
+            continue  # this line does not touch the player's node
+        inside = d <= limit
+        if not inside.any():
+            continue
+        pick = int(np.argmax(np.where(inside, d, -1)))
+        if far is None or d[pick] > far[0]:
+            far = (int(d[pick]), int(xs[pick]), int(ys[pick]))
+    if far is None or far[0] < 40 * 40:
+        return None
+    return (far[1], far[2])
+
 def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_SATURATION,
                  min_pixels=MARKER_MIN_PIXELS, bottom=MARKER_MAP_BOTTOM, right=MARKER_MAP_RIGHT):
     """Bright desaturated glyph boxes on a map page, largest first; no input."""
@@ -649,7 +707,7 @@ def chevron_target(player, marker, pitch=LATTICE_PITCH):
     return (player[0], player[1] + (pitch[1] if dy > 0 else -pitch[1]))
 
 
-def map_clicks(image, *, template=None, node_side=190):
+def map_clicks(image, *, template=None, node_side=190, player=None):
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
     Live run window-20261006-040751 is why the highlight is consulted first: four
@@ -663,9 +721,15 @@ def map_clicks(image, *, template=None, node_side=190):
         return []
     height, width = image.shape[:2]
     markers = node_markers(image, template=template, node_side=node_side)
-    player = (train_player(image)
-              or yellow_flame_player(markers, image) or flame_player(markers, image)
-              or likely_player(markers))
+    # A caller that already knows where the player stands (a live run that read the
+    # locomotive on an earlier frame) hands the point in: on a zoomed-out page every
+    # detector here fails -- live evidence/runtime/window-20261006-233633/frame-0001.png
+    # where train_player is None and flame_centroid returns a header icon -- and the path
+    # reading, which is the one proven to open the panel, would be lost with it.
+    if player is None:
+        player = (train_player(image)
+                  or yellow_flame_player(markers, image) or flame_player(markers, image)
+                  or likely_player(markers))
     clicks = []
 
     def add(point, kind, side):
@@ -706,6 +770,13 @@ def map_clicks(image, *, template=None, node_side=190):
         # "highlighted node" and the first click went to it), so nothing is claimed
         # as marked and the chevron/lattice candidates carry the step instead.
         highlighted = []
+    # The lit path leaving the player is the direction the run may still walk, so its far
+    # end is the strongest reading on the page: live evidence/runtime/
+    # window-20261006-233633/frame-0001.png, where an ADB tap on it opened the node panel
+    # after the ring and every badge candidate had been refused.
+    walk = path_end(image, player)
+    if walk:
+        add(walk, 'path_node', CLICK_SIDE)
     # The lit node is the step the game is offering, so it outranks everything else:
     # live evidence/runtime/window-20261006-200505/frame-0081.png -- the click that
     # opened the panel landed on the cyan node while the crescent-badge nodes around it

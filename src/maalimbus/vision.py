@@ -136,7 +136,14 @@ def classify(records, locale, size):
     # nothing else on this page distinguishes it from the cutscene, so requiring the
     # second line would hand the page back to the cutscene branch and press SKIP on a
     # check the run should have attempted.
-    if find(records, locale.get('who_should_do_it', r'(?!)'), (.62, .23, .82, .30), size, .85):
+    # The question is worded two ways across encounters, and a sparser OCR pass drops the
+    # prompt's second line, so the page is named by whichever of the question or the
+    # chooser caption the pass managed to read.
+    if (find(records, locale.get('who_should_do_it', r'(?!)'), (.62, .23, .82, .30), size, .85)
+            or find(records, locale.get('who_will_take_the_challenge', r'(?!)'),
+                    (.62, .23, .82, .30), size, .85)
+            or find(records, locale.get('choose_character', r'(?!)'),
+                    (.63, .38, .90, .47), size, .85)):
         return 'EVENT_CHECK'
     # The event's "Choices" page (abnormality events) puts two to four option rows in
     # the right-hand column. Any row advances, but the rows are read live because

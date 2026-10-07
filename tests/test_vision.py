@@ -271,6 +271,25 @@ def test_the_skill_check_page_is_named_by_its_own_question():
                     words, tuple(other['size'])) == 'CUTSCENE'
 
 
+def test_the_second_skill_check_wording_is_the_same_page():
+    """Live evidence/runtime/window-20261006-234203/frame-0006.json, floor 3 (run 82).
+
+    The same event offered its check under a second prompt, "Who will take the
+    challenge?", and the reader -- which only knew "Who should do it?" -- left the page
+    UNKNOWN, where the run waited out its clock (build/window-run82.json,
+    page_unreadable_after_waiting). frame-0006 carries the new question, the advantage
+    banner and the SKIP, but never the "Choose a character" line.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261006-234203/frame-0006.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip().startswith('Who will take') for t in records)
+    assert not any(t.text.startswith('Choose a character') for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK'
+
+
 def test_the_resolved_skill_check_is_its_own_page_while_its_control_is_dark():
     # Live proof: evidence/runtime/window-20261006-205922 is the aftermath of a roll -
     # 'Check Passed' over the threshold and the story written into the left panel.
