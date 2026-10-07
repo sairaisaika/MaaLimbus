@@ -9,7 +9,19 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 18:35 local
+## Latest continuation: 2026-10-07 19:05 local
+- **停机点：领奖的第二问会花掉「周奖励」，不能见 Confirm 就点。** 在 **Exploration Reward** 弹窗点 Claim 之后，游戏又追一问 **「Spend your 'Weekly Bonuses, to claim the / bonus rewards?」**（`✕ Cancel`／`Confirm`，背后是变暗的奖励弹窗；证据帧 `evidence/runtime/window-20261007-171228/frame-0003.json`，sha `be5d7c3077df`；现场 `build/live-claim-confirm.png`）。`run-continue-11` 只把它当无名对话框，于是 step 1 `page_is_observe_only` 停机。
+- **网络事实（Steam 讨论 <https://steamcommunity.com/app/1973530/discussions/0/597403944640085425/>）**：周奖励每週只有 3 次、**每周重置且不累积**；打完不领（弹窗的 `To Window`）可以留到以后领，届时用「未来那一周」的 bonus；跨周进行中的一局会被自动判负（auto-concede），**当周 bonus 直接作废**，但已清层数仍可在下一周领奖。⇒ 这一问花的是有限资源。
+- **决策：由账本回答这一问。** 真正打完（receipt：`victory`/`reward`）的那一局才花一次 bonus 点 Confirm；被游戏作废或玩家放弃的那一局（归档在 `abandoned`）点 Cancel 把 bonus 留下。落地（提交 `a76f292`）：
+  - `assets/resource/en/locale.json` 加 `spend_weekly_bonuses`（`^Spend your '?Weekly Bonuses,? to claim the$`）与 `bonus_rewards`（`^bonus rewards\?$`）；`src/maalimbus/vision.py` 在 `RUN_REWARD_CONFIRM` 之前用「这一问＋它的尾句＋按钮对」四条判 `RUN_REWARD_BONUS`。
+  - `src/maalimbus/window.py` 新增 `RUN_REWARD_BONUS` 计划（`plan_step`/`_plan_step` 新增 `bonus=None`）：`bonus={'spend': True}` 点 `run_reward_bonus.confirm_button`（reason `a_completed_run_spends_one_weekly_bonus_on_its_rewards`），否则点 `run_reward_bonus.cancel_button`（reason `a_run_that_was_not_completed_keeps_the_weekly_bonus`）；缺锚点分别走 `run_reward_bonus_confirm_not_anchored`／`run_reward_bonus_cancel_not_anchored`。两个按钮都不是禁点（这一页两个答案都合法），缺省（没有任何证据）取不花钱的 Cancel。
+  - `src/maalimbus/storage.py` 的 `RunStore.record` 在落 receipt 时写 `settled_at`；`src/maalimbus/run_wiring.py` 新增 `earned_its_payout(store, *, settled_now=False)`，用 `receipts[-1]['settled_at']` 与 `abandoned[-1]['abandoned_at']` 比谁更新（没有时间戳时退回 `victory or reward`），并让驱动在开局与每次结算后按它刷新。
+  - `tools/window_step.py`：`bonus={'spend': run_settled_itself}` 传进 `plan_step`、记进每步 `entry['bonus']`；结算出 `final_victory`/`reward_received` 时置真，`expire()` 命中时置假。
+  - `assets/resource/base/anchors.json` 新增第 20 页 `run_reward_bonus`（identity 四条 OCR；controls `run_reward_bonus.confirm_button` 几何 `[1116,720,112,40]`、`run_reward_bonus.cancel_button` `[702,724,140,36]`；evidence 指 frame-0003）。
+- **测试**：`tests/test_vision.py::test_the_weekly_bonus_question_is_named_before_anything_is_spent`（钉 frame-0003；拿掉问句后不得判成这一页）、`tests/test_window.py::test_the_weekly_bonus_question_spends_one_only_for_a_run_that_finished`（spend 真/假两条路径、缺省取 Cancel、缺锚点两条拒因）、`tests/test_run_wiring.py::test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus`（过期在 receipt 之前／之后各验一次）。**全量 416 passed；`tools/verify_anchors.py` 44 page(s), 0 broken。**
+- **仍未申报**：JP/MXU 实机、体力（Enkephalin）兑换、Windows 包 `dist/`（三个输入归档在本机，可用 `tools/build_windows_package.py --mxu … --maa … --mxu-source … --verified-dungeon-clear` 重出）。
+
+## Prior continuation: 2026-10-07 18:35 local
 - **过期那一局的奖励领取页也认出来了**。领掉 `EXPIRED_SESSION` 的 Confirm 后，游戏把人放在 **Exploration Reward** 弹窗上：`Weekly Bonuses 3/3 ON`、`Floor 3 [NORMAL] 3/6`、`Starlight 11`、`Rewards 150 / Battle Pass XP x24 / Projection Rate x10 / Manager EXP 75`，按钮是 `✕ GiveUpRewards`／`To List`／`✓ Claim`（证据帧 `evidence/runtime/window-20261007-171021/frame-0006.json`，sha `24ab86917b97`；现场 `build/live-after-expired.png`）。同一个弹窗从「窗口」进时中间那个按钮写 **`To Window`**，从镜牢列表进时写 **`To List`** —— 原先的页面规则只认前者，于是 `run-continue-10` 把整段观察预算花在它身上（`page_unreadable_after_waiting`）。现在两个写法都算同一页（`RUN_REWARD_DIALOG`），`Give Up Rewards` 依旧是禁点（`run_reward.give_up_button`）。
 - **测试**：`tests/test_vision.py::test_the_reward_modal_is_named_whichever_way_the_game_leaves_it`（钉 frame-0006；把 `To List`／`To Window` 都拿掉后必须仍判 `UNKNOWN`，证明它是被按钮条命名的）。**全量 413 passed；verify_anchors 43 pages 0 broken。**
 - **账本现状**：`expire()` 把那局归档进 `abandoned`（`run_expired 6b4d2790eaf64880b6c3e8a7c6889835`），`status` 为 `rotation 2 -> team 1 / completed 1 / active run none`；接下来重启窗口就是「领掉这份奖励 → 用 team 1 重新进场 → 打满五层让 rotation 前进到 3（team 6）」。
