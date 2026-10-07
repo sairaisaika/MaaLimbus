@@ -9,7 +9,16 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 03:40 local
+## Latest continuation: 2026-10-07 04:25 local
+- **实机 run114/115/116（`--stop-page HOME`）**：run114 从 floor 4 打到 floor 5 后停在 `page_unreadable_after_waiting`，run115/116 接着把 floor 5 的几场战斗打下去（每步都 `passed: true`，只有地图候选按设计轮换时记 6 次 `map_click_opened_no_panel`）。run115 用满 60 步预算（报告顶层 `verified_clear: False`、exit 1 ＝预算用尽而非失败），所以窗口的步数上限就是长局的唯一约束。
+- **header 又一种 OCR 形态（提交 `7abfec1`）**：`ExploringFloor5`（词与 Floor 之间**没有空格**）此前不被 `HEADER_PATTERN` 接受 ⇒ 页面判 UNKNOWN。现在分隔符可选、floor 词用惰性 `\w{3,5}?`（贪婪会把 `Floor5` 整个吃掉、floor 号丢成 None）；测试钉 `evidence/runtime/window-20261007-034308/frame-0198.json`。
+- **`--stop-page NAME`（提交 `c273643`）**：镜牢结算后游戏会自动回大厅并再次进场，长窗口会在调用者还没决定前就用旧队开下一局。现在命中该页即 `stopped: stop_page_reached` 并交回控制权（这一步也把「DUNGEON_TEAM 的队槽每次从账本现读」的改动带上，避免跨局用已退役的队）。
+- **账本可重播种（提交 `0203482`）**：`seed_run_store(..., overwrite=True)` 只允许覆盖**从未记过任何东西**的账本（有 active run 或任何回执就仍拒绝），`tools/run_ledger.py seed --force` 走这条路。这是为了修「一局在接线之前打完、玩家顺序已经前进，而账本还指着旧队」的局面。
+- **Windows 包：五个硬地板的证据可以申报了（提交 `49cfa6d`）**。`tools/build_windows_package.py --verified-dungeon-clear` 才把 `clear_evidence`（默认 `docs/acceptance.md`，带 sha256）写进 `build-info.json`，否则 `pending` 里保留 `full five-floor loop`。三个输入归档（MXU v2.5.1、MaaFramework v5.12.2、MXU 源码）都已在本机并逐一核对哈希，重出一次构建即可（产物落在 `build/windows-package-<uuid>/`，`dist/` 从未产出）。
+- 全量测试 **398 passed**；`tools/verify_anchors.py` **40 page(s), 0 broken**。
+- **待办**：等这一局（team 5）在大厅交回 → `tools/run_ledger.py seed --slots 5,4,1,6,2,7,3 --rotation 1 --force`（对齐到 team 4）→ 带 `--run-store config/user-run-ledger.json` 跑一整局，验证 `entry_returned` 之后 rotation 自己前进一格。
+
+## Prior continuation: 2026-10-07 03:40 local
 - **实机：地图卡死的两个真因都修掉，闭环重新稳定跑通。** `build/window-run111.json`（24 步）与 `build/window-run112.json`（30 步，`steps 32 / clicks 32`）都是「地图→节点面板→出战编队→战斗（Win Rate／START 交替）→奖励卡→层礼物→主题包」再回地图，没有再出现 `no_candidate_node_observed` 或 `page_unreadable_after_waiting`。
 - **`MapProgress`（提交 `6f92953`）**：run110 在 floor 3「To be Cleaved」连出 7 次 `map_click_opened_no_panel`，日志里真正点过的 target 只有 `[1010,103]`/`[681,441]`/`[748,416]`/`[1819,709]`，而 `[681,441]` 与 `[748,416]` **交替重复 8 次**、可达的「?」节点 `[303,708]` 一次都没点到。真因是 header 的 floor 读数在 `3 / None / 3` 之间抖动（OCR 丢 token），旧代码 `if floor != map_floor:` 每次抖动都清空「已试过」。新 `src/maalimbus/map_progress.py::MapProgress`：**只有具名且不同的层号才开新一层**，`None` 读数保留层号与已试点；测试 `tests/test_map_progress.py` 三条。
 - **header 尾部截断（提交 `6220f97`）**：run111 停在 `page_unreadable_after_waiting` 时，`evidence/runtime/window-20261007-030756/frame-0093..0100.json` 每帧都把标题读成 **`Explorin`**（掉尾字母 g、且没有 floor token），`HEADER_PATTERN`/`HEADER_LABEL_PATTERN` 都要求 `Exploring` ⇒ `map_header()` 返回 None ⇒ 页面判 UNKNOWN。现在两者共用 `HEADER_WORD = r'(?:Explori\w{0,3}|Before\s+Entry)'`；pack 行仍是身份闸门。测试 `tests/test_map_vision.py::test_the_map_survives_a_label_whose_tail_ocr_dropped`（钉 frame-0096）。
