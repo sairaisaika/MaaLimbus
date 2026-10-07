@@ -87,13 +87,19 @@ class ProfileStore:
         return self.load()
 
 
-def seed_run_store(path, slots, *, rotation=0):
+def seed_run_store(path, slots, *, rotation=0, overwrite=False):
     """Write a fresh run ledger at a known rotation, before any run is active.
 
     The rotation order is the player's own (their official ledger), so it is seeded
     explicitly instead of being derived: every slot must be a saved team, and the
     rotation must point at one of them. Refuses to touch an existing file, because
     overwriting a ledger would silently move the player's place in the order.
+
+    ``overwrite`` exists for exactly one case: a ledger that has recorded nothing (no
+    active run and no receipts) and whose rotation no longer matches the player's
+    order -- for instance a run finished out of the harness' sight. It is refused the
+    moment a single run has been recorded, because then the place is evidence, not a
+    guess.
     """
     path = Path(path)
     slots = [int(s) for s in slots]
@@ -102,7 +108,11 @@ def seed_run_store(path, slots, *, rotation=0):
     if not 0 <= rotation < len(slots):
         raise ValueError('Rotation must point at one of the saved teams')
     if path.exists():
-        raise ValueError('A run ledger already exists; do not overwrite it')
+        if not overwrite:
+            raise ValueError('A run ledger already exists; do not overwrite it')
+        existing = read_json(path)
+        if existing.get('active') is not None or existing.get('receipts'):
+            raise ValueError('A ledger that recorded a run is never reseeded')
     write_json(path, dict(version=1, team_slots=slots, rotation=rotation,
                           completed_runs=0, active=None, receipts=[]))
 

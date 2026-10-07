@@ -26,11 +26,15 @@ def main():
                       help='saved-team slots in rotation order, e.g. 5,4,1,6,2,7,3')
     seed.add_argument('--rotation', type=int, default=0,
                       help='which of those slots the next run brings (0-based)')
+    seed.add_argument('--force', action='store_true',
+                      help='replace an existing ledger, but only one that recorded '
+                           'nothing; use it when a run finished out of the harness '
+                           'sight and moved the player order')
     args = parser.parse_args()
 
     if args.action == 'seed':
         slots = [int(part) for part in args.slots.replace(' ', '').split(',') if part]
-        seed_run_store(args.path, slots, rotation=args.rotation)
+        seed_run_store(args.path, slots, rotation=args.rotation, overwrite=args.force)
         print('seeded %s with slots=%s rotation=%d' % (args.path, slots, args.rotation))
 
     value = read_json(args.path)

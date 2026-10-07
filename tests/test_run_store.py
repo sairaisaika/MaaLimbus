@@ -1,0 +1,98 @@
+"""The persisted rotation ledger: seeding, one active run, and the exact advance.
+
+The window hands RunStore the frame every event was read from, so these cases keep a
+real file on disk and check the stored order: floors only in sequence, one victory,
+one reward, one entry back, and then -- only then -- the rotation moves.
+"""
+from types import SimpleNamespace
+
+import pytest
+
+from maalimbus.storage import RunStore, read_json, seed_run_store
+
+ORDER = (5, 4, 1, 6, 2, 7, 3)
+
+
+def teams(slots=ORDER):
+    return [SimpleNamespace(slot=slot) for slot in slots]
+
+
+def proof(tmp_path, name):
+    path = tmp_path/name
+    path.write_bytes(('frame ' + name).encode())
+    return path
+
+
+def test_a_seeded_ledger_names_the_team_the_next_run_brings(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER, rotation=1)
+    value = read_json(path)
+    assert value['team_slots'] == list(ORDER)
+    assert value['rotation'] == 1
+    assert value['active'] is None and value['receipts'] == []
+    assert RunStore(path, teams()).team_slot == 4
+
+
+def test_seeding_never_overwrites_a_ledger_without_the_force(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER)
+    with pytest.raises(ValueError):
+        seed_run_store(path, ORDER, rotation=1)
+
+
+def test_force_reseeds_only_a_ledger_that_recorded_nothing(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER)
+    # The case this exists for: a run finished outside the harness and the player's
+    # order moved on while our ledger still pointed at the retired team.
+    seed_run_store(path, ORDER, rotation=1, overwrite=True)
+    assert read_json(path)['rotation'] == 1
+
+    store = RunStore(path, teams())
+    run = store.start()
+    for floor in range(1, 6):
+        store.record(run, 'floor_clear-%d' % floor, 'floor_clear',
+                     proof(tmp_path, 'f%d.png' % floor), floor=floor)
+    store.record(run, 'final_victory', 'final_victory', proof(tmp_path, 'win.png'))
+    store.record(run, 'reward_received', 'reward_received', proof(tmp_path, 'reward.png'))
+    store.record(run, 'entry_returned', 'entry_returned', proof(tmp_path, 'entry.png'))
+    value = read_json(path)
+    assert value['rotation'] == 2 and value['completed_runs'] == 1
+    assert value['active'] is None and len(value['receipts']) == 1
+    with pytest.raises(ValueError):
+        seed_run_store(path, ORDER, rotation=0, overwrite=True)
+
+
+def test_starting_a_second_window_continues_the_same_active_run(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER)
+    first = RunStore(path, teams())
+    run = first.start()
+    second = RunStore(path, teams())
+    assert second.start() == run
+
+
+def test_the_store_refuses_a_floor_out_of_sequence_and_a_foreign_run(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER)
+    store = RunStore(path, teams())
+    run = store.start()
+    with pytest.raises(ValueError):
+        store.record(run, 'floor_clear-5', 'floor_clear', proof(tmp_path, 'a.png'), floor=5)
+    with pytest.raises(ValueError):
+        store.record('someone-else', 'floor_clear-1', 'floor_clear',
+                     proof(tmp_path, 'b.png'), floor=1)
+    with pytest.raises(ValueError):
+        store.record(run, 'reward_received', 'reward_received', proof(tmp_path, 'c.png'))
+    assert read_json(path)['active']['floors'] == []
+
+
+def test_a_repeated_event_with_the_same_frame_is_not_recorded_twice(tmp_path):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER)
+    store = RunStore(path, teams())
+    run = store.start()
+    frame = proof(tmp_path, 'f1.png')
+    assert store.record(run, 'floor_clear-1', 'floor_clear', frame, floor=1) is True
+    assert store.record(run, 'floor_clear-1', 'floor_clear', frame, floor=1) is False
+    assert read_json(path)['active']['floors'] == [1]
