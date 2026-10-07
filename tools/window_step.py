@@ -934,15 +934,25 @@ def main() -> int:
                                              frame_changed=late.get('image_sha256') not in (None, before_sha)))
             result['steps'].append(entry)
             if not entry['passed']:
+                # The map fades in and out between nodes, so an observation caught mid
+                # fade carries no candidate at all (live build/window-run75.json step26
+                # refused on exactly such a frame while the next one had the shop node
+                # again). Waiting a round is the whole fix, and map_attempts still bounds
+                # it.
+                no_candidate = plan.get('reason') == 'no_candidate_node_observed'
                 retryable = (page == 'MAP' and settled_page in ('MAP', 'UNKNOWN')
-                             and plan.get('target') is not None
+                             and (plan.get('target') is not None or no_candidate)
                              and map_attempts + 1 < max(1, args.map_tries))
                 if not retryable:
                     entry['stopped'] = entry['reason']
                     break
+                map_attempts += 1
+                if no_candidate:
+                    entry['stopped'] = 'map_candidates_not_observed_yet'
+                    time.sleep(args.interval)
+                    continue
                 # An unreachable node swallows the click and the page stays MAP, so
                 # skip it and let the next candidate be tried in its place.
-                map_attempts += 1
                 map_skips.add(tuple(plan['target']))
                 entry['stopped'] = 'map_click_opened_no_panel'
                 journal.record('window_map_retry', target=list(plan['target']),
