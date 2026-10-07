@@ -249,7 +249,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('event_result.continue_button')
         if box is None:
             return _refuse(page, 'event_result_continue_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,),
+        return _plan(page, CLICK, target=box, expect=('EVENT_RESULT_READY', ANY),
+                     advance=True,
                      reason='the_event_result_is_cleared_with_its_own_continue')
     if page == 'CUTSCENE':
         # The abnormality/event intro covers the screen with a REC badge and one SKIP
@@ -259,7 +260,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('cutscene.skip_button')
         if box is None:
             return _refuse(page, 'cutscene_skip_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,),
+        return _plan(page, CLICK, target=box, expect=('CUTSCENE', ANY), advance=True,
                      reason='the_cutscene_is_skipped_to_resume_the_run')
     if page == 'EVENT_CHECK':
         # The event's skill check asks which identity attempts the roll and prints each
@@ -297,7 +298,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if not 0 <= candidate_index < len(candidates):
             return _refuse(page, 'event_choice_index_out_of_range')
         return _plan(page, CLICK, target=candidates[candidate_index],
-                     expect=(ANY,),
+                     expect=('EVENT_CHOICE', ANY), advance=True,
                      reason='the_event_choice_that_names_its_reward_is_taken',
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})

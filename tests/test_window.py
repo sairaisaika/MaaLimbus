@@ -766,11 +766,17 @@ def test_the_cutscene_is_skipped_once_and_never_left_waiting():
     assert plan['action'] == CLICK
     assert plan['target'] == [1620, 919, 152, 99]
     assert plan['reason'] == 'the_cutscene_is_skipped_to_resume_the_run'
-    # The cutscene is proven dismissed by it being gone, so any other page passes and
-    # the cutscene itself does not.
-    assert plan['expect'] == [ANY]
+    # Skipping can move the story on without changing the scene (live run70: SKIP left a
+    # frame that still read CUTSCENE), so the same page counts when the frame changed,
+    # and a scene that is truly gone passes outright.
+    assert plan['expect'] == ['CUTSCENE', ANY]
+    assert plan['advance'] is True
     assert successor_ok(plan, 'CUTSCENE') is False
     assert successor_ok(plan, 'MAP') is True
+    assert step_result(plan, sent='click', before='CUTSCENE', after='CUTSCENE',
+                       page='CUTSCENE', frame_changed=True)['passed'] is True
+    assert step_result(plan, sent='click', before='CUTSCENE', after='CUTSCENE',
+                       page='CUTSCENE', frame_changed=False)['passed'] is False
     assert plan_step('CUTSCENE', controls={})['reason'] == 'cutscene_skip_not_anchored'
 
 
@@ -783,8 +789,10 @@ def test_the_event_choice_takes_the_row_that_names_its_reward():
     assert plan['target'] == [1096, 464, 378, 28]
     assert plan['reason'] == 'the_event_choice_that_names_its_reward_is_taken'
     assert plan['detail'] == {'option_count': 3, 'option_index': 1}
-    # Any row advances, so the plan is proven by the page being gone.
-    assert plan['expect'] == [ANY]
+    # Any row advances, so the plan is proven by the page being gone - or by the page
+    # changing under the same scene name while the row's outcome is narrated.
+    assert plan['expect'] == ['EVENT_CHOICE', ANY]
+    assert plan['advance'] is True
     assert successor_ok(plan, 'EVENT_CHOICE') is False
     assert successor_ok(plan, 'MAP') is True
     # No rows read, or an index outside them, refuses instead of clicking blind.
@@ -817,7 +825,8 @@ def test_the_event_result_is_tapped_through_and_then_continued():
     assert done['action'] == CLICK
     assert done['target'] == [1588, 943, 218, 55]
     assert done['reason'] == 'the_event_result_is_cleared_with_its_own_continue'
-    assert done['expect'] == [ANY]
+    assert done['expect'] == ['EVENT_RESULT_READY', ANY]
+    assert done['advance'] is True
     assert successor_ok(done, 'EVENT_RESULT_READY') is False
     assert successor_ok(done, 'MAP') is True
     # No story panel, or no continue button, refuses rather than clicking blind.
