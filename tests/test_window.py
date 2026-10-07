@@ -823,6 +823,11 @@ def test_the_gift_get_notice_is_cleared_with_its_own_confirm():
     assert successor_ok(plan, 'GIFT_GET')
     assert successor_ok(plan, 'REWARD_CARD')
     assert successor_ok(plan, 'MAP')
+    # The starting gift's notice can be observed already past itself: the optional
+    # gift search follows it, and which page the settle window catches is a race.
+    # Live proof of the failure: build/window-run-continue-2.json step 71 stopped
+    # with unexpected_successor on exactly this transition.
+    assert successor_ok(plan, 'GIFT_SEARCH')
     missing = plan_step('GIFT_GET', controls={})
     assert missing['action'] == RECORD
     assert missing['reason'] == 'gift_get_confirm_not_anchored'

@@ -467,11 +467,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # The gift-get notice sits on top of the reward-card page and carries one
         # Confirm. The gift was already granted by the reward card's own Confirm,
         # so this only clears the notice (live: window-20261006-042956).
+        # The starting gift's notice leads straight into the optional gift search,
+        # and which of the two the settle window catches is a race: build/window-run-continue-2.json
+        # step 71 clicked Confirm and observed GIFT_SEARCH (late_observation), which
+        # used to be read as an unexpected successor and stopped a live run.
         box = controls.get('gift_get.confirm_button')
         if box is None:
             return _refuse(page, 'gift_get_confirm_not_anchored')
         return _plan(page, CLICK, target=box,
-                     expect=('GIFT_GET', 'REWARD_CARD', 'MAP', 'UNKNOWN'),
+                     expect=('GIFT_GET', 'GIFT_SEARCH', 'REWARD_CARD', 'MAP', 'UNKNOWN'),
                      reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
     if page == 'GIFT_WARNING':
         # Select pressed with choices still outstanding: the game offers to trade the
