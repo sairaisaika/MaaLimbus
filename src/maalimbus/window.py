@@ -48,8 +48,7 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
-                      'star_confirm.cancel_button', 'initial_gifts.refuse_button',
-                      'gift_search.refuse_button')
+                      'star_confirm.cancel_button', 'initial_gifts.refuse_button')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -85,7 +84,8 @@ def _refuse(page, reason):
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-              reward=None, gift=None, cards=None, graces=None, initial=None):
+              reward=None, gift=None, cards=None, graces=None, initial=None,
+              search=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -96,7 +96,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
-                      initial=initial)
+                      initial=initial, search=search)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -106,7 +106,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
-               reward=None, gift=None, cards=None, graces=None, initial=None):
+               reward=None, gift=None, cards=None, graces=None, initial=None,
+               search=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -393,16 +394,27 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='the_graces_page_is_left_with_its_own_enter')
     if page == 'GIFT_SEARCH':
         # The run's optional gift search: picking up to three gifts off the pool costs
-        # starlight (the tray header prints the running price), so the planner leaves
-        # with nothing selected and spends none of it. Live:
+        # starlight (the tray header prints the running price, and Select stays inert
+        # until something is picked). The player asked for the search to be refused
+        # outright, so the planner takes the page's own Refuse Gift and spends nothing;
+        # mode 'select' keeps the alternative of leaving through Select. Live:
         # evidence/runtime/window-20261006-195803/frame-0001.json reads the title, the
-        # tray label, Select [1568,845,88,30] and its '0/3' counter.
-        box = controls.get('gift_search.select_button')
+        # tray label, Select [1568,845,88,30], Refuse Gift [1302,843,152,34] and '0/3'.
+        mode = (search or {}).get('mode', 'refuse')
+        if mode == 'refuse':
+            name, reason = ('gift_search.refuse_button',
+                            'the_player_asked_the_optional_gift_search_to_be_refused')
+            missing = 'gift_search_refuse_not_anchored'
+        else:
+            name, reason = ('gift_search.select_button',
+                            'the_gift_search_is_left_without_spending_starlight')
+            missing = 'gift_search_select_not_anchored'
+        box = controls.get(name)
         if box is None:
-            return _refuse(page, 'gift_search_select_not_anchored')
+            return _refuse(page, missing)
         return _plan(page, CLICK, target=box,
                      expect=('MAP', 'THEME_PACKS', 'UNKNOWN'),
-                     reason='the_gift_search_is_left_without_spending_starlight')
+                     reason=reason)
     if page == 'INITIAL_GIFTS':
         # The run opens on the starting E.G.O Gift picker: eight keyword columns, a
         # "Selected E.G.O Gift" tray, and a Select button that stays inert until the

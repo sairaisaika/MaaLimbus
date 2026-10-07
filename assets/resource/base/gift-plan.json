@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "note": "开局初始 E.G.O Gift 的取法：按队伍属性（关键词）给一份优先礼物名单，托盘里从上往下第一个出现的名字会被选中；没写到的属性用 default。玩家口径：现在带的是流血队，名单里先给 Wound Clerid，其次 Little and To-be-Naughty Plushie。其它属性的名单等玩家给出后再补，未给出时 default 兜底。",
+  "default": [
+    "Wound Clerid",
+    "Little and To-be-Naughty Plushie"
+  ],
+  "teams": {
+    "bleed": [
+      "Wound Clerid",
+      "Little and To-be-Naughty Plushie"
+    ]
+  }
+}

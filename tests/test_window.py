@@ -343,23 +343,28 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
                      graces={'card': 2, 'point': (518, 534)})['target'] == [473, 511, 90, 46]
 
 
-def test_the_gift_search_leaves_without_spending_starlight():
+def test_the_gift_search_is_refused_and_the_select_path_still_exists():
     # Live: evidence/runtime/window-20261006-195803/frame-0001.json. The tray header
-    # prints the running starlight price, so the planner takes nothing and leaves.
+    # prints the running starlight price, so the player asked for the optional search
+    # to be refused outright; 'select' stays available as the other mode.
     select = [1568, 845, 88, 30]
-    plan = plan_step('GIFT_SEARCH', controls={'gift_search.select_button': select})
+    refuse = [1302, 843, 152, 34]
+    plan = plan_step('GIFT_SEARCH', controls={'gift_search.select_button': select,
+                                              'gift_search.refuse_button': refuse})
     assert plan['action'] == CLICK
-    assert plan['target'] == select
-    assert plan['reason'] == 'the_gift_search_is_left_without_spending_starlight'
-    assert successor_ok(plan, 'MAP') and successor_ok(plan, 'THEME_PACKS')
-    assert not successor_ok(plan, 'GIFT_SEARCH')
+    assert plan['target'] == refuse
+    assert plan['reason'] == 'the_player_asked_the_optional_gift_search_to_be_refused'
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'GIFT_SEARCH')
+    other = plan_step('GIFT_SEARCH', controls={'gift_search.select_button': select,
+                                               'gift_search.refuse_button': refuse},
+                      search={'mode': 'select'})
+    assert other['target'] == select
+    assert other['reason'] == 'the_gift_search_is_left_without_spending_starlight'
     assert plan_step('GIFT_SEARCH', controls={})['reason'] == \
+        'gift_search_refuse_not_anchored'
+    assert plan_step('GIFT_SEARCH', controls={},
+                     search={'mode': 'select'})['reason'] == \
         'gift_search_select_not_anchored'
-    # Refuse Gift gives up the search outright, so it is never a target.
-    refused = [1302, 843, 152, 34]
-    stolen = plan_step('GIFT_SEARCH', controls={'gift_search.select_button': refused,
-                                                'gift_search.refuse_button': refused})
-    assert stolen['reason'] == 'control_is_forbidden'
 
 
 def test_the_starting_gift_comes_from_the_rotation_keyword_then_select():

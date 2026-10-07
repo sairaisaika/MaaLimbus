@@ -43,6 +43,7 @@ from maalimbus.event_vision import choice_options, gift_hints, preferred_choice
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus import session_flow as flows
+from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
@@ -470,6 +471,14 @@ def main() -> int:
                         help='keyword column the starting E.G.O Gift comes from; the '
                              'rotation currently runs the Bleed team, so its column '
                              'names the first gift to take')
+    parser.add_argument('--gift-plan', default='assets/resource/base/gift-plan.json',
+                        help='file naming the starting gift per team attribute: a '
+                             'fixed gift is a plan whose every attribute holds the '
+                             'same name')
+    parser.add_argument('--gift-search', choices=('refuse', 'select'), default='refuse',
+                        help='what to do on the optional E.G.O Gift Search page: the '
+                             'player asked for it to be refused, which spends no '
+                             'starlight; "select" instead leaves through Select')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one run: a misleading overlay once produced twelve '
@@ -559,6 +568,7 @@ def main() -> int:
         page = None
         tutorial_cards = set()
         team_slot_picked = None
+        gift_wanted_plan = gift_plan.load(args.gift_plan)
         grace_wanted = [int(part) for part in str(args.graces).replace(' ', '').split(',')
                         if part.strip().isdigit()]
         grace_bought = set()
@@ -764,7 +774,9 @@ def main() -> int:
                         point = keyword_panel_point(
                             texts, record.get('size') or (1920, 1080), args.gift_keyword)
                     else:
-                        box = initial_gift_box(texts, record.get('size') or (1920, 1080))
+                        box = initial_gift_box(
+                            texts, record.get('size') or (1920, 1080),
+                            wanted=gift_plan.wanted(gift_wanted_plan, args.gift_keyword))
                         if box:
                             point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
                             gift = True
@@ -791,11 +803,12 @@ def main() -> int:
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
                              team=team, reward=reward, gift=gift, cards=cards,
-                             graces=graces, initial=initial)
+                             graces=graces, initial=initial,
+                             search={'mode': args.gift_search})
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                      'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
-                     'initial': initial,
+                     'initial': initial, 'search': {'mode': args.gift_search},
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
