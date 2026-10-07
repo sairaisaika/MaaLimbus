@@ -9,7 +9,14 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 14:00 local
+## Latest continuation: 2026-10-07 15:40 local
+- **从大厅驱动一局、盯停机点的结果：抓到三个真停机点，全部修掉**（用户的当前指令 m12942）。
+  1. **`GIFT_GET → GIFT_SEARCH` 被判成 `unexpected_successor`（提交 `030c777`）**：起始礼物的 GET 提示点掉后紧接的是可选礼物搜索，而计划的后继表里没有它——同一发点击在早先窗口能过，只是因为 settle 窗口**恰好**抓到中间页；这次是 `late_observation`（`build/window-run-continue-2.json` step 71）。已把 `GIFT_SEARCH` 列进 `GIFT_GET` 的 expect 并注释记下这次失败。
+  2. **账本在通关时什么都没记（提交 `a961044`）**：`build/window-run-continue-2.json` 里 step 52 `BATTLE_VICTORY → RUN_CLAIM`、53 领奖、54 弹窗 Claim、55 弹窗 Confirm → 回结算页，之后回大厅并**又开了一局**，但 `ledger_events` 全空、rotation 一动不动。真因：旧规则要求「五层都已入账」才认 `RUN_CLAIM` 是最终胜利，而 **floor 5 永远无法先入账**（地图页靠「站在 floor n」证明 n-1 清除，没有 floor 6 可站）。现在结算页先settle `floor_clear 5`，再在同一个循环的下一轮 settle `final_victory`；窗口改成**反复追问直到该页不再settle任何东西**（`record_ledger_event` 返回列表、报告字段 `ledger_events`），账本自己仍然守顺序（1..5 → victory → reward → entry_returned，最后一步才旋转）。
+  3. 上一轮的团灭页与冷启动（见下）。**401 passed**。
+- **实机（`--run-store`，从大厅起）**：`build/window-run-from-home.json`（159 次点击）→ `build/window-run-continue-1.json` → `build/window-run-continue-2.json`：从 HOME 一路打到 **BATTLE_VICTORY → RUN_CLAIM → RUN_REWARD_DIALOG → RUN_REWARD_CONFIRM → HOME → 又进场开下一局**（`STAR_GRACES`/`STAR_CONFIRM`/`INITIAL_GIFTS`/`GIFT_GET`/`GIFT_SEARCH` 都实机过了一遍）。账本 `active run 8de51ee3 team 4 floors=[1,2,3,4]`：那一局的五层已通，但结算事件因上面第 2 条而丢失，所以 rotation 当时没动；修正后的窗口会把当前这一局的结算记全并让 rotation 前进到 `team 1`。
+
+## Prior continuation: 2026-10-07 14:00 local
 - **用户的当前指令（m12942）**：从零开始驱动脚本打镜牢，我只负责看它卡在哪里、结合网络资料完善脚本。
 - **冷启动打通（提交 `98db0dc`）**：`--flow launch` 过去被 `src/maalimbus/adb_preflight.py::foreground()` 拦住（客户端不在前台就抛 `RuntimeError('Limbus is not the uniquely identified foreground app')`）。现在新增 `foreground_any()`／`adb_device.foreground_any_of()`：**只有首个流程步是 `start_app` 的会话**才允许读「当前是谁在前台」并记进 `foreground_before`／`launched_by_flow`，由 Maa 自己的 start-app（绝不用桌面启动器）把游戏拉起来；其它会话仍是严格前检。实机：Android 桌面 → `start_app` → `TOUCH TO START` [846,810,222,41] 0.95 点掉 → `LUNACY` 出现 → `Confirm` 弹窗清掉 → 停在 `HOME`（前检期间 `clicks_sent` 为 0）。
 - **团灭页（提交 `41ac26d`＋`b8324d0`）**：5 层 boss 把 12 人全灭后，游戏弹出「Floor In Progress 5/5 / All participating Sinners have been killed. / Remaining Units: 0/12」＋三行选择（Return to Stage Select／Retry Stage／Accept results…）＋ Confirm。新页 `BATTLE_DEFEAT` 默认选 **Retry Stage**（唯一能让这一局活下去的输入），而且**有界**（`--defeat-tries`，默认 2）；两个「放弃这一局」的行只登记、永不自动点；重试次数在 **Confirm 落地后**才 +1。**400 passed**，anchors **41 页 0 broken**。
