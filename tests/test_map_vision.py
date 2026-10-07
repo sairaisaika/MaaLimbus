@@ -181,7 +181,8 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     point = clicks[0]['point']
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
-                                'node_away_from_player', 'badge_mark', 'lit_node')
+                                'node_away_from_player', 'badge_mark', 'lit_node',
+                                'lit_ring', 'lit_icon', 'cyan_node', 'path_node')
                for item in clicks)
 
 
@@ -219,7 +220,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'path_node')
+                                'lit_node', 'lit_icon', 'path_node', 'lit_ring')
                for item in clicks)
 
 
@@ -245,7 +246,7 @@ def test_the_offered_question_node_outranks_the_lifted_badge_boxes():
                if item['kind'] == 'node_away_from_player') >= 2
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'path_node')
+                                'lit_node', 'lit_icon', 'path_node', 'lit_ring')
                for item in clicks)
 
 
@@ -755,7 +756,7 @@ def test_a_read_node_outranks_a_guessed_lattice_step():
     assert covers, 'the node the frame reads is offered'
     reading = clicks[covers[0]]
     assert reading['kind'] in ('node_away_from_player', 'lit_node', 'badge_mark',
-                               'lit_icon', 'highlighted_node', 'cyan_node')
+                               'lit_icon', 'highlighted_node', 'cyan_node', 'lit_ring')
     first_guess = min(index for index, item in enumerate(clicks)
                       if item['kind'] == 'lattice_step')
     assert covers[0] < first_guess, 'the read node outranks every guessed step'
@@ -983,3 +984,34 @@ def test_the_cyan_path_is_walked_even_when_the_player_is_read_mid_fade():
     assert first['kind'] == 'path_node', clicks[:3]
     point = first['point']
     assert abs(point[0] - 1054) <= 40 and abs(point[1] - 124) <= 40, point
+
+
+def test_the_offered_ring_is_named_first_on_a_floor_painted_the_same_gold():
+    """Live evidence/runtime/window-20261007-175552/frame-0052.png, floor 3.
+
+    "Emotional Indolence" paints its background in the offer's own gold, so the ring every
+    other floor shows is merged into the web behind it and the page yields eight ordinary
+    nodes' icons instead. The run spent eight clicks on them (run-continue-15, 21:59:18 to
+    22:00:27) before the offered node's own box (1064,472,190,190) finally took one, which
+    is what a map that runs out of ``--map-tries`` looks like from the inside. The ring is
+    still there once the threshold clears the web: centre (1147,443).
+    """
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import LIT_RING_MIN_VALUE, lit_rings, map_clicks
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-175552/frame-0052.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    rings = lit_rings(image, min_value=LIT_RING_MIN_VALUE)
+    assert len(rings) == 1, rings
+    assert abs(rings[0][0] - 1147) <= 20 and abs(rings[0][1] - 443) <= 20, rings
+    clicks = map_clicks(image)
+    assert clicks[0]['kind'] == 'lit_ring', clicks[:3]
+    point = clicks[0]['point']
+    assert abs(point[0] - 1147) <= 20 and abs(point[1] - 443) <= 20, point
+    # The icons that used to be offered first are still on the page, behind the ring.
+    icons = [index for index, item in enumerate(clicks) if item['kind'] == 'lit_icon']
+    assert icons and min(icons) > 0, clicks[:3]

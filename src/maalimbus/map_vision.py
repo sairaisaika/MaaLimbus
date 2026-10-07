@@ -627,6 +627,14 @@ LIT_BAND = (.08, .78)
 #: 186x79 while the icons on the same page fill 0.46-0.78 over 47x47 or less.
 LIT_RING_MAX_FILL = 0.42
 LIT_RING_MIN_SIDE = 60
+#: On a floor whose background is drawn in the same gold as the offer, the ring's pixels
+#: merge with the web behind them at the general threshold and ``lit_rings`` reads nothing
+#: at all: live evidence/runtime/window-20261007-175552/frame-0052.png (floor 3,
+#: "Emotional Indolence") yields eight ordinary nodes' icons and no ring at 110, while 150
+#: yields exactly the offered node's ring (centre 1147,443 -- box 1113,384,69,119, fill
+#: .345). The run spent eight clicks on those icons before the offered node's own box
+#: (1064,472,190,190) finally took one.
+LIT_RING_MIN_VALUE = 150
 #: The lit path leaving the player, read from live window-20261006-233633/frame-0001: the
 #: line is dashed, so 21 px of closing merges its glow into one component, and the walk
 #: stops well short of the 320 px that would let a merged graph reach another node.
@@ -936,6 +944,23 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
         add(point, 'highlighted_node', CLICK_SIDE)
     for point in chevrons:
         add(point, 'chevron_target', node_side)
+    # A floor that paints its background the same gold as the offer needs the brighter
+    # threshold to see the ring at all: live evidence/runtime/window-20261007-175552/
+    # frame-0052.png (floor 3) yields exactly one ring at 150 -- the node the game was
+    # offering, box (1064,472,190,190) -- while the standard reading sees only the eight
+    # ordinary nodes' icons that swallowed the next eight clicks.
+    #
+    # The radius filter only means something against a player the page has corroborated.
+    # With no path walked, the reading it filters against is itself unproven: on that same
+    # frame the flame-scored reading (1126,433) *is* the offered node's ring -- the ring is
+    # painted in the flame's own orange -- so filtering by it discarded the one candidate
+    # the game was actually offering.
+    corroborated = player if walk else None
+    bright_rings = [point for point in lit_rings(image, min_value=LIT_RING_MIN_VALUE)
+                    if not corroborated or (point[0] - corroborated[0]) ** 2
+                    + (point[1] - corroborated[1]) ** 2 > 90 * 90]
+    for point in bright_rings:
+        add(point, 'lit_ring', CLICK_SIDE)
     # The ring is the only reading that survives a floor which draws the offer in
     # another hue -- floor 3 draws it orange, where ``highlighted_nodes`` and the
     # chevrons read nothing at all (build/window-run78.json), so these come next.
