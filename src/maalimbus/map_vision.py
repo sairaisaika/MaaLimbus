@@ -620,6 +620,16 @@ def map_clicks(image, *, template=None, node_side=190):
     for marker in advance_candidates(markers, player):
         add((marker.node[0] + marker.node[2] // 2,
              marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)
+    # The badge is drawn *under* an ordinary node, but the lit ring's own crescent sits
+    # inside its ring, so a badge read is two candidate points, not one: the box lifted
+    # to the hexagon, and the badge's own centre. Live floor-4 frame
+    # evidence/runtime/window-20261006-212950/frame-0058.png: the crescent at
+    # (310,173,34,28) hangs inside the orange ring whose node centre is (327,187) -- the
+    # registered lift put that candidate at (232,14,190,190), off the top of the map,
+    # while the badge's own centre is the node the game is offering.
+    for marker in advance_candidates(markers, player):
+        x, y, box_w, box_h = marker.ornament
+        add((x + box_w // 2, y + box_h // 2), 'badge_mark', node_side)
     # A step away from the player on the lattice is connected to the player by a path
     # in the live game, and a click on an unconnected node only does nothing, so the
     # four lattice steps are the last resort, kept for floors whose badges are not

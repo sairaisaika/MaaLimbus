@@ -180,7 +180,7 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     point = clicks[0]['point']
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
-                                'node_away_from_player')
+                                'node_away_from_player', 'badge_mark')
                for item in clicks)
 
 
@@ -213,7 +213,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     # The badge nodes are still offered behind it, so a refused click can fall back.
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
-                                'node_away_from_player', 'lattice_step')
+                                'node_away_from_player', 'lattice_step', 'badge_mark')
                for item in clicks)
 
 
@@ -598,6 +598,11 @@ def test_the_shop_node_survives_a_badge_hit_that_is_not_a_node():
     shop = [item for item in clicks if item['box'] == (263, 338, 190, 190)]
     assert shop, 'the shop node is offered once the empty spot has had its turn'
     assert shop[0]['kind'] in ('highlighted_node', 'node_away_from_player')
+    # The crescent hanging inside the lit ring is that node's badge, and the badge's own
+    # centre (327,187) is the point the game answers to -- the registered lift put it off
+    # the top of the map.
+    marks = [item for item in clicks if item['kind'] == 'badge_mark']
+    assert (232, 92, 190, 190) in [item['box'] for item in marks]
 
 
 def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
