@@ -985,13 +985,13 @@ def main() -> int:
             defeat = None
             if page == 'BATTLE_DEFEAT':
                 # A wipe is the one page where the run's survival is decided. The row is
-                # sent once, then its Confirm; defeat_attempts counts the retries already
-                # spent in this window, and once they are gone nothing is sent at all.
-                if defeat_row_sent:
-                    defeat_attempts += 1
-                defeat = {'row_sent': defeat_row_sent,
-                          'spent': defeat_attempts >= max(1, args.defeat_tries)}
-                if defeat['spent']:
+                # sent once, then its own Confirm; a retry is counted only when that
+                # Confirm has landed, so --defeat-tries counts finished retries and a
+                # retry in flight is never cut in half. Once the tries are spent nothing
+                # is sent at all and the decision goes back to the player.
+                spent = not defeat_row_sent and defeat_attempts >= max(1, args.defeat_tries)
+                defeat = {'row_sent': defeat_row_sent, 'spent': spent}
+                if spent:
                     journal.record('window_defeat', page=page, retries=defeat_attempts,
                                    sent=False)
             else:
@@ -1160,6 +1160,10 @@ def main() -> int:
                 # The retry row is highlighted; the next step on this dialog sends its
                 # own Confirm, and no further row is picked.
                 defeat_row_sent = True
+            if entry['passed'] and plan.get('reason') == 'the_retry_is_confirmed_and_the_stage_starts_over':
+                # One retry is now committed; the budget counts finished retries.
+                defeat_attempts += 1
+                defeat_row_sent = False
             if entry['passed'] and plan.get('detail', {}).get('card'):
                 # That grace is paid for; the next step buys the next affordable card.
                 grace_bought.add(plan['detail']['card'])

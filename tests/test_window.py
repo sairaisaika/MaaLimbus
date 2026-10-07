@@ -250,6 +250,11 @@ def test_the_wiped_stage_is_retried_within_its_bound_and_then_left_alone():
                       defeat={'row_sent': False, 'spent': True})
     assert spent['action'] == RECORD
     assert spent['reason'] == 'defeat_retries_exhausted'
+    # A retry already in flight is never cut in half: the row is picked, so the Confirm
+    # is still sent even when the budget reads spent.
+    in_flight = plan_step('BATTLE_DEFEAT', controls=controls,
+                          defeat={'row_sent': True, 'spent': True})
+    assert in_flight['action'] == CLICK and in_flight['target'] == confirm
     # Missing anchors are named rather than guessed.
     blind = plan_step('BATTLE_DEFEAT', controls={}, defeat={'row_sent': False})
     assert blind['action'] == RECORD

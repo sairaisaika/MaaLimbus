@@ -236,19 +236,21 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # driver: once the retries are spent nothing is sent and the player decides,
         # because neither accepting the deaths nor leaving the run is ours to choose.
         defeat = defeat or {}
+        if defeat.get('row_sent'):
+            # The row is already highlighted: this dialog is one Confirm away from
+            # restarting the stage, and a retry in flight is never abandoned.
+            box = controls.get('defeat.confirm_button')
+            if box is None:
+                return _refuse(page, 'defeat_confirm_not_anchored')
+            return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                         reason='the_retry_is_confirmed_and_the_stage_starts_over')
         if defeat.get('spent'):
             return _refuse(page, 'defeat_retries_exhausted')
-        if not defeat.get('row_sent'):
-            box = controls.get('defeat.retry_button')
-            if box is None:
-                return _refuse(page, 'defeat_retry_row_not_anchored')
-            return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                         reason='the_wiped_stage_is_picked_for_a_retry')
-        box = controls.get('defeat.confirm_button')
+        box = controls.get('defeat.retry_button')
         if box is None:
-            return _refuse(page, 'defeat_confirm_not_anchored')
+            return _refuse(page, 'defeat_retry_row_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_retry_is_confirmed_and_the_stage_starts_over')
+                     reason='the_wiped_stage_is_picked_for_a_retry')
     if page == 'BATTLE_RESULT':
         # The victory screen has a proven producer and the pipeline clicks it
         # through PostBattleObserve, but no control for it has been anchored on a
