@@ -298,3 +298,23 @@ def test_the_resolved_skill_check_is_its_own_page_while_its_control_is_dark():
                         .read_text())
     assert classify([Text(t['text'], tuple(t['box']), t['score']) for t in before['ocr']],
                     words, tuple(before['size'])) == 'EVENT_CHECK'
+
+
+def test_the_resolved_skill_check_is_ready_once_its_control_lights_up():
+    # Live proof: run72 kept tapping the story panel of the resolved check (window-
+    # 20261006-210803, 28 frames). frame-0001.json is the dark form - 'Check Passed' with
+    # nothing readable in the bottom-right slot - and from frame-0002.json on that slot
+    # reads 'Continue' [1588,941,220,59] at score 1.0, which is the control that leaves it.
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    dark = json.loads((root / 'evidence/runtime/window-20261006-210803/frame-0001.json')
+                      .read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in dark['ocr']]
+    assert any(t.text.strip() == 'Check Passed' for t in tokens)
+    assert not any(t.text.strip() in ('Continue', 'Proceed') for t in tokens)
+    assert classify(tokens, words, tuple(dark['size'])) == 'EVENT_CHECK_RESULT'
+    lit = json.loads((root / 'evidence/runtime/window-20261006-210803/frame-0002.json')
+                     .read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in lit['ocr']]
+    assert any(t.text.strip() == 'Continue' for t in tokens)
+    assert classify(tokens, words, tuple(lit['size'])) == 'EVENT_CHECK_READY'

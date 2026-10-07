@@ -303,6 +303,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=('EVENT_CHECK_RESULT', ANY),
                      advance=True,
                      reason='the_check_outcome_is_tapped_through_until_its_control_lights_up')
+    if page == 'EVENT_CHECK_READY':
+        # The same page once the story has been tapped through: the bottom-right slot
+        # lights up as its own Continue (live window-20261006-210803/frame-0001.json reads
+        # 'Check Passed' with nothing in that slot, and frame-0002.json onward reads
+        # 'Continue' [1588,941,220,59]). The roll is already resolved here, so this is not
+        # the SKIP that forfeits a check - it is the page's forward control.
+        box = controls.get('event_check_ready.continue_button')
+        if box is None:
+            return _refuse(page, 'event_check_ready_continue_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_check_outcome_is_left_with_its_lit_continue')
     if page == 'EVENT_CHOICE':
         # The event's "Choices" page lists two to four rows of spoken text; any row
         # advances the run, and the rows are read live because their count moves them.

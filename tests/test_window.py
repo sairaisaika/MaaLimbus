@@ -961,3 +961,21 @@ def test_the_resolved_skill_check_is_tapped_through_its_story_panel():
     missing = plan_step('EVENT_CHECK_RESULT')
     assert missing['action'] == RECORD
     assert missing['reason'] == 'event_check_result_panel_not_anchored'
+
+
+def test_the_lit_control_of_the_resolved_skill_check_leaves_it():
+    # Live proof: evidence/runtime/window-20261006-210803/frame-0002.json is the same page
+    # after the story was tapped through, with 'Continue' [1588,941,220,59] lit in the slot
+    # that read nothing at all in frame-0001.json. The roll is already resolved, so this
+    # control is how the page is left - it is not the SKIP that forfeits a check.
+    box = [1588, 941, 220, 59]
+    plan = plan_step('EVENT_CHECK_READY',
+                     controls={'event_check_ready.continue_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'the_check_outcome_is_left_with_its_lit_continue'
+    assert plan['advance'] is True
+    assert successor_ok(plan, 'MAP') and successor_ok(plan, 'CUTSCENE')
+    missing = plan_step('EVENT_CHECK_READY')
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'event_check_ready_continue_not_anchored'
