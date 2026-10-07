@@ -58,7 +58,9 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'run_reward_confirm.cancel_button',
                       # The weekly reset notice's Confirm leaves the dungeon for the
                       # Window, which throws the run in progress away.
-                      'window_reset.confirm_button')
+                      'window_reset.confirm_button',
+                      # Dismissing the expired session leaves its rewards unclaimed.
+                      'expired_session.cancel_button')
 
 #: Pages that clear themselves: the planner has no control to send, so the driver
 #: waits for the page to change instead of treating it as the end of the run.
@@ -150,8 +152,21 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if node is None:
             return _refuse(page, 'mirror_menu_node_not_registered')
         return _plan(page, NODE, node=node,
-                     expect=('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+                     expect=('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP',
+                             'EXPIRED_SESSION', 'UNKNOWN'),
                      reason='mirror_menu_recognition_owns_the_click_box')
+    if page == 'EXPIRED_SESSION':
+        # The weekly reset can end a run in progress: entering the mirror dungeon then
+        # answers with "The previous session has expired. / Please claim your rewards."
+        # (live evidence/runtime/window-20261007-170653/frame-0009.json, the page the
+        # run-continue-9 window landed on at step 2). Its Confirm is the only control
+        # that pays the run out; Cancel would leave those rewards unclaimed, so Cancel is
+        # registered as an anchor and forbidden as a target.
+        box = controls.get('expired_session.confirm_button')
+        if box is None:
+            return _refuse(page, 'expired_session_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_expired_session_is_confirmed_so_its_rewards_are_claimed')
     if page == 'TUTORIAL':
         # ``arrows`` comes from the live frame (maalimbus.overlay_vision): the two
         # page-turn triangles move, and the book's last page shows only ``previous``

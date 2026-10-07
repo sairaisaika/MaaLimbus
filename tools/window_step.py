@@ -50,7 +50,7 @@ from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.map_progress import MapProgress
-from maalimbus.run_wiring import settle
+from maalimbus.run_wiring import expire, settle
 from maalimbus.storage import RunStore, read_json
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
@@ -1188,6 +1188,17 @@ def main() -> int:
                 if events:
                     entry['ledger_events'] = [dict(kind=event.kind, floor=event.floor)
                                               for event in events]
+                # An expired session is not a completion: the game threw the run away
+                # and this Confirm claims what it left behind, so the run is filed as
+                # abandoned and the rotation stays on the same team.
+                expired = expire(run_store, page=page, reason=plan.get('reason'),
+                                 proof=frame_file(directory),
+                                 on_event=lambda run: journal.record(
+                                     'run_expired', run=run.get('id'),
+                                     evidence=str(frame_file(directory)))
+                                 if journal is not None else None)
+                if expired is not None:
+                    entry['ledger_expired'] = expired.get('id')
             if entry['passed'] and plan.get('detail', {}).get('slot'):
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.

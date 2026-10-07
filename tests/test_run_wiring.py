@@ -1,8 +1,9 @@
 """The rule that turns an observed page into one ledger event, and no more."""
 from types import SimpleNamespace
 
-from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, MAP_FORWARD_REASON,
-                                 REWARD_CONFIRM_REASON, ledger_event, settle)
+from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, EXPIRED_CONFIRM_REASON,
+                                 MAP_FORWARD_REASON, REWARD_CONFIRM_REASON, expire,
+                                 ledger_event, settle)
 from maalimbus.storage import RunStore, read_json, seed_run_store
 
 MAP = dict(page='MAP', reason=MAP_FORWARD_REASON)
@@ -145,3 +146,30 @@ def test_settling_walks_the_summary_through_floor_five_and_the_victory(tmp_path)
     # Asking the same summary a third time settles nothing: the page is done.
     assert settle(store, page='RUN_CLAIM', proof=proof) == []
     assert read_json(path)['active']['floors'] == [1, 2, 3, 4, 5]
+
+
+def test_an_expired_session_files_the_run_and_leaves_the_rotation_alone(tmp_path):
+    # The weekly reset can invalidate a dungeon mid-run: the next entry answers "The
+    # previous session has expired. / Please claim your rewards." (live
+    # evidence/runtime/window-20261007-170653/frame-0009.json, run-continue-9 step 2).
+    # That run never reached floor 5, so it is abandoned and the team is not rotated.
+    path, store = store_at(tmp_path, rotation=1)
+    store.start()
+    settle(store, **MAP, floor=2, proof=frame(tmp_path, 'f1.png'))
+    proof = frame(tmp_path, 'expired.png')
+    seen = []
+    filed = expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON, proof=proof,
+                   on_event=seen.append)
+    assert filed is not None and filed['floors'] == [1]
+    assert [run['id'] for run in seen] == [filed['id']]
+    data = read_json(path)
+    assert data['active'] is None
+    assert data['abandoned'][-1]['id'] == filed['id']
+    assert data['abandoned'][-1]['floors'] == [1]
+    assert 'expired.png' in data['abandoned'][-1]['note']
+    assert data['rotation'] == 1
+    # Only that page files anything, and it does it once.
+    assert expire(store, page='DRIVE', reason=EXPIRED_CONFIRM_REASON, proof=proof) is None
+    assert expire(store, page='EXPIRED_SESSION', reason='something_else', proof=proof) is None
+    assert expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
+                  proof=proof) is None

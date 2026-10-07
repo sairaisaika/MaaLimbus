@@ -23,6 +23,8 @@ MAP_FORWARD_REASON = 'map_node_click_is_the_only_proven_forward_input'
 #: the two inputs that settle the claim, from ``maalimbus.window``.
 REWARD_CONFIRM_REASON = 'the_reward_claim_is_confirmed_and_never_cancelled'
 ENTRY_CONFIRM_REASON = 'dungeon_team_confirm_brings_the_chosen_team_in'
+#: the expired-session page's Confirm, from ``maalimbus.window``.
+EXPIRED_CONFIRM_REASON = 'the_expired_session_is_confirmed_so_its_rewards_are_claimed'
 
 
 @dataclass(frozen=True)
@@ -117,3 +119,30 @@ def settle(store, *, page, reason=None, floor=None, proof, on_event=None, on_ref
             on_event(event)
         recorded.append(event)
     return recorded
+
+
+def expire(store, *, page, reason=None, proof=None, note=None, on_event=None):
+    """File the run the game threw away when it expired the session, or None.
+
+    The weekly reset can end a dungeon in progress: the run is then invalidated and the
+    next entry answers "The previous session has expired. / Please claim your rewards."
+    (live evidence/runtime/window-20261007-170653/frame-0009.json). That run never
+    reached floor 5, so it is abandoned rather than receipted -- the rotation stays on
+    the same team for the next attempt, and the abandoned entry keeps the floors it had
+    reached plus the frame that proved it.
+
+    Confirming that page is what records this, because it is the input that claims the
+    leftover rewards; any other page leaves the ledger alone.
+    """
+    if page != 'EXPIRED_SESSION' or reason != EXPIRED_CONFIRM_REASON:
+        return None
+    active = (store.data or {}).get('active')
+    if active is None:
+        return None
+    detail = note or 'the game expired the session before the run reached floor 5'
+    if proof is not None:
+        detail = '%s; evidence %s' % (detail, proof)
+    store.abandon(note=detail)
+    if on_event is not None:
+        on_event(active)
+    return active

@@ -509,6 +509,29 @@ def test_the_weekly_reset_notice_is_declined_and_never_takes_the_window():
     assert named['reason'] == 'control_is_forbidden'
 
 
+def test_the_expired_session_claims_its_rewards_and_never_dismisses_them():
+    # Live proof: evidence/runtime/window-20261007-170653/frame-0009.json — the page the
+    # weekly reset left behind ("The previous session has expired. / Please claim your
+    # rewards."). Confirm pays the dead run out; Cancel would leave it unclaimed.
+    confirm = [1112, 720, 116, 40]
+    plan = plan_step('EXPIRED_SESSION',
+                     controls={'expired_session.confirm_button': confirm})
+    assert plan['action'] == CLICK
+    assert plan['target'] == confirm
+    assert plan['advance'] is True
+    assert plan['reason'] == 'the_expired_session_is_confirmed_so_its_rewards_are_claimed'
+    assert successor_ok(plan, 'DRIVE') and not successor_ok(plan, 'EXPIRED_SESSION')
+    missing = plan_step('EXPIRED_SESSION', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'expired_session_confirm_not_anchored'
+    cancel = [702, 724, 140, 36]
+    misregistered = plan_step('EXPIRED_SESSION',
+                              controls={'expired_session.confirm_button': cancel,
+                                        'expired_session.cancel_button': cancel})
+    assert misregistered['action'] == RECORD
+    assert misregistered['reason'] == 'control_is_forbidden'
+
+
 def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
     # Live: evidence/runtime/window-20261006-193843/frame-0004.json reads the page
     # title at the top left and its own Enter at [1740,986,102,42]; the + button of

@@ -3089,6 +3089,94 @@
           }
         }
       ]
+    },
+    {
+      "id": "expired_session",
+      "title": "上一局会话过期（The previous session has expired. / Please claim your rewards.；Confirm 领奖，× Cancel 永不点）",
+      "why": "实机 run-continue-9 step 2：周记录重置把进行中的一局作废，再从 Drive 进镜牢时弹出它。Confirm 是唯一把这一局残余奖励领走的入口，Cancel 会把奖励留在桌上不退，因此 Cancel 登记为锚点但禁止落点。",
+      "evidence": [
+        "evidence/runtime/window-20261007-170653/frame-0009.json"
+      ],
+      "identity": [
+        {
+          "id": "expired_session.expired_label",
+          "kind": "ocr",
+          "pattern": "previous session has expired",
+          "roi": [
+            0.35,
+            0.43,
+            0.65,
+            0.50
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "expired_session.claim_label",
+          "kind": "ocr",
+          "pattern": "^Please claim your rewards\\.?$",
+          "roi": [
+            0.38,
+            0.47,
+            0.61,
+            0.53
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "expired_session.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.56,
+            0.65,
+            0.67,
+            0.72
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "expired_session.cancel_label",
+          "kind": "ocr",
+          "pattern": "Cancel$",
+          "roi": [
+            0.35,
+            0.65,
+            0.45,
+            0.72
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "expired_session.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-170653/frame-0009.json",
+            "box": [
+              1112,
+              720,
+              116,
+              40
+            ],
+            "source": "实测 OCR 框＝Confirm；点它领走上一局过期的奖励"
+          }
+        },
+        {
+          "id": "expired_session.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-170653/frame-0009.json",
+            "box": [
+              702,
+              724,
+              140,
+              36
+            ],
+            "source": "实测 OCR 框＝× Cancel；它只是把提示关掉、奖励留在桌上，登记它只为让 window.FORBIDDEN_CONTROLS 拒点"
+          }
+        }
+      ]
     }
   ],
   "pending": [

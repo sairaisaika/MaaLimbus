@@ -45,7 +45,8 @@ def test_shipped_registry_files_validate():
                    'event_check_result', 'event_check_ready', 'deployment',
                    'event_result', 'event_result_ready', 'dungeon_team',
                    'level_warning', 'star_graces', 'star_confirm', 'initial_gifts',
-                   'gift_search', 'gift_search_forgo', 'ego_gift_popup']
+                   'gift_search', 'gift_search_forgo', 'ego_gift_popup',
+                   'expired_session']
     assert loaded['reference_width'] == 1280
     assert loaded['pending'], 'the registry must keep naming what is not proven yet'
 
