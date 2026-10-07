@@ -101,6 +101,12 @@ LOOP_GUARD_EXEMPT_REASONS = (
     # The reward modal's Claim plays the reward split before it closes, so the same
     # reason and the same page name repeat without meaning the tap was lost.
     'the_reward_modal_is_claimed_and_never_given_up',
+    # A story cutscene is skipped once per line and can run several frames long, so the
+    # same plan legitimately repeats with the page name standing still: live build/
+    # window-run-continue-6.json skipped it three times on the way into an event's check
+    # page, and the third skip that actually revealed EVENT_CHECK_READY was the one the
+    # guard called a repeat and stopped the run on. The step budget bounds it.
+    'the_cutscene_is_skipped_to_resume_the_run',
 )
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {
