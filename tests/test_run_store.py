@@ -96,3 +96,32 @@ def test_a_repeated_event_with_the_same_frame_is_not_recorded_twice(tmp_path):
     assert store.record(run, 'floor_clear-1', 'floor_clear', frame, floor=1) is True
     assert store.record(run, 'floor_clear-1', 'floor_clear', frame, floor=1) is False
     assert read_json(path)['active']['floors'] == [1]
+
+
+def test_giving_up_a_run_files_it_and_keeps_the_rotation_where_it_stands(tmp_path):
+    """A wipe the player accepts leaves the next entry on the same team.
+
+    The driver never taps the wipe dialog's "Accept results" row, so a run the player
+    gives up on stayed active for ever and nothing could clear it -- reseeding refuses a
+    ledger that already recorded a run. Abandoning has to drop `active` and leave
+    `rotation` pointing at the same slot, or the next entry would silently bring the
+    wrong team.
+    """
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER, rotation=1)
+    store = RunStore(path, teams())
+    run = store.start()
+    store.record(run, 'floor_clear-1', 'floor_clear', proof(tmp_path, 'f1.png'), floor=1)
+    dropped = store.abandon(note='wiped on the floor-5 boss')
+    assert dropped['id'] == run and dropped['floors'] == [1]
+    value = read_json(path)
+    assert value['active'] is None
+    assert value['rotation'] == 1 and RunStore(path, teams()).team_slot == 4
+    assert value['completed_runs'] == 0 and value['receipts'] == []
+    assert value['abandoned'][-1]['floors'] == [1]
+    assert value['abandoned'][-1]['note'] == 'wiped on the floor-5 boss'
+    with pytest.raises(ValueError):
+        RunStore(path, teams()).abandon()
+    # The next window starts a fresh run on the same slot instead of resuming the dead one.
+    second = RunStore(path, teams())
+    assert second.start() != run and second.data['active']['team'] == 4

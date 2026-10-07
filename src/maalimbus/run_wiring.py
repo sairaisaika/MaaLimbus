@@ -69,3 +69,51 @@ def ledger_event(*, page, reason=None, floor=None, cleared=(), victory=False,
             return LedgerEvent('entry_returned')
         return None
     return None
+
+
+def settle(store, *, page, reason=None, floor=None, proof, on_event=None, on_refusal=None):
+    """Record everything ``page`` settles, in order, and return what was recorded.
+
+    One page can settle more than one thing in order: the run summary proves floor 5 was
+    finished and then, on the next turn of this same loop, that the run was won. The
+    store is re-read each round, so the loop stops the moment the page settles nothing
+    more and the store keeps its own order.
+
+    A run that has already taken its receipt leaves the store with no active run, and the
+    next dungeon's first floor clear is what opens the run after it -- without that, a
+    long window that walked straight into a second dungeon would silently stop recording
+    the moment the first one was paid out.
+
+    ``proof`` is the retained frame the ledger hashes; ``on_event(event)`` and
+    ``on_refusal(event, error)`` are optional observers (the window journals both), and a
+    refused event ends the loop instead of raising, because the ledger is the authority.
+    """
+    recorded = []
+    while True:
+        active = (store.data or {}).get('active')
+        standing = active or dict(floors=[], victory=False, reward=False)
+        event = ledger_event(page=page, reason=reason, floor=floor,
+                             cleared=standing['floors'], victory=standing['victory'],
+                             reward=standing['reward'])
+        if event is None:
+            break
+        if active is None:
+            store.start()
+            active = (store.data or {}).get('active')
+            if active is None:
+                break
+        event_id = '%s-%s' % (event.kind, 'run' if event.floor is None else event.floor)
+        try:
+            fresh = store.record(active['id'], event_id, event.kind, proof, floor=event.floor)
+        except ValueError as error:
+            if on_refusal is not None:
+                on_refusal(event, error)
+            break
+        if not fresh:
+            # The identical observation is already on the ledger; asking again would only
+            # repeat it, so the page is done settling.
+            break
+        if on_event is not None:
+            on_event(event)
+        recorded.append(event)
+    return recorded

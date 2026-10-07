@@ -1,8 +1,24 @@
 """The rule that turns an observed page into one ledger event, and no more."""
+from types import SimpleNamespace
+
 from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, MAP_FORWARD_REASON,
-                                 REWARD_CONFIRM_REASON, ledger_event)
+                                 REWARD_CONFIRM_REASON, ledger_event, settle)
+from maalimbus.storage import RunStore, read_json, seed_run_store
 
 MAP = dict(page='MAP', reason=MAP_FORWARD_REASON)
+ORDER = (5, 4, 1, 6, 2, 7, 3)
+
+
+def store_at(tmp_path, rotation=0):
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER, rotation=rotation)
+    return path, RunStore(path, [SimpleNamespace(slot=s) for s in ORDER])
+
+
+def frame(tmp_path, name):
+    path = tmp_path/name
+    path.write_bytes(('frame ' + name).encode())
+    return path
 
 
 def test_standing_on_a_floor_proves_the_one_before_it():
@@ -69,3 +85,63 @@ def test_nothing_is_offered_once_the_run_has_returned():
     assert ledger_event(page='RUN_CLAIM', **settled) is None
     assert ledger_event(page='RUN_REWARD_CONFIRM', reason=REWARD_CONFIRM_REASON, **settled) is None
     assert ledger_event(page='DUNGEON_TEAM', reason=ENTRY_CONFIRM_REASON, **settled) is None
+
+
+def test_settling_opens_a_run_only_when_a_page_really_settles_something(tmp_path):
+    """A window that outlives its own receipt keeps recording the dungeon after it.
+
+    Live: run-continue-7 paid out its run (entry_returned) and the very next dungeon
+    began in the same window, so the store stood with no active run. The map page's floor
+    clear is what opens the run after it; a page that settles nothing must not open one.
+    """
+    path, store = store_at(tmp_path)
+    proof = frame(tmp_path, 'frame.png')
+    assert settle(store, page='MAP', floor=1, proof=proof) == []
+    assert read_json(path)['active'] is None
+
+    events = settle(store, **MAP, floor=2, proof=proof)
+    assert [(e.kind, e.floor) for e in events] == [('floor_clear', 1)]
+    assert read_json(path)['active']['floors'] == [1]
+
+
+def test_settling_never_offers_a_page_the_store_would_refuse(tmp_path):
+    path, store = store_at(tmp_path)
+    proof = frame(tmp_path, 'frame.png')
+    store.start()
+    settle(store, **MAP, floor=2, proof=proof)
+    settle(store, **MAP, floor=3, proof=proof)
+    # Floors 1 and 2 are on the ledger, so standing on floor 5 would need floor 3 on it
+    # too: the page offers nothing and the window never has to swallow a refusal.
+    assert settle(store, **MAP, floor=5, proof=proof) == []
+    assert read_json(path)['active']['floors'] == [1, 2]
+
+
+def test_settling_reports_a_refusal_instead_of_raising(tmp_path, monkeypatch):
+    path, store = store_at(tmp_path)
+    proof = frame(tmp_path, 'frame.png')
+
+    def refuse(*args, **kwargs):
+        raise ValueError('Observation does not belong to the active run')
+
+    monkeypatch.setattr(store, 'record', refuse)
+    refusals = []
+    assert settle(store, **MAP, floor=2, proof=proof,
+                  on_refusal=lambda event, error: refusals.append((event, str(error)))) == []
+    assert refusals and refusals[0][0].kind == 'floor_clear'
+    assert 'does not belong' in refusals[0][1]
+
+
+def test_settling_walks_the_summary_through_floor_five_and_the_victory(tmp_path):
+    path, store = store_at(tmp_path, rotation=1)
+    store.start()
+    for floor in range(1, 5):
+        assert [e.kind for e in settle(store, **MAP, floor=floor + 1,
+                                       proof=frame(tmp_path, 'f%d.png' % floor))] == ['floor_clear']
+    seen = []
+    proof = frame(tmp_path, 'summary.png')
+    seen += settle(store, page='RUN_CLAIM', proof=proof)
+    seen += settle(store, page='RUN_CLAIM', proof=proof)
+    assert [(e.kind, e.floor) for e in seen] == [('floor_clear', 5), ('final_victory', None)]
+    # Asking the same summary a third time settles nothing: the page is done.
+    assert settle(store, page='RUN_CLAIM', proof=proof) == []
+    assert read_json(path)['active']['floors'] == [1, 2, 3, 4, 5]

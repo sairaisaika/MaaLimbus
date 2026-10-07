@@ -50,7 +50,7 @@ from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.map_progress import MapProgress
-from maalimbus.run_wiring import ledger_event
+from maalimbus.run_wiring import settle
 from maalimbus.storage import RunStore, read_json
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
@@ -216,44 +216,29 @@ def frame_file(directory):
 def record_ledger_event(store, run_id, directory, page, plan, floor_now, journal=None):
     """Record every ledger event this page settles, each proved by its own frame.
 
-    ``maalimbus.run_wiring`` decides which page settles what, and one page can settle
-    more than one thing in order: the run summary proves floor 5 was finished and then,
-    on the next turn of this same loop, that the run was won. The loop re-reads the
-    store each time, so it stops the moment the page settles nothing more and the store
-    still keeps its own order -- a run that began before the ledger did can never write
-    floors it did not prove, and a refusal is journalled instead of failing the window.
+    The rule and the loop live in ``maalimbus.run_wiring.settle`` so they can be tested
+    without a device; this wrapper hands them the frame the event must name and journals
+    what was recorded (or refused). ``run_id`` is the run this window opened with, and the
+    store stays the authority on which run an event belongs to, so a window that outlives
+    its own run's receipt files the next dungeon's floors against the run open now.
     """
     proof = frame_file(directory)
     if proof is None:
         return []
-    recorded = []
-    while True:
-        active = (store.data or {}).get('active')
-        if active is None or active['id'] != run_id:
-            break
-        event = ledger_event(page=page, reason=plan.get('reason'),
-                             floor=floor_now if page == 'MAP' else None,
-                             cleared=active['floors'], victory=active['victory'],
-                             reward=active['reward'])
-        if event is None:
-            break
-        event_id = '%s-%s' % (event.kind, 'run' if event.floor is None else event.floor)
-        try:
-            fresh = store.record(run_id, event_id, event.kind, proof, floor=event.floor)
-        except ValueError as error:
-            if journal is not None:
-                journal.record('run_ledger_refused', kind=event.kind, floor=event.floor,
-                               evidence=str(proof), reason=str(error))
-            break
-        if not fresh:
-            # The identical observation is already on the ledger; asking again would
-            # only repeat it, so the page is done settling.
-            break
+
+    def note(event):
         if journal is not None:
             journal.record('run_ledger_event', kind=event.kind, floor=event.floor,
                            evidence=str(proof))
-        recorded.append(event)
-    return recorded
+
+    def refuse(event, error):
+        if journal is not None:
+            journal.record('run_ledger_refused', kind=event.kind, floor=event.floor,
+                           evidence=str(proof), reason=str(error))
+
+    return settle(store, page=page, reason=plan.get('reason'),
+                  floor=floor_now if page == 'MAP' else None, proof=proof,
+                  on_event=note, on_refusal=refuse)
 
 
 def frame_details(directory):

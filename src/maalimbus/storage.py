@@ -1,6 +1,7 @@
 """Atomic private configuration and durable, ordered run evidence."""
 import hashlib
 import copy
+import datetime
 import json
 import os
 from dataclasses import asdict
@@ -150,6 +151,30 @@ class RunStore:
             write_json(self.path, data)
             self.data = data
         return self.data['active']['id']
+
+    def abandon(self, *, note=None):
+        """Drop the active run and leave the rotation where it stands.
+
+        A wipe only ends a dungeon if the player accepts the result, and the driver keeps
+        that row out of its plans (the wipe dialog offers a bounded retry instead), so a
+        run the player gives up on would otherwise stay active for ever and keep pinning
+        its team slot -- and nothing could clear it, because reseeding refuses a ledger
+        that already recorded a run. Abandoning files the active record (with the floors
+        it had proved and the note) under `abandoned` and clears `active`, so the next
+        entry starts the same team again. It refuses when no run is open.
+        """
+        if self.data['active'] is None:
+            raise ValueError('There is no active run to abandon')
+        data = copy.deepcopy(self.data)
+        active = data['active']
+        data.setdefault('abandoned', []).append(dict(
+            active, note=note,
+            abandoned_at=datetime.datetime.now(datetime.timezone.utc).isoformat()))
+        data['abandoned'] = data['abandoned'][-50:]
+        data['active'] = None
+        write_json(self.path, data)
+        self.data = data
+        return dict(active)
 
     def record(self, run_id, event_id, kind, evidence, *, floor=None):
         data = copy.deepcopy(self.data)

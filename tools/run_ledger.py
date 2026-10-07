@@ -8,6 +8,7 @@ here, because every ledger event has to name the frame it was read from.
 import argparse
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 
@@ -30,12 +31,27 @@ def main():
                       help='replace an existing ledger, but only one that recorded '
                            'nothing; use it when a run finished out of the harness '
                            'sight and moved the player order')
+    give_up = sub.add_parser('abandon', help='drop the active run and keep the rotation')
+    give_up.add_argument('--note', default=None,
+                         help='why the run is being given up (kept with the record)')
     args = parser.parse_args()
 
     if args.action == 'seed':
         slots = [int(part) for part in args.slots.replace(' ', '').split(',') if part]
         seed_run_store(args.path, slots, rotation=args.rotation, overwrite=args.force)
         print('seeded %s with slots=%s rotation=%d' % (args.path, slots, args.rotation))
+    elif args.action == 'abandon':
+        value = read_json(args.path)
+        # RunStore only reads ``slot`` off the teams it is handed, so a plain stand-in is
+        # enough here and the tool stays a ledger reader rather than a team planner.
+        store = RunStore(args.path, [SimpleNamespace(slot=s) for s in value['team_slots']])
+        try:
+            dropped = store.abandon(note=args.note)
+        except ValueError as error:
+            raise SystemExit(str(error))
+        print('abandoned run %s team %d floors=%s (rotation stays at %d -> team %d)'
+              % (dropped['id'][:8], dropped['team'], dropped['floors'],
+                 store.data['rotation'], store.team_slot))
 
     value = read_json(args.path)
     active = value.get('active')
