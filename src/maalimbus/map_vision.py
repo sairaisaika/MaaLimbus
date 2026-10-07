@@ -804,20 +804,26 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # chevrons read nothing at all (build/window-run78.json), so these come next.
     for point in rings:
         add(point, 'lit_node', CLICK_SIDE)
+    # A node's own icon is saturated too, so the reader offers those blobs as well; they
+    # are read off the frame, so they outrank the badge lift and the lattice. Live
+    # evidence/runtime/window-20261007-023156/frame-0053.png ("The Forgotten", floor 1):
+    # the only step the floor offered is the red "?" hexagon, whose icon the reader names
+    # at (1087,409), while the four lifted badge boxes ((578,14)/(194,334)/(232,14)/
+    # (1346,14)) are ordinary nodes and every click on them was swallowed -- the run
+    # stopped after map_tries with the panel never opened. A manual 1920-space tap on
+    # (1080,428) opened that node's panel, so the icon is the step. Live
+    # 040938/frame-0001: the offered gate there is a paler hexagon, and the leftmost
+    # node's icon was the only other thing the reader could name.
+    for point in icons:
+        add(point, 'lit_icon', CLICK_SIDE)
     # The badge nodes are read off the frame, so they outrank a guessed lattice step:
     # live run build/window-run35 clicked four lattice points around the player while
     # the one real node (center 1095,429) sat 48 px from the third guess and was
-    # deduplicated away, which ended the run with no_candidate_node_observed.
+    # deduplicated away, which ended the run with no_candidate_node_observed. They sit
+    # behind the icons because the lift is a guess from the badge and the icon is not.
     for marker in advance_candidates(markers, player):
         add((marker.node[0] + marker.node[2] // 2,
              marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)
-    # A node's own icon is saturated too, so the reader offers those blobs as well; they
-    # sit behind the badge nodes because a badge says "this is a node" outright while an
-    # icon only usually does, and ahead of the lattice because they were read off the
-    # frame. Live 040938/frame-0001: the offered gate there is a paler hexagon, and the
-    # leftmost node's icon was the only other thing the reader could name.
-    for point in icons:
-        add(point, 'lit_icon', CLICK_SIDE)
     # The badge is drawn *under* an ordinary node, but the lit ring's own crescent sits
     # inside its ring, so a badge read is two candidate points, not one: the box lifted
     # to the hexagon, and the badge's own centre. Live floor-4 frame

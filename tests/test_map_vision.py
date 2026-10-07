@@ -219,6 +219,32 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
                for item in clicks)
 
 
+def test_the_offered_question_node_outranks_the_lifted_badge_boxes():
+    """Live evidence/runtime/window-20261007-023156/frame-0053.png, floor 1.
+
+    Run build/window-run107.json stalled here: every click went to a lifted badge box
+    ((578,14), (194,334), (232,14) -- ordinary nodes the floor does not connect to the
+    player) and the panel never opened, while the one step the floor offers is the red
+    "?" hexagon. Its own icon is read at (1087,409); a manual 1920-space tap on
+    (1080,428) opened that node's panel, so the icon is offered before the lift.
+    """
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261007-023156/frame-0053.png')
+    clicks = map_clicks(image, template=template)
+    assert clicks[0]['kind'] == 'lit_icon', clicks[:3]
+    point = clicks[0]['point']
+    assert abs(point[0] - 1087) <= 12 and abs(point[1] - 409) <= 12, point
+    lifted = [item for item in clicks if item['kind'] == 'node_away_from_player']
+    assert lifted, 'the badge nodes are still offered behind it'
+    assert min(index for index, item in enumerate(clicks)
+               if item['kind'] == 'node_away_from_player') >= 2
+    assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
+                                'node_away_from_player', 'lattice_step', 'badge_mark',
+                                'lit_node', 'lit_icon', 'path_node')
+               for item in clicks)
+
+
 def test_the_ring_is_read_in_whatever_colour_the_floor_draws_it():
     """Live evidence/runtime/window-20261006-214057/frame-0025.png, floor 3.
 
