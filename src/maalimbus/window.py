@@ -180,6 +180,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
+    if page == 'BATTLE_VICTORY':
+        # The victory screen with a Confirm button is the one battle result page that
+        # does not clear itself: live evidence/runtime/window-20261007-015542/frame-0130.json
+        # reads 'Victory' 1.0, 'EX-CLEAR' 0.96 and 'Confirm' [1638,831,164,48] 1.0, and the
+        # run stopped thirty rounds on it (build/window-run100.json) because it was being
+        # waited out as an animation.
+        box = controls.get('battle_victory.confirm_button')
+        if box is None:
+            return _refuse(page, 'battle_victory_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='victory_confirm_clears_the_result_and_carries_the_rewards')
     if page == 'BATTLE_RESULT':
         # The victory screen has a proven producer and the pipeline clicks it
         # through PostBattleObserve, but no control for it has been anchored on a

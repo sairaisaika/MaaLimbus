@@ -30,6 +30,8 @@
   "expired": "previous session has expired",
   "defeat": "^DEFEAT$",
   "victory": "^VICTORY$",
+  "victory_banner": "^Victory$",
+  "victory_clear": "^EX-CLEAR$",
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
   "acquire_gift": "^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^Owned$",

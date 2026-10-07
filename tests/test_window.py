@@ -141,6 +141,25 @@ def test_pre_battle_team_battles_when_the_counter_already_reads_full():
     assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
 
 
+def test_the_victory_screen_is_cleared_by_its_own_confirm():
+    # Live proof: window-20261007-015542/frame-0130.json is that page -- 'Victory' 1.0,
+    # 'EX-CLEAR' 0.96, 'Confirm' [1638,831,164,48] 1.0 -- and the driver waited thirty
+    # rounds on it as if it were an animation (build/window-run100.json).
+    box = [1638, 831, 164, 48]
+    plan = plan_step('BATTLE_VICTORY', controls={'battle_victory.confirm_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'victory_confirm_clears_the_result_and_carries_the_rewards'
+    assert plan['advance'] is True and plan['expect'] == [ANY]
+    assert step_result(plan, sent=True, before='BATTLE_VICTORY', after='BATTLE_VICTORY',
+                       page='BATTLE_VICTORY', frame_changed=True)['passed'] is True
+    assert step_result(plan, sent=True, before='BATTLE_VICTORY', after='BATTLE_VICTORY',
+                       page='BATTLE_VICTORY', frame_changed=False)['passed'] is False
+    blind = plan_step('BATTLE_VICTORY', controls={})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'battle_victory_confirm_not_anchored'
+
+
 def test_the_skill_detail_popup_is_dismissed_off_the_board():
     # Live proof: window-20261007-014613/frame-0094.json is that popup -- 'Skill Effects'
     # over the keyword list, no close control of its own, WAVE/TURN covered. The dark

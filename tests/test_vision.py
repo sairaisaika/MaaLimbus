@@ -391,3 +391,31 @@ def test_the_skill_detail_popup_over_the_battle_is_its_own_page():
     # The panel's own title is what names it: a frame without it is not this page.
     without = [t for t in records if t.text.strip() != 'Skill Effects']
     assert classify(without, words, tuple(frame['size'])) != 'BATTLE_TIP'
+
+
+def test_the_victory_result_with_confirm_is_its_own_page():
+    """Live evidence/runtime/window-20261007-015542/frame-0130.json, floor 5 boss (run 100).
+
+    This second victory layout carries the Confirm that ends the battle, and it does not
+    clear itself: the driver waited thirty rounds on it and stopped. The drop-show page
+    keeps its own name (frame-0001.json of battle-step-20261006-013320 has neither
+    'Victory' nor 'EX-CLEAR').
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-015542/frame-0130.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Victory' for t in records)
+    assert any(t.text.strip() == 'EX-CLEAR' for t in records)
+    assert any(t.text.strip() == 'Confirm' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'BATTLE_VICTORY'
+    show = json.loads((root / 'evidence/runtime/battle-step-20261006-013320/frame-0001.json')
+                      .read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in show['ocr']]
+    # The drop show carries neither word, so this rule never claims it; that page is
+    # named by its own anchors (`Gain Corpus Ingredient` / `TOTAL`).
+    assert classify(tokens, words, tuple(show['size'])) != 'BATTLE_VICTORY'
+    # Only one of the two words is not enough: the pair is the page.
+    half = [t for t in records if t.text.strip() != 'EX-CLEAR']
+    assert classify(half, words, tuple(frame['size'])) != 'BATTLE_VICTORY'

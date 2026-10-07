@@ -48,6 +48,16 @@ def classify(records, locale, size):
     # the threshold is high on purpose.
     if find(records, locale.get('victory', r'(?!)'), (.33, .36, .68, .64), size, .85):
         return 'BATTLE_RESULT'
+    # The other victory layout is the one that carries a Confirm: live
+    # evidence/runtime/window-20261007-015542/frame-0130.json reads 'Victory'
+    # [1486,146,276,100] 1.0 and 'EX-CLEAR' [1338,164,174,82] 0.96 over the team list
+    # and 'Confirm' [1638,831,164,48] 1.0, while the drop-show page
+    # (evidence/runtime/battle-step-20261006-013320/frame-0001.json) has neither word.
+    # It must not be waited out like the show: its Confirm is the only way forward.
+    if (find(records, locale.get('victory_banner', r'(?!)'), (.75, .06, .95, .30), size, .85)
+            and find(records, locale.get('victory_clear', r'(?!)'), (.66, .12, .82, .26),
+                     size, .85)):
+        return 'BATTLE_VICTORY'
     # Tapping a skill card on the battle board opens that skill's detail over the left
     # half of the screen: live evidence/runtime/window-20261007-014613/frame-0094.json
     # reads 'Skill Effects' [420,83,142,28] 1.0 with the keyword list under it and no

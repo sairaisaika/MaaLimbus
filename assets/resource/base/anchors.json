@@ -519,6 +519,65 @@
       "controls": []
     },
     {
+      "id": "battle_victory",
+      "title": "战斗胜利结算页（Victory / EX-CLEAR / Confirm；不会自己消失）",
+      "why": "这是与掉落演出页（battle_result）不同的另一种胜利画面：右上是 Victory 与 EX-CLEAR，右下是 Confirm，左边是 Most Valued Employee/Damage Contributed 与一句台词。2026-10-07 实机上它不会像演出动画那样自己走掉——驱动把它当动画等了 30 轮后停机（build/window-run100.json），所以它必须有自己的页名与「点 Confirm」的计划。",
+      "evidence": [
+        "evidence/runtime/window-20261007-015542/frame-0130.json"
+      ],
+      "identity": [
+        {
+          "id": "victory.banner",
+          "kind": "ocr",
+          "pattern": "^Victory$",
+          "roi": [
+            0.75,
+            0.06,
+            0.95,
+            0.3
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1486,146,276,100] score 1.0；注意与全大写的 '^VICTORY$' 演出页是两套规则"
+        },
+        {
+          "id": "victory.clear",
+          "kind": "ocr",
+          "pattern": "^EX-CLEAR$",
+          "roi": [
+            0.66,
+            0.12,
+            0.82,
+            0.26
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1338,164,174,82] score 0.96；掉落演出页同帧没有这两个词（battle-step-20261006-013320/frame-0001.json）"
+        }
+      ],
+      "controls": [
+        {
+          "id": "battle_victory.confirm_button",
+          "kind": "geometry",
+          "box": [
+            1638,
+            831,
+            164,
+            48
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-015542/frame-0130.json",
+            "box": [
+              1638,
+              831,
+              164,
+              48
+            ],
+            "source": "实机 OCR 'Confirm' 1.0 的框；右下的唯一前进控件"
+          },
+          "note": "只点这一个 Confirm；绝不点队伍头像（那是查看）"
+        }
+      ]
+    },
+    {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
       "evidence": [

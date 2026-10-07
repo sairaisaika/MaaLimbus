@@ -80,6 +80,10 @@ LOOP_GUARD_EXEMPT_REASONS = (
     # tap is progress even though the page name never moves: live window-20261007-014613
     # is the popup, and the run continues from the battle HUD once it is closed.
     'the_skill_detail_popup_is_dismissed_off_the_board',
+    # The victory screen's Confirm can take a tap or two while the result animates in,
+    # and the page name does not move until it goes: live window-20261007-015542 shows
+    # 130 frames of that one page.
+    'victory_confirm_clears_the_result_and_carries_the_rewards',
 )
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {
