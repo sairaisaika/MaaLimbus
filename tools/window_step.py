@@ -25,6 +25,7 @@ import random
 import re
 import sys
 import time
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -48,6 +49,8 @@ from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.map_progress import MapProgress
+from maalimbus.run_wiring import ledger_event
+from maalimbus.storage import RunStore, read_json
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
                                      counter_state, gift_cards, initial_gift_box,
@@ -186,6 +189,55 @@ def frame_sha(directory):
         if sha:
             return sha
     return None
+
+
+def frame_file(directory):
+    """The newest stored frame's JSON, which is the proof a ledger event names.
+
+    ``RunStore.record`` hashes the file it is handed, so the ledger's proof is the
+    same frame the window just read rather than a page name taken on trust.
+    """
+    for path in sorted(directory.glob('frame-*.json'), reverse=True):
+        try:
+            if json.loads(path.read_text(encoding='utf-8')).get('image_sha256'):
+                return path
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def record_ledger_event(store, run_id, directory, page, plan, floor_now, journal=None):
+    """Record the one ledger event this page settles, proved by its own frame.
+
+    ``maalimbus.run_wiring`` decides which page settles what; the ledger itself still
+    refuses anything out of order, and a refusal is recorded as such instead of
+    failing the window -- a run that began before the ledger did must not be able to
+    write floors it never proved.
+    """
+    active = (store.data or {}).get('active')
+    if active is None:
+        return None
+    event = ledger_event(page=page, reason=plan.get('reason'),
+                         floor=floor_now if page == 'MAP' else None,
+                         cleared=active['floors'], victory=active['victory'],
+                         reward=active['reward'])
+    if event is None:
+        return None
+    proof = frame_file(directory)
+    if proof is None:
+        return None
+    event_id = '%s-%s' % (event.kind, 'run' if event.floor is None else event.floor)
+    try:
+        store.record(run_id, event_id, event.kind, proof, floor=event.floor)
+    except ValueError as error:
+        if journal is not None:
+            journal.record('run_ledger_refused', kind=event.kind, floor=event.floor,
+                           evidence=str(proof), reason=str(error))
+        return None
+    if journal is not None:
+        journal.record('run_ledger_event', kind=event.kind, floor=event.floor,
+                       evidence=str(proof))
+    return event
 
 
 def frame_details(directory):
@@ -553,6 +605,12 @@ def main() -> int:
                         help='which TEAMS slot the rotation brings on the loadout page '
                              '(1..7): the official ledger stands at team 5, so the '
                              'planner clicks that slot once and then Confirm')
+    parser.add_argument('--run-store', type=Path, default=None,
+                        help='rotation ledger to walk with (config/user-run-ledger.json): '
+                             'it names the team this run brings and records the five floor '
+                             'clears, the final victory, the claimed reward and the entry '
+                             'back in, each one proved by the frame it was read from. '
+                             'Without it the window uses --team and records nothing')
     parser.add_argument('--graces', default='1,3,5,6,8',
                         help='Grace cards the run buys, as 1-based board positions in '
                              'the order to try; unaffordable ones are skipped (the '
@@ -631,6 +689,18 @@ def main() -> int:
         return 2
     directory = ROOT / ('evidence/runtime/window-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     directory.mkdir(parents=True)
+    run_store = None
+    run_id = None
+    if args.run_store is not None and not args.observe_only:
+        # The rotation ledger owns the team this run brings. It is opened before the
+        # window starts so the loadout page is planned with the ledger's slot, not the
+        # --team default; an existing active run is continued rather than restarted.
+        teams = [SimpleNamespace(slot=slot) for slot in
+                 (read_json(ROOT / args.run_store)['team_slots']
+                  if (ROOT / args.run_store).exists() else [args.team])]
+        run_store = RunStore(ROOT / args.run_store, teams)
+        run_id = run_store.start()
+        args.team = run_store.team_slot
     lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
     deadline = time.monotonic() + 120 + args.steps * (args.rounds * (args.interval + 25)) \
         + (args.unknown_rounds + 1) * (args.interval + 20)
@@ -639,6 +709,10 @@ def main() -> int:
     result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
                   observe_only=bool(args.observe_only), steps=[], clicks_sent=0,
                   verified_clear=False, foreground_before=None)
+    if run_store is not None:
+        result['run_ledger'] = dict(path=str(args.run_store), run=run_id,
+                                    team=run_store.team_slot,
+                                    rotation=run_store.data['rotation'])
     try:
         Library.open(args.binary, agent_server=False)
         Toolkit.init_option(prepare())
@@ -782,6 +856,7 @@ def main() -> int:
         battle_sig = None
         battle_rounds = 0
         map_progress = MapProgress()
+        floor_now = None
         map_attempts = 0
         page_attempts = 0
         gift_picks = 0
@@ -820,6 +895,7 @@ def main() -> int:
                 # eight times -- [681,441], [748,416], [681,441], [748,416] ... -- while
                 # the reachable "?" node at [303,708] sat untried in the same list.
                 map_progress.note_floor(floor)
+                floor_now = floor if page == 'MAP' else floor_now
                 if map_points:
                     # The calibration path: the caller names the points, so a floor whose
                     # nodes the frame does not read can still be walked while the reading
@@ -1038,6 +1114,14 @@ def main() -> int:
             entry.update(step_result(plan, sent=True, before=page,
                                      after=settled_page, page=settled_page,
                                      frame_changed=settled.get('image_sha256') not in (None, before_sha)))
+            if run_store is not None and entry['passed']:
+                # Every completed step is offered to the ledger; only the page that
+                # proves an event (a floor's map, the run summary, the reward modal's
+                # Confirm, the loadout Confirm) settles one.
+                ledger = record_ledger_event(run_store, run_id, directory, page, plan,
+                                             floor_now, journal)
+                if ledger is not None:
+                    entry['ledger_event'] = dict(kind=ledger.kind, floor=ledger.floor)
             if entry['passed'] and plan.get('detail', {}).get('slot'):
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.

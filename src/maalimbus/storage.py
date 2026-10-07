@@ -87,6 +87,26 @@ class ProfileStore:
         return self.load()
 
 
+def seed_run_store(path, slots, *, rotation=0):
+    """Write a fresh run ledger at a known rotation, before any run is active.
+
+    The rotation order is the player's own (their official ledger), so it is seeded
+    explicitly instead of being derived: every slot must be a saved team, and the
+    rotation must point at one of them. Refuses to touch an existing file, because
+    overwriting a ledger would silently move the player's place in the order.
+    """
+    path = Path(path)
+    slots = [int(s) for s in slots]
+    if not slots or len(set(slots)) != len(slots) or any(not 1 <= s <= 20 for s in slots):
+        raise ValueError('Configure unique saved-team slots in rotation order')
+    if not 0 <= rotation < len(slots):
+        raise ValueError('Rotation must point at one of the saved teams')
+    if path.exists():
+        raise ValueError('A run ledger already exists; do not overwrite it')
+    write_json(path, dict(version=1, team_slots=slots, rotation=rotation,
+                          completed_runs=0, active=None, receipts=[]))
+
+
 class RunStore:
     """One active run; rotate exactly once after floor 5, reward and entry return.
 
