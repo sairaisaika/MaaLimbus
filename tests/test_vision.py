@@ -307,6 +307,18 @@ def test_the_picked_check_asks_what_will_you_do_and_is_still_the_check():
     assert any(t.text.strip() == 'What will you do?' for t in records)
     assert any(t.text.strip() == 'Commence' for t in records)
     assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK'
+    # A fourth wording, "Who will give it a try?", is the same page (run 86 on floor 3).
+    fourth = json.loads((root / 'evidence/runtime/window-20261007-000045/frame-0097.json')
+                        .read_text())
+    asked = [Text(t['text'], tuple(t['box']), t['score']) for t in fourth['ocr']]
+    assert any(t.text.strip() == 'Who will give it a try?' for t in asked)
+    assert classify(asked, words, tuple(fourth['size'])) == 'EVENT_CHECK'
+    # A fifth wording, "Who will enter?", is the same page again (run 91 on floor 3).
+    fifth = json.loads((root / 'evidence/runtime/window-20261007-001439/frame-0108.json')
+                       .read_text())
+    entering = [Text(t['text'], tuple(t['box']), t['score']) for t in fifth['ocr']]
+    assert any(t.text.strip() == 'Who will enter?' for t in entering)
+    assert classify(entering, words, tuple(fifth['size'])) == 'EVENT_CHECK'
     choices = json.loads((root / 'evidence/runtime/window-20261006-235032/frame-0001.json')
                          .read_text())
     listed = [Text(t['text'], tuple(t['box']), t['score']) for t in choices['ocr']]

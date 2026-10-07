@@ -146,6 +146,10 @@ def classify(records, locale, size):
                     (.62, .23, .82, .30), size, .85)
             or find(records, locale.get('what_will_you_do', r'(?!)'),
                     (.62, .23, .82, .30), size, .85)
+            or find(records, locale.get('who_will_give_it_a_try', r'(?!)'),
+                    (.62, .23, .82, .30), size, .85)
+            or find(records, locale.get('who_will_enter', r'(?!)'),
+                    (.62, .23, .82, .30), size, .85)
             or find(records, locale.get('choose_character', r'(?!)'),
                     (.63, .38, .90, .47), size, .85)):
         return 'EVENT_CHECK'

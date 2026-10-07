@@ -125,6 +125,22 @@ def test_pre_battle_team_battles_once_every_card_is_in_the_team():
     assert plan['reason'] == 'battle_button_submits_the_team'
 
 
+def test_pre_battle_team_battles_when_the_counter_already_reads_full():
+    # Live proof: build/live-prebattle.png (window-20261007-001439) is a full team this
+    # encounter caps at eleven: 'Backup Deployed 4/4', 'Total Participants 11/11' and a
+    # bright To Battle!, while card 12 has no badge because the slot does not exist.
+    # build/window-run94.json spent fifty-seven steps tapping that missing slot.
+    states = ['selected'] * 7 + ['backup'] * 4 + [None]
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS,
+                     team={'states': states, 'participants': [11, 11]})
+    assert plan['target'] == CONTROLS['pre_battle.battle_button']
+    assert plan['reason'] == 'battle_button_submits_the_team'
+    # A counter that is not full still leaves the unpicked cards to tap.
+    plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS,
+                     team={'states': states, 'participants': [10, 11]})
+    assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
+
+
 def test_battle_prefers_start_and_falls_back_to_win_rate():
     start = plan_step('BATTLE_HUD', start_box=[1038, 771, 121, 133],
                       auto_assign={'win_rate': [1198, 796, 48, 41]})
@@ -911,10 +927,21 @@ def test_the_skill_check_is_rolled_by_the_best_odds_and_never_skipped():
                        page='EVENT_CHECK', frame_changed=True)['passed']
     assert not step_result(plan, sent=True, before='EVENT_CHECK', after='EVENT_CHECK',
                            page='EVENT_CHECK', frame_changed=False)['passed']
-    # No slot read means no input at all: the check is never guessed at.
-    unread = plan_step('EVENT_CHECK', check=None)
-    assert unread['action'] == RECORD
-    assert unread['reason'] == 'no_event_check_candidate_observed'
+    # No slot read means the page is still on its story (live build/window-run88.json:
+    # 'Who will give it a try?' printed while the odds row had not faded in, four refusals
+    # in a row), so the small screen is tapped -- never the SKIP, which forfeits the roll.
+    panel = [206, 181, 756, 325]
+    unread = plan_step('EVENT_CHECK', controls={'event_check.story_panel': panel},
+                       check=None)
+    assert unread['action'] == CLICK
+    assert unread['target'] == panel
+    assert unread['reason'] == 'the_skill_check_story_is_tapped_through_until_it_asks'
+    assert unread['advance'] is True
+    assert unread['expect'] == ['EVENT_CHECK', ANY]
+    # Without that anchor too there is no input at all: the check is never guessed at.
+    blind = plan_step('EVENT_CHECK', check=None)
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'no_event_check_candidate_observed'
     # SKIP means nobody attempts the roll, which forfeits the check, so a mis-registered
     # anchor can never send it.
     skip = [1628, 929, 138, 83]

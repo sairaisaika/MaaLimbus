@@ -4,6 +4,10 @@ from .vision import find
 
 
 BADGE_PATTERN = r'^\s*(SELECTED|BACKUP)\s*$'
+#: The page's own participant counter, e.g. '11/11' (live frame
+#: evidence/runtime/window-20261007-0030xx reads it at 1920 [1702,754,122,57] score .99).
+PARTICIPANT_PATTERN = r'^\s*(\d{1,2})\s*/\s*(\d{1,2})\s*$'
+PARTICIPANT_ROI = (0.86, 0.66, 0.97, 0.78)
 CARD_COUNT = 12
 
 
@@ -29,6 +33,25 @@ def card_states(records, boxes, size):
         found = find(records, BADGE_PATTERN, roi, size, .85)
         states.append(found[-1].text.strip().lower() if found else None)
     return states
+
+
+def participants(records, size, roi=PARTICIPANT_ROI):
+    """The page's participant counter as ``(picked, capacity)``, or ``None``.
+
+    The badge columns alone cannot tell a full team from an unread slot: live frame
+    build/live-prebattle.png (window-20261007-001439) shows eleven cards wearing their
+    badges, a twelfth slot that this encounter simply does not have, and a bright
+    'To Battle!'. Tapping the missing slot over and over is what build/window-run94.json
+    spent fifty-seven steps on, so the counter -- which reads '11/11' at score .99 --
+    is what says the team is already complete.
+    """
+    found = find(records, PARTICIPANT_PATTERN, roi, size, .85)
+    if not found:
+        return None
+    match = re.match(PARTICIPANT_PATTERN, found[-1].text.strip())
+    if match is None:
+        return None
+    return int(match.group(1)), int(match.group(2))
 
 
 def team_pattern(team, locale='en'):

@@ -284,7 +284,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                          detail={'slot': state.get('slot'), 'tier': state.get('tier')})
         box = state.get('box')
         if not box:
-            return _refuse(page, 'no_event_check_candidate_observed')
+            # The page opens on its story: the question is printed, but the odds row and
+            # the identity cards have not faded in yet and the bottom-right slot is the
+            # dark SKIP. Live build/window-run88.json refused this page four times in a
+            # row, and the user's rule (m10140) is to keep tapping the small screen until
+            # the control lights up, so the story panel is the target until the row or
+            # Commence arrives.
+            panel = controls.get('event_check.story_panel')
+            if panel is None:
+                return _refuse(page, 'no_event_check_candidate_observed')
+            return _plan(page, CLICK, target=panel, expect=('EVENT_CHECK', ANY), advance=True,
+                         reason='the_skill_check_story_is_tapped_through_until_it_asks',
+                         detail={'slot': state.get('slot'), 'tier': state.get('tier')})
         return _plan(page, CLICK, target=box, expect=('EVENT_CHECK', ANY), advance=True,
                      reason='the_skill_check_is_rolled_by_the_best_odds',
                      detail={'slot': state.get('slot'), 'tier': state.get('tier')})
@@ -581,14 +592,20 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # at least one card is in the team (live: window-20261006-030750 has
         # 0/12 and a dim button; window-20261006-030941 has 12/12 and a bright
         # one). Selecting is per card and never touches the identity, so the only
-        # safe move is to pick the first card that still has no badge.
+        # safe move is to pick the first card that still has no badge -- unless the
+        # page's own counter already reads full (live: '11/11' with eleven badges and
+        # a bright Battle!, where the twelfth slot does not exist and tapping it was
+        # fifty-seven wasted steps in build/window-run94.json).
         states = list((team or {}).get('states') or [])
-        for index, state in enumerate(states):
-            box = controls.get('pre_battle.card_%02d' % (index + 1))
-            if state is None and box is not None:
-                return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                             reason='team_card_joins_the_next_unpicked_identity',
-                             detail={'card_index': index + 1})
+        picked, capacity = (list((team or {}).get('participants') or []) + [None, None])[:2]
+        full = bool(picked) and bool(capacity) and picked >= capacity
+        if not full:
+            for index, state in enumerate(states):
+                box = controls.get('pre_battle.card_%02d' % (index + 1))
+                if state is None and box is not None:
+                    return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                                 reason='team_card_joins_the_next_unpicked_identity',
+                                 detail={'card_index': index + 1})
         box = controls.get('pre_battle.battle_button')
         if box is None:
             return _refuse(page, 'battle_button_not_anchored')

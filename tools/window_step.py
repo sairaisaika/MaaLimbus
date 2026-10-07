@@ -51,7 +51,7 @@ from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
                                      counter_state, gift_cards, initial_gift_box,
                                      keyword_panel_point, select_ready)
-from maalimbus.team_vision import CARD_COUNT, card_states
+from maalimbus.team_vision import CARD_COUNT, card_states, participants
 from maalimbus.vision import Text, inset_box
 from maalimbus.window import (NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
                               step_result)
@@ -63,6 +63,20 @@ REGISTRY = ROOT / 'assets/resource/base/anchors.json'
 #: pages the loop guard never counts against: the guide book advances card by card
 #: from the same control, and a battle legitimately alternates Win Rate and START.
 LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD', 'BATTLE_PLANNING')
+#: plans the loop guard never counts either: an event's story is tapped through from the
+#: same panel for as many taps as it has lines (the user's rule, m10140), and that is
+#: progress even though the page name does not move. The step budget bounds them, and a
+#: tap that stops changing the frame fails on its own.
+LOOP_GUARD_EXEMPT_REASONS = (
+    'the_check_outcome_is_tapped_through_until_its_control_lights_up',
+    'the_skill_check_story_is_tapped_through_until_it_asks',
+    'the_event_result_story_is_tapped_to_reveal_its_continue',
+    # The pre-battle team page joins the rotation one identity per tap, so the same plan
+    # legitimately runs as many times as the loadout still has empty slots (build/
+    # window-run93.json tripped on the third join with eight slots still to fill). The
+    # step budget bounds it, and the page moves on to the battle once the team is full.
+    'team_card_joins_the_next_unpicked_identity',
+)
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {
     'WindowMapObserve': {
@@ -220,7 +234,7 @@ def candidates_of(directory, record):
     return name, [list(item['box']) for item in clicks]
 
 
-def check_of(directory, record):
+def check_of(directory, record, *, page=None):
     """The identity slot a skill check should be rolled by, or ``None``.
 
     The check page prints an odds caption over every identity card, and OCR merges the
@@ -232,8 +246,15 @@ def check_of(directory, record):
     sha 3526edb3f80a), so once that button is what the frame shows the plan gets the
     commence stage instead of another card box and the roll is committed rather than
     re-aimed at a second identity.
+
+    ``page`` is the scene the run loop resolved, and it is what gates this reading: a
+    check whose question the recogniser has not learned yet (live window-20261007-001108
+    reads 'Who will give it a try?') is still named EVENT_CHECK by resolve_scene's
+    Commence fallback while its raw scene stays UNKNOWN, and gating on the raw scene
+    threw the stage away and left the page tapping its own story panel for forty steps
+    (build/window-run91.json).
     """
-    if record['scene'] != 'EVENT_CHECK':
+    if (page or record['scene']) != 'EVENT_CHECK':
         return None
     stage = check_stage(record.get('ocr') or ())
     if stage:
@@ -330,7 +351,8 @@ def team_state(record, controls):
              for index in range(1, CARD_COUNT + 1)]
     if not any(boxes):
         return None
-    return {'states': card_states(records, boxes, size)}
+    return {'states': card_states(records, boxes, size),
+            'participants': participants(records, size)}
 
 
 def reward_state(record):
@@ -497,6 +519,10 @@ def main() -> int:
                              'no-op, so the next candidate is tried instead of stopping '
                              '(a floor-1 frame shows up to six nodes, and only the ones '
                              'joined to the player by a path can open a panel)')
+    parser.add_argument('--page-tries', type=int, default=3,
+                        help='how many times a page whose reading is missing (a transition, '
+                             'or a dialog still fading in) is looked at again before the run '
+                             'stops')
     parser.add_argument('--map-points', default='',
                         help='calibration override for the map: semicolon-separated x,y points '
                              'in 1280-space the run may click instead of its own candidates '
@@ -731,6 +757,7 @@ def main() -> int:
         map_visited = set()
         map_floor = None
         map_attempts = 0
+        page_attempts = 0
         gift_picks = 0
         initial_picked = 0
         repeated_plans = {}
@@ -883,7 +910,7 @@ def main() -> int:
                               'available': available}
             else:
                 grace_bought = set()
-            check = check_of(directory, record)
+            check = check_of(directory, record, page=page)
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
@@ -903,7 +930,22 @@ def main() -> int:
                                          page=page))
                 entry['stopped'] = ('observe_only' if args.observe_only
                                     else plan['reason'])
+                # A refusal that says the reading is missing can be the frame's fault
+                # rather than the page's: live build/window-run86.json refused the picked
+                # skill check because the frame it settled on was the roll's transition,
+                # and Commence arrived on the next one. Looking again costs one interval,
+                # sends no input, and page_tries bounds it.
+                retry_reading = (not args.observe_only and plan.get('target') is None
+                                 and plan.get('reason', '').startswith('no_')
+                                 and page_attempts + 1 < max(1, args.page_tries))
                 result['steps'].append(entry)
+                if retry_reading:
+                    page_attempts += 1
+                    entry['stopped'] = 'page_reading_retried'
+                    journal.record('window_page_retry', reason=plan.get('reason'),
+                                   attempt=page_attempts)
+                    time.sleep(args.interval)
+                    continue
                 if args.observe_only and step + 1 < goal:
                     step += 1
                     time.sleep(args.interval)
@@ -1016,24 +1058,29 @@ def main() -> int:
                                               if tuple(b) != tuple(plan['target'])]))
                 continue
             map_attempts = 0
+            page_attempts = 0
             if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
                 gift_picks += 1
             if plan.get('detail', {}).get('keyword') and entry.get('passed'):
                 initial_picked += 1
-            if page not in LOOP_GUARD_EXEMPT:
-                # A plan that keeps succeeding while the page never moves on is a
-                # loop, not progress: live run window-20261006-034009 passed twelve
-                # rounds of TUTORIAL then To Battle! with nothing changing underneath.
-                # Battles are exempt because a fight legitimately alternates the same
-                # two clicks (Win Rate then START) for as many turns as it has waves;
-                # the step budget, not this guard, bounds them.
-                # The counts belong to one visit to one page: a run that leaves and
-                # comes back is moving (live run window-20261006-234203 skipped three
-                # separate cutscenes on floor 3, and the third skip stopped the run),
-                # so a page change starts the counts over.
-                if page != guard_page:
-                    repeated_plans = {}
-                    guard_page = page
+            # A plan that keeps succeeding while the page never moves on is a
+            # loop, not progress: live run window-20261006-034009 passed twelve
+            # rounds of TUTORIAL then To Battle! with nothing changing underneath.
+            # Battles are exempt because a fight legitimately alternates the same
+            # two clicks (Win Rate then START) for as many turns as it has waves;
+            # the step budget, not this guard, bounds them.
+            # The counts belong to one visit to one page: a run that leaves and
+            # comes back is moving (live run window-20261006-234203 skipped three
+            # separate cutscenes on floor 3, and the third skip stopped the run),
+            # so a page change starts the counts over. That reset happens even when
+            # the plan on this page is exempt: the exempt steps are exactly the ones
+            # that move the page without leaving it, so skipping the reset with them
+            # counted a page's visits together (build/window-run92.json tripped on
+            # the third cutscene of a check that had left and come back twice).
+            if page != guard_page:
+                repeated_plans = {}
+                guard_page = page
+            if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT_REASONS:
                 key = (page, plan['action'], plan.get('node'),
                        None if plan.get('target') is None else tuple(plan['target']))
                 repeated_plans[key] = repeated_plans.get(key, 0) + 1

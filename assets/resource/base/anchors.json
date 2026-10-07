@@ -1571,7 +1571,9 @@
       "evidence": [
         "evidence/runtime/window-20261006-204421/frame-0001.json",
         "evidence/runtime/window-20261006-204143/frame-0002.json",
-        "evidence/runtime/window-20261006-205435/frame-0002.json"
+        "evidence/runtime/window-20261006-205435/frame-0002.json",
+        "evidence/runtime/window-20261007-000045/frame-0097.json",
+        "evidence/runtime/window-20261007-001108/frame-0004.json"
       ],
       "identity": [
         {
@@ -1629,6 +1631,27 @@
             ],
             "source": "选完罪人后同一页把右下 SKIP 换成 Commence（实机 OCR 'Commence' [1578,946,240,48] 1.0，同帧还有 'Predicted Odds: Very High' [1204,718,394,40]）；点它才真正掷检定"
           }
+        },
+        {
+          "id": "event_check.story_panel",
+          "kind": "geometry",
+          "box": [
+            206,
+            181,
+            756,
+            325
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-001108/frame-0004.json",
+            "box": [
+              206,
+              181,
+              756,
+              325
+            ],
+            "source": "检定页的剧情阶段：右侧已印出 'Who will give it a try?'，但赔率行与罪人卡还没淡入，底部只有灰的 SKIP（build/window-run88.json 在这里连拒四次），左侧小屏幕与结算页同框；按用户 m10140 的规则连点它把剧情推完，右下控件（Commence 或赔率行）才会出现"
+          },
+          "note": "只点左侧剧情面板，绝不点右下 SKIP（那是放弃检定）"
         }
       ],
       "live_derived": [
