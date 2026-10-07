@@ -441,6 +441,33 @@ def test_the_run_summary_is_named_so_its_rewards_can_be_claimed():
     assert classify(without, words, tuple(frame['size'])) != 'RUN_CLAIM'
 
 
+def test_the_reward_claim_question_is_named_before_the_summary_behind_it():
+    """Live evidence/runtime/window-20261007-021916/frame-0002.json (run 103).
+
+    The reward modal's Claim does not grant anything: it asks 'Claim the rewards?' over
+    Cancel and Confirm, with the modal and the summary dimmed behind it. That frame's
+    'To Window' is unreadable, so the modal rule did not fire and the four summary words
+    (still visible behind everything) named it RUN_CLAIM -- the driver then alternated
+    the two claim buttons for twenty steps.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-021916/frame-0002.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert classify(records, words, tuple(frame['size'])) == 'RUN_REWARD_CONFIRM'
+    # The summary's own words are all in this frame, which is why the order matters.
+    for word in ('Exploration', 'Complete', 'Claim', 'Rewards'):
+        assert any(t.text.strip() == word for t in records), word
+    assert not any(t.text.strip() == 'To Window' for t in records)
+    # Without the question the frame is the summary behind it.
+    without = [t for t in records if t.text.strip() != 'Claim the rewards?']
+    assert classify(without, words, tuple(frame['size'])) == 'RUN_CLAIM'
+    # Cancel alone must never be enough to name this page.
+    no_confirm = [t for t in records if t.text.strip() != 'Confirm']
+    assert classify(no_confirm, words, tuple(frame['size'])) != 'RUN_REWARD_CONFIRM'
+
+
 def test_the_reward_modal_is_named_before_the_summary_behind_it():
     """Live evidence/runtime/window-20261007-021150/frame-0002.json (run 102).
 

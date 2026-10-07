@@ -141,6 +141,29 @@ def test_pre_battle_team_battles_when_the_counter_already_reads_full():
     assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
 
 
+def test_the_reward_claim_question_is_confirmed_and_never_cancelled():
+    # Live proof: evidence/runtime/window-20261007-021916/frame-0002.json is that
+    # question -- 'Claim the rewards?' [828,502,262,34] over '× Cancel' [704,718,142,42]
+    # and 'Confirm' [1114,722,112,34]. The modal's own Claim only opens this page, so
+    # the summary's Claim is not the last input the run needs.
+    box = [1114, 722, 112, 34]
+    plan = plan_step('RUN_REWARD_CONFIRM',
+                     controls={'run_reward_confirm.confirm_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'the_reward_claim_is_confirmed_and_never_cancelled'
+    assert plan['advance'] is True and plan['expect'] == [ANY]
+    # Cancelling is registered as an anchor and can never be a target.
+    cancelled = plan_step('RUN_REWARD_CONFIRM',
+                          controls={'run_reward_confirm.cancel_button': [704, 718, 142, 42]})
+    assert cancelled['action'] == RECORD
+    assert cancelled['reason'] == 'run_reward_confirm_not_anchored'
+    assert 'run_reward_confirm.cancel_button' in FORBIDDEN_CONTROLS
+    blind = plan_step('RUN_REWARD_CONFIRM', controls={})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'run_reward_confirm_not_anchored'
+
+
 def test_the_reward_modal_is_claimed_and_its_give_up_is_forbidden():
     # Live proof: window-20261007-021150/frame-0002.json is that modal -- 'Exploration
     # Reward' over 'GiveUpRewards' [450,796,278,39], 'To Window' [874,800,172,33] and

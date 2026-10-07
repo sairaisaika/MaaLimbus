@@ -53,7 +53,9 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'star_confirm.cancel_button', 'initial_gifts.refuse_button',
                       'gift_search_forgo.cancel_button', 'event_check.skip_button',
                       # The reward modal's Give Up Rewards throws the five-floor run away.
-                      'run_reward.give_up_button')
+                      'run_reward.give_up_button',
+                      # Cancelling the claim question dismisses it without claiming.
+                      'run_reward_confirm.cancel_button')
 
 #: Pages that clear themselves: the planner has no control to send, so the driver
 #: waits for the page to change instead of treating it as the end of the run.
@@ -182,6 +184,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
+    if page == 'RUN_REWARD_CONFIRM':
+        # 'Claim the rewards?' with Cancel and Confirm: the modal's Claim only opens this,
+        # and Confirm is what actually grants the rewards. Cancel is registered as an anchor
+        # purely so it can be forbidden -- it would dismiss the question without claiming.
+        box = controls.get('run_reward_confirm.confirm_button')
+        if box is None:
+            return _refuse(page, 'run_reward_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_reward_claim_is_confirmed_and_never_cancelled')
     if page == 'RUN_REWARD_DIALOG':
         # The modal the summary's claim opens: 'Exploration Reward' with Give Up Rewards,
         # To Window and Claim. Its Claim is the only control sent -- giving the rewards up

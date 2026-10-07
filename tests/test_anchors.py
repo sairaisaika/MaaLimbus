@@ -36,7 +36,8 @@ def test_shipped_registry_files_validate():
     loaded = anchors.load(REGISTRY)
     ids = [entry['id'] for entry in loaded['pages']]
     assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud', 'battle_tip',
-                   'battle_result', 'battle_victory', 'run_claim', 'run_reward', 'home',
+                   'battle_result', 'battle_victory', 'run_claim', 'run_reward',
+                   'run_reward_confirm', 'home',
                    'drive', 'before_entry', 'tutorial',
                    'mirror_entry', 'entry_confirm', 'resume_dialog', 'reward_card',
                    'shop', 'shop_leave', 'gift_get', 'gift_pick', 'gift_warning',

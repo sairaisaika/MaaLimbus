@@ -71,6 +71,17 @@ def classify(records, locale, size):
     # [450,796,278,39] beside them, while the summary's 'Claim' [1682,865,82,30] is still
     # in the same frame. Clicking the summary's button while this modal is open does
     # nothing at all (build/window-run102.json spent seventy steps proving that).
+    # Claiming the rewards asks for a second decision before it grants anything: live
+    # evidence/runtime/window-20261007-021916/frame-0002.json reads 'Claim the rewards?'
+    # [828,502,262,34] 0.99 over 'Cancel' [704,718,142,42] and 'Confirm' [1114,722,112,34],
+    # with the reward modal dimmed behind it. The modal's 'To Window' is unreadable there,
+    # so this frame fell through to RUN_CLAIM -- the four summary words are still visible
+    # behind everything -- and run103 spent twenty steps alternating its two claim buttons
+    # (build/window-run103.json) instead of confirming.
+    if (find(records, locale.get('claim_the_rewards', r'(?!)'), (.40, .43, .60, .53), size, .85)
+            and find(records, locale.get('gift_confirm', r'(?!)'), (.56, .65, .66, .73), size, .85)
+            and find(records, locale.get('cancel', r'(?!)'), (.34, .64, .46, .73), size, .85)):
+        return 'RUN_REWARD_CONFIRM'
     if (find(records, locale.get('exploration_reward', r'(?!)'), (.36, .10, .64, .17), size, .85)
             and find(records, locale.get('to_window', r'(?!)'), (.42, .71, .58, .78), size, .85)
             and find(records, locale.get('claim', r'(?!)'), (.61, .70, .70, .77), size, .85)):

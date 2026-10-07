@@ -782,6 +782,99 @@
       ]
     },
     {
+      "id": "run_reward_confirm",
+      "title": "领奖确认弹窗（Claim the rewards?：Cancel / Confirm）",
+      "why": "奖励弹窗的 Claim 不是直接发奖，而是先弹出这一问：'Claim the rewards?' 下面只有 Cancel 与 Confirm，后面是变暗的奖励弹窗和结算页。2026-10-07 实机第一次走到这里：这一帧的 'To Window' 读不到（被压暗），而结算页的 Exploration/Complete/Claim/Rewards 四个词仍在同一帧可读，于是被误判成 run_claim，驱动在弹窗的 Claim 与结算页的 Claim Rewards 之间来回点 20 步（build/window-run103.json）；本页必须先于 run_claim 与 run_reward 判定。",
+      "evidence": [
+        "evidence/runtime/window-20261007-021916/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "run_reward_confirm.prompt",
+          "kind": "ocr",
+          "pattern": "^Claim the rewards\\?$",
+          "roi": [
+            0.40,
+            0.43,
+            0.60,
+            0.53
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [828,502,262,34] score 0.988"
+        },
+        {
+          "id": "run_reward_confirm.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.56,
+            0.65,
+            0.66,
+            0.73
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1114,722,112,34] score 1.0"
+        },
+        {
+          "id": "run_reward_confirm.cancel_label",
+          "kind": "ocr",
+          "pattern": "Cancel$",
+          "roi": [
+            0.34,
+            0.64,
+            0.46,
+            0.73
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 把按钮读成 '× Cancel' [704,718,142,42] score 0.93；这条只用于核对该页，永不作为点击目标"
+        }
+      ],
+      "controls": [
+        {
+          "id": "run_reward_confirm.confirm_button",
+          "kind": "geometry",
+          "box": [
+            1114,
+            722,
+            112,
+            34
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-021916/frame-0002.json",
+            "box": [
+              1114,
+              722,
+              112,
+              34
+            ],
+            "source": "实机 OCR 'Confirm'[1114,722,112,34] 所在按钮的框；中心 (1170,739) 落在按钮内、离左边的 Cancel 有 300 px 以上"
+          },
+          "note": "只点这一块＝确认领取；绝不点左边的 Cancel"
+        },
+        {
+          "id": "run_reward_confirm.cancel_button",
+          "kind": "geometry",
+          "box": [
+            704,
+            718,
+            142,
+            42
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-021916/frame-0002.json",
+            "box": [
+              704,
+              718,
+              142,
+              42
+            ],
+            "source": "实机 OCR '× Cancel'[704,718,142,42] 的框；登记出来只为让 FORBIDDEN_CONTROLS 认得出它"
+          },
+          "note": "登记但不许点：取消这一问就等于不领这次奖励"
+        }
+      ]
+    },
+    {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
       "evidence": [

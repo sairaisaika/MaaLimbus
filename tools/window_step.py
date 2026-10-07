@@ -63,6 +63,12 @@ REGISTRY = ROOT / 'assets/resource/base/anchors.json'
 #: pages the loop guard never counts against: the guide book advances card by card
 #: from the same control, and a battle legitimately alternates Win Rate and START.
 LOOP_GUARD_EXEMPT = ('TUTORIAL', 'BATTLE_HUD', 'BATTLE_PLANNING')
+#: the pages that claiming a finished run walks through, in order and back: the run
+#: summary, the reward modal it opens, and the modal's own confirm question. The
+#: loop guard below starts over whenever the page changes, so a run that hops
+#: between these three never repeats a plan on one page and would never be caught;
+#: this family counter is what bounds it.
+CLAIM_FAMILY = ('RUN_CLAIM', 'RUN_REWARD_DIALOG', 'RUN_REWARD_CONFIRM')
 #: plans the loop guard never counts either: an event's story is tapped through from the
 #: same panel for as many taps as it has lines (the user's rule, m10140), and that is
 #: progress even though the page name does not move. The step budget bounds them, and a
@@ -574,6 +580,13 @@ def main() -> int:
                              'three separate cutscenes a floor-3 run skipped are not a loop. '
                              'The guide book itself is exempt, because it legitimately '
                              'advances card by card from the same control')
+    parser.add_argument('--claim-tries', type=int, default=6,
+                        help='stop after this many consecutive steps inside the claim family '
+                             '(RUN_CLAIM, RUN_REWARD_DIALOG, RUN_REWARD_CONFIRM): claiming a '
+                             'run hops between those three pages, so the per-page loop guard '
+                             'resets on every hop and cannot see the loop. Live run103 '
+                             'alternated two claim buttons for twenty steps before this '
+                             'counter existed, and repeating a claim is forbidden outright')
     parser.add_argument('--observe-page', action='store_true',
                         help='read the live page once and print its scene and OCR tokens '
                              'as JSON, then stop: the cheap way to see a screen without '
@@ -776,6 +789,7 @@ def main() -> int:
         initial_picked = 0
         repeated_plans = {}
         guard_page = None
+        claim_steps = 0
         while step < goal:
             record = observe(tasker, directory, deadline)
             page = resolve_scene(registry, directory, record)
@@ -1094,6 +1108,22 @@ def main() -> int:
             if page != guard_page:
                 repeated_plans = {}
                 guard_page = page
+            # The claim family is guarded across pages, not within one: claiming the run
+            # walks RUN_CLAIM -> RUN_REWARD_DIALOG -> RUN_REWARD_CONFIRM and back, so the
+            # per-page counts above reset on every hop and can never see the loop. Live
+            # run103 alternated the two claim buttons for twenty steps that way, which is
+            # exactly the repeated-claim input the user's rules forbid. Leaving the family
+            # resets this counter; staying in it is bounded by --claim-tries.
+            if page in CLAIM_FAMILY:
+                claim_steps += 1
+                if claim_steps > max(1, args.claim_tries):
+                    entry['passed'] = False
+                    entry['stopped'] = 'claim_family_made_no_progress'
+                    journal.record('window_claim_guard', page=page,
+                                   steps=claim_steps, reason=plan.get('reason'))
+                    break
+            else:
+                claim_steps = 0
             if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT_REASONS:
                 key = (page, plan['action'], plan.get('node'),
                        None if plan.get('target') is None else tuple(plan['target']))

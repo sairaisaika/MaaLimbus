@@ -40,6 +40,7 @@
   "exploration_reward": "^Exploration Reward$",
   "to_window": "^To Window$",
   "give_up_rewards": "^\\s*Give\\s?Up\\s?Rewards$",
+  "claim_the_rewards": "^Claim the rewards\\?$",
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
   "acquire_gift": "^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^Owned$",
