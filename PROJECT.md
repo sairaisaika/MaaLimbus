@@ -9,7 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 17:55 local (journal UTC 21:54)
+## Latest continuation: 2026-10-07 18:30 local (journal UTC 22:30)
+- **战后剧情比默认等待预算长（提交 `be02dd9`）**：`run-continue-14` step 60 `page_unreadable_after_waiting` 的真因不是页面坏了，而是 VICTORY 之后剧情会连着播好几分钟（`evidence/runtime/window-20261007-174525/frame-0191..0196` 是其中六帧，每帧 sha 都不同 ⇒ 剧情自己在走）。`tools/window_step.py:578` 的 `--unknown-rounds` 默认 12 → **30**（约 3 分钟），help 文本写明这条来由；真正的卡页仍会在 30 轮后停下报出来。观察时另用 `--unknown-rounds 40`。
+- **金色地板上的「被给环」被背景吃掉（提交 `4565f69`）**：`run-continue-15` 在 floor 3「Emotional Indolence」上连点 8 次图标都点空（21:59:18–22:00:27 八条 `window_map_retry`），第九次才点中 `[1064,472,190,190]`。诊断帧 `evidence/runtime/window-20261007-175552/frame-0052.json/.png`：`lit_components` 在默认阈值下只有 8 个 40–50px 的**普通节点图标**、没有任何环；把亮度阈值抬到 **150** 时恰好出现一个环（`point (1147,443)`、`box (1113,384,69,119)`、`fill .345`）——正是游戏给的那一步。原因是这一层的地板用**和奖励同色的金色网纹**画，环的像素和背景连成一片。
+- **处理**：新增常量 `LIT_RING_MIN_VALUE = 150`，`map_clicks` 在 `chevrons` 之后、`rings`/`icons` 之前用 `lit_rings(image, min_value=LIT_RING_MIN_VALUE)` 生成 `lit_ring` 候选；玩家半径过滤改为只对**被光路证实**的玩家生效（`corroborated = player if walk else None`）——没有走出光路时，被它过滤掉的那个读数本身就是错的（该帧的 (1126,433) 正是被给节点的环，环与火焰同色），于是唯一真候选反被丢掉。
+- **测试**：`tests/test_map_vision.py` 新增 `test_the_offered_ring_is_named_first_on_a_floor_painted_the_same_gold`（钉 frame-0052：150 下恰一环、距 (1147,443) ≤20、首候选 kind `lit_ring`、八个图标仍排在它后面），并把三处「只允许诚实的帧内读数」kind 白名单加上 `lit_ring`。**全量 423 passed；`tools/verify_anchors.py` 45 page(s), 0 broken。**
+- **仍在实机跑**：`run-continue-15`（job `pwsh-327`，dir `evidence/runtime/window-20261007-175552`）此时 129 intents、`failed intents 0`，正在 floor 1/2 的战斗与商店之间推进；账本 `rotation 2 -> team 1 / completed 1 / active run 476f23dc`。
+- **仍未申报**：JP/MXU 实机、体力（Enkephalin）兑换、Windows 包 `dist/`（三个输入归档在本机，可用 `tools/build_windows_package.py --mxu … --maa … --mxu-source … --verified-dungeon-clear` 重出）。
+
+## Prior continuation: 2026-10-07 17:55 local (journal UTC 21:54)
 - **停机点一：工厂层（Floor 2）的青色光路读不到，驱动把玩家自己和奖品图标当节点点（提交 `3ee766d`）。** `run-continue-13` step 113：`node_markers` 只认出 2 个（玩家自己 (751,425) 与它下方的奖品图标），青色 `?` 节点、左侧 `?`、中间灰节点全没找到 ⇒ `advance_candidates` 把玩家与图标当候选，点两次 `map_click_opened_no_panel` 后 `no_candidate_node_observed`（证据帧 `evidence/runtime/window-20261007-172225/frame-0406.png`；现场 `build/live-stall-113.png`）。根因是 `path_end` 的掩码只认紫罗兰色的路（Floor 1/3），Floor 2 画的是**青色虚线**。
 - **处理**：`path_end` 的掩码加一条 `(g>=140)&(b>=140)&(r<=150)&(g-r>=40)&(max>=180)`（`max>=180` 是采样出来的：再低青色地板网格会连成一块，再高光路断成几截）；`PATH_WALK_LIMIT` 320 → 560（目标节点在一个格子步之外约 470px）；光路末端若在 `PATH_SNAP`(70px) 内落着被环标记的青色节点，就**吸附到那个节点**（光路说明是哪个节点，环说明点哪个像素）。`clicks[0]` 变成 `path_node (1039,155)`。
 - **停机点二：光路修复后同一局的第一下仍点空（同一次提交）。** `run-continue-14` step 0 观察的是 `frame-0002`（过渡帧），那一帧上各玩家读数互相矛盾：机车对 `train_player` 给 (636,510)、徽章抬起给 (751,425)，而火焰烧在 (694,384)。旧链先信机车 ⇒ 玩家点错 137px（超出 `PATH_REACH`）⇒ `path_end` 拿不到光路 ⇒ 退回 `cyan_node (872,296)`，点空一次后重试才对。
