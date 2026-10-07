@@ -1,6 +1,21 @@
 from types import SimpleNamespace
 import pytest
-from maalimbus.adb_preflight import foreground, controller_foreground
+from maalimbus.adb_preflight import foreground, foreground_any, controller_foreground
+
+
+def test_a_session_that_starts_the_client_may_read_the_window_in_front(monkeypatch):
+    # The launch flow owns start-app, so the client is allowed to be down; the window
+    # that is actually focused is still read from the device, never assumed.
+    monkeypatch.setattr('maalimbus.adb_preflight.subprocess.run',
+                        lambda *a, **k: SimpleNamespace(stdout='mCurrentFocus=Window{u0 launcher/Activity}'))
+    assert foreground_any('adb.exe', '127.0.0.1:16416') == 'mCurrentFocus=Window{u0 launcher/Activity}'
+    with pytest.raises(RuntimeError):
+        foreground('adb.exe', '127.0.0.1:16416')
+    monkeypatch.setattr('maalimbus.adb_preflight.subprocess.run',
+                        lambda *a, **k: SimpleNamespace(stdout='mCurrentFocus=null'))
+    assert foreground_any('adb.exe', '127.0.0.1:16416') == 'mCurrentFocus=null'
+    with pytest.raises(ValueError):
+        foreground_any('adb.exe', '')
 
 
 @pytest.mark.parametrize('focus',[

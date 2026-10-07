@@ -38,7 +38,8 @@ from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
 from maalimbus import anchors
-from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
+from maalimbus.adb_device import (build, discover, foreground_any_of, foreground_of,
+                                  input_policy, pin_input)
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.event_vision import (best_check_choice, check_box, check_stage,
                                     choice_options, gift_hints, odds_scores,
@@ -737,7 +738,16 @@ def main() -> int:
             device = pin_input(device, args.input_method)
             device['input_policy'] = reason + '+pinned_' + args.input_method
         controller = build(device, input_enabled=not args.observe_only)
-        result.update(device=device, foreground_before=foreground_of(device))
+        # A flow that opens with start_app owns the launch, so the client is allowed to be
+        # down: the window that is actually in front is recorded first, and Maa's own
+        # start-app call (never a desktop launcher) is what brings Limbus up. Every other
+        # session still refuses to touch a window it has not identified.
+        cold_start = bool(args.flow) and flows.flow(args.flow)[0].kind == 'start_app'
+        if cold_start:
+            result.update(device=device, launched_by_flow=True,
+                          foreground_before=foreground_any_of(device))
+        else:
+            result.update(device=device, foreground_before=foreground_of(device))
         wait_job(controller.post_connection(), timeout=15, deadline=deadline)
         controller.set_screenshot_target_long_side(1920)
         journal = Journal(directory)
