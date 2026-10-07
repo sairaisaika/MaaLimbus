@@ -39,7 +39,8 @@ def test_shipped_registry_files_validate():
                    'battle_result', 'home', 'drive', 'before_entry', 'tutorial',
                    'mirror_entry', 'entry_confirm', 'resume_dialog', 'reward_card',
                    'shop', 'shop_leave', 'gift_get', 'gift_pick', 'gift_warning',
-                   'theme_packs', 'cutscene', 'event_choice', 'event_check', 'deployment',
+                   'theme_packs', 'cutscene', 'event_choice', 'event_check',
+                   'event_check_result', 'deployment',
                    'event_result', 'event_result_ready', 'dungeon_team',
                    'level_warning', 'star_graces', 'star_confirm', 'initial_gifts',
                    'gift_search', 'gift_search_forgo', 'ego_gift_popup']

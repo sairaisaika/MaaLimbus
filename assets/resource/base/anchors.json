@@ -1636,6 +1636,52 @@
       ]
     },
     {
+      "id": "event_check_result",
+      "title": "技能检定结算页（Check Passed/Failed，左侧剧情面板，右下控件在剧情走完前仍是灰的 SKIP 槽位）",
+      "why": "检定掷完后同一页把「Who should do it?」换成检定结果：右侧出 'Check Passed'/'Check Failed' 与 Outcome 数字，剧情写进左侧面板，右下槽位在剧情走完前读不出字。实机 window-20261006-205922 的 43 帧里只有 frame-0001 的 OCR 够到 SKIP [1620,923,152,93]（点它确实推进到剧情字幕），其余 42 帧只有 'Check Passed'＋剧情字幕。用户 m10140 的规则：这里要一直点小屏幕，直到右下角亮起来，所以本页只做「点剧情面板」，亮起来的形态由 cutscene 分支接管。",
+      "evidence": [
+        "evidence/runtime/window-20261006-205922/frame-0025.json"
+      ],
+      "identity": [
+        {
+          "id": "check_result.outcome",
+          "kind": "ocr",
+          "pattern": "^Check (?:Passed|Failed)$",
+          "roi": [
+            0.66,
+            0.65,
+            0.8,
+            0.72
+          ],
+          "threshold": 0.85,
+          "note": "右下结算条；实测 'Check Passed' [1294,722,212,34] score 0.964，同帧还有 'E.G.O Gift Crown of Roses obtained!' [114,508,424,28] 0.994 与 '14' [1564,589,70,78]"
+        }
+      ],
+      "controls": [
+        {
+          "id": "event_check_result.story_panel",
+          "kind": "geometry",
+          "box": [
+            206,
+            181,
+            756,
+            325
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-205922/frame-0025.json",
+            "box": [
+              206,
+              181,
+              756,
+              325
+            ],
+            "source": "左侧小屏幕的亮区连通域（area 179515，fill 0.731）；用户 m10140 要求点它把剧情推完，直到右下角亮起来"
+          },
+          "note": "点剧情面板本身；右下 SKIP 在剧情走完前是灰的、读不出字"
+        }
+      ]
+    },
+    {
       "id": "deployment",
       "title": "出战部署页（队伍页的部署视图：每张卡带部署序号，右下仍是 To Battle!）",
       "why": "点 To Battle! 有时先落到这一页（实机 build/window-run29.json 的 step2：PRE_BATTLE_TEAM → DEPLOYMENT），它的前进控件与队伍页同一个按钮；点一次后战斗自行开始（实机截图显示 WAVE 1/1、TURN 1）。识别沿用 src/maalimbus/deployment.py:deployment_page（计数 12/12 + 恰一条 Details）。",

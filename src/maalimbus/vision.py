@@ -164,6 +164,19 @@ def classify(records, locale, size):
         if find(records, locale.get('continue', r'(?!)'), (.78, .82, .99, .98), size, .85):
             return 'EVENT_RESULT_READY'
         return 'EVENT_RESULT'
+    # The skill check resolves on a page of its own: the outcome panel prints
+    # "Check Passed"/"Check Failed" over the threshold it beat, and the story that follows
+    # plays inside the left panel while the bottom-right control stays dark. Live
+    # evidence/runtime/window-20261006-205922/frame-0025.json reads 'Check Passed'
+    # [1294,722,212,34] beside 'E.G.O Gift Crown of Roses obtained!'; of that window's 43
+    # frames only frame-0001's OCR reaches the bottom-right SKIP at all, and the click on
+    # it there did move the run on. So the dark form is named here - the story panel is
+    # what has to be tapped through - and the lit form is left to the cutscene branch
+    # that already owns that button. The pre-roll check page prints 'Predicted' instead,
+    # so it can never be mistaken for this one.
+    if (find(records, locale.get('check_outcome', r'(?!)'), (.66, .65, .80, .72), size, .85)
+        and not find(records, locale.get('skip', r'(?!)'), (.78, .82, .99, .98), size, .85)):
+        return 'EVENT_CHECK_RESULT'
     # A cutscene (abnormality intro, event story) covers the screen with a REC badge
     # and a single SKIP button, and it waits for input instead of advancing: live
     # window-20261006-044556 sat on it for over a minute with the text already complete

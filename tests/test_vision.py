@@ -269,3 +269,32 @@ def test_the_skill_check_page_is_named_by_its_own_question():
     # cutscene it belongs to.
     assert classify([t for t in tokens if not t.text.startswith('Who should')],
                     words, tuple(other['size'])) == 'CUTSCENE'
+
+
+def test_the_resolved_skill_check_is_its_own_page_while_its_control_is_dark():
+    # Live proof: evidence/runtime/window-20261006-205922 is the aftermath of a roll -
+    # 'Check Passed' over the threshold and the story written into the left panel.
+    # Its frame-0025.json is one of the 42 frames of that window whose OCR never reaches
+    # the bottom-right SKIP (only frame-0001 does), so the outcome is what names the page.
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261006-205922/frame-0025.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Check Passed' for t in records)
+    assert not any(t.text.strip().upper() == 'SKIP' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK_RESULT'
+    # Once the control does light up (frame-0001 of the same window, the only frame whose
+    # OCR reaches it) the page belongs to the cutscene branch that owns that button, so
+    # the SKIP is what forwards it instead of the story tap.
+    first = json.loads((root / 'evidence/runtime/window-20261006-205922/frame-0001.json')
+                       .read_text())
+    lit = [Text(t['text'], tuple(t['box']), t['score']) for t in first['ocr']]
+    assert any(t.text.strip().upper() == 'SKIP' for t in lit)
+    assert classify(lit, words, tuple(first['size'])) == 'CUTSCENE'
+    # The check page before the roll prints 'Predicted' where the outcome goes, so it can
+    # never be mistaken for the resolved one.
+    before = json.loads((root / 'evidence/runtime/window-20261006-204421/frame-0001.json')
+                        .read_text())
+    assert classify([Text(t['text'], tuple(t['box']), t['score']) for t in before['ocr']],
+                    words, tuple(before['size'])) == 'EVENT_CHECK'

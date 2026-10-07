@@ -934,3 +934,30 @@ def test_the_chosen_skill_check_identity_is_committed_with_its_commence():
     missing = plan_step('EVENT_CHECK', check={'stage': 'commence'})
     assert missing['action'] == RECORD
     assert missing['reason'] == 'event_check_commence_not_anchored'
+
+
+def test_the_resolved_skill_check_is_tapped_through_its_story_panel():
+    # Live proof: evidence/runtime/window-20261006-205922/frame-0025.json kept the page
+    # for 43 frames with 'Check Passed' and the story already complete, and the only frame
+    # whose OCR reaches the bottom-right control is frame-0001. The user's rule (m10140) is
+    # to keep tapping the small screen until that control lights up, so the story panel is
+    # the target and the tap is judged by the frame, not by the page name.
+    panel = [206, 181, 756, 325]
+    plan = plan_step('EVENT_CHECK_RESULT',
+                     controls={'event_check_result.story_panel': panel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == panel
+    assert plan['reason'] == ('the_check_outcome_is_tapped_through_until_its_control'
+                              '_lights_up')
+    assert plan['advance'] is True
+    assert successor_ok(plan, 'CUTSCENE')
+    assert step_result(plan, sent=True, before='EVENT_CHECK_RESULT',
+                       after='EVENT_CHECK_RESULT', page='EVENT_CHECK_RESULT',
+                       frame_changed=True)['passed']
+    assert not step_result(plan, sent=True, before='EVENT_CHECK_RESULT',
+                           after='EVENT_CHECK_RESULT', page='EVENT_CHECK_RESULT',
+                           frame_changed=False)['passed']
+    # A registration without the panel sends nothing rather than guessing a coordinate.
+    missing = plan_step('EVENT_CHECK_RESULT')
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'event_check_result_panel_not_anchored'

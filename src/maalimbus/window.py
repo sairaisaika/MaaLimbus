@@ -279,7 +279,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                 return _refuse(page, 'event_check_commence_not_anchored')
             return _plan(page, CLICK, target=box, advance=True,
                          expect=('CUTSCENE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
-                                 'EVENT_CHECK', ANY),
+                                 'EVENT_CHECK', 'EVENT_CHECK_RESULT', ANY),
                          reason='the_skill_check_is_committed_with_its_commence',
                          detail={'slot': state.get('slot'), 'tier': state.get('tier')})
         box = state.get('box')
@@ -288,6 +288,21 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=('EVENT_CHECK', ANY), advance=True,
                      reason='the_skill_check_is_rolled_by_the_best_odds',
                      detail={'slot': state.get('slot'), 'tier': state.get('tier')})
+    if page == 'EVENT_CHECK_RESULT':
+        # The roll resolves on the same page: the question and the odds row stay, the
+        # outcome panel prints 'Check Passed'/'Check Failed' with the Outcome number, and
+        # the story it hands back plays inside the left panel while the bottom-right
+        # control is still dark. Live window-20261006-205922 kept that page for 43 frames
+        # with the text already complete ('E.G.O Gift Crown of Roses obtained!'), and only
+        # frame-0001's OCR reached the SKIP at all. The user's rule (m10140) is to keep
+        # tapping the small screen until the bottom-right lights up, so the panel is the
+        # target here; the lit form is named CUTSCENE and its SKIP forwards the run.
+        box = controls.get('event_check_result.story_panel')
+        if box is None:
+            return _refuse(page, 'event_check_result_panel_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('EVENT_CHECK_RESULT', ANY),
+                     advance=True,
+                     reason='the_check_outcome_is_tapped_through_until_its_control_lights_up')
     if page == 'EVENT_CHOICE':
         # The event's "Choices" page lists two to four rows of spoken text; any row
         # advances the run, and the rows are read live because their count moves them.
