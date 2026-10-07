@@ -532,6 +532,37 @@ def test_the_expired_session_claims_its_rewards_and_never_dismisses_them():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_weekly_bonus_question_spends_one_only_for_a_run_that_finished():
+    # Live proof: evidence/runtime/window-20261007-171228/frame-0003.json — the second
+    # question the claim asks ("Spend your 'Weekly Bonuses, to claim the / bonus
+    # rewards?"). Three bonuses exist per week and they reset rather than carry over, so
+    # the ledger, not the page, decides: a receipt spends one, a run that was given up
+    # answers Cancel and keeps them.
+    confirm = [1116, 720, 112, 40]
+    cancel = [702, 724, 140, 36]
+    controls = {'run_reward_bonus.confirm_button': confirm,
+                'run_reward_bonus.cancel_button': cancel}
+    spend = plan_step('RUN_REWARD_BONUS', controls=controls, bonus={'spend': True})
+    assert spend['action'] == CLICK
+    assert spend['target'] == confirm
+    assert spend['advance'] is True
+    assert spend['reason'] == 'a_completed_run_spends_one_weekly_bonus_on_its_rewards'
+    keep = plan_step('RUN_REWARD_BONUS', controls=controls, bonus={'spend': False})
+    assert keep['action'] == CLICK
+    assert keep['target'] == cancel
+    assert keep['advance'] is True
+    assert keep['reason'] == 'a_run_that_was_not_completed_keeps_the_weekly_bonus'
+    # Nothing is chosen when nothing proved the run finished: without the ledger the
+    # conservative answer is the one that does not spend a bonus.
+    assert plan_step('RUN_REWARD_BONUS', controls=controls)['target'] == cancel
+    assert plan_step('RUN_REWARD_BONUS', controls={},
+                     bonus={'spend': True})['reason'] == \
+        'run_reward_bonus_confirm_not_anchored'
+    assert plan_step('RUN_REWARD_BONUS', controls={},
+                     bonus={'spend': False})['reason'] == \
+        'run_reward_bonus_cancel_not_anchored'
+
+
 def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
     # Live: evidence/runtime/window-20261006-193843/frame-0004.json reads the page
     # title at the top left and its own Enter at [1740,986,102,42]; the + button of

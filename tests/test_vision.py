@@ -109,6 +109,24 @@ def test_the_weekly_reset_notice_is_named_and_its_confirm_is_not_the_identified_
     assert classify(labels, words, size) == 'UNKNOWN'
 
 
+def test_the_weekly_bonus_question_is_named_before_anything_is_spent():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261007-171228/frame-0003.json (sha
+    # be5d7c3077df) is the second question that follows a claim -- "Spend your 'Weekly
+    # Bonuses, to claim the / bonus rewards?" over '× Cancel' and 'Confirm', with the
+    # reward modal dimmed behind it. run-continue-11 stopped on it as an unnamed dialog,
+    # and it is the one page where clicking Confirm spends a limited weekly resource.
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261007-171228/frame-0003.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    size = tuple(frame['size'])
+    assert classify(records, words, size) == 'RUN_REWARD_BONUS'
+    # Without the question line it is not this page: the buttons alone are shared with
+    # every other confirmation in the game.
+    asked = [t for t in records if 'Weekly' not in t.text]
+    assert classify(asked, words, size) != 'RUN_REWARD_BONUS'
+
+
 def test_the_reward_modal_is_named_whichever_way_the_game_leaves_it():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261007-171021/frame-0006.json (sha

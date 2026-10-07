@@ -146,3 +146,35 @@ def expire(store, *, page, reason=None, proof=None, note=None, on_event=None):
     if on_event is not None:
         on_event(active)
     return active
+
+
+def earned_its_payout(store, *, settled_now=False):
+    """True when the run being paid out is one that finished its floors.
+
+    A claim can ask a second question -- "Spend your 'Weekly Bonuses, to claim the /
+    bonus rewards?" (live evidence/runtime/window-20261007-171228/frame-0003.json, the
+    frame a run the weekly reset expired is left with). Only three weekly bonuses exist,
+    they reset every week and they do not carry over (Steam discussion
+    597403944640085425), so the answer cannot come from the page itself: a receipt spends
+    one, and a run the game expired or the player gave up keeps them.
+
+    ``settled_now`` is the window's own memory of settling this run in this session; it
+    covers the claim that happens right after the summary. Otherwise the newest settled
+    record decides, by comparing the receipt's ``settled_at`` with the abandoned run's
+    ``abandoned_at``.
+    """
+    if settled_now:
+        return True
+    if store is None:
+        return False
+    data = store.data or {}
+    receipts = data.get('receipts') or []
+    if not receipts:
+        return False
+    receipt = receipts[-1]
+    abandoned = data.get('abandoned') or []
+    left_at = abandoned[-1].get('abandoned_at') if abandoned else None
+    settled_at = receipt.get('settled_at')
+    if left_at and settled_at:
+        return settled_at > left_at
+    return bool(receipt.get('victory') or receipt.get('reward'))

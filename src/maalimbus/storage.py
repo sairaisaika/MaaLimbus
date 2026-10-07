@@ -207,6 +207,11 @@ class RunStore:
             raise ValueError('Unsupported completion observation')
         active['events'][event_id] = event
         if kind == 'entry_returned':
+            # A receipt says when it was settled, so the driver can tell a payout that was
+            # earned from one the game handed over after expiring the run: both are the
+            # newest settled thing, and only the later of the two may spend a weekly bonus.
+            active['settled_at'] = datetime.datetime.now(
+                datetime.timezone.utc).isoformat()
             data['receipts'].append(active)
             data['receipts'] = data['receipts'][-50:]
             data['completed_runs'] += 1

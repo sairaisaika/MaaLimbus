@@ -104,7 +104,7 @@ def _refuse(page, reason):
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
-              search=None, check=None, defeat=None):
+              search=None, check=None, defeat=None, bonus=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -115,7 +115,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
-                      initial=initial, search=search, check=check, defeat=defeat)
+                      initial=initial, search=search, check=check, defeat=defeat,
+                      bonus=bonus)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -126,7 +127,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
-               search=None, check=None, defeat=None):
+               search=None, check=None, defeat=None, bonus=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -202,6 +203,26 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
+    if page == 'RUN_REWARD_BONUS':
+        # The second question the reward modal can ask: "Spend your 'Weekly Bonuses, to
+        # claim the / bonus rewards?" (live
+        # evidence/runtime/window-20261007-171228/frame-0003.json, what a run the weekly
+        # reset expired is left with). Only three weekly bonuses exist, and they are worth
+        # most on a run that finished its floors, so this page is answered by the ledger
+        # instead of by taste: a settled run that completed spends one, and a run that was
+        # given up (expired or abandoned) keeps them and cancels the question.
+        spend = bool((bonus or {}).get('spend'))
+        if spend:
+            box = controls.get('run_reward_bonus.confirm_button')
+            if box is None:
+                return _refuse(page, 'run_reward_bonus_confirm_not_anchored')
+            return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                         reason='a_completed_run_spends_one_weekly_bonus_on_its_rewards')
+        box = controls.get('run_reward_bonus.cancel_button')
+        if box is None:
+            return _refuse(page, 'run_reward_bonus_cancel_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='a_run_that_was_not_completed_keeps_the_weekly_bonus')
     if page == 'RUN_REWARD_CONFIRM':
         # 'Claim the rewards?' with Cancel and Confirm: the modal's Claim only opens this,
         # and Confirm is what actually grants the rewards. Cancel is registered as an anchor

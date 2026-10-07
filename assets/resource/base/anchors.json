@@ -1010,6 +1010,112 @@
       ]
     },
     {
+      "id": "run_reward_bonus",
+      "title": "领奖的第二问（Spend your 'Weekly Bonuses, to claim the / bonus rewards?：Cancel / Confirm）",
+      "why": "奖励弹窗的 Claim 之后还可以再问一次：2026-10-07 实机领一局被每周重置作废的奖励时读到 'Spend your \\'Weekly Bonuses, to claim the'[660,484,598,34] 与 'bonus rewards?'[842,524,234,27]，下面只有 '× Cancel'[702,724,140,36] 与 'Confirm'[1116,720,112,40]，背后是变暗的 Exploration Reward。周奖励每週只有 3 次且不会累积（Steam 讨论 597403944640085425：bonus 每周重置、没领的奖励留到以后领、跨周进行中的一局会被自动判负并丢掉当周 bonus），所以这一问花掉的是有限资源，必须由外部账本决定，而不是看见 Confirm 就点。",
+      "evidence": [
+        "evidence/runtime/window-20261007-171228/frame-0003.json"
+      ],
+      "identity": [
+        {
+          "id": "run_reward_bonus.prompt",
+          "kind": "ocr",
+          "pattern": "^Spend your '?Weekly Bonuses,? to claim the$",
+          "roi": [
+            0.35,
+            0.42,
+            0.65,
+            0.5
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [660,484,598,34] score 0.98（1920×1080）"
+        },
+        {
+          "id": "run_reward_bonus.question_tail",
+          "kind": "ocr",
+          "pattern": "^bonus rewards\\?$",
+          "roi": [
+            0.42,
+            0.47,
+            0.58,
+            0.53
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [842,524,234,27] score 0.99；问题被折成两行，两行都核"
+        },
+        {
+          "id": "run_reward_bonus.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.56,
+            0.64,
+            0.66,
+            0.73
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1116,720,112,40] score 1.0"
+        },
+        {
+          "id": "run_reward_bonus.cancel_label",
+          "kind": "ocr",
+          "pattern": "Cancel$",
+          "roi": [
+            0.34,
+            0.65,
+            0.46,
+            0.72
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 把按钮读成 '× Cancel' [702,724,140,36] score 0.92"
+        }
+      ],
+      "controls": [
+        {
+          "id": "run_reward_bonus.confirm_button",
+          "kind": "geometry",
+          "box": [
+            1116,
+            720,
+            112,
+            40
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-171228/frame-0003.json",
+            "box": [
+              1116,
+              720,
+              112,
+              40
+            ],
+            "source": "实机 OCR 'Confirm'[1116,720,112,40] 所在按钮的框；中心 (1172,740) 落在按钮内，离左边 Cancel 有 400 px 以上"
+          },
+          "note": "只有账本说这一局真的打完了才点它：这一下花掉 3 次周奖励里的一次"
+        },
+        {
+          "id": "run_reward_bonus.cancel_button",
+          "kind": "geometry",
+          "box": [
+            702,
+            724,
+            140,
+            36
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-171228/frame-0003.json",
+            "box": [
+              702,
+              724,
+              140,
+              36
+            ],
+            "source": "实机 OCR '× Cancel'[702,724,140,36] 的框；这一问的保守答案是它——不花周奖励，奖励按官方说法仍可留到以后领"
+          },
+          "note": "被作废/放弃的那一局走这一支：省下当周的 3 次 bonus，留给真正打完的局"
+        }
+      ]
+    },
+    {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
       "evidence": [

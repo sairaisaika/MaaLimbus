@@ -50,7 +50,7 @@ from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.map_progress import MapProgress
-from maalimbus.run_wiring import expire, settle
+from maalimbus.run_wiring import earned_its_payout, expire, settle
 from maalimbus.storage import RunStore, read_json
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
@@ -728,6 +728,10 @@ def main() -> int:
         + (args.unknown_rounds + 1) * (args.interval + 20)
     registry = json.loads(REGISTRY.read_text(encoding='utf-8'))
     controls = controls_by_id(registry)
+    # Whether the run this window is paying out earned its payout. It starts from the
+    # ledger so a window that begins on a claim still knows what it is claiming, and it
+    # is refreshed from the ledger by every summary this window settles.
+    run_settled_itself = earned_its_payout(run_store)
     result = dict(pid=os.getpid(), address=args.address, controller='Maa AdbController',
                   observe_only=bool(args.observe_only), steps=[], clicks_sent=0,
                   verified_clear=False, foreground_before=None)
@@ -1081,12 +1085,14 @@ def main() -> int:
                              candidates=candidates, candidate_index=choice_index,
                              team=team, reward=reward, gift=gift, cards=cards,
                              graces=graces, initial=initial, check=check, defeat=defeat,
-                             search={'mode': args.gift_search})
+                             search={'mode': args.gift_search},
+                             bonus={'spend': run_settled_itself})
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                      'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                      'initial': initial, 'search': {'mode': args.gift_search},
                      'check': check, 'defeat': defeat,
+                     'bonus': {'spend': run_settled_itself},
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
@@ -1188,6 +1194,13 @@ def main() -> int:
                 if events:
                     entry['ledger_events'] = [dict(kind=event.kind, floor=event.floor)
                                               for event in events]
+                    if any(event.kind in ('final_victory', 'reward_received')
+                           for event in events):
+                        # This run reached its payout, so the weekly-bonus question that
+                        # follows the claim may spend one. Only three exist per week and
+                        # they do not carry over, so a run that was given up asks the
+                        # other way round and keeps them.
+                        run_settled_itself = True
                 # An expired session is not a completion: the game threw the run away
                 # and this Confirm claims what it left behind, so the run is filed as
                 # abandoned and the rotation stays on the same team.
@@ -1199,6 +1212,7 @@ def main() -> int:
                                  if journal is not None else None)
                 if expired is not None:
                     entry['ledger_expired'] = expired.get('id')
+                    run_settled_itself = False
             if entry['passed'] and plan.get('detail', {}).get('slot'):
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.

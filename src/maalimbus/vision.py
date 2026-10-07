@@ -92,6 +92,17 @@ def classify(records, locale, size):
     # so this frame fell through to RUN_CLAIM -- the four summary words are still visible
     # behind everything -- and run103 spent twenty steps alternating its two claim buttons
     # (build/window-run103.json) instead of confirming.
+    # A claim can ask a second question about the weekly bonus before it grants
+    # anything: live evidence/runtime/window-20261007-171228/frame-0003.json reads
+    # "Spend your 'Weekly Bonuses, to claim the" [660,484,598,34] over 'bonus rewards?'
+    # [842,524,234,27] and '× Cancel' [702,724,140,36] / 'Confirm' [1116,720,112,40],
+    # with the reward modal dimmed behind it. That is the frame a run the weekly reset
+    # expired is left with; the window treated it as an unnamed dialog and stopped.
+    if (find(records, locale.get('spend_weekly_bonuses', r'(?!)'), (.35, .42, .65, .50), size, .85)
+            and find(records, locale.get('bonus_rewards', r'(?!)'), (.42, .47, .58, .53), size, .85)
+            and find(records, locale.get('gift_confirm', r'(?!)'), (.56, .64, .66, .73), size, .85)
+            and find(records, locale.get('cancel', r'(?!)'), (.34, .65, .46, .72), size, .85)):
+        return 'RUN_REWARD_BONUS'
     if (find(records, locale.get('claim_the_rewards', r'(?!)'), (.40, .43, .60, .53), size, .85)
             and find(records, locale.get('gift_confirm', r'(?!)'), (.56, .65, .66, .73), size, .85)
             and find(records, locale.get('cancel', r'(?!)'), (.34, .64, .46, .73), size, .85)):

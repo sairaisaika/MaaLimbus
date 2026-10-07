@@ -2,8 +2,8 @@
 from types import SimpleNamespace
 
 from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, EXPIRED_CONFIRM_REASON,
-                                 MAP_FORWARD_REASON, REWARD_CONFIRM_REASON, expire,
-                                 ledger_event, settle)
+                                 MAP_FORWARD_REASON, REWARD_CONFIRM_REASON,
+                                 earned_its_payout, expire, ledger_event, settle)
 from maalimbus.storage import RunStore, read_json, seed_run_store
 
 MAP = dict(page='MAP', reason=MAP_FORWARD_REASON)
@@ -173,3 +173,39 @@ def test_an_expired_session_files_the_run_and_leaves_the_rotation_alone(tmp_path
     assert expire(store, page='EXPIRED_SESSION', reason='something_else', proof=proof) is None
     assert expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
                   proof=proof) is None
+
+
+def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):
+    # The claim can ask a second question -- "Spend your 'Weekly Bonuses, to claim the
+    # bonus rewards?" (live evidence/runtime/window-20261007-171228/frame-0003.json), the
+    # frame a run the weekly reset expired is left with. Only three bonuses exist per
+    # week and they reset rather than carry over, so the answer comes from the ledger:
+    # the newest settled record decides.
+    path, store = store_at(tmp_path, rotation=1)
+    assert earned_its_payout(store) is False
+    # A window that settled the run itself need not consult the ledger at all.
+    assert earned_its_payout(store, settled_now=True) is True
+    # The run the game expired keeps its bonus even though a receipt exists from before.
+    store.start()
+    for floor in range(1, 4):
+        settle(store, **MAP, floor=floor + 1, proof=frame(tmp_path, 'e%d.png' % floor))
+    expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
+           proof=frame(tmp_path, 'expired.png'))
+    assert earned_its_payout(store) is False
+    # A run that reaches its receipt afterwards spends one.
+    store.start()
+    for floor in range(1, 5):
+        settle(store, **MAP, floor=floor + 1, proof=frame(tmp_path, 'f%d.png' % floor))
+    proof = frame(tmp_path, 'summary.png')
+    settle(store, page='RUN_CLAIM', proof=proof)
+    settle(store, page='RUN_CLAIM', proof=proof)
+    settle(store, page='RUN_REWARD_CONFIRM', reason=REWARD_CONFIRM_REASON, proof=proof)
+    settle(store, page='DUNGEON_TEAM', reason=ENTRY_CONFIRM_REASON, proof=proof)
+    assert read_json(path)['receipts'], 'the finished run should have left a receipt'
+    assert earned_its_payout(store) is True
+    # A run that is given up after that receipt leaves the bonus on the table again.
+    store.start()
+    settle(store, **MAP, floor=2, proof=frame(tmp_path, 'g1.png'))
+    expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
+           proof=frame(tmp_path, 'expired2.png'))
+    assert earned_its_payout(store) is False
