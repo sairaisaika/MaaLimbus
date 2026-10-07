@@ -450,6 +450,31 @@ def test_the_map_survives_a_label_whose_tail_ocr_dropped():
     assert map_page(records, tuple(data['size'])) is True
 
 
+def test_the_map_survives_a_header_that_lost_the_space_before_floor():
+    """Live run window-20261007-034308: OCR merged the label and the floor word.
+
+    frame-0198 reads the whole floor-5 line as 'ExploringFloor5' [56,121,356,63] 0.95
+    with no space, so the strict separator in HEADER_PATTERN left the page UNKNOWN and
+    build/window-run114.json stopped on page_unreadable_after_waiting right after the
+    floor-4 battle. The pack line below still gates identity.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-034308/frame-0198.json'
+    if not path.exists():
+        pytest.skip('retained live session evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    assert data['scene'] == 'UNKNOWN'
+    assert any(r.text.strip() == 'ExploringFloor5' for r in records)
+    header = map_header(records, tuple(data['size']))
+    assert header is not None
+    assert header.floor == 5
+    assert header.pack == 'Twining Threads'
+    assert map_page(records, tuple(data['size'])) is True
+
+
 def test_other_scene_text_is_not_promoted_to_map():
     assert map_page([Text('Drive', (100, 100, 60, 20), .99)], SIZE) is False
     # The entry page carries `Exploring` in the upper right without a floor header.
