@@ -489,6 +489,11 @@ def main() -> int:
                              'no-op, so the next candidate is tried instead of stopping '
                              '(a floor-1 frame shows up to six nodes, and only the ones '
                              'joined to the player by a path can open a panel)')
+    parser.add_argument('--map-points', default='',
+                        help='calibration override for the map: semicolon-separated x,y points '
+                             'in 1280-space the run may click instead of its own candidates '
+                             '(the player asked for the map to be zoomed out and calibrated, '
+                             'm10541); empty means the frame is read as usual')
     parser.add_argument('--team', type=int, default=5,
                         help='which TEAMS slot the rotation brings on the loadout page '
                              '(1..7): the official ledger stands at team 5, so the '
@@ -606,6 +611,11 @@ def main() -> int:
         grace_wanted = [int(part) for part in str(args.graces).replace(' ', '').split(',')
                         if part.strip().isdigit()]
         grace_bought = set()
+        map_points = []
+        for part in str(args.map_points or '').replace(' ', '').split(';'):
+            x_text, _, y_text = part.partition(',')
+            if x_text.isdigit() and y_text.isdigit():
+                map_points.append((int(x_text), int(y_text)))
         boxes = []
         if args.observe_page:
             record = observe(tasker, directory, deadline)
@@ -741,6 +751,17 @@ def main() -> int:
                     map_floor = floor
                     map_skips = set()
                     map_visited = set()
+                if map_points:
+                    # The calibration path: the caller names the points, so a floor whose
+                    # nodes the frame does not read can still be walked while the reading
+                    # is being fixed. Scale is taken from the frame, not assumed.
+                    frame_width = (record.get('size') or (1920, 1080))[0]
+                    scale = frame_width / 1280.0
+                    side = max(40, round(60 * scale))
+                    candidates = []
+                    for x, y in map_points:
+                        cx, cy = int(round(x * scale)), int(round(y * scale))
+                        candidates.append([cx - side // 2, cy - side // 2, side, side])
                 tried = map_skips | map_visited
                 candidates = [box for box in candidates if tuple(box) not in tried]
             sha = record.get('image_sha256')

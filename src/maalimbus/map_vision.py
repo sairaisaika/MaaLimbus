@@ -387,12 +387,23 @@ def train_player(image, *, bottom=None, right=None, min_area=60, max_side=32,
 
 
 def lattice_neighbours(player, pitch=None):
-    """The four lattice steps around the player; ordering is the caller's job."""
+    """The lattice steps around the player; ordering is the caller's job.
+
+    The hex rows are offset by half a column, so the steps that land on another node
+    are the two horizontals and the four diagonals; a straight (0, +/-pitch) step falls
+    between two rows and is kept only as the last resort it always was. Live: the player
+    said the lower path was gone and the run had to go diagonally up (m10702), while
+    every candidate list up to then held the orthogonal four first.
+    """
     if player is None:
         return []
     pitch = LATTICE_PITCH if pitch is None else pitch
-    return [(player[0] + pitch[0], player[1]), (player[0] - pitch[0], player[1]),
-            (player[0], player[1] + pitch[1]), (player[0], player[1] - pitch[1])]
+    half = pitch[0] // 2
+    x, y = player
+    return [(x + half, y - pitch[1]), (x - half, y - pitch[1]),
+            (x + half, y + pitch[1]), (x - half, y + pitch[1]),
+            (x + pitch[0], y), (x - pitch[0], y),
+            (x, y + pitch[1]), (x, y - pitch[1])]
 
 
 def advance_candidates(markers, player=None):
@@ -506,6 +517,101 @@ def highlighted_nodes(image, *, min_green=HIGHLIGHT_MIN_GREEN, min_blue=HIGHLIGH
     return [point for point, _ in found]
 
 
+#: The node the game offers next is drawn inside a saturated ring, and the ring's hue
+#: follows the floor: cyan on floor 1 (evidence/runtime/window-20261006-200505/
+#: frame-0081.png) and orange on floor 3 (evidence/runtime/window-20261006-214057/
+#: frame-0025.png). Hue cannot carry the reading, so the ring is found by saturation
+#: and brightness instead: the map behind it is a dark washed blue, while the ring is a
+#: compact, strongly coloured loop wrapped around the node.
+LIT_MIN_VALUE = 110
+LIT_MIN_CHROMA = 70
+LIT_MIN_PIXELS = 400
+LIT_MIN_SIDE = 30
+LIT_MAX_SIDE = 300
+#: The sparse wash that runs along the paths is saturated too, but it is hollow: on
+#: live window-20261006-214057/frame-0025 it measures fill 0.073-0.083, while the ring
+#: itself fills 0.383 and a node's own icon 0.46-0.78.
+LIT_MIN_FILL = 0.15
+LIT_MAX_FILL = 0.85
+LIT_MIN_RATIO = 0.45
+#: A ring whose top is cut by the band reads wide: the live orange ring measured
+#: 186x79, a ratio of 2.35.
+LIT_MAX_RATIO = 3.2
+#: The header strip and the team bar carry solid saturated icons of their own, so the
+#: band keeps only the map proper: the sin counters sit above y 0.08 and the identity
+#: cards start below y 0.78 on a 1920x1080 frame.
+LIT_BAND = (.08, .78)
+#: A ring opens around the node the game is offering; an ordinary node's own icon is
+#: solid and compact. Live window-20261006-214057/frame-0025: the ring fills 0.383 over
+#: 186x79 while the icons on the same page fill 0.46-0.78 over 47x47 or less.
+LIT_RING_MAX_FILL = 0.42
+LIT_RING_MIN_SIDE = 60
+
+
+def lit_components(image, *, min_value=LIT_MIN_VALUE, min_chroma=LIT_MIN_CHROMA,
+                   min_pixels=LIT_MIN_PIXELS, min_side=LIT_MIN_SIDE, max_side=LIT_MAX_SIDE,
+                   min_fill=LIT_MIN_FILL, max_fill=LIT_MAX_FILL, min_ratio=LIT_MIN_RATIO,
+                   max_ratio=LIT_MAX_RATIO, band=LIT_BAND):
+    """Saturated blobs on a map page as records, densest first; no input.
+
+    ``highlighted_nodes`` reads the floor-1 cyan ring only, which is why the run walked
+    floors 1 and 2 and then stopped dead on floor 3: there the same ring is drawn
+    orange, no candidate named it, and every crescent badge and lattice guess around the
+    player was a no-op (build/window-run78.json). The ring's own pixels name the node at
+    any hue, which is sturdier than any offset from the badge drawn under it.
+    """
+    if image is None:
+        return []
+    import cv2
+    import numpy as np
+    height = image.shape[0]
+    pixels = image.astype(np.int16)
+    high = pixels.max(axis=2)
+    low = pixels.min(axis=2)
+    mask = ((high >= min_value) & (high - low >= min_chroma)).astype(np.uint8)
+    mask[:round(band[0] * height)] = 0
+    mask[round(band[1] * height):] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    found = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if area < min_pixels:
+            continue
+        if not (min_side <= box_w <= max_side) or not (min_side <= box_h <= max_side):
+            continue
+        ratio = box_w / float(max(1, box_h))
+        if not (min_ratio <= ratio <= max_ratio):
+            continue
+        fill = area / float(max(1, box_w * box_h))
+        if not (min_fill <= fill <= max_fill):
+            continue
+        found.append(dict(point=(int(x + box_w // 2), int(y + box_h // 2)),
+                          box=(int(x), int(y), int(box_w), int(box_h)),
+                          area=int(area), fill=round(fill, 3)))
+    found.sort(key=lambda record: -record['area'])
+    return found
+
+
+def lit_nodes(image, **kwargs):
+    """Centres of every saturated blob on a map page, densest first; no input."""
+    return [record['point'] for record in lit_components(image, **kwargs)]
+
+
+def lit_rings(image, **kwargs):
+    """Centres of the ringed (offered) nodes only, densest first; no input.
+
+    A ring is hollow and wide where the icon of an ordinary node is solid and compact:
+    live window-20261006-214057/frame-0025 draws the offered ring at fill 0.383 over
+    186x79, while the node icons on the same page fill 0.46-0.78 over boxes of 47x47 or
+    less. Without the split, every icon on the page outranks the one node the game is
+    actually offering (the 040938 and 050106 frames of tests/test_map_vision.py).
+    """
+    return [record['point'] for record in lit_components(image, **kwargs)
+            if record['fill'] <= LIT_RING_MAX_FILL
+            and max(record['box'][2], record['box'][3]) >= LIT_RING_MIN_SIDE]
+
+
 def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_SATURATION,
                  min_pixels=MARKER_MIN_PIXELS, bottom=MARKER_MAP_BOTTOM, right=MARKER_MAP_RIGHT):
     """Bright desaturated glyph boxes on a map page, largest first; no input."""
@@ -606,6 +712,15 @@ def map_clicks(image, *, template=None, node_side=190):
     # refused it, and the run had stopped with no_candidate_node_observed.
     for point in highlighted_nodes(image):
         add(point, 'cyan_node', CLICK_SIDE)
+    # The ring is the game's own "this is the step" mark, so it outranks every reading
+    # taken off a badge or the lattice, whichever hue the floor draws it in. The player's
+    # own flame is saturated too and is dropped by radius; the node icons are kept for
+    # later, because on this page they are the ordinary nodes rather than the offer.
+    lit = [point for point in lit_nodes(image)
+           if not player or (point[0] - player[0]) ** 2 + (point[1] - player[1]) ** 2 > 90 * 90]
+    rings = [point for point in lit_rings(image)
+             if not player or (point[0] - player[0]) ** 2 + (point[1] - player[1]) ** 2 > 90 * 90]
+    icons = [point for point in lit if point not in rings]
     # The highlighted node is the step the game will accept, so it goes first; the
     # chevron only points along the path towards it, and the badge nodes are the
     # ordinary case where nothing on the page is marked at all.
@@ -613,6 +728,11 @@ def map_clicks(image, *, template=None, node_side=190):
         add(point, 'highlighted_node', CLICK_SIDE)
     for point in chevrons:
         add(point, 'chevron_target', node_side)
+    # The ring is the only reading that survives a floor which draws the offer in
+    # another hue -- floor 3 draws it orange, where ``highlighted_nodes`` and the
+    # chevrons read nothing at all (build/window-run78.json), so these come next.
+    for point in rings:
+        add(point, 'lit_node', CLICK_SIDE)
     # The badge nodes are read off the frame, so they outrank a guessed lattice step:
     # live run build/window-run35 clicked four lattice points around the player while
     # the one real node (center 1095,429) sat 48 px from the third guess and was
@@ -620,6 +740,13 @@ def map_clicks(image, *, template=None, node_side=190):
     for marker in advance_candidates(markers, player):
         add((marker.node[0] + marker.node[2] // 2,
              marker.node[1] + marker.node[3] // 2), 'node_away_from_player', node_side)
+    # A node's own icon is saturated too, so the reader offers those blobs as well; they
+    # sit behind the badge nodes because a badge says "this is a node" outright while an
+    # icon only usually does, and ahead of the lattice because they were read off the
+    # frame. Live 040938/frame-0001: the offered gate there is a paler hexagon, and the
+    # leftmost node's icon was the only other thing the reader could name.
+    for point in icons:
+        add(point, 'lit_icon', CLICK_SIDE)
     # The badge is drawn *under* an ordinary node, but the lit ring's own crescent sits
     # inside its ring, so a badge read is two candidate points, not one: the box lifted
     # to the hexagon, and the badge's own centre. Live floor-4 frame

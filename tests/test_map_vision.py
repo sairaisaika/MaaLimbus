@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, MapHeader, ORNAMENT_LIFT,
-                                  enter_target, map_header, map_page, node_markers,
-                                  node_panel, pre_battle_team_page, route_decision,
-                                  advance_candidates, yellow_flame_player)
+from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, LATTICE_PITCH, MapHeader,
+                                  ORNAMENT_LIFT, advance_candidates, enter_target,
+                                  highlighted_nodes, lattice_neighbours, lit_nodes, map_clicks,
+                                  map_header, map_page, node_markers, node_panel,
+                                  pre_battle_team_page, route_decision, yellow_flame_player)
 from maalimbus.vision import Text, classify
 
 SIZE = (1920, 1080)
@@ -180,7 +181,7 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     point = clicks[0]['point']
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
-                                'node_away_from_player', 'badge_mark')
+                                'node_away_from_player', 'badge_mark', 'lit_node')
                for item in clicks)
 
 
@@ -213,8 +214,50 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     # The badge nodes are still offered behind it, so a refused click can fall back.
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
-                                'node_away_from_player', 'lattice_step', 'badge_mark')
+                                'node_away_from_player', 'lattice_step', 'badge_mark',
+                                'lit_node', 'lit_icon')
                for item in clicks)
+
+
+def test_the_ring_is_read_in_whatever_colour_the_floor_draws_it():
+    """Live evidence/runtime/window-20261006-214057/frame-0025.png, floor 3.
+
+    Every click the run tried on this floor (build/window-run78.json: nine of them,
+    badge nodes and lattice steps) opened nothing, because the reader only ever knew
+    the cyan ring of floor 1. This floor lights the offered node with an orange ring:
+    the cyan reader returns nothing on this frame, while the saturated-blob reader
+    returns the ring itself first, ahead of the node icons and the path's glow.
+    """
+    import cv2
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-214057/frame-0025.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    image = cv2.imread(str(path))
+    assert highlighted_nodes(image) == []
+    lit = lit_nodes(image)
+    assert abs(lit[0][0] - 318) <= 20 and abs(lit[0][1] - 140) <= 20, lit
+    clicks = map_clicks(image)
+    assert clicks[0]['kind'] == 'lit_node'
+    point = clicks[0]['point']
+    assert abs(point[0] - 318) <= 20 and abs(point[1] - 140) <= 20, point
+
+
+def test_the_lattice_offers_the_diagonals_before_the_straight_neighbours():
+    """The hexagon rows are offset half a column, so the live step is a diagonal.
+
+    Run 79 and run 80 (build/window-run79.json, build/window-run80.json) clicked the
+    two nodes the lattice believed were straight below and straight above the player
+    and neither moved the run; the player's lit path runs up and to the right.
+    """
+    first, second = lattice_neighbours((500, 400))[:2]
+    assert first == (500 + LATTICE_PITCH[0] // 2, 400 - LATTICE_PITCH[1])
+    assert second == (500 - LATTICE_PITCH[0] // 2, 400 - LATTICE_PITCH[1])
+    # the straight neighbours are still offered, just behind every diagonal
+    assert (500, 400 - LATTICE_PITCH[1]) in lattice_neighbours((500, 400))
+    assert lattice_neighbours((500, 400))[-1] == (500, 400 - LATTICE_PITCH[1])
+    assert lattice_neighbours(None) == []
 
 
 def test_the_locomotive_names_the_player_when_no_badge_node_does():
@@ -565,13 +608,23 @@ def test_a_read_node_outranks_a_guessed_lattice_step():
     image, template = live_map(root, 'window-20261006-052530/frame-0020.png')
     clicks = map_clicks(image, template=template)
     assert clicks, 'the floor had one badge node to offer'
-    first = clicks[0]
-    assert first['kind'] == 'node_away_from_player'
-    assert first['box'] == (1000, 334, 190, 190)
+    # Readings taken off the frame come first, guesses last: the node the frame reads is
+    # in front of every lattice step, whether the reading is the node's badge or a ring
+    # the game lit around it.
+    centre = (1000 + 190 // 2, 334 + 190 // 2)
+    covers = [index for index, item in enumerate(clicks)
+              if (item['point'][0] - centre[0]) ** 2
+              + (item['point'][1] - centre[1]) ** 2 <= 45 * 45]
+    assert covers, 'the node the frame reads is offered'
+    reading = clicks[covers[0]]
+    assert reading['kind'] in ('node_away_from_player', 'lit_node', 'badge_mark',
+                               'lit_icon', 'highlighted_node', 'cyan_node')
+    first_guess = min(index for index, item in enumerate(clicks)
+                      if item['kind'] == 'lattice_step')
+    assert covers[0] < first_guess, 'the read node outranks every guessed step'
     # The guess that used to swallow it is gone: every remaining lattice step keeps
     # clear of the node the frame actually read.
-    centre = (1000 + 190 // 2, 334 + 190 // 2)
-    for item in clicks[1:]:
+    for item in clicks[first_guess:]:
         x, y, w, h = item['box']
         assert ((x + w // 2 - centre[0]) ** 2 + (y + h // 2 - centre[1]) ** 2) > 50 * 50
 
@@ -594,15 +647,22 @@ def test_the_shop_node_survives_a_badge_hit_that_is_not_a_node():
     boxes = [marker.node for marker in markers]
     assert (263, 338, 190, 190) in boxes, 'the ornament scan read the shop node'
     clicks = map_clicks(image, template=template)
-    assert (232, 14, 190, 190) in [item['box'] for item in clicks]
+    # The off-screen spot the badge lift produced is never the whole offer any more: the
+    # ring the game lit around that node names it from its own pixels.
+    assert clicks[0]['box'] != (232, 14, 190, 190)
     shop = [item for item in clicks if item['box'] == (263, 338, 190, 190)]
     assert shop, 'the shop node is offered once the empty spot has had its turn'
     assert shop[0]['kind'] in ('highlighted_node', 'node_away_from_player')
     # The crescent hanging inside the lit ring is that node's badge, and the badge's own
     # centre (327,187) is the point the game answers to -- the registered lift put it off
-    # the top of the map.
-    marks = [item for item in clicks if item['kind'] == 'badge_mark']
-    assert (232, 92, 190, 190) in [item['box'] for item in marks]
+    # the top of the map. The lit ring names that same node from its own pixels, so the
+    # node is offered whether the badge lift lands on it or not, and the two reads of one
+    # node are collapsed by the 50 px dedupe inside ``map_clicks``.
+    offered = [item for item in clicks
+               if (item['point'][0] - 327) ** 2 + (item['point'][1] - 187) ** 2 <= 60 * 60]
+    assert offered, 'the lit ring node is offered'
+    assert offered[0]['kind'] in ('lit_node', 'badge_mark', 'node_away_from_player')
+    assert len(offered) == 1, 'one node, one candidate'
 
 
 def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
