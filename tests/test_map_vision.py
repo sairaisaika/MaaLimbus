@@ -576,6 +576,30 @@ def test_a_read_node_outranks_a_guessed_lattice_step():
         assert ((x + w // 2 - centre[0]) ** 2 + (y + h // 2 - centre[1]) ** 2) > 50 * 50
 
 
+def test_the_shop_node_survives_a_badge_hit_that_is_not_a_node():
+    """Neither node source alone enumerates a floor, so the read keeps both.
+
+    Live run build/window-run76 (floor 4, evidence/runtime/window-20261006-212950/
+    frame-0058.png): the badge template matched the player's own crescent and one arc
+    of the lit orange ring, whose box (232,14,190,190) sits off the top of the map, so
+    the only candidate left was that empty spot and the run clicked it eight times --
+    each time opening the gift tray over the map -- while the ornament scan still saw
+    the shop node at (263,338,190,190).
+    """
+    from pathlib import Path
+    from maalimbus.map_vision import map_clicks, node_markers
+    root = Path(__file__).resolve().parents[1]
+    image, template = live_map(root, 'window-20261006-212950/frame-0058.png')
+    markers = node_markers(image, template=template)
+    boxes = [marker.node for marker in markers]
+    assert (263, 338, 190, 190) in boxes, 'the ornament scan read the shop node'
+    clicks = map_clicks(image, template=template)
+    assert (232, 14, 190, 190) in [item['box'] for item in clicks]
+    shop = [item for item in clicks if item['box'] == (263, 338, 190, 190)]
+    assert shop, 'the shop node is offered once the empty spot has had its turn'
+    assert shop[0]['kind'] in ('highlighted_node', 'node_away_from_player')
+
+
 def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
     """The WAVE caption loses a stroke once the floor is drawn in red.
 

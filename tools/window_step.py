@@ -43,7 +43,7 @@ from maalimbus.event_vision import (best_check_choice, check_box, check_stage,
                                     choice_options, gift_hints, odds_scores,
                                     preferred_choice)
 from maalimbus.jobs import wait_job, wait_task
-from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
+from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks, map_header)
 from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
@@ -708,6 +708,8 @@ def main() -> int:
         battle_sig = None
         battle_rounds = 0
         map_skips = set()
+        map_visited = set()
+        map_floor = None
         map_attempts = 0
         gift_picks = 0
         initial_picked = 0
@@ -724,7 +726,23 @@ def main() -> int:
                                                 gift_hints(record.get('ocr'),
                                                            record.get('size')))
             if page == 'MAP':
-                candidates = [box for box in candidates if tuple(box) not in map_skips]
+                # A node the run has already sent a click to is not offered again on
+                # the same floor: live run build/window-run76.json clicked one spot
+                # eight times, each time opening the same gift tray over the map and
+                # confirming it away, because only a click that changed nothing was
+                # remembered. The floor number is what resets the set, since a new
+                # floor is a new layout with its own nodes.
+                header = map_header(
+                    [Text(item['text'], tuple(item['box']), item['score'])
+                     for item in record.get('ocr') or []],
+                    record.get('size') or (1920, 1080))
+                floor = getattr(header, 'floor', None)
+                if floor != map_floor:
+                    map_floor = floor
+                    map_skips = set()
+                    map_visited = set()
+                tried = map_skips | map_visited
+                candidates = [box for box in candidates if tuple(box) not in tried]
             sha = record.get('image_sha256')
             if not args.observe_only and page in WAIT_PAGES:
                 unknown_seen += 1
@@ -889,6 +907,11 @@ def main() -> int:
                                reason=plan['reason'], point=list(point), delay_ms=delay)
                 wait_job(controller.post_click(*point), timeout=10, deadline=deadline)
             result['clicks_sent'] += 1
+            if page == 'MAP' and plan.get('target') is not None:
+                # Whether or not the click opened anything, that spot has had its turn:
+                # live run build/window-run76.json opened the same gift tray eight times
+                # because a click that did open something was never remembered.
+                map_visited.add(tuple(plan['target']))
             entry.update(click_point=None if point is None else list(point), delay_ms=delay)
             time.sleep(delay / 1000)
             settled = None

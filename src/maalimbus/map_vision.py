@@ -176,8 +176,6 @@ def node_markers(image, *, template=None, threshold=175, band=(.18, .78), min_ar
     ``no_candidate_node_observed`` -- evidence/runtime/window-20261006-035828).
     """
     found = badge_nodes(image, template, node_side=node_side)
-    if found:
-        return found
     import cv2
     import numpy as np
     height, width = image.shape[:2]
@@ -199,6 +197,23 @@ def node_markers(image, *, template=None, threshold=175, band=(.18, .78), min_ar
         ny = min(max(0, cy - half), height - node_side)
         markers.append(NodeMarker((int(x), int(y), int(box_w), int(box_h)),
                                   (nx, ny, node_side, node_side)))
+    # The two sources miss different nodes, so both are kept: on the floor-4 frame that
+    # stopped run76 (evidence/runtime/window-20261006-212950/frame-0058.png) the badge
+    # template matched the player's own crescent and one arc of the lit orange ring --
+    # box (232,14,190,190), which is not a node at all and was the only candidate left
+    # after the player's node was dropped, so the run clicked the same empty spot until
+    # the map gave out -- while the ornament scan still saw the shop node at
+    # (263,338,190,190). A node found by both keeps the badge's box, which is centred on
+    # the hexagon rather than lifted from the interior glyph.
+    merged = list(found)
+    for marker in markers:
+        centre = (marker.node[0] + marker.node[2] // 2, marker.node[1] + marker.node[3] // 2)
+        if any((centre[0] - other.node[0] - other.node[2] // 2) ** 2
+               + (centre[1] - other.node[1] - other.node[3] // 2) ** 2
+               <= (node_side // 2) ** 2 for other in merged):
+            continue
+        merged.append(marker)
+    markers = merged
     markers.sort(key=lambda m: (m.node[1], m.node[0]))
     return markers
 
