@@ -793,6 +793,32 @@ def test_the_battle_hud_survives_the_red_backdrop_reading_nave():
     assert hud['diagnostics'] == ['Damage', 'Rate', 'Win']
 
 
+def test_the_battle_hud_survives_a_counter_that_lost_its_first_digit():
+    """Live window-20261007-151655/frame-0529.json, floor 5's battle.
+
+    The corner reads "/10" [98,39,34,24] 0.99 and "TURN" [20,97,42,22] 1.0, with
+    START [1402,740,62,30] and the Win/Rate/Damage labels all readable, yet the page
+    fell back to UNKNOWN: the wave pattern wanted a digit before the slash. The window
+    then waited ten rounds on the battle and stopped the run.
+    """
+    from pathlib import Path
+    import json
+    from maalimbus.battle_vision import battle_hud
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-151655/frame-0529.json'
+    if not path.exists():
+        pytest.skip('retained live battle evidence is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    hud = battle_hud(records, tuple(data['size']))
+    assert hud is not None
+    assert hud['turn_box'] == (20, 97, 42, 22)
+    assert hud['wave'] == '/10'
+    # A page whose corner holds neither caption nor counter is still not the HUD.
+    assert battle_hud([Text('TURN', (20, 97, 42, 22), 1.0),
+                       Text('WS', (24, 182, 34, 91), 0.385)], tuple(data['size'])) is None
+
+
 def test_the_battle_hud_survives_a_frame_that_drops_the_wave_caption():
     """The red floor can cost the whole WAVE word, not just a stroke.
 

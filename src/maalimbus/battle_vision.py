@@ -192,7 +192,14 @@ def battle_hud(records, size):
     # different page.
     wave = find(records, r'^[WN]AVE$', (.0, .02, .06, .08), size, .85)
     if not wave:
-        wave = find(records, r'^\d{1,2}\s*/\s*\d{1,2}$', (.0, .02, .09, .08), size, .85)
+        # The value itself can lose its leading digit to the red backdrop: live
+        # evidence/runtime/window-20261007-151655/frame-0529.json reads "/10"
+        # [98,39,34,24] 0.99 beside a clean "TURN" [20,97,42,22] 1.0 while START, Win,
+        # Rate and Damage are all readable, and the page still fell back to UNKNOWN --
+        # the window then waited the battle out and stopped. The counter shares the
+        # corner with TURN and no other page draws a counter there, so the missing
+        # digit is allowed.
+        wave = find(records, r'^\d{0,2}\s*/\s*\d{1,2}$', (.0, .02, .09, .08), size, .85)
     turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
     if len(wave) != 1 or len(turn) != 1:
         return None
