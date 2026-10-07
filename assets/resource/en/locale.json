@@ -52,5 +52,7 @@
   "continue": "^(?:Continue|Proceed)$",
   "result": "^Result$",
   "rec": "^REC$",
-  "choices": "^Choices$"
+  "choices": "^Choices$",
+  "who_should_do_it": "^Who should do it\\?$",
+  "choose_character": "^Choose a character to perform$"
 }

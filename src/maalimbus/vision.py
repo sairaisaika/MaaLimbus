@@ -123,6 +123,21 @@ def classify(records, locale, size):
     if (find(records, locale.get('gift_pick_label', r'(?!)'), (.06, .13, .95, .26), size, .85)
         and find(records, locale.get('refuse_gift', r'(?!)'), (.62, .74, .82, .88), size, .85)):
         return 'GIFT_PICK'
+    # The event's skill check ("Who should do it?" / "Choose a character to perform the
+    # check with:") asks which identity takes the roll, and prints each identity's odds
+    # over its card. It carries the same bottom-right SKIP as the cutscene, so it has to
+    # be named before that branch. Live: evidence/runtime/window-20261006-204421/
+    # frame-0001.json reads 'Who should do it?' [1294,275,232,28] and 'Choose a
+    # character to perform' [1278,442,402,36], with 'Threshold', 'Predicted' and the
+    # twelve odds captions below them. The question alone names the page: a sparser OCR
+    # pass over the same page (evidence/runtime/window-20261006-204143/frame-0002.json)
+    # returns only four tokens -- the question, the advantage line and SKIP -- and the
+    # prompt's second line is simply absent. No other page prints that question, and
+    # nothing else on this page distinguishes it from the cutscene, so requiring the
+    # second line would hand the page back to the cutscene branch and press SKIP on a
+    # check the run should have attempted.
+    if find(records, locale.get('who_should_do_it', r'(?!)'), (.62, .23, .82, .30), size, .85):
+        return 'EVENT_CHECK'
     # The event's "Choices" page (abnormality events) puts two to four option rows in
     # the right-hand column. Any row advances, but the rows are read live because
     # their number moves them, so the page is named here and its rows come from OCR.

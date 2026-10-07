@@ -1566,6 +1566,61 @@
       ]
     },
     {
+      "id": "event_check",
+      "title": "事件技能检定页（Who should do it?）",
+      "evidence": [
+        "evidence/runtime/window-20261006-204421/frame-0001.json",
+        "evidence/runtime/window-20261006-204143/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "event_check.prompt",
+          "kind": "ocr",
+          "pattern": "^Who should do it\\?$",
+          "roi": [
+            0.62,
+            0.23,
+            0.82,
+            0.3
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1294,275,232,28]；与下面一行共同命名本页"
+        },
+        {
+          "id": "event_check.choose",
+          "kind": "ocr",
+          "pattern": "^Choose a character to perform$",
+          "roi": [
+            0.63,
+            0.38,
+            0.9,
+            0.47
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1278,442,402,36]；第二行「the check with:」被 OCR 单独成 token，故只钉第一行"
+        }
+      ],
+      "controls": [
+        {
+          "id": "event_check.skip_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-204143/frame-0002.json",
+            "box": [
+              1628,
+              929,
+              138,
+              83
+            ],
+            "source": "SKIP＝没人去做这次检定，等于直接放弃；登记它只为让 window.FORBIDDEN_CONTROLS 拒点（204421 那帧按钮太暗没读出，故用 204143 的实测框）"
+          }
+        }
+      ],
+      "live_derived": [
+        "event_vision.odds_scores(image)＋best_check_choice(...)：12 张罪人卡上的赔率 caption 用模板读出（OCR 会把整行并成一个 token），选赔率最高那一格的卡片框现算点击"
+      ]
+    },
+    {
       "id": "deployment",
       "title": "出战部署页（队伍页的部署视图：每张卡带部署序号，右下仍是 To Battle!）",
       "why": "点 To Battle! 有时先落到这一页（实机 build/window-run29.json 的 step2：PRE_BATTLE_TEAM → DEPLOYMENT），它的前进控件与队伍页同一个按钮；点一次后战斗自行开始（实机截图显示 WAVE 1/1、TURN 1）。识别沿用 src/maalimbus/deployment.py:deployment_page（计数 12/12 + 恰一条 Details）。",

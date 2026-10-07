@@ -39,7 +39,8 @@ from maa.toolkit import Toolkit
 from maalimbus import anchors
 from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
 from maalimbus.controller_lease import ControllerLease
-from maalimbus.event_vision import choice_options, gift_hints, preferred_choice
+from maalimbus.event_vision import (best_check_choice, check_box, choice_options,
+                                    gift_hints, odds_scores, preferred_choice)
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus import session_flow as flows
@@ -216,6 +217,29 @@ def candidates_of(directory, record):
         return None, None
     clicks = map_clicks(image, template=node_badge_template())
     return name, [list(item['box']) for item in clicks]
+
+
+def check_of(directory, record):
+    """The identity slot a skill check should be rolled by, or ``None``.
+
+    The check page prints an odds caption over every identity card, and OCR merges the
+    whole row into one token, so the captions are matched as templates instead (see
+    maalimbus.event_vision). The best trusted slot's card box is what the plan clicks.
+    """
+    if record['scene'] != 'EVENT_CHECK':
+        return None
+    image, name = latest_frame(directory)
+    if image is None:
+        return None
+    scores = odds_scores(image)
+    slot = best_check_choice(scores)
+    if not slot:
+        return None
+    height, width = image.shape[:2]
+    chosen = next((item for item in scores if item['index'] == slot), {})
+    return {'slot': slot, 'tier': chosen.get('tier'),
+            'box': check_box(slot, (width, height)), 'frame': name,
+            'odds': scores}
 
 
 def overlay_hit(registry, directory, record):
@@ -799,17 +823,19 @@ def main() -> int:
                               'available': available}
             else:
                 grace_bought = set()
+            check = check_of(directory, record)
             plan = plan_step(page, controls=controls, arrows=arrows_of(directory),
                              start_box=record.get('start_box'),
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
                              team=team, reward=reward, gift=gift, cards=cards,
-                             graces=graces, initial=initial,
+                             graces=graces, initial=initial, check=check,
                              search={'mode': args.gift_search})
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                      'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                      'initial': initial, 'search': {'mode': args.gift_search},
+                     'check': check,
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:

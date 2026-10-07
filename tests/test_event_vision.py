@@ -1,14 +1,21 @@
-"""The event page's choice column (no device, no image)."""
+"""The event page's choice column and skill check (no device)."""
 from pathlib import Path
 import sys
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.event_vision import (OPTION_BAND, choice_options, gift_hints,
+from maalimbus.event_vision import (ODDS_TEMPLATE_DIR, OPTION_BAND,
+                                    best_check_choice, check_box, choice_options,
+                                    gift_hints, odds_scores,
                                     preferred_choice)  # noqa: E402
 
 SIZE = (1920, 1080)
+
+#: the lived skill check page, kept in the repository as evidence.
+CHECK_FRAME = ROOT / 'evidence/runtime/window-20261006-204421/frame-0001.png'
 
 
 def token(text, box, score=0.99):
@@ -60,3 +67,44 @@ def test_short_tokens_and_rows_outside_the_column_are_not_choices():
     inside = [token('A line that is long enough', (int(1920 * (x0 + x1) / 2),
                                                    int(1080 * (y0 + y1) / 2), 300, 28))]
     assert len(choice_options(inside, SIZE)) == 1
+
+
+def test_the_live_skill_check_row_reads_all_twelve_odds_and_picks_the_best():
+    cv2 = pytest.importorskip('cv2')
+    if not CHECK_FRAME.exists():
+        pytest.skip('the live check frame is not in this checkout')
+    image = cv2.imread(str(CHECK_FRAME))
+    scores = odds_scores(image, directory=ROOT / ODDS_TEMPLATE_DIR)
+    # Hand-read from the frame: VeryHigh, VeryLow, VeryHigh, VeryHigh, High, High,
+    # VeryLow, VeryLow, Normal, Normal, VeryLow, VeryLow.
+    assert [item['tier'] for item in scores] == [
+        'very_high', 'very_low', 'very_high', 'very_high', 'high', 'high',
+        'very_low', 'very_low', 'normal', 'normal', 'very_low', 'very_low']
+    # Every slot is read well clear of the trust threshold, so the tie-break below is
+    # the only thing that can move the choice.
+    assert all(item['score'] >= 0.9 for item in scores)
+    assert best_check_choice(scores) == 1
+
+
+def test_a_slot_with_unreadable_odds_is_never_chosen():
+    scores = [{'index': 1, 'tier': None, 'score': 0.71},
+              {'index': 2, 'tier': 'normal', 'score': 0.95},
+              {'index': 3, 'tier': 'high', 'score': 0.93}]
+    assert best_check_choice(scores) == 3
+    # A tie keeps the leftmost slot, and nothing trusted means no choice at all.
+    assert best_check_choice([{'index': 4, 'tier': 'high', 'score': 0.99},
+                              {'index': 5, 'tier': 'high', 'score': 0.97}]) == 4
+    assert best_check_choice([{'index': 1, 'tier': None, 'score': 0.9}]) is None
+    assert best_check_choice([]) is None
+    assert best_check_choice(None) is None
+
+
+def test_every_check_box_sits_on_its_own_card():
+    first = check_box(1, (1920, 1080))
+    assert abs(first[0] + first[2] / 2 - 0.0617 * 1920) <= 2
+    last = check_box(12, (1920, 1080))
+    assert abs(last[0] + last[2] / 2 - (0.0617 + 0.05398 * 11) * 1920) <= 2
+    # The cards are the bright row under the captions (y 922-1035 of 1080).
+    assert first[1] >= 920 and first[1] + first[3] <= 1040
+    # A narrower frame scales: the same slot's box is half as wide at 960.
+    assert check_box(1, (960, 540))[2] == first[2] // 2

@@ -244,3 +244,28 @@ def test_the_floor_gift_pick_is_named_from_a_live_frame():
     merged = [r for r in records if r.text != 'Select']
     merged.append(Text('Select 0/2', (1618, 847, 194, 50), .99))
     assert classify(merged, words, tuple(frame['size'])) == 'GIFT_PICK'
+
+
+def test_the_skill_check_page_is_named_by_its_own_question():
+    # Live proof: evidence/runtime/window-20261006-204421/frame-0001.json is the event's
+    # skill check ("Who should do it?" over twelve identity odds). Its bottom-right SKIP
+    # is the same slot the cutscene uses, but on this frame the button is too dark to
+    # read, so the question is what names the page.
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261006-204421/frame-0001.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK'
+    # The run68 instance reads its SKIP and drops the prompt's second line entirely
+    # (four tokens in all), and it must still be the check page rather than the
+    # cutscene that shares its button.
+    other = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261006-204143/frame-0002.json').read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in other['ocr']]
+    assert any(t.text.strip().upper() == 'SKIP' for t in tokens)
+    assert not any(t.text.startswith('Choose a character') for t in tokens)
+    assert classify(tokens, words, tuple(other['size'])) == 'EVENT_CHECK'
+    # Without the question the page is not the check, and the SKIP alone stays the
+    # cutscene it belongs to.
+    assert classify([t for t in tokens if not t.text.startswith('Who should')],
+                    words, tuple(other['size'])) == 'CUTSCENE'

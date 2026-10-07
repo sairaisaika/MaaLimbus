@@ -873,3 +873,28 @@ def test_the_gift_warning_is_named_from_a_live_frame():
                         / 'evidence/runtime/window-20261006-052152/frame-0003.json').read_text())
     records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
     assert classify(records, locale, tuple(frame['size'])) == 'GIFT_WARNING'
+
+
+def test_the_skill_check_is_rolled_by_the_best_odds_and_never_skipped():
+    # Live proof: evidence/runtime/window-20261006-204421/frame-0001.json prints an odds
+    # caption over each identity card, and card 1 (VeryHigh) is the one worth sending.
+    # The driver reads the row and hands that card's box over; the page has no anchored
+    # control of its own, because the row is read live.
+    card = [76, 923, 84, 113]
+    plan = plan_step('EVENT_CHECK', check={'slot': 1, 'tier': 'very_high', 'box': card})
+    assert plan['action'] == CLICK
+    assert plan['target'] == card
+    assert plan['reason'] == 'the_skill_check_is_rolled_by_the_best_odds'
+    assert plan['detail'] == {'slot': 1, 'tier': 'very_high'}
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'EVENT_CHECK')
+    # No slot read means no input at all: the check is never guessed at.
+    unread = plan_step('EVENT_CHECK', check=None)
+    assert unread['action'] == RECORD
+    assert unread['reason'] == 'no_event_check_candidate_observed'
+    # SKIP means nobody attempts the roll, which forfeits the check, so a mis-registered
+    # anchor can never send it.
+    skip = [1628, 929, 138, 83]
+    named = plan_step('EVENT_CHECK', controls={'event_check.skip_button': skip},
+                      check={'slot': 1, 'box': skip})
+    assert named['action'] == RECORD
+    assert named['reason'] == 'control_is_forbidden'

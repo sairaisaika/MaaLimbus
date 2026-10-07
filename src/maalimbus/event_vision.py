@@ -98,3 +98,108 @@ def preferred_choice(options, hints, *, gap=HINT_GAP):
         if any(0 <= hint - box[1] <= gap or 0 <= hint - bottom <= gap for hint in hints):
             return index
     return 0
+
+
+#: The skill check ("Who should do it?" / "Choose a character to perform the check
+#: with:") prints an odds caption over each identity slot. The captions are the same
+#: UI text every time, so they are matched as templates instead of read as OCR: the
+#: live frame merges the whole row into one token
+#: (evidence/runtime/window-20261006-204421/frame-0001.json reads
+#: "VeryHigh Very Low Very High Very HighHighHighVery tow ..." in a single box), and
+#: "High" is a substring of "Very High", so the longer captions are tried first and a
+#: caption is only trusted at ODDS_MIN_SCORE.
+ODDS_TEMPLATE_DIR = 'assets/resource/base/image/event'
+
+#: captions from the best odds down; the order is also the matching order.
+ODDS_TIERS = ('very_high', 'high', 'normal', 'very_low')
+
+#: how good each caption is; the best caption an identity shows is the one to send.
+ODDS_RANK = {'very_high': 3, 'high': 2, 'normal': 1, 'very_low': 0}
+
+#: live scores on window-20261006-204421/frame-0001.png, read at the slot centres
+#: below: every slot's own caption scores 0.94-1.00 and the runner-up scores at most
+#: 0.73, so 0.92 separates them with room to spare.
+ODDS_MIN_SCORE = 0.92
+
+#: x0, y0, x1, y1 fractions of the frame the odds captions live in.
+CHECK_ROW_BAND = (0.0, 0.828, 1.0, 0.866)
+
+#: how far either side of a slot centre its caption may sit, as a fraction of width.
+CHECK_WINDOW = 0.0286
+
+#: the twelve identity slots' centres, as fractions of the frame width. Measured on the
+#: live frame's 1920-wide pixels: the caption plates run 72-165, 174-269, 276-372, ...
+#: i.e. a 118.5 px first centre with a 103.6 px step, which is 0.0617 + 0.0540 * i.
+#: The cards themselves sit directly under their captions, so one centre serves both.
+CHECK_CENTRES = tuple(round(0.0617 + 0.05398 * index, 4) for index in range(12))
+
+#: half the width of one identity card, and the vertical band the cards occupy, as
+#: fractions of the frame. Measured on the same live frame: the party row's bright
+#: content runs y 922-1035 of 1080, and a card is about 93 px wide at 1920.
+CHECK_CARD_HALF = 0.022
+CHECK_CARD_BAND = (0.855, 0.960)
+
+
+def check_box(index, size, *, centres=CHECK_CENTRES, half=CHECK_CARD_HALF,
+              band=CHECK_CARD_BAND):
+    """The pixel box of identity slot ``index`` (1-based) on a ``size`` frame."""
+    width, height = size
+    centre = centres[index - 1] * width
+    return [int(round(centre - half * width)), int(round(band[0] * height)),
+            int(round(2 * half * width)), int(round((band[1] - band[0]) * height))]
+
+
+def odds_scores(image, *, directory=ODDS_TEMPLATE_DIR, centres=CHECK_CENTRES,
+                band=CHECK_ROW_BAND, window=CHECK_WINDOW, tiers=ODDS_TIERS,
+                min_score=ODDS_MIN_SCORE, reference_width=1920):
+    """One record per identity slot: ``{'index', 'tier', 'score'}``.
+
+    ``tier`` is ``None`` when no caption reaches ``min_score`` in that slot, which is
+    what a fallen identity's dimmed caption looks like. Templates are stored from the
+    1920-wide frames MaaFramework writes, so they match the live page exactly instead
+    of carrying the resampling error of a downscaled screenshot; a narrower frame
+    scales them down the way the anchor registry does.
+    """
+    from pathlib import Path
+
+    import cv2
+
+    height, width = image.shape[:2]
+    row = image[int(band[1] * height):int(band[3] * height), :, :]
+    scale = width / float(reference_width)
+    results = []
+    for index, centre in enumerate(centres, 1):
+        left = max(0, int((centre - window) * width))
+        right = min(width, int((centre + window) * width))
+        column = row[:, left:right]
+        chosen, best = None, 0.0
+        for tier in tiers:
+            template = cv2.imread(str(Path(directory) / ('odds_%s.png' % tier)))
+            if template is None:
+                continue
+            size = (max(1, round(template.shape[1] * scale)),
+                    max(1, round(template.shape[0] * scale)))
+            template = cv2.resize(template, size, interpolation=cv2.INTER_LINEAR)
+            if column.shape[0] < template.shape[0] or column.shape[1] < template.shape[1]:
+                continue
+            score = float(cv2.matchTemplate(column, template, cv2.TM_CCOEFF_NORMED).max())
+            if score > best:
+                best, chosen = score, tier if score >= min_score else None
+        results.append({'index': index, 'tier': chosen, 'score': round(best, 3)})
+    return results
+
+
+def best_check_choice(scores, *, min_score=ODDS_MIN_SCORE):
+    """The 1-based slot with the best trusted odds, else ``None``.
+
+    Ties keep the leftmost slot, so the choice is stable rather than arbitrary.
+    """
+    best = None
+    for item in scores or []:
+        tier = item.get('tier')
+        if tier not in ODDS_RANK or float(item.get('score', 0) or 0) < min_score:
+            continue
+        rank = ODDS_RANK[tier]
+        if best is None or rank > best[1]:
+            best = (item.get('index'), rank)
+    return best[0] if best else None

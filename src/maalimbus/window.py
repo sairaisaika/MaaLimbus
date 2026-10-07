@@ -44,12 +44,14 @@ PAGE_NODES = {'DRIVE': 'WindowDrive'}
 #: page refuses a reward the run has already earned, so both stay registered as
 #: anchors (their labels are how the page is identified) but are refused as targets.
 #: The entry confirmation's X Cancel is the same shape: the run is already free to
-#: start and cancelling it costs the step, not the run.
+#: start and cancelling it costs the step, not the run. The skill check's SKIP is the
+#: fourth shape: it means nobody attempts the roll, which forfeits the check outright,
+#: so it stays registered as an anchor but is never a target.
 FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
                       'star_confirm.cancel_button', 'initial_gifts.refuse_button',
-                      'gift_search_forgo.cancel_button')
+                      'gift_search_forgo.cancel_button', 'event_check.skip_button')
 
 #: Pages that clear themselves: the planner has no control to send, so the driver
 #: waits for the page to change instead of treating it as the end of the run.
@@ -93,7 +95,7 @@ def _refuse(page, reason):
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
-              search=None):
+              search=None, check=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -104,7 +106,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
-                      initial=initial, search=search)
+                      initial=initial, search=search, check=check)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -115,7 +117,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
-               search=None):
+               search=None, check=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -124,7 +126,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     page to an existing pipeline node that already carries its own proven
     recognition and click box; ``team`` carries the pre-battle page's per-card
     participation badges; ``reward`` carries the encounter reward page's pick
-    counter (``{'chosen': n, 'required': m}``).
+    counter (``{'chosen': n, 'required': m}``); ``check`` carries the skill check's
+    chosen slot (``{'slot': n, 'tier': t, 'box': [x, y, w, h]}``).
     """
     controls = controls or {}
     nodes = dict(PAGE_NODES, **(nodes or {}))
@@ -258,6 +261,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'cutscene_skip_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,),
                      reason='the_cutscene_is_skipped_to_resume_the_run')
+    if page == 'EVENT_CHECK':
+        # The event's skill check asks which identity attempts the roll and prints each
+        # one's odds caption over its card. The driver reads those captions off the live
+        # frame (OCR merges the whole row into one token) and hands over the best slot's
+        # card box, so the roll goes to the identity the game itself rates highest.
+        state = check or {}
+        box = state.get('box')
+        if not box:
+            return _refuse(page, 'no_event_check_candidate_observed')
+        return _plan(page, CLICK, target=box, expect=(ANY,),
+                     reason='the_skill_check_is_rolled_by_the_best_odds',
+                     detail={'slot': state.get('slot'), 'tier': state.get('tier')})
     if page == 'EVENT_CHOICE':
         # The event's "Choices" page lists two to four rows of spoken text; any row
         # advances the run, and the rows are read live because their count moves them.
