@@ -99,7 +99,7 @@ def _refuse(page, reason):
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
-              search=None, check=None):
+              search=None, check=None, defeat=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -110,7 +110,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       auto_assign=auto_assign, candidates=candidates,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
-                      initial=initial, search=search, check=check)
+                      initial=initial, search=search, check=check, defeat=defeat)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -121,7 +121,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
-               search=None, check=None):
+               search=None, check=None, defeat=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -225,6 +225,30 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'battle_victory_confirm_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='victory_confirm_clears_the_result_and_carries_the_rewards')
+    if page == 'BATTLE_DEFEAT':
+        # A wiped stage asks what happens to the run: live
+        # evidence/runtime/window-20261007-044408/frame-0001.json reads the three rows
+        # 'Return to Stage Select' [948,343,262,28], 'Retry Stage' [946,480,144,34] and
+        # 'Accept results and return to Stage select' [952,625,362,20] over 'All
+        # participating Sinners have been killed.' and 'Remaining Units: 0/12', with the
+        # Confirm [930,770,126,36] that commits whichever row is picked. Retrying the
+        # stage is the only input that keeps the run alive, and it is bounded by the
+        # driver: once the retries are spent nothing is sent and the player decides,
+        # because neither accepting the deaths nor leaving the run is ours to choose.
+        defeat = defeat or {}
+        if defeat.get('spent'):
+            return _refuse(page, 'defeat_retries_exhausted')
+        if not defeat.get('row_sent'):
+            box = controls.get('defeat.retry_button')
+            if box is None:
+                return _refuse(page, 'defeat_retry_row_not_anchored')
+            return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                         reason='the_wiped_stage_is_picked_for_a_retry')
+        box = controls.get('defeat.confirm_button')
+        if box is None:
+            return _refuse(page, 'defeat_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_retry_is_confirmed_and_the_stage_starts_over')
     if page == 'BATTLE_RESULT':
         # The victory screen has a proven producer and the pipeline clicks it
         # through PostBattleObserve, but no control for it has been anchored on a

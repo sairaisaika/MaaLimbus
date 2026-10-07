@@ -225,6 +225,37 @@ def test_the_victory_screen_is_cleared_by_its_own_confirm():
     assert blind['reason'] == 'battle_victory_confirm_not_anchored'
 
 
+def test_the_wiped_stage_is_retried_within_its_bound_and_then_left_alone():
+    # Live proof: window-20261007-044408/frame-0001.json is the dialog the floor 5 wipe
+    # raised -- 'Retry Stage' [946,480,144,34], 'Return to Stage Select' [948,343,262,28],
+    # 'Accept results and return to Stage select' [952,625,362,20], 'Confirm' [930,770,126,36].
+    retry = [946, 480, 144, 34]
+    confirm = [930, 770, 126, 36]
+    controls = {'defeat.retry_button': retry, 'defeat.confirm_button': confirm,
+                'defeat.accept_button': [952, 625, 362, 20]}
+    # First pass: pick the retry row.
+    row = plan_step('BATTLE_DEFEAT', controls=controls,
+                    defeat={'row_sent': False, 'spent': False})
+    assert row['action'] == CLICK and row['target'] == retry
+    assert row['reason'] == 'the_wiped_stage_is_picked_for_a_retry'
+    assert row['expect'] == [ANY] and row['advance'] is True
+    # Second pass: its own Confirm, and never the accept row.
+    commit = plan_step('BATTLE_DEFEAT', controls=controls,
+                       defeat={'row_sent': True, 'spent': False})
+    assert commit['action'] == CLICK and commit['target'] == confirm
+    assert commit['reason'] == 'the_retry_is_confirmed_and_the_stage_starts_over'
+    # The bound is the driver's: once the retries are spent nothing is sent at all, so
+    # accepting the deaths stays the player's decision.
+    spent = plan_step('BATTLE_DEFEAT', controls=controls,
+                      defeat={'row_sent': False, 'spent': True})
+    assert spent['action'] == RECORD
+    assert spent['reason'] == 'defeat_retries_exhausted'
+    # Missing anchors are named rather than guessed.
+    blind = plan_step('BATTLE_DEFEAT', controls={}, defeat={'row_sent': False})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'defeat_retry_row_not_anchored'
+
+
 def test_the_skill_detail_popup_is_dismissed_off_the_board():
     # Live proof: window-20261007-014613/frame-0094.json is that popup -- 'Skill Effects'
     # over the keyword list, no close control of its own, WAVE/TURN covered. The dark

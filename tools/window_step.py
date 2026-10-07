@@ -652,6 +652,12 @@ def main() -> int:
                              'storing and reading a screenshot, and it sends no input')
     parser.add_argument('--observe-only', action='store_true',
                         help='record the page and send no input at all')
+    parser.add_argument('--defeat-tries', type=int, default=2,
+                        help='how many times a wiped stage may be retried in one window '
+                             '(default 2): the retry is the only input on that dialog that '
+                             'keeps the run alive, and once the tries are spent nothing is '
+                             'sent, so the decision to accept the deaths stays with the '
+                             'player')
     parser.add_argument('--stop-page', default=None,
                         help='stop the window the moment this page is observed: a long '
                              'session (a run that ends with the settlement and then goes '
@@ -750,6 +756,8 @@ def main() -> int:
         page = None
         tutorial_cards = set()
         team_slot_picked = None
+        defeat_row_sent = False
+        defeat_attempts = 0
         gift_wanted_plan = gift_plan.load(args.gift_plan)
         grace_wanted = [int(part) for part in str(args.graces).replace(' ', '').split(',')
                         if part.strip().isdigit()]
@@ -974,6 +982,20 @@ def main() -> int:
                         'selected': team_slot_picked}
             else:
                 team_slot_picked = None
+            defeat = None
+            if page == 'BATTLE_DEFEAT':
+                # A wipe is the one page where the run's survival is decided. The row is
+                # sent once, then its Confirm; defeat_attempts counts the retries already
+                # spent in this window, and once they are gone nothing is sent at all.
+                if defeat_row_sent:
+                    defeat_attempts += 1
+                defeat = {'row_sent': defeat_row_sent,
+                          'spent': defeat_attempts >= max(1, args.defeat_tries)}
+                if defeat['spent']:
+                    journal.record('window_defeat', page=page, retries=defeat_attempts,
+                                   sent=False)
+            else:
+                defeat_row_sent = False
             reward = reward_state(record) if page == 'REWARD_CARD' else None
             gift = None
             cards = None
@@ -1031,13 +1053,13 @@ def main() -> int:
                              auto_assign=record.get('auto_assign_buttons'),
                              candidates=candidates, candidate_index=choice_index,
                              team=team, reward=reward, gift=gift, cards=cards,
-                             graces=graces, initial=initial, check=check,
+                             graces=graces, initial=initial, check=check, defeat=defeat,
                              search={'mode': args.gift_search})
             entry = {'step': step, 'page_before': page, 'scene_before': record['scene'],
                      'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                      'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                      'initial': initial, 'search': {'mode': args.gift_search},
-                     'check': check,
+                     'check': check, 'defeat': defeat,
                      'arrows': arrows_of(directory),
                      'candidates': candidates}
             if plan['action'] not in ('click', SWIPE, NODE) or args.observe_only:
@@ -1134,6 +1156,10 @@ def main() -> int:
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.
                 team_slot_picked = plan['detail']['slot']
+            if entry['passed'] and plan.get('reason') == 'the_wiped_stage_is_picked_for_a_retry':
+                # The retry row is highlighted; the next step on this dialog sends its
+                # own Confirm, and no further row is picked.
+                defeat_row_sent = True
             if entry['passed'] and plan.get('detail', {}).get('card'):
                 # That grace is paid for; the next step buys the next affordable card.
                 grace_bought.add(plan['detail']['card'])

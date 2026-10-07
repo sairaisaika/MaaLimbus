@@ -421,6 +421,35 @@ def test_the_victory_result_with_confirm_is_its_own_page():
     assert classify(half, words, tuple(frame['size'])) != 'BATTLE_VICTORY'
 
 
+def test_the_wiped_stage_dialog_is_its_own_page():
+    """Live evidence/runtime/window-20261007-044408/frame-0001.json (floor 5 wipe, run 116).
+
+    The second five-floor attempt was wiped by the floor 5 boss. The game does not end the
+    run: it asks how to continue (Return to Stage Select / Retry Stage / Accept results) and
+    the driver read the dialog as UNKNOWN, so it stopped on the one page that decides
+    whether the run survives. The casualty line is what names the page -- the floor words
+    alone also appear on the pause dialog.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-044408/frame-0001.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Retry Stage' for t in records)
+    assert any(t.text.strip() == 'All participating Sinners have been' for t in records)
+    assert any(t.text.strip().startswith('Remaining Units') for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'BATTLE_DEFEAT'
+    # The floor line on its own is not the page: the pause dialog prints it too.
+    without_casualties = [t for t in records
+                          if not t.text.strip().startswith('All participating')]
+    assert classify(without_casualties, words, tuple(frame['size'])) != 'BATTLE_DEFEAT'
+    # And a battle frame that merely mentions a wipe keeps its own name.
+    battle = json.loads((root / 'evidence/runtime/window-20261007-042342/frame-0283.json')
+                        .read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in battle['ocr']]
+    assert classify(tokens, words, tuple(battle['size'])) != 'BATTLE_DEFEAT'
+
+
 def test_the_run_summary_is_named_so_its_rewards_can_be_claimed():
     """Live evidence/runtime/window-20261007-020715/frame-0006.json (run 101).
 

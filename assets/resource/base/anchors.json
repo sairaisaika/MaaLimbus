@@ -578,6 +578,141 @@
       ]
     },
     {
+      "id": "battle_defeat",
+      "title": "团灭后的关卡对话框（Retry Stage / Return to Stage Select / Accept results）",
+      "why": "全员阵亡时游戏不结束这一局，而是问这一局怎么继续：Return to Stage Select（可先改部署顺序）、Retry Stage（从本关第一波重来）、Accept results and return to Stage select（接受 sinner 死亡并回关卡选择），三者都要再按 Confirm。2026-10-07 实机在镜牢 5 层 boss 团灭后，驱动把这一页读成 UNKNOWN 并停机（build/window-after-defeat-*.png），所以它必须有自己的页名。",
+      "evidence": [
+        "evidence/runtime/window-20261007-044408/frame-0001.json"
+      ],
+      "identity": [
+        {
+          "id": "defeat.floor_label",
+          "kind": "ocr",
+          "pattern": "^Floor\\s*In\\s*Progress$",
+          "roi": [
+            0.3,
+            0.35,
+            0.42,
+            0.41
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 读成 'FloorIn Progress' [608,397,168,27] 0.98（词与字之间丢空格）；暂停对话框也印层号，所以这一条不能单独定页"
+        },
+        {
+          "id": "defeat.casualties",
+          "kind": "ocr",
+          "pattern": "^All participating Sinners have been$",
+          "roi": [
+            0.26,
+            0.5,
+            0.46,
+            0.55
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR [528,555,330,28] 0.99，下一行是 'killed.' [662,581,62,28]"
+        },
+        {
+          "id": "defeat.remaining_units",
+          "kind": "ocr",
+          "pattern": "^Remaining\\s+Units",
+          "roi": [
+            0.26,
+            0.57,
+            0.42,
+            0.64
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 'Remaining Units: 0/12' [526,627,252,48] 0.98；分母恒为 12，分子会变"
+        }
+      ],
+      "controls": [
+        {
+          "id": "defeat.retry_button",
+          "kind": "geometry",
+          "box": [
+            946,
+            480,
+            144,
+            34
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-044408/frame-0001.json",
+            "box": [
+              946,
+              480,
+              144,
+              34
+            ],
+            "source": "实机 OCR 'Retry Stage' [946,480,144,34] 0.99 的框；点它高亮该行"
+          },
+          "note": "默认选择：从本关第一波重来，是唯一能让这一局活下去的输入"
+        },
+        {
+          "id": "defeat.return_button",
+          "kind": "geometry",
+          "box": [
+            948,
+            343,
+            262,
+            28
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-044408/frame-0001.json",
+            "box": [
+              948,
+              343,
+              262,
+              28
+            ],
+            "source": "实机 OCR 'Return to Stage Select' [948,343,262,28] 1.0 的框"
+          },
+          "note": "登记但默认不点：回关卡选择要先改部署顺序，脚本还没读那一页"
+        },
+        {
+          "id": "defeat.accept_button",
+          "kind": "geometry",
+          "box": [
+            952,
+            625,
+            362,
+            20
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-044408/frame-0001.json",
+            "box": [
+              952,
+              625,
+              362,
+              20
+            ],
+            "source": "实机 OCR 'Accept results and return to Stage select' [952,625,362,20] 0.98 的框"
+          },
+          "note": "登记但不自动点：接受全员阵亡是玩家的决定，脚本在重试次数用尽后停下等人"
+        },
+        {
+          "id": "defeat.confirm_button",
+          "kind": "geometry",
+          "box": [
+            930,
+            770,
+            126,
+            36
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-044408/frame-0001.json",
+            "box": [
+              930,
+              770,
+              126,
+              36
+            ],
+            "source": "实机 OCR 'Confirm' [930,770,126,36] 1.0 的框"
+          },
+          "note": "只在已经点过某一行之后按它"
+        }
+      ]
+    },
+    {
       "id": "run_claim",
       "title": "镜牢通关结算（Exploration Complete / Total Progress 100% / Claim Rewards）",
       "why": "五层打完后的总结算页：左边列 Floor1..Floor5 各 6/6 与 Total Progress 100%，右边是 Starlight 明细与 Net Amount，底部是 Previous/Next 与唯一的前进控件 Claim Rewards。2026-10-07 实机第一次走到这里（build/window-run101.json 之后），此前脚本从未领过奖。Previous/Next 只是翻页、不能证明任何进度，所以本页只发 Claim。",

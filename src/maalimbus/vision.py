@@ -58,6 +58,20 @@ def classify(records, locale, size):
             and find(records, locale.get('victory_clear', r'(?!)'), (.66, .12, .82, .26),
                      size, .85)):
         return 'BATTLE_VICTORY'
+    # A wipe raises the stage dialog that decides whether the run continues: live
+    # evidence/runtime/window-20261007-044408/frame-0001.json reads 'FloorIn Progress'
+    # [608,397,168,27] 0.98 (the label and the word merge), 'All participating Sinners
+    # have been' [528,555,330,28] with 'killed.' below it, and 'Remaining Units: 0/12'
+    # [526,627,252,48] 0.98, beside the three rows 'Return to Stage Select' [948,343,262,28],
+    # 'Retry Stage' [946,480,144,34] and 'Accept results and return to Stage select'
+    # [952,625,362,20] with 'Confirm' [930,770,126,36]. The floor words alone also show on
+    # the pause dialog, so the casualty line is what names this page.
+    if (find(records, locale.get('floor_in_progress', r'(?!)'), (.30, .35, .42, .41), size, .85)
+            and find(records, locale.get('sinners_killed', r'(?!)'), (.26, .50, .46, .55),
+                     size, .85)
+            and find(records, locale.get('remaining_units', r'(?!)'), (.26, .57, .42, .64),
+                     size, .85)):
+        return 'BATTLE_DEFEAT'
     # The run's own summary, which is where the five floors are claimed: live evidence
     # evidence/runtime/window-20261007-020715/frame-0006.json reads 'Exploration'
     # [234,138,238,48] and 'Complete' [250,188,202,50] at 1.0 over 'Total Progress'
