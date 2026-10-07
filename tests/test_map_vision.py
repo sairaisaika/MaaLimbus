@@ -184,6 +184,39 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
                for item in clicks)
 
 
+def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
+    """Live evidence/runtime/window-20261006-201831/frame-0065.png.
+
+    Run build/window-run64.json stalled on this floor: six clicks on the badge and
+    lattice candidates opened no panel, then no_candidate_node_observed. The node the
+    game was offering is the cyan-lit one at (1087,737) in 1920-space; naming it from
+    its own pixels puts the accepted click first.
+    """
+    import json
+    from pathlib import Path
+    pytest.importorskip('cv2')
+    from maalimbus.map_vision import NODE_BADGE_TEMPLATE, highlighted_nodes, map_clicks
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261006-201831/frame-0065.png'
+    template_path = root / 'assets/resource/base' / NODE_BADGE_TEMPLATE
+    if not path.exists() or not template_path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import cv2
+    image = cv2.imread(str(path))
+    lit = highlighted_nodes(image)
+    assert len(lit) == 1, lit
+    assert abs(lit[0][0] - 1087) <= 12 and abs(lit[0][1] - 737) <= 12, lit
+    clicks = map_clicks(image, template=cv2.imread(str(template_path)))
+    assert clicks[0]['kind'] == 'cyan_node'
+    point = clicks[0]['point']
+    assert abs(point[0] - 1087) <= 12 and abs(point[1] - 737) <= 12, point
+    # The badge nodes are still offered behind it, so a refused click can fall back.
+    assert any(item['kind'] == 'node_away_from_player' for item in clicks)
+    assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
+                                'node_away_from_player', 'lattice_step')
+               for item in clicks)
+
+
 def test_the_locomotive_names_the_player_when_no_badge_node_does():
     """Live floor-2 evidence/runtime/window-20261006-050106/frame-0003.json.
 

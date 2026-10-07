@@ -431,6 +431,66 @@ LATTICE_PITCH = (384, 320)
 CLICK_SIDE = 40
 
 
+#: The node the game is offering next is lit cyan on the live floor-1 page (the rest
+#: of the map is dark blue); the wash along the path shares the colour but is sparse,
+#: so a fill test separates the lit ring from it.
+HIGHLIGHT_MIN_GREEN = 140
+HIGHLIGHT_MIN_BLUE = 120
+HIGHLIGHT_MAX_RED = 140
+HIGHLIGHT_MIN_WARMTH = 50
+HIGHLIGHT_MIN_PIXELS = 400
+HIGHLIGHT_MIN_SIDE = 40
+HIGHLIGHT_MAX_SIDE = 260
+HIGHLIGHT_MIN_FILL = 0.08
+#: The lit node is a *ring*, while the header strip above the map carries solid cyan
+#: status icons: live window-20261006-052530/frame-0020 read one at (1164,180) with
+#: fill 0.49 against the ring's 0.28. The band drops the header outright -- every lit
+#: node seen live sat at y 0.39-0.68 -- and the fill cap is the backstop.
+HIGHLIGHT_BAND = (.20, .95)
+HIGHLIGHT_MAX_FILL = 0.60
+
+
+def highlighted_nodes(image, *, min_green=HIGHLIGHT_MIN_GREEN, min_blue=HIGHLIGHT_MIN_BLUE,
+                      max_red=HIGHLIGHT_MAX_RED, warmth=HIGHLIGHT_MIN_WARMTH,
+                      min_pixels=HIGHLIGHT_MIN_PIXELS, min_side=HIGHLIGHT_MIN_SIDE,
+                      max_side=HIGHLIGHT_MAX_SIDE, min_fill=HIGHLIGHT_MIN_FILL,
+                      max_fill=HIGHLIGHT_MAX_FILL, band=HIGHLIGHT_BAND):
+    """Centres of the cyan-lit nodes on a map page, densest first; no input.
+
+    Live: evidence/runtime/window-20261006-201831/frame-0065.png -- the run stopped
+    with ``no_candidate_node_observed`` because the node the game offered (1087,737,
+    sitting between crescent-badge nodes that all refused the click) was never a
+    candidate. The lit ring's own pixels name it directly, which is sturdier than any
+    offset from the badge drawn under a node.
+    """
+    if image is None:
+        return []
+    import cv2
+    import numpy as np
+    height = image.shape[0]
+    blue = image[:, :, 0].astype(np.int16)
+    green = image[:, :, 1].astype(np.int16)
+    red = image[:, :, 2].astype(np.int16)
+    mask = ((green >= min_green) & (blue >= min_blue) & (red <= max_red)
+            & ((green + blue) // 2 - red >= warmth)).astype(np.uint8)
+    mask[:round(band[0] * height)] = 0
+    mask[round(band[1] * height):] = 0
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    found = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if area < min_pixels:
+            continue
+        if not (min_side <= box_w <= max_side) or not (min_side <= box_h <= max_side):
+            continue
+        fill = area / float(max(1, box_w * box_h))
+        if not (min_fill <= fill <= max_fill):
+            continue
+        found.append(((int(x + box_w // 2), int(y + box_h // 2)), int(area)))
+    found.sort(key=lambda item: -item[1])
+    return [point for point, _ in found]
+
+
 def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_SATURATION,
                  min_pixels=MARKER_MIN_PIXELS, bottom=MARKER_MAP_BOTTOM, right=MARKER_MAP_RIGHT):
     """Bright desaturated glyph boxes on a map page, largest first; no input."""
@@ -525,6 +585,12 @@ def map_clicks(image, *, template=None, node_side=190):
         # "highlighted node" and the first click went to it), so nothing is claimed
         # as marked and the chevron/lattice candidates carry the step instead.
         highlighted = []
+    # The lit node is the step the game is offering, so it outranks everything else:
+    # live evidence/runtime/window-20261006-200505/frame-0081.png -- the click that
+    # opened the panel landed on the cyan node while the crescent-badge nodes around it
+    # refused it, and the run had stopped with no_candidate_node_observed.
+    for point in highlighted_nodes(image):
+        add(point, 'cyan_node', CLICK_SIDE)
     # The highlighted node is the step the game will accept, so it goes first; the
     # chevron only points along the path towards it, and the badge nodes are the
     # ordinary case where nothing on the page is marked at all.
