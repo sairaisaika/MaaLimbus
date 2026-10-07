@@ -141,6 +141,30 @@ def test_pre_battle_team_battles_when_the_counter_already_reads_full():
     assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
 
 
+def test_the_skill_detail_popup_is_dismissed_off_the_board():
+    # Live proof: window-20261007-014613/frame-0094.json is that popup -- 'Skill Effects'
+    # over the keyword list, no close control of its own, WAVE/TURN covered. The dark
+    # board under the auto-assign buttons reads mean (0,3,14) with std 6.6 there, so the
+    # dismiss tap goes there and nowhere near a skill card or Win Rate.
+    box = [1660, 910, 80, 80]
+    plan = plan_step('BATTLE_TIP', controls={'battle_tip.dismiss_point': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'the_skill_detail_popup_is_dismissed_off_the_board'
+    assert plan['advance'] is True
+    assert plan['expect'] == [ANY]
+    # The popup moves the page without leaving it: the pass comes from the frame changing.
+    assert successor_ok(plan, 'BATTLE_TIP') is False
+    assert step_result(plan, sent=True, before='BATTLE_TIP', after='BATTLE_TIP',
+                       page='BATTLE_TIP', frame_changed=True)['passed'] is True
+    assert step_result(plan, sent=True, before='BATTLE_TIP', after='BATTLE_TIP',
+                       page='BATTLE_TIP', frame_changed=False)['passed'] is False
+    # Without the anchor there is no input at all.
+    blind = plan_step('BATTLE_TIP', controls={})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'battle_tip_dismiss_not_anchored'
+
+
 def test_battle_prefers_start_and_falls_back_to_win_rate():
     start = plan_step('BATTLE_HUD', start_box=[1038, 771, 121, 133],
                       auto_assign={'win_rate': [1198, 796, 48, 41]})

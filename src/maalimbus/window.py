@@ -646,6 +646,19 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'reward_card_confirm_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='confirm_grants_the_picked_encounter_reward')
+    if page == 'BATTLE_TIP':
+        # A tap on a skill card opens that skill's detail over the board, and the panel
+        # has no close control of its own (live window-20261007-014613/frame-0094.json:
+        # 'Skill Effects' over the keyword list, the WAVE/TURN captions covered). The
+        # dark board area under the auto-assign buttons is empty in that frame --
+        # (1700,950) reads mean (0,3,14) with std 6.6 -- so a tap there dismisses the
+        # panel, which is the same unbounded-by-design, step-budgeted shape as the other
+        # dismiss taps.
+        box = controls.get('battle_tip.dismiss_point')
+        if box is None:
+            return _refuse(page, 'battle_tip_dismiss_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_skill_detail_popup_is_dismissed_off_the_board')
     if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
         # BATTLE_PLANNING is the same battle screen in its skill-planning sub-state
         # (agent/recognition.py:198 names it when the WAVE/TURN captions are not read

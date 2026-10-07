@@ -48,6 +48,15 @@ def classify(records, locale, size):
     # the threshold is high on purpose.
     if find(records, locale.get('victory', r'(?!)'), (.33, .36, .68, .64), size, .85):
         return 'BATTLE_RESULT'
+    # Tapping a skill card on the battle board opens that skill's detail over the left
+    # half of the screen: live evidence/runtime/window-20261007-014613/frame-0094.json
+    # reads 'Skill Effects' [420,83,142,28] 1.0 with the keyword list under it and no
+    # close control of its own, and the battle HUD's WAVE/TURN captions are covered, so
+    # the page fell to UNKNOWN and the run stopped twenty rounds into floor 5
+    # (build/window-run99.json). It is named before the battle branches because the
+    # tooltip is what the frame is showing.
+    if find(records, locale.get('skill_effects', r'(?!)'), (.19, .06, .35, .13), size, .85):
+        return 'BATTLE_TIP'
     if find(records, locale['defeat'], (.15, .05, .9, .7), size):
         return 'DEFEAT'
     if (find(records,locale.get('gift_get',r'(?!)'),(.40,.21,.62,.29),size,.85)

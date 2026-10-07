@@ -35,7 +35,7 @@ def ocr_anchor(anchor_id='a.one', pattern='^Enter$', roi=(.82, .68, .95, .80), t
 def test_shipped_registry_files_validate():
     loaded = anchors.load(REGISTRY)
     ids = [entry['id'] for entry in loaded['pages']]
-    assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud',
+    assert ids == ['map', 'node_panel', 'pre_battle_team', 'battle_hud', 'battle_tip',
                    'battle_result', 'home', 'drive', 'before_entry', 'tutorial',
                    'mirror_entry', 'entry_confirm', 'resume_dialog', 'reward_card',
                    'shop', 'shop_leave', 'gift_get', 'gift_pick', 'gift_warning',

@@ -76,6 +76,10 @@ LOOP_GUARD_EXEMPT_REASONS = (
     # window-run93.json tripped on the third join with eight slots still to fill). The
     # step budget bounds it, and the page moves on to the battle once the team is full.
     'team_card_joins_the_next_unpicked_identity',
+    # A skill's detail popup is dismissed by tapping the empty board under it, and that
+    # tap is progress even though the page name never moves: live window-20261007-014613
+    # is the popup, and the run continues from the battle HUD once it is closed.
+    'the_skill_detail_popup_is_dismissed_off_the_board',
 )
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {

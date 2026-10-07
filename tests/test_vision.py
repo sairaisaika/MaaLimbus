@@ -372,3 +372,22 @@ def test_the_resolved_skill_check_is_ready_once_its_control_lights_up():
     tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in lit['ocr']]
     assert any(t.text.strip() == 'Continue' for t in tokens)
     assert classify(tokens, words, tuple(lit['size'])) == 'EVENT_CHECK_READY'
+
+
+def test_the_skill_detail_popup_over_the_battle_is_its_own_page():
+    """Live evidence/runtime/window-20261007-014613/frame-0094.json, floor 5 (run 99).
+
+    A tap on a skill card opens that skill's detail over the left half of the board and
+    covers the HUD's WAVE/TURN captions, so the page fell to UNKNOWN and the run stopped
+    twenty rounds into the fifth floor. 'Skill Effects' is what names it.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-014613/frame-0094.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Skill Effects' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'BATTLE_TIP'
+    # The panel's own title is what names it: a frame without it is not this page.
+    without = [t for t in records if t.text.strip() != 'Skill Effects']
+    assert classify(without, words, tuple(frame['size'])) != 'BATTLE_TIP'

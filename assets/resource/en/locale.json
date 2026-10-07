@@ -58,6 +58,7 @@
   "what_will_you_do": "^What will you do\\?$",
   "who_will_give_it_a_try": "^Who will give it a try\\?$",
   "who_will_enter": "^Who will enter\\?$",
+  "skill_effects": "^Skill Effects$",
   "choose_character": "^Choose a character to perform$",
   "commence": "^Commence$",
   "check_outcome": "^Check (?:Passed|Failed)$"

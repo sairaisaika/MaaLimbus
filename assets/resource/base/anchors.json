@@ -437,6 +437,52 @@
       ]
     },
     {
+      "id": "battle_tip",
+      "title": "战斗中的技能说明浮层（Skill Effects；遮住 WAVE/TURN，自身没有关闭控件）",
+      "why": "在战斗棋盘上点到技能卡会弹出该技能的说明，盖住画面左半边并压掉 WAVE/TURN，于是 vision 判 UNKNOWN、驱动在 floor 5 等了 20 轮停机（build/window-run99.json，实机 window-20261007-014613/frame-0094.json 读到 'Skill Effects' [420,83,142,28] 1.0 与 Keywords/Haste/Dokkaebi Arms 等条目，全帧没有任何 Close/Back/✕）。浮层自己在棋盘上留出的空处是右下的暗区：(1700,950) 一带 mean (0,3,14)、std 6.6，所以本页只做「点棋盘把那块说明点掉」，不做任何其它输入。",
+      "evidence": [
+        "evidence/runtime/window-20261007-014613/frame-0094.json"
+      ],
+      "identity": [
+        {
+          "id": "battle_tip.title",
+          "kind": "ocr",
+          "pattern": "^Skill Effects$",
+          "roi": [
+            0.19,
+            0.06,
+            0.35,
+            0.13
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [420,83,142,28] score 1.0；同帧还有 'Reywords'(Keywords 被 OCR 读错) 与 'Rending Arts'，只有这条 1.0 可钉"
+        }
+      ],
+      "controls": [
+        {
+          "id": "battle_tip.dismiss_point",
+          "kind": "geometry",
+          "box": [
+            1660,
+            910,
+            80,
+            80
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-014613/frame-0094.json",
+            "box": [
+              1660,
+              910,
+              80,
+              80
+            ],
+            "source": "实机帧 (1700,950) 邻域 80×80 的 mean (0,3,14)、std 6.6＝没有 UI 的暗背景；点它只关掉技能说明，不碰 Win Rate/Damage 与任何技能卡"
+          },
+          "note": "只点这块空棋盘；绝不点技能卡（会再开一层说明）、也不点右下 Win Rate/Damage"
+        }
+      ]
+    },
+    {
       "id": "battle_result",
       "title": "战斗结果演出（fatal blow / Gain / TOTAL）",
       "evidence": [
