@@ -49,7 +49,7 @@
   "gift_warning_remaining": "^You have remaining E\\.?G\\.?O Gift choices\\.$",
   "gift_warning_proceed": "^Will you proceed without selecting an E\\.?G\\.?O Gift\\?$",
   "skip": "^SKIP$",
-  "continue": "^Continue$",
+  "continue": "^(?:Continue|Proceed)$",
   "result": "^Result$",
   "rec": "^REC$",
   "choices": "^Choices$"

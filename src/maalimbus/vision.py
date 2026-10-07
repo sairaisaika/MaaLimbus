@@ -141,9 +141,11 @@ def classify(records, locale, size):
     # which point that slot carries a bright "Continue": live
     # evidence/runtime/window-20261006-045451/frame-0001.json (dim, no button token)
     # becomes frame-0002.json ("Continue" 1.0 at [1588,943,218,55]). It therefore has
-    # to be named before CUTSCENE, which also sees REC and SKIP.
-    if (find(records, locale.get('result', r'(?!)'), (.48, .11, .66, .24), size, .85)
-        and find(records, locale.get('rec', r'(?!)'), (.42, .14, .52, .24), size, .85)):
+    # to be named before CUTSCENE, which also sees REC and SKIP. The Result panel alone
+    # names the page: the live signboard event reaches this page with a bright
+    # "Proceed" [1594,945,206,49] and no readable REC badge at all, and a page that
+    # shows a Result panel is this page whether or not the badge was read.
+    if find(records, locale.get('result', r'(?!)'), (.48, .11, .66, .24), size, .85):
         if find(records, locale.get('continue', r'(?!)'), (.78, .82, .99, .98), size, .85):
             return 'EVENT_RESULT_READY'
         return 'EVENT_RESULT'

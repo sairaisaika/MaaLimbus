@@ -201,8 +201,17 @@ def test_the_event_result_is_named_and_its_ready_form_is_its_own_page():
     # ready form, and the Result heading alone is not enough without the REC badge.
     with_skip = dim + [Text('SKIP', (1620, 923, 152, 93), 1.0)]
     assert classify(with_skip, words, (1920, 1080)) == 'EVENT_RESULT'
-    without_rec = [item for item in lit if item.text != 'REC']
-    assert classify(without_rec, words, (1920, 1080)) != 'EVENT_RESULT_READY'
+    # The live signboard event reaches the outcome page with a bright "Proceed" and no
+    # readable REC badge, so the Result panel alone names the ready form.
+    live = [Text('Result', (1068, 168, 140, 42), 1.0),
+            Text('Its desperation is almost pitiable.', (110, 611, 386, 26), 1.0),
+            Text('Pick a rose.', (1062, 315, 158, 34), .99),
+            Text('Proceed', (1594, 945, 206, 49), 1.0)]
+    assert classify(live, words, (1920, 1080)) == 'EVENT_RESULT_READY'
+    # Without REC the page is still named from its Result panel, but with no Continue
+    # or Proceed token it stays the dim form the story tap has to reveal.
+    without_rec = [item for item in live if item.text != 'Proceed']
+    assert classify(without_rec, words, (1920, 1080)) == 'EVENT_RESULT'
 
 
 def test_the_choices_page_beats_the_cutscene_badge_it_shares():
