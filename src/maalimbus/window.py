@@ -519,8 +519,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('graces.enter_button')
         if box is None:
             return _refuse(page, 'graces_enter_not_anchored')
+        # Enter asks its own question before the run starts ("Continue with selected
+        # effects?"), so that confirm is an expected successor: live run105 bought five
+        # graces, pressed Enter and was stopped as an unexpected successor on STAR_CONFIRM
+        # (build/window-run105.json step8).
         return _plan(page, CLICK, target=box,
-                     expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+                     expect=('STAR_CONFIRM', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
                      reason='the_graces_page_is_left_with_its_own_enter')
     if page == 'GIFT_SEARCH':
         # The run's optional gift search: picking up to three gifts off the pool costs

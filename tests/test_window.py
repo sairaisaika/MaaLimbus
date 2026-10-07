@@ -466,6 +466,9 @@ def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
     assert leave['target'] == enter
     assert leave['reason'] == 'the_graces_page_is_left_with_its_own_enter'
     assert successor_ok(leave, 'INITIAL_GIFTS') and successor_ok(leave, 'MAP')
+    # Enter asks its own question first: live run105 bought five graces, pressed Enter
+    # and stopped as an unexpected successor on the confirm (build/window-run105.json).
+    assert successor_ok(leave, 'STAR_CONFIRM')
     assert not successor_ok(leave, 'STAR_GRACES')
     # A grace the driver could not locate must not turn into a blind click.
     assert plan_step('STAR_GRACES', controls={})['reason'] == 'graces_enter_not_anchored'
