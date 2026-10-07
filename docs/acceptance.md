@@ -1,5 +1,64 @@
 # Acceptance evidence
 
+## 2026-10-07 the turn dial is only the lit one, and the Win Rate press lights it
+
+- **What stalled.** `run-continue-16` (job `pwsh-385`, report `build/window-run-continue-16.json`)
+  ended after all 300 of its steps with its last 27 intents all reading
+  `win_rate_is_the_proven_auto_assign_control` (targets `[1598,796,48,41]`,
+  `[1600,792,46,45]` — the Win Rate caption itself) and **not one**
+  `start_button_submits_the_assigned_turn`. The fight stood at TURN 3 for about 40 minutes
+  (`build/live-stall-run16.png`), and the frame behind it
+  (`evidence/runtime/window-20261007-184958/frame-1401.json`, 23:33:43) reads
+  `Damage [1584,863,78,26]`, `Rate [1600,815,46,22]`, `Win [1604,796,40,21]`,
+  `MAX [1636,39,62,40]`, `TURN [20,97,42,22]`, `1/10 [88,37,46,32]`, `3 [98,95,16,26]` —
+  **no `START`**.
+- **Why.** `src/maalimbus/window.py:804-816` sends the turn when the observation carries a
+  `start_box`, and otherwise falls back to the Win Rate auto-assign; `start_box` comes from
+  `battle_vision.start_button()`, which, when the START word is unreadable, reads the dial by
+  colour inside `(0.60,0.66,0.78,0.88)` with `area>=4000`, `side>=60`. Of that window's 1103
+  battle frames only `frame-0760.json` (23:17:39) and `frame-0912.json` (23:21:29) carried a
+  readable START word, while the dial is drawn warm on 160 of 163 sampled battle frames in two
+  size variants — `(1440,771,121,134)` area 5501 and `(1455,800,81,79)` area 1913, measured in
+  1920 — whose centre `x` is about 1500, just outside the old band's right edge (`0.78*1920 =
+  1497`). The old parameters answered on 11 of those 163 frames, so the fight was re-assigning
+  skills instead of submitting turns.
+- **What the script does now** (commit `624b067`, corrected here). The dial is read by its own
+  shape inside the band `(0.58,0.60,0.82,0.93)`: `area>=4000`, side `100..160`, aspect at most
+  `1.25`, and at least `28%` of its box filled. That keeps the **lit** disc and drops the dim one,
+  and it also drops the wide warm highlights of the skill board that share the band — measured on
+  `window-20261007-175552/frame-0307.png`, whose decoy `(1180,732,200,145)` area 5949, aspect 1.38,
+  fill 0.21 sits beside the real `(1436,770,121,133)`, and on `frame-0083.png`
+  (`(1113,676,172,264)` area 13468). The Win Rate/Damage captions start at `x=1584`, outside the
+  right edge (`0.82*1920 = 1574`), so they cannot be mistaken for the dial, and the turn is still
+  submitted only when the game itself draws its START word or its **lit** dial — nothing is
+  inferred from the fight's state.
+- **Why the dim dial is not the control.** A fresh window (`--label run-continue-17`, job
+  `pwsh-403`, dir `evidence/runtime/window-20261007-194201`) used the earlier, looser thresholds
+  and clicked `(1455,800,81,79)` seven times; TURN stayed 3 and no turn was submitted. On the
+  stalled window the same input had already burned all 300 steps. The board draws that dim variant
+  while the turn is still unassigned, and it lights the disc only after the Win Rate
+  auto-assignment is pressed: `window-20261007-175552` pressed Win Rate at 22:43:44
+  (`[1714,796,46,41]`) and `frame-1010.json` at 22:43:46 carries `START [1580,742,52,24]` with the
+  lit disc `(1551,773,121,133)`, which was then submitted. Reproduced by hand on the stalled board
+  with a single handed probe click at 1920 `(1623,816)` (`tools/map_zoom.py --click`): the disc
+  went from the dim 854-pixel blob to the lit 2474-pixel blob (1280 screen) and the START banner
+  appeared, while the same screen had been static through 48 seconds of sampling.
+- **Measured.** Of 1651 archived battle frames across
+  `window-20261007-184958`, `window-20261007-175552` and `window-20261007-194201`, `dial_control`
+  now answers on 691 and every answer but two is the disc's own `121x13x` box (the two exceptions
+  are `138x141` and `137x136`, the same disc with its glow). `tests/test_battle_touch.py` pins both
+  sides of the distinction: `test_the_dim_dial_waits_for_the_auto_assignment_instead_of_submitting`
+  (frame-1401: no START token, `dial_control` and `start_button` both `None`, `begin_turn_plan`
+  refuses with `turn_start_not_present`, and the offered control is the Win Rate caption) and
+  `test_the_lit_dial_is_read_on_a_board_that_draws_no_start_word`
+  (`window-20261007-175552/frame-0020.json`, 21:57:13, no START token, box `(1439,772,121,133)`
+  entirely left of the captions, and it is what `begin_turn_plan` targets). Full suite 425 passed;
+  `tools/verify_anchors.py` 45 pages, 0 broken.
+- **Not claimed.** Nothing here shows the dim state is *only* unassigned skills (the reading is
+  that its board changes from bare chains to chains with `Clash!`/`REINFORCE` and arrows once the
+  assignment lands), nor that one Win Rate press always lights the disc on every board, nor that
+  the disc is the only control that can submit a turn anywhere else in the game.
+
 ## 2026-10-07 the factory floor's cyan path is walked, and the player is read from the flame
 
 - **What stalled.** `run-continue-13` (report `build/window-run-continue-13.json`) stopped at

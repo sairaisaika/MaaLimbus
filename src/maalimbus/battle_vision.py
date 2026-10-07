@@ -71,29 +71,34 @@ def warm_control(image, label_box, *, min_area=2000, window=(60, 20, 60, 150)):
     return None if best is None else tuple(best[1:])
 
 
-def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=1200, min_side=45):
-    """The battle's turn dial: the large warm disc that submits the turn, or None.
+def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=4000, min_side=100,
+                 max_side=160, max_aspect=1.25, min_fill=0.28):
+    """The battle's lit turn dial: the large warm disc that submits the turn, or None.
 
     Some boards draw the START word so small under their dial that OCR never returns
     it: live frame evidence/runtime/window-20261007-004730/frame-0326.png (floor 3, turn
     6/25) has no 'START' token at all, so start_button found nothing, the driver fell
     back to re-assigning skills, and the fight stood still through 140 clicks
-    (build/window-run95.json, build/window-run96.json). The dial itself is a big warm
-    blob at 1920 (1327,741,125,154) area 6646, left of the Win Rate button, so it is read
-    by colour inside a band that excludes those buttons -- nothing else in that band is
-    that large, and the blob is only used when no readable START word exists.
+    (build/window-run95.json, build/window-run96.json). The dial itself is a warm blob at
+    1920 (1327,741,125,154) area 6646, left of the Win Rate button, so it is read by
+    colour inside a band that excludes those buttons, and only when no readable START
+    word exists.
 
-    The band and the thresholds were widened after the same failure cost a whole turn
-    live: window-20261007-184958 spent all 300 steps on
-    'win_rate_is_the_proven_auto_assign_control' (targets [1598,796,48,41] and
-    [1600,792,46,45]) because the START banner was readable on only a handful of its
-    1103 battle frames (frame-0760.json at 23:17:39, frame-0912.json at 23:21:29). The
-    dial is drawn warm on 160 of 163 sampled battle frames of that window in two size
-    variants -- (1440,771,121,134) area 5501 and (1455,800,81,79) area 1913, measured in
-    1920 -- whose centre x is about 1500, just outside the old right edge (0.78*1920 =
-    1497), so the old thresholds answered on only 11 of those 163 frames. The Win
-    Rate/Damage captions start at x=1584, outside the new right edge (0.82*1920 = 1574),
-    so they still cannot be mistaken for the dial.
+    The dial has two warm variants and only the lit one is the control. Live
+    window-20261007-194201 clicked the dim variant (1455,800,81,79) area 1913 seven
+    times as if it were START and never submitted a turn: the board draws that variant
+    while a turn is still unassigned, and it only lights up (1439,772,121,133) area 5512,
+    fill 0.34, aspect 1.10 after the Win Rate auto-assignment is pressed -- proven live on
+    both boards, e.g. window-20261007-175552 pressed Win Rate at 22:43:44 and the START
+    banner appeared on frame-1010.json at 22:43:46. So the shape of the lit disc is what
+    is read: side 100..160, aspect at most 1.25, and at least 28% of its own box filled.
+    That keeps the disc and drops both the dim variant (side 79-81) and the wide warm
+    highlights of the skill board that share this band -- measured on
+    window-20261007-175552/frame-0307.png (decoy (1180,732,200,145) area 5949, aspect
+    1.38, fill 0.21 beside the real (1436,770,121,133)) and frame-0083.png ((1113,676,172,
+    264) area 13468). The old band's right edge (0.78*1920 = 1497) cut the disc's centre x
+    about 1500 off, which is why the wide band stays; the Win Rate/Damage captions start at
+    x=1584, outside the right edge (0.82*1920 = 1574), so they cannot be mistaken for it.
     """
     height, width = image.shape[:2]
     x0, y0 = int(width * roi[0]), int(height * roi[1])
@@ -109,6 +114,12 @@ def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=1200, min_side
     for index in range(1, count):
         bx, by, bwidth, bheight, area = stats[index]
         if area < min_area or bwidth < min_side or bheight < min_side:
+            continue
+        if max(bwidth, bheight) > max_side:
+            continue
+        if max(bwidth, bheight) > max_aspect * min(bwidth, bheight):
+            continue
+        if area < min_fill * bwidth * bheight:
             continue
         if best is None or area > best[0]:
             best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
