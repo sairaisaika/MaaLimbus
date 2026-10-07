@@ -141,7 +141,7 @@ def test_the_shop_node_is_named_by_its_title_and_leave_button():
     assert classify(asking, words, (1920, 1080)) == 'SHOP_LEAVE'
 
 
-def test_the_cutscene_is_named_by_its_rec_badge_and_skip_button():
+def test_the_cutscene_is_named_by_its_skip_button():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261006-044556/frame-0023.json is the
     # abnormality intro the floor's first node handed back. It never advanced by
@@ -153,10 +153,18 @@ def test_the_cutscene_is_named_by_its_rec_badge_and_skip_button():
             Text('REC', (870, 192, 64, 28), 1.0),
             Text('SKIP', (1620, 919, 152, 99), 1.0)]
     assert classify(page, words, (1920, 1080)) == 'CUTSCENE'
-    # Without the REC badge the page is not claimed: a stray SKIP-shaped token
-    # elsewhere must not turn an unknown page into an input target.
-    without_rec = [item for item in page if item.text != 'REC']
-    assert classify(without_rec, words, (1920, 1080)) != 'CUTSCENE'
+    # The live event story (window-20261006-203xxx: "What does this signboard say?")
+    # carries SKIP at [1618,919,154,99] with no readable REC badge at all, so SKIP in
+    # that corner band names the page on its own.
+    story = [Text('What does this signboard say?', (114, 510, 368, 28), 1.0),
+             Text('It hangs itself on a tree, trying to make its content known.',
+                  (114, 543, 676, 28), .98),
+             Text('SKIP', (1618, 919, 154, 99), 1.0)]
+    assert classify(story, words, (1920, 1080)) == 'CUTSCENE'
+    # A SKIP-shaped token anywhere else is still not enough to claim the page.
+    moved = [item if item.text != 'SKIP' else Text('SKIP', (300, 300, 152, 99), 1.0)
+             for item in story]
+    assert classify(moved, words, (1920, 1080)) != 'CUTSCENE'
 
 
 def test_the_event_choice_page_is_named_by_its_heading_and_rows():

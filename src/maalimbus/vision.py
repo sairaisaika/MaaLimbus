@@ -151,9 +151,11 @@ def classify(records, locale, size):
     # and a single SKIP button, and it waits for input instead of advancing: live
     # window-20261006-044556 sat on it for over a minute with the text already complete
     # ("Clopping like a spider, it talks to me."). Skipping is that page's own forward
-    # control, so it must be named rather than left as an unknown page.
-    if (find(records, locale.get('skip', r'(?!)'), (.78, .82, .99, .98), size, .85)
-        and find(records, locale.get('rec', r'(?!)'), (.42, .14, .52, .24), size, .85)):
+    # control, so it must be named rather than left as an unknown page. The SKIP button
+    # alone names it: the live event story (window-20261006-203xxx, "What does this
+    # signboard say?") carries SKIP at [1618,919,154,99] with no readable REC badge, and
+    # the choices page that also carries SKIP is named ahead of this branch.
+    if find(records, locale.get('skip', r'(?!)'), (.78, .82, .99, .98), size, .85):
         return 'CUTSCENE'
     if (find(records, locale.get('cancel', r'(?!)'), (.25,.25,.75,.80), size,.8)
         or find(records, locale.get('entry_confirm', r'(?!)'), (.30,.42,.70,.54), size,.8)):
