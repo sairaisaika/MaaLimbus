@@ -9,7 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 04:25 local
+## Latest continuation: 2026-10-07 14:00 local
+- **用户的当前指令（m12942）**：从零开始驱动脚本打镜牢，我只负责看它卡在哪里、结合网络资料完善脚本。
+- **冷启动打通（提交 `98db0dc`）**：`--flow launch` 过去被 `src/maalimbus/adb_preflight.py::foreground()` 拦住（客户端不在前台就抛 `RuntimeError('Limbus is not the uniquely identified foreground app')`）。现在新增 `foreground_any()`／`adb_device.foreground_any_of()`：**只有首个流程步是 `start_app` 的会话**才允许读「当前是谁在前台」并记进 `foreground_before`／`launched_by_flow`，由 Maa 自己的 start-app（绝不用桌面启动器）把游戏拉起来；其它会话仍是严格前检。实机：Android 桌面 → `start_app` → `TOUCH TO START` [846,810,222,41] 0.95 点掉 → `LUNACY` 出现 → `Confirm` 弹窗清掉 → 停在 `HOME`（前检期间 `clicks_sent` 为 0）。
+- **团灭页（提交 `41ac26d`＋`b8324d0`）**：5 层 boss 把 12 人全灭后，游戏弹出「Floor In Progress 5/5 / All participating Sinners have been killed. / Remaining Units: 0/12」＋三行选择（Return to Stage Select／Retry Stage／Accept results…）＋ Confirm。新页 `BATTLE_DEFEAT` 默认选 **Retry Stage**（唯一能让这一局活下去的输入），而且**有界**（`--defeat-tries`，默认 2）；两个「放弃这一局」的行只登记、永不自动点；重试次数在 **Confirm 落地后**才 +1。**400 passed**，anchors **41 页 0 broken**。
+- **实机从大厅驱动一整段（`build/window-run-from-home.json`）**：`HOME→DRIVE→MIRROR_ENTRY→ENTRY_CONFIRM→DUNGEON_TEAM（按账本选队）→STAR_GRACES（买 5 张）→STAR_CONFIRM→INITIAL_GIFTS→GIFT_GET→GIFT_SEARCH(refuse)→GIFT_SEARCH_FORGO→THEME_PACKS→MAP→…` 一路推进，159 次点击内**没有一次非设计内的停机**；窗口只是把 150 步预算用光（`passed: False` 是预算用尽，不是失败）。
+- **轮换账本实机生效**：这一局由 `config/user-run-ledger.json`（`slots=[5,4,1,6,2,7,3] rotation=1 -> team 4`）驱动，报告的 `run_ledger` 记 `team: 4`；站上 floor 2 时账本自己记下第一条 `floor_clear: 1`（`active run 8de51ee3 team 4 floors=[1]`）。
+- 教训：`tools/verify_anchors.py` 用默认参数跑（`41 page(s), 0 broken`）；手动传 `--template-root .` 会让 `battle_hud`/`tutorial` 的 evidence 解析失败并报 2 broken —— 那不是真回归。
+
+## Prior continuation: 2026-10-07 04:25 local
 - **实机 run114/115/116（`--stop-page HOME`）**：run114 从 floor 4 打到 floor 5 后停在 `page_unreadable_after_waiting`，run115/116 接着把 floor 5 的几场战斗打下去（每步都 `passed: true`，只有地图候选按设计轮换时记 6 次 `map_click_opened_no_panel`）。run115 用满 60 步预算（报告顶层 `verified_clear: False`、exit 1 ＝预算用尽而非失败），所以窗口的步数上限就是长局的唯一约束。
 - **header 又一种 OCR 形态（提交 `7abfec1`）**：`ExploringFloor5`（词与 Floor 之间**没有空格**）此前不被 `HEADER_PATTERN` 接受 ⇒ 页面判 UNKNOWN。现在分隔符可选、floor 词用惰性 `\w{3,5}?`（贪婪会把 `Floor5` 整个吃掉、floor 号丢成 None）；测试钉 `evidence/runtime/window-20261007-034308/frame-0198.json`。
 - **`--stop-page NAME`（提交 `c273643`）**：镜牢结算后游戏会自动回大厅并再次进场，长窗口会在调用者还没决定前就用旧队开下一局。现在命中该页即 `stopped: stop_page_reached` 并交回控制权（这一步也把「DUNGEON_TEAM 的队槽每次从账本现读」的改动带上，避免跨局用已退役的队）。
