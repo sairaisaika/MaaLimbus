@@ -35,3 +35,22 @@ def test_a_first_reading_that_is_missing_still_leaves_the_floor_unnamed():
     assert progress.remaining([[1, 2, 3, 4]]) == []
     assert progress.note_floor(2) == 2
     assert progress.remaining([[1, 2, 3, 4]]) == [[1, 2, 3, 4]]
+
+
+def test_leaving_the_map_offers_its_spots_again_on_the_next_visit():
+    """Live window build/window-run-continue-4.json, floor 1 "The Outcast".
+
+    The offered "?" node at [1067,389] opened its panel, the window ran the event behind
+    it and came back to the same map, where that node was still the forward step -- a
+    manual tap on the same spot reopened its panel. The window had already spent it, so
+    it walked nine speculative candidates into no effect and stopped. A visit ends when
+    a step settles off the map.
+    """
+    progress = MapProgress()
+    progress.note_floor(1)
+    progress.note_click([1067, 389, 40, 40])
+    assert progress.remaining([[1067, 389, 40, 40]]) == []
+    progress.leave()
+    assert progress.floor == 1
+    assert progress.remaining([[1067, 389, 40, 40]]) == [[1067, 389, 40, 40]]
+

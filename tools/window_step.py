@@ -1160,6 +1160,13 @@ def main() -> int:
                     break
             entry.update(page_after=settled_page, settled=settled,
                          scene_after=settled['scene'])
+            if settled_page not in (None, 'MAP', 'UNKNOWN'):
+                # The step landed off the map, so this map visit is over and its spots
+                # may be walked again when the page comes back: live window
+                # build/window-run-continue-4.json returned from the event behind the
+                # "?" node to the same map, where that node was still the forward step
+                # while the window had already spent it on the earlier visit.
+                map_progress.leave()
             entry.update(step_result(plan, sent=True, before=page,
                                      after=settled_page, page=settled_page,
                                      frame_changed=settled.get('image_sha256') not in (None, before_sha)))
