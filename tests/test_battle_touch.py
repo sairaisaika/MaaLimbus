@@ -171,3 +171,27 @@ def test_the_turn_dial_is_read_by_colour_when_no_start_word_is_drawn():
     cv2.circle(speck, (1389, 818), 12, (40, 120, 235), -1)
     assert dial_control(speck) is None
     assert dial_control(np.zeros((1080, 1920, 3), np.uint8)) is None
+
+
+def test_the_live_turn_dial_is_found_with_no_start_word_on_the_frame():
+    """Live: window-20261007-184958 burned all 300 steps re-assigning skills.
+
+    frame-1401.json (23:33:43, TURN 3, WAVE 1/10) reads Win/Rate/Damage and MAX but no
+    START token, so start_button answered None, window.py:808 fell through to
+    'win_rate_is_the_proven_auto_assign_control', and the turn was never submitted. The
+    dial is on that frame -- warm blob (1455,800,81,79) area 1913, centred x about 1500,
+    which the old band's right edge (0.78*1920 = 1497) cut off -- so the turn control is
+    read rather than guessed.
+    """
+    frame = ROOT / 'evidence/runtime/window-20261007-184958/frame-1401.json'
+    records, size = load(frame)
+    assert not [r for r in records if r.text.strip().upper() == 'START']
+    image = cv2.imread(str(frame.with_suffix('.png')))
+    box = start_button(records, size, image)
+    assert box is not None
+    x, y, w, h = box
+    # The box is the dial: it sits left of the Win Rate caption and holds the dial's
+    # own warm centre, so a click on it lands on the control and not on the captions.
+    assert x + w <= 1584
+    assert x <= 1500 <= x + w and y <= 840 <= y + h
+    assert begin_turn_plan(records, size, image)['target'] == box

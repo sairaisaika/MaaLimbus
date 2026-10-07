@@ -71,7 +71,7 @@ def warm_control(image, label_box, *, min_area=2000, window=(60, 20, 60, 150)):
     return None if best is None else tuple(best[1:])
 
 
-def dial_control(image, *, roi=(0.60, 0.66, 0.78, 0.88), min_area=4000, min_side=60):
+def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=1200, min_side=45):
     """The battle's turn dial: the large warm disc that submits the turn, or None.
 
     Some boards draw the START word so small under their dial that OCR never returns
@@ -82,6 +82,18 @@ def dial_control(image, *, roi=(0.60, 0.66, 0.78, 0.88), min_area=4000, min_side
     blob at 1920 (1327,741,125,154) area 6646, left of the Win Rate button, so it is read
     by colour inside a band that excludes those buttons -- nothing else in that band is
     that large, and the blob is only used when no readable START word exists.
+
+    The band and the thresholds were widened after the same failure cost a whole turn
+    live: window-20261007-184958 spent all 300 steps on
+    'win_rate_is_the_proven_auto_assign_control' (targets [1598,796,48,41] and
+    [1600,792,46,45]) because the START banner was readable on only a handful of its
+    1103 battle frames (frame-0760.json at 23:17:39, frame-0912.json at 23:21:29). The
+    dial is drawn warm on 160 of 163 sampled battle frames of that window in two size
+    variants -- (1440,771,121,134) area 5501 and (1455,800,81,79) area 1913, measured in
+    1920 -- whose centre x is about 1500, just outside the old right edge (0.78*1920 =
+    1497), so the old thresholds answered on only 11 of those 163 frames. The Win
+    Rate/Damage captions start at x=1584, outside the new right edge (0.82*1920 = 1574),
+    so they still cannot be mistaken for the dial.
     """
     height, width = image.shape[:2]
     x0, y0 = int(width * roi[0]), int(height * roi[1])
