@@ -575,12 +575,16 @@ def main() -> int:
                         help='how many planned inputs this window may send')
     parser.add_argument('--rounds', type=int, default=3,
                         help='read-only observations used to settle each step')
-    parser.add_argument('--unknown-rounds', type=int, default=12,
+    parser.add_argument('--unknown-rounds', type=int, default=30,
                         help='how many consecutive UNKNOWN observations to wait through '
                              'before calling the page unreadable (loading screens, the turn '
                              'animation and the victory banner all read as UNKNOWN and are '
                              'not refusals; the victory banner alone held the screen for '
-                             'about 25 s in window-20261006-033014)')
+                             'about 25 s in window-20261006-033014, and the post-battle story '
+                             'that follows it plays for minutes as a sequence of dialogue '
+                             'frames -- live window-20261007-174525/frame-0191..0196 are six '
+                             'of them, each with its own hash -- which is what ran the old '
+                             'budget of 12 out at step 60 of run-continue-14)')
     parser.add_argument('--battle-rounds', type=int, default=8,
                         help='how many consecutive battle observations may report the same '
                              'wave and turn before the fight is called stalled; assigning and '
