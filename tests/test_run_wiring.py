@@ -30,11 +30,17 @@ def test_a_map_frame_without_the_floor_digit_settles_nothing():
     assert ledger_event(**MAP, floor=None, cleared=(1,)) is None
 
 
-def test_the_run_summary_is_the_victory_only_with_all_five_floors():
-    assert ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3, 4)) is None
-    event = ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3, 4, 5))
-    assert (event.kind, event.floor) == ('final_victory', None)
+def test_the_run_summary_proves_floor_five_and_then_the_victory():
+    # Nothing else can prove floor 5: standing on floor 6 never happens, so the
+    # summary is the proof, and the very next turn of the same loop proves the win.
+    floor_five = ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3, 4))
+    assert (floor_five.kind, floor_five.floor) == ('floor_clear', 5)
+    victory = ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3, 4, 5))
+    assert (victory.kind, victory.floor) == ('final_victory', None)
     assert ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3, 4, 5), victory=True) is None
+    # A summary reached with a gap in the floors proves nothing at all.
+    assert ledger_event(page='RUN_CLAIM', cleared=(1, 2, 3)) is None
+    assert ledger_event(page='RUN_CLAIM', cleared=()) is None
 
 
 def test_the_reward_is_claimed_by_the_modal_s_own_confirm():

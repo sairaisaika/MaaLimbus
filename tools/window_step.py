@@ -208,37 +208,46 @@ def frame_file(directory):
 
 
 def record_ledger_event(store, run_id, directory, page, plan, floor_now, journal=None):
-    """Record the one ledger event this page settles, proved by its own frame.
+    """Record every ledger event this page settles, each proved by its own frame.
 
-    ``maalimbus.run_wiring`` decides which page settles what; the ledger itself still
-    refuses anything out of order, and a refusal is recorded as such instead of
-    failing the window -- a run that began before the ledger did must not be able to
-    write floors it never proved.
+    ``maalimbus.run_wiring`` decides which page settles what, and one page can settle
+    more than one thing in order: the run summary proves floor 5 was finished and then,
+    on the next turn of this same loop, that the run was won. The loop re-reads the
+    store each time, so it stops the moment the page settles nothing more and the store
+    still keeps its own order -- a run that began before the ledger did can never write
+    floors it did not prove, and a refusal is journalled instead of failing the window.
     """
-    active = (store.data or {}).get('active')
-    if active is None:
-        return None
-    event = ledger_event(page=page, reason=plan.get('reason'),
-                         floor=floor_now if page == 'MAP' else None,
-                         cleared=active['floors'], victory=active['victory'],
-                         reward=active['reward'])
-    if event is None:
-        return None
     proof = frame_file(directory)
     if proof is None:
-        return None
-    event_id = '%s-%s' % (event.kind, 'run' if event.floor is None else event.floor)
-    try:
-        store.record(run_id, event_id, event.kind, proof, floor=event.floor)
-    except ValueError as error:
+        return []
+    recorded = []
+    while True:
+        active = (store.data or {}).get('active')
+        if active is None or active['id'] != run_id:
+            break
+        event = ledger_event(page=page, reason=plan.get('reason'),
+                             floor=floor_now if page == 'MAP' else None,
+                             cleared=active['floors'], victory=active['victory'],
+                             reward=active['reward'])
+        if event is None:
+            break
+        event_id = '%s-%s' % (event.kind, 'run' if event.floor is None else event.floor)
+        try:
+            fresh = store.record(run_id, event_id, event.kind, proof, floor=event.floor)
+        except ValueError as error:
+            if journal is not None:
+                journal.record('run_ledger_refused', kind=event.kind, floor=event.floor,
+                               evidence=str(proof), reason=str(error))
+            break
+        if not fresh:
+            # The identical observation is already on the ledger; asking again would
+            # only repeat it, so the page is done settling.
+            break
         if journal is not None:
-            journal.record('run_ledger_refused', kind=event.kind, floor=event.floor,
-                           evidence=str(proof), reason=str(error))
-        return None
-    if journal is not None:
-        journal.record('run_ledger_event', kind=event.kind, floor=event.floor,
-                       evidence=str(proof))
-    return event
+            journal.record('run_ledger_event', kind=event.kind, floor=event.floor,
+                           evidence=str(proof))
+        recorded.append(event)
+    return recorded
 
 
 def frame_details(directory):
@@ -1157,11 +1166,13 @@ def main() -> int:
             if run_store is not None and entry['passed']:
                 # Every completed step is offered to the ledger; only the page that
                 # proves an event (a floor's map, the run summary, the reward modal's
-                # Confirm, the loadout Confirm) settles one.
-                ledger = record_ledger_event(run_store, run_id, directory, page, plan,
+                # Confirm, the loadout Confirm) settles one -- and a page may settle
+                # two, in order, which is why this comes back as a list.
+                events = record_ledger_event(run_store, run_id, directory, page, plan,
                                              floor_now, journal)
-                if ledger is not None:
-                    entry['ledger_event'] = dict(kind=ledger.kind, floor=ledger.floor)
+                if events:
+                    entry['ledger_events'] = [dict(kind=event.kind, floor=event.floor)
+                                              for event in events]
             if entry['passed'] and plan.get('detail', {}).get('slot'):
                 # The loadout slot has been sent; the next step on this page must
                 # fall through to Confirm instead of pressing the same slot again.

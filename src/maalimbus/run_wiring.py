@@ -49,7 +49,15 @@ def ledger_event(*, page, reason=None, floor=None, cleared=(), victory=False,
             return LedgerEvent('floor_clear', want)
         return None
     if page == 'RUN_CLAIM':
-        if len(cleared) == 5 and not victory:
+        # The summary is drawn from the whole run, so it is the only thing that can
+        # prove floor 5 was finished -- there is no floor 6 to stand on. It then proves
+        # the final victory on the next turn of the same loop, because the window keeps
+        # asking until the page settles nothing more and the store keeps its order.
+        # Live proof that this matters: build/window-run-continue-2.json reached
+        # RUN_CLAIM (steps 52-55) and recorded nothing, so the rotation never moved.
+        if set(range(1, 5)) <= cleared and not victory:
+            if 5 not in cleared:
+                return LedgerEvent('floor_clear', 5)
             return LedgerEvent('final_victory')
         return None
     if page == 'RUN_REWARD_CONFIRM' and reason == REWARD_CONFIRM_REASON:
