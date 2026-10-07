@@ -192,6 +192,10 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     lattice candidates opened no panel, then no_candidate_node_observed. The node the
     game was offering is the cyan-lit one at (1087,737) in 1920-space; naming it from
     its own pixels puts the accepted click first.
+
+    The cyan line leaving the player ends 66 px short of that centre, so the path reading
+    is offered first and snapped onto the ring -- the path names the node, the ring names
+    the pixel, and both name the node the panel really opened on.
     """
     import json
     from pathlib import Path
@@ -208,7 +212,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert len(lit) == 1, lit
     assert abs(lit[0][0] - 1087) <= 12 and abs(lit[0][1] - 737) <= 12, lit
     clicks = map_clicks(image, template=cv2.imread(str(template_path)))
-    assert clicks[0]['kind'] == 'cyan_node'
+    assert clicks[0]['kind'] == 'path_node'
     point = clicks[0]['point']
     assert abs(point[0] - 1087) <= 12 and abs(point[1] - 737) <= 12, point
     # The badge nodes are still offered behind it, so a refused click can fall back.
@@ -312,6 +316,33 @@ def test_the_lit_path_leaving_the_player_names_the_next_node():
     assert point is not None
     assert abs(point[0] - 1162) <= 60 and abs(point[1] - 625) <= 60, point
     clicks = map_clicks(image, player=(960, 672))
+    assert clicks[0]['kind'] == 'path_node'
+    assert abs(clicks[0]['point'][0] - point[0]) <= 40
+    assert abs(clicks[0]['point'][1] - point[1]) <= 40
+
+
+def test_the_cyan_path_of_the_factory_floor_still_names_the_next_node():
+    """Live evidence/runtime/window-20261007-172225/frame-0406.png, floor 2.
+
+    "Automated Factory" draws the walkable path bright cyan over a dim teal grid, where
+    floors 1 and 3 draw it violet, so the violet mask alone read nothing: ``path_end`` was
+    None, the run fell back to the lattice steps around the player's own node, both clicks
+    were no-ops, and it stopped with ``no_candidate_node_observed``
+    (build/window-run-continue-13.json step 113). The node the line points at -- the cyan
+    "?" hexagon whose centre is (1054,124) -- was never offered at all.
+    """
+    import cv2
+    from pathlib import Path
+    from maalimbus.map_vision import path_end
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/window-20261007-172225/frame-0406.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    image = cv2.imread(str(path))
+    point = path_end(image, (694, 384))
+    assert point is not None
+    assert abs(point[0] - 1054) <= 70 and abs(point[1] - 124) <= 70, point
+    clicks = map_clicks(image, player=(694, 384))
     assert clicks[0]['kind'] == 'path_node'
     assert abs(clicks[0]['point'][0] - point[0]) <= 40
     assert abs(clicks[0]['point'][1] - point[1]) <= 40

@@ -561,7 +561,31 @@ LIT_RING_MIN_SIDE = 60
 #: stops well short of the 320 px that would let a merged graph reach another node.
 PATH_MERGE = 41
 PATH_REACH = 130
-PATH_WALK_LIMIT = 320
+#: A floor-2 walk leaves the player for a hexagon one lattice step away: on live
+#: evidence/runtime/window-20261007-172225/frame-0406.png the bright line runs from the
+#: player at (694,384) to the node at (1054,124), about 470 px, while the old 320 px cap
+#: stopped the walk in the middle of the line and left the run with nothing to click. A
+#: click on a node the run cannot reach is a no-op and the caller tries its next
+#: candidate, so a merged graph handing back the far end of a neighbouring line costs one
+#: attempt rather than the run.
+PATH_WALK_LIMIT = 560
+#: Floors 1 and 3 draw the walkable path a bright violet; floor 2's "Automated Factory"
+#: draws the same line bright cyan over a dim teal grid. The violet mask alone read
+#: nothing there (live frame-0406, where ``path_end`` was None), the run clicked the
+#: player's own node and one of its reward chips instead, and stopped with
+#: ``no_candidate_node_observed``. The cyan reading is kept bright because the floor's
+#: own grid is cyan too: at brightness 180 the line separates, at 120 the whole floor
+#: merges into one blob.
+PATH_CYAN_MIN_VALUE = 180
+PATH_CYAN_MIN_GREEN = 140
+PATH_CYAN_MIN_BLUE = 140
+PATH_CYAN_MAX_RED = 150
+PATH_CYAN_MIN_WARMTH = 40
+#: The path names the node; the node's own ring names the pixel. On live
+#: evidence/runtime/window-20261006-201831/frame-0065.png the line ends 66 px off the
+#: centre of the ringed node, outside its hexagon, while the ring itself is the click that
+#: opened the panel -- so a marked node this close to the path's far end takes its place.
+PATH_SNAP = 70
 
 
 def lit_components(image, *, min_value=LIT_MIN_VALUE, min_chroma=LIT_MIN_CHROMA,
@@ -643,19 +667,24 @@ def path_end(image, player, *, max_distance=PATH_WALK_LIMIT, reach=PATH_REACH,
 
     The line is drawn as a dashed glow, so the segments are merged before walking; the
     walk is capped at ``max_distance`` from the player so that a merged graph cannot hand
-    back a node somewhere else on the floor.
+    back a node somewhere else on the floor. The cap has to clear one lattice step, and
+    the mask has to read the hue the floor draws the line in -- floor 2's cyan line over a
+    cyan grid is why the hue families below are a pair, not one.
     """
     if image is None or player is None:
         return None
     import cv2
     import numpy as np
-    from collections import deque
     height, width = image.shape[:2]
     blue = image[:, :, 0].astype(int)
     green = image[:, :, 1].astype(int)
     red = image[:, :, 2].astype(int)
-    mask = ((red > 110) & (blue > 110) & (green < 95) & (np.abs(red - blue) < 70))
-    mask = mask.astype(np.uint8)
+    violet = (red > 110) & (blue > 110) & (green < 95) & (np.abs(red - blue) < 70)
+    brightest = np.maximum(np.maximum(red, green), blue)
+    cyan = ((green >= PATH_CYAN_MIN_GREEN) & (blue >= PATH_CYAN_MIN_BLUE)
+            & (red <= PATH_CYAN_MAX_RED) & (green - red >= PATH_CYAN_MIN_WARMTH)
+            & (brightest >= PATH_CYAN_MIN_VALUE))
+    mask = (violet | cyan).astype(np.uint8)
     mask[round(.86 * height):] = 0
     mask[:round(.08 * height)] = 0
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((merge, merge), np.uint8))
@@ -780,19 +809,6 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
         # "highlighted node" and the first click went to it), so nothing is claimed
         # as marked and the chevron/lattice candidates carry the step instead.
         highlighted = []
-    # The lit path leaving the player is the direction the run may still walk, so its far
-    # end is the strongest reading on the page: live evidence/runtime/
-    # window-20261006-233633/frame-0001.png, where an ADB tap on it opened the node panel
-    # after the ring and every badge candidate had been refused.
-    walk = path_end(image, player)
-    if walk:
-        add(walk, 'path_node', CLICK_SIDE)
-    # The lit node is the step the game is offering, so it outranks everything else:
-    # live evidence/runtime/window-20261006-200505/frame-0081.png -- the click that
-    # opened the panel landed on the cyan node while the crescent-badge nodes around it
-    # refused it, and the run had stopped with no_candidate_node_observed.
-    for point in highlighted_nodes(image):
-        add(point, 'cyan_node', CLICK_SIDE)
     # The ring is the game's own "this is the step" mark, so it outranks every reading
     # taken off a badge or the lattice, whichever hue the floor draws it in. The player's
     # own flame is saturated too and is dropped by radius; the node icons are kept for
@@ -802,6 +818,31 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     rings = [point for point in lit_rings(image)
              if not player or (point[0] - player[0]) ** 2 + (point[1] - player[1]) ** 2 > 90 * 90]
     icons = [point for point in lit if point not in rings]
+    cyan = list(highlighted_nodes(image))
+    # The lit path leaving the player is the direction the run may still walk, so its far
+    # end is the strongest reading on the page: live evidence/runtime/
+    # window-20261006-233633/frame-0001.png, where an ADB tap on it opened the node panel
+    # after the ring and every badge candidate had been refused.
+    walk = path_end(image, player)
+    if walk:
+        # The path names which node the run may step to; the node's own ring names the
+        # pixel the game accepts. Live evidence/runtime/window-20261006-201831/frame-0065.png
+        # (floor 1): the line's far end lands at (1029,705), 66 px off the centre of the
+        # ringed node at (1087,737) and outside its hexagon, while that ring is the click
+        # the panel really opened on.
+        marked = cyan + rings
+        near = [point for point in marked
+                if (point[0] - walk[0]) ** 2 + (point[1] - walk[1]) ** 2 <= PATH_SNAP * PATH_SNAP]
+        if near:
+            walk = min(near, key=lambda point: (point[0] - walk[0]) ** 2
+                       + (point[1] - walk[1]) ** 2)
+        add(walk, 'path_node', CLICK_SIDE)
+    # The lit node is the step the game is offering, so it outranks everything else:
+    # live evidence/runtime/window-20261006-200505/frame-0081.png -- the click that
+    # opened the panel landed on the cyan node while the crescent-badge nodes around it
+    # refused it, and the run had stopped with no_candidate_node_observed.
+    for point in cyan:
+        add(point, 'cyan_node', CLICK_SIDE)
     # The highlighted node is the step the game will accept, so it goes first; the
     # chevron only points along the path towards it, and the badge nodes are the
     # ordinary case where nothing on the page is marked at all.
