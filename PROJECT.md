@@ -9,7 +9,14 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-06 13:20 local
+## Latest continuation: 2026-10-07 03:00 local
+- **实机里程碑：一局镜牢从开局打到五层通关、领奖、再入场、第二轮已开打。** `build/window-run104.json`（领奖）、`build/window-run105.json`、`build/window-run106.json`（领奖→大厅→Drive→镜牢入口→确认入场→轮换队槽位→等级警告→星辉 Grace→起始礼物→放弃礼物搜索→主题包→地图→节点→出战编队→部署→战斗→回地图，30 步全 passed）。结算页是 "Exploration Complete"（Floor1..Floor5 各 6/6、Total Progress 100%、Starlight 15、Net Amount 7,556）。
+- **这一段新命名的页（都带 anchors 页、计划分支与测试）**：`BATTLE_TIP`（点到技能卡弹出的 "Skill Effects" 说明浮层，提交 `b18ce58`）、`BATTLE_VICTORY`（'Victory' + 'EX-CLEAR'，自己不会消失，提交 `208866c`）、`RUN_CLAIM`（结算页四词同帧：Exploration/Complete/Total Progress/Claim，只领奖绝不翻页，提交 `6f8aae9`）、`RUN_REWARD_DIALOG`（'Exploration Reward' 弹窗，提交 `08526bb`）、`RUN_REWARD_CONFIRM`（弹窗 Claim 之后的 "Claim the rewards?" 确认，Cancel 进 `FORBIDDEN_CONTROLS`，提交 `52e5152`）。
+- **`map_clicks` 排序修复（提交 `7a17842`）**：run107 在地图 "The Forgotten"（floor 1）连点四个**抬升的徽章框**（`(578,14)`/`(194,334)`/`(232,14)`）而面板一直不开；该层唯一可走的是红色「?」六边形，它的自身图标被读在 `(1087,409)`，手工 1920 空间点 `(1080,428)` **确实打开了节点面板** ⇒ 直接读自帧的 `lit_icon` 现在排在徽章抬升（`node_away_from_player`）之前。测试 `tests/test_map_vision.py::test_the_offered_question_node_outranks_the_lifted_badge_boxes`（钉 `evidence/runtime/window-20261007-023156/frame-0053.png`）。
+- **循环守卫教训**：逐页守卫（`guard_page`）在页面每次跳变时清零，所以「`RUN_REWARD_DIALOG ↔ RUN_CLAIM` 来回跳」这种族内回环它看不见——新增 `CLAIM_FAMILY` 与 `--claim-tries`（默认 6）按族计步；`LOOP_GUARD_EXEMPT_REASONS` 只豁免「按用户规则必须连点同一面板」的剧情步。任何豁免都必须配一个步数预算，否则一次无效连点会烧掉整轮（run91 曾空点 40 步）。
+- 全量测试 **378 passed**；`tools/verify_anchors.py` **40 page(s), 0 broken**。
+
+## Prior continuation: 2026-10-06 13:20 local
 - **管道场景自检（离线，可测）**：新增 `tests/test_pipeline_scenes.py`——冻结管道里 21 个 `limbus_scene` 场景名，断言每个名字都被 agent 侧模块（`agent/recognition.py` ＋ `src/maalimbus/*.py`）提到（防「改名/拼错/凭空发明」这类只在实机半途才炸的错）、冻结列表与管道现状一致、以及**普通 Click/Swipe/Key 节点必须带 `max_hit`**（`Custom`/`DoNothing` 豁免：它们的边界在自己的 Python 回调里，实测有 10 个 `action: Custom` 节点确实按设计不带 `max_hit`）。全量 **302 passed**（原 299）。
 - **实机侧**：本轮发过一次**有界**探针（1 步、`--map-tries 2`）确认软锁仍在：MAP 点节点 → `map_click_opened_no_panel` → 驱动如实停机，未继续点击。仍需用户手工结算/结束那一局或重启客户端。
 

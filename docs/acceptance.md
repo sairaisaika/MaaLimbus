@@ -1,5 +1,37 @@
 # Acceptance evidence
 
+## 2026-10-07 five floors cleared, rewards claimed, the run re-entered
+
+- **Five hard floors, live.** The window drove one dungeon from floor 1 to the floor-5
+  boss and out: `build/live-after-victory.png` is the "Exploration Complete" settlement,
+  Floor 1..5 each `6/6`, Total Progress `100%`, Last Reached
+  "Mirror of Names and Spiders / Floor 5 [NORMAL]", Starlight 60 + 15x1.000 - 60 = 15,
+  Pre-dungeon Reserve 7541 + 75 - 60 = Net 7,556. Runs: `build/window-run99.json`
+  (floor-5 boss battle), `build/window-run101.json` (victory screen cleared).
+- **Rewards claimed, then the run re-entered.** The settlement's Claim is the first of
+  three pages: `RUN_CLAIM` -> `RUN_REWARD_DIALOG` -> `RUN_REWARD_CONFIRM`
+  (`build/window-run104.json`, 8 steps, 9 clicks). The window then walked home -> Drive
+  -> mirror entry -> entry confirmation -> the rotation slot on `DUNGEON_TEAM` -> level
+  warning -> star graces -> initial gifts -> refused gift search -> theme pack -> map ->
+  node panel -> deployment -> battle -> map again, 30 steps all passed
+  (`build/window-run106.json`), and the next run kept progressing
+  (`build/window-run108.json`, `build/window-run109.json`, `build/window-run110.json`).
+- **Pages this pass had to name** (each with anchors, a plan branch and tests):
+  `BATTLE_TIP` (the "Skill Effects" card popup that covers the HUD, commit `b18ce58`),
+  `BATTLE_VICTORY` ('Victory' + 'EX-CLEAR', a screen that does not clear itself, commit
+  `208866c`), `RUN_CLAIM` (commit `6f8aae9`), `RUN_REWARD_DIALOG` (commit `08526bb`),
+  `RUN_REWARD_CONFIRM` (the "Claim the rewards?" confirmation, whose Cancel is in
+  `FORBIDDEN_CONTROLS`, commit `52e5152`).
+- **A loop the per-page guard could not see**: `RUN_REWARD_DIALOG <-> RUN_CLAIM` ping-pong
+  passed the per-page guard every time because the page label really changed, so a claim
+  family budget (`CLAIM_FAMILY`, `--claim-tries`, default 6) now counts steps spent inside
+  the family; and `map_clicks` offers a step read off the frame (`lit_icon`) before the
+  badge lift, because run107 spent every click on four lifted badge boxes while the red
+  "?" node's own icon at `(1087,409)` was the step (a manual 1920-space tap on
+  `(1080,428)` opened its panel; commit `7a17842`).
+- **Not claimed**: the rotation ledger still does not advance itself (the team slot is the
+  fixed `--team 5`), and no live JP/MXU or Enkephalin-conversion evidence exists yet.
+
 ## 2026-10-06 first real battle entered, fought and won from the map
 
 - With the discovery-based binding (MuMu's own adb, `EmulatorExtras` screencap,
@@ -276,9 +308,9 @@ from a task returning success, a manifest loading, or a process staying alive.
 | PI V2 labels and EN/JP resources | Maa resources parsed; native Chinese MXU/controller/task/12-position display verified; EN/JP game acceptance pending | Actual Maa parser + MXU UI |
 | Variable cover/background recognition | Actual Maa saved-frame replay: reference, changed cover, unknown | Four supplied frames + live frame; negative and changed-art replay |
 | Saved teams / deployment / rotation | Library and experimental deployment-order derived replays passed; profiles persist; live deployment/rotation pending | Save/restart persistence + two different confirmed dungeon teams |
-| Five hard floors | Not verified | Floor 1..5 battle and completion observations |
-| Battle planning / turn execution | Experimental one-shot native P planning and fresh-frame diagnostics replayed; turn/EGO/victory pending | Full selected-skill/clash/survival proof + actual turn and victory/map return |
-| Rewards then repeat | Not verified | Reward receipt and next-run entry with next team |
+| Five hard floors | **Verified live 2026-10-07**: `build/live-after-victory.png` is the "Exploration Complete" settlement with Floor 1..5 each 6/6, Total Progress 100%, Last Reached "Mirror of Names and Spiders / Floor 5 [NORMAL]" | Floor 1..5 battle and completion observations |
+| Battle planning / turn execution | Live Win Rate auto-assign plus START turn submission and the victory/result screens (`BATTLE_VICTORY`) are driven live (`build/window-run99.json`, `build/window-run101.json`); full selected-skill/clash/survival proof still pending | Full selected-skill/clash/survival proof + actual turn and victory/map return |
+| Rewards then repeat | **Verified live 2026-10-07**: the settlement's Claim goes `RUN_CLAIM` -> `RUN_REWARD_DIALOG` -> `RUN_REWARD_CONFIRM` (`build/window-run104.json`), then the window walks home -> Drive -> mirror entry -> entry confirmation -> the rotation slot on `DUNGEON_TEAM` -> grace/gift/theme -> map again (`build/window-run106.json`) and a second run is in progress (`build/window-run108..110.json`); advancing the rotation **ledger** to the next team is still the fixed `--team` argument | Reward receipt and next-run entry with next team |
 | Gifts / enemy buffs / theme pack selection | Floor gifts and weighted theme-title/native drag derived replays passed; enemy buffs and full-loop integration pending | Live selection quota, confirmation, acquisition and next-floor postcondition |
 | Human-paced jitter and bounded sessions | Finite Maa node hits; inset clicks/delays, bounded setup/stop jobs and monotonic CLI deadline tested | Full-run cancellation and timeout checks still required |
 | Stamina conversion / refill budgets | Pure budget boundaries passed; no spending implementation yet | Zero-spend default, budget boundaries and balance postconditions |

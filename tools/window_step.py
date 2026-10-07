@@ -47,6 +47,7 @@ from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks, map_header)
 from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
+from maalimbus.map_progress import MapProgress
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
                                      counter_state, gift_cards, initial_gift_box,
@@ -780,9 +781,7 @@ def main() -> int:
         unknown_seen = 0
         battle_sig = None
         battle_rounds = 0
-        map_skips = set()
-        map_visited = set()
-        map_floor = None
+        map_progress = MapProgress()
         map_attempts = 0
         page_attempts = 0
         gift_picks = 0
@@ -813,10 +812,14 @@ def main() -> int:
                      for item in record.get('ocr') or []],
                     record.get('size') or (1920, 1080))
                 floor = getattr(header, 'floor', None)
-                if floor != map_floor:
-                    map_floor = floor
-                    map_skips = set()
-                    map_visited = set()
+                # Only a *named* floor change starts a new floor and clears the tried set.
+                # A frame whose header OCR drops the floor token (or merges it into the
+                # pack line) must not: live run build/window-run110.json sat on floor 3
+                # "To be Cleaved" while the reading flickered 3 / None / 3, every flicker
+                # cleared the skips, and the window re-clicked the same two 40x40 icons
+                # eight times -- [681,441], [748,416], [681,441], [748,416] ... -- while
+                # the reachable "?" node at [303,708] sat untried in the same list.
+                map_progress.note_floor(floor)
                 if map_points:
                     # The calibration path: the caller names the points, so a floor whose
                     # nodes the frame does not read can still be walked while the reading
@@ -828,8 +831,8 @@ def main() -> int:
                     for x, y in map_points:
                         cx, cy = int(round(x * scale)), int(round(y * scale))
                         candidates.append([cx - side // 2, cy - side // 2, side, side])
-                tried = map_skips | map_visited
-                candidates = [box for box in candidates if tuple(box) not in tried]
+                tried = map_progress.tried
+                candidates = map_progress.remaining(candidates)
             sha = record.get('image_sha256')
             if not args.observe_only and page in WAIT_PAGES:
                 unknown_seen += 1
@@ -1013,7 +1016,7 @@ def main() -> int:
                 # Whether or not the click opened anything, that spot has had its turn:
                 # live run build/window-run76.json opened the same gift tray eight times
                 # because a click that did open something was never remembered.
-                map_visited.add(tuple(plan['target']))
+                map_progress.note_click(plan['target'])
             entry.update(click_point=None if point is None else list(point), delay_ms=delay)
             time.sleep(delay / 1000)
             settled = None
@@ -1078,7 +1081,7 @@ def main() -> int:
                     continue
                 # An unreachable node swallows the click and the page stays MAP, so
                 # skip it and let the next candidate be tried in its place.
-                map_skips.add(tuple(plan['target']))
+                map_progress.note_click(plan['target'])
                 entry['stopped'] = 'map_click_opened_no_panel'
                 journal.record('window_map_retry', target=list(plan['target']),
                                attempt=map_attempts,
