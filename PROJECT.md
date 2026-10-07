@@ -9,7 +9,17 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 15:40 local
+## Latest continuation: 2026-10-07 16:10 local
+- **继续按 m12942「从零开始驱动脚本打镜牢、我只负责看卡在哪里」推进：又抓到三个真停机点，全部修掉并实机验证。**
+  1. **地图候选被「已经点过」的记忆锁死（提交 `ba0f5a3`）**：`build/window-run-continue-4.json` 在 floor 1「The Outcast」上点开被点亮的「?」节点 `[1067,389]` → 节点面板 → Enter → 剧情/事件 → 起始礼物 → **回到同一张地图**；此后 9 个候选全部点不开面板，步 14 `unexpected_successor` 停机。用受控探针 `tools/map_zoom.py --click "1087,409"` 手动点同一坐标**立刻打开节点面板**（`build/live-probe-question.png`「The Outcast」＋Enter）⇒ 真因是 `MapProgress.tried` 只按「具名换层」清空，把同一个 visit 里已点过的、仍然有效的节点永久排除。新增 `MapProgress.leave()`：**一步的落点只要离开地图（且不是 None/UNKNOWN）就结束这次 visit**、允许重走同一批点；层号抖动仍然不会清空（run110 的保护不动）。测试 `tests/test_map_progress.py::test_leaving_the_map_offers_its_spots_again_on_the_next_visit`。
+  2. **战斗 HUD 因 wave 计数丢首位数字而整页判 UNKNOWN（提交 `cbb4b7f`）**：`evidence/runtime/window-20261007-151655/frame-0529.json` 的左上角读到 `"/10" [98,39,34,24] 0.99` 与干净的 `"TURN" [20,97,42,22] 1.0`，同时 START／Win／Rate／Damage 全部可读，却因为兜底正则 `^\d{1,2}/\d{1,2}$` 要求斜杠前有数字而 `battle_hud()` 返回 None ⇒ 窗口在战斗页等了十轮后 `page_unreadable_after_waiting` 停机（step 150）。正则改成 `^\d{0,2}\s*/\s*\d{1,2}$`（允许丢首位数字；该角只有战斗页会同时有 TURN 与计数）。测试 `tests/test_map_vision.py::test_the_battle_hud_survives_a_counter_that_lost_its_first_digit`。
+  3. **冷启动要三条命令（提交 `d57b020`）**：`--flow` 现在接受**逗号链**（`launch,to_mirror,enter_mirror`，按序走完，所有步骤落进同一条 `flow_steps` 记录；未知名字立刻报错并列出可用的三个），新增 `--after-flow` 让窗口在流程链之后继续跑 `--steps` 的页面循环 ⇒ **一条命令就能从冷客户端开局并接着打**，两段之间不再让客户端空闲。
+- **实机**：`build/window-run-continue-5.json`（159 步 / 158 次点击，用完预算停下，无停机点）与重启后的 `evidence/runtime/window-20261007-154554`（`--label run-continue-6`，`--run-store config/user-run-ledger.json`）继续推进；账本 `active run 8de51ee3 team 4 floors=[1,2,3,4]`，rotation 仍是 `1 -> team 4`，等这一局走到 `RUN_CLAIM`/奖励弹窗 Confirm/再入场 Confirm 才会旋转到 `team 1`。
+- **全量测试 403 passed；`tools/verify_anchors.py` 41 page(s), 0 broken。**
+- **待办**：把这一局跑到结算并确认 rotation 前进一格；随后是 Windows 包（`dist/` 仍未产出）与邮件/体力兑换。
+- **网络资料（未据此改脚本，来源不可靠）**：`https://www.gamer.org/limbus-company-mirror-dungeon-guide-beat-floor-5-on-any-team/`（事件节点优先、商店换技能/融合礼物、Mountain Trials 选攻/防/HP）、Steam 速查表 `https://steamcommunity.com/sharedfiles/filedetails/?id=3237308577`（八种节点、主题包推荐）、wikiwiki.jp 镜牢页；`limbuscompany.fandom.com` 直连 403。
+
+## Prior continuation: 2026-10-07 15:40 local
 - **从大厅驱动一局、盯停机点的结果：抓到三个真停机点，全部修掉**（用户的当前指令 m12942）。
   1. **`GIFT_GET → GIFT_SEARCH` 被判成 `unexpected_successor`（提交 `030c777`）**：起始礼物的 GET 提示点掉后紧接的是可选礼物搜索，而计划的后继表里没有它——同一发点击在早先窗口能过，只是因为 settle 窗口**恰好**抓到中间页；这次是 `late_observation`（`build/window-run-continue-2.json` step 71）。已把 `GIFT_SEARCH` 列进 `GIFT_GET` 的 expect 并注释记下这次失败。
   2. **账本在通关时什么都没记（提交 `a961044`）**：`build/window-run-continue-2.json` 里 step 52 `BATTLE_VICTORY → RUN_CLAIM`、53 领奖、54 弹窗 Claim、55 弹窗 Confirm → 回结算页，之后回大厅并**又开了一局**，但 `ledger_events` 全空、rotation 一动不动。真因：旧规则要求「五层都已入账」才认 `RUN_CLAIM` 是最终胜利，而 **floor 5 永远无法先入账**（地图页靠「站在 floor n」证明 n-1 清除，没有 floor 6 可站）。现在结算页先settle `floor_clear 5`，再在同一个循环的下一轮 settle `final_victory`；窗口改成**反复追问直到该页不再settle任何东西**（`record_ledger_event` 返回列表、报告字段 `ledger_events`），账本自己仍然守顺序（1..5 → victory → reward → entry_returned，最后一步才旋转）。
