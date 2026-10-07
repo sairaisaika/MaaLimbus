@@ -47,6 +47,8 @@
   "to_window": "^To Window$",
   "give_up_rewards": "^\\s*Give\\s?Up\\s?Rewards$",
   "claim_the_rewards": "^Claim the rewards\\?$",
+  "weekly_reset": "^The weekly record has been reset\\.?$",
+  "weekly_moving": "^Moving over to the Window\\.?$",
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
   "acquire_gift": "^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^Owned$",

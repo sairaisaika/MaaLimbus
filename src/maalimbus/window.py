@@ -55,7 +55,10 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       # The reward modal's Give Up Rewards throws the five-floor run away.
                       'run_reward.give_up_button',
                       # Cancelling the claim question dismisses it without claiming.
-                      'run_reward_confirm.cancel_button')
+                      'run_reward_confirm.cancel_button',
+                      # The weekly reset notice's Confirm leaves the dungeon for the
+                      # Window, which throws the run in progress away.
+                      'window_reset.confirm_button')
 
 #: Pages that clear themselves: the planner has no control to send, so the driver
 #: waits for the page to change instead of treating it as the end of the run.
@@ -285,6 +288,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('MAP', 'THEME_PACKS', 'STAR_GRACES', 'INITIAL_GIFTS', 'UNKNOWN'),
                      reason='resume_rejoins_the_run_that_is_already_in_progress')
+    if page == 'WINDOW_RESET':
+        # The notice's only two controls are Cancel (stay in the dungeon) and Confirm
+        # (leave for the Window). The run in progress is what this window was sent to
+        # drive, so the notice is declined and Confirm is a forbidden control -- an
+        # unknown notice is never cleared by taking its irreversible branch (the user's
+        # rule, m10140). Declining is a click, and the page must hand back something
+        # other than itself, so a Cancel that did nothing is not recorded as progress.
+        box = controls.get('window_reset.cancel_button')
+        if box is None:
+            return _refuse(page, 'weekly_reset_cancel_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_weekly_reset_notice_is_declined_and_the_run_stays')
     if page == 'THEME_PACKS':
         # "SELECT FLOOR n THEME PACK" hangs the candidate packs from a rack and asks
         # for one to be taken: the page's own prompt is "Select a Pack And Pull", and
@@ -426,7 +441,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                              'SHOP_LEAVE', 'CUTSCENE', 'EVENT_CHOICE', 'EVENT_CHECK',
                              'EVENT_CHECK_RESULT', 'EVENT_CHECK_READY', 'EVENT_RESULT',
                              'EVENT_RESULT_READY', 'GIFT_PICK', 'GIFT_GET', 'REWARD_CARD',
-                             'EGO_GIFT_POPUP', 'UNKNOWN'),
+                             'EGO_GIFT_POPUP', 'WINDOW_RESET', 'UNKNOWN'),
                      reason='map_node_click_is_the_only_proven_forward_input',
                      detail={'candidate_count': len(candidates),
                              'candidate_index': candidate_index})
@@ -439,11 +454,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # itself shows up. What a node hands back depends on the node: the shop
         # (window-20261006-042123), the pre-battle team, an abnormality cutscene
         # (build/window-run30.json step 15), an event's choices, a floor-gift pick or a
-        # reward card, so every one of them is a legitimate successor here.
+        # reward card, so every one of them is a legitimate successor here. The weekly
+        # reset notice landed here too (run-continue-8 step 64, frame-0252): it is a
+        # notice about the run, not a failed click, and its own plan declines it.
         return _plan(page, CLICK, target=box,
                      expect=('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'CUTSCENE',
                              'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
-                             'GIFT_PICK', 'REWARD_CARD', 'UNKNOWN'),
+                             'GIFT_PICK', 'REWARD_CARD', 'WINDOW_RESET', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
     if page == 'SHOP':
         # Spending is out of budget (module budget is 0/pending), so Leave is the

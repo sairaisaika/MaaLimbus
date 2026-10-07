@@ -92,6 +92,23 @@ def test_dungeon_progress_prompt_is_a_named_resume_page():
     assert classify(page[1:], words, (1000, 1000)) == 'UNKNOWN_DIALOG'
 
 
+def test_the_weekly_reset_notice_is_named_and_its_confirm_is_not_the_identified_form():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261007-164753/frame-0252.json — the notice
+    # run-continue-8 raised over the floor 3 map (step 64, "Dregs of the Manor"). Its
+    # Confirm leaves the dungeon for the Window, so the page must be named instead of
+    # being vetoed as an unnamed dialog and silently clicked through.
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261007-164753/frame-0252.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    size = tuple(frame['size'])
+    assert classify(records, words, size) == 'WINDOW_RESET'
+    # The button pair is what names it: with the two notice lines alone the frame is
+    # only an unnamed dialog, which is why this page was stopping the driver.
+    labels = [t for t in records if 'ancel' not in t.text and 'onfirm' not in t.text]
+    assert classify(labels, words, size) == 'UNKNOWN'
+
+
 def test_the_gift_pickup_popup_is_named_over_the_map_behind_it():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261006-201621/frame-0001.json — the modal

@@ -148,6 +148,16 @@ def classify(records, locale, size):
         and find(records, locale.get('resume', r'(?!)'), (.45, .52, .55, .58), size, .85)
         and find(records, locale.get('halt_exploration', r'(?!)'), (.43, .58, .57, .64), size, .85)):
         return 'RESUME_DIALOG'
+    # "The weekly record has been reset / Moving over to the Window." is the notice the
+    # game raises over the map when the weekly record rolls over; its Confirm leaves the
+    # dungeon for the Window and only Cancel keeps the run. It covers the map but the map
+    # still reads behind it, so the window cannot tell them apart without this name.
+    # Live evidence evidence/runtime/window-20261007-164753/frame-0252.json.
+    if (find(records, locale.get('weekly_reset', r'(?!)'), (.36, .40, .64, .47), size, .85)
+        and find(records, locale.get('weekly_moving', r'(?!)'), (.39, .44, .60, .49), size, .85)
+        and len(find(records, locale.get('cancel', r'(?!)'), (.36, .61, .47, .68), size, .85)) == 1
+        and len(find(records, locale['gift_confirm'], (.53, .61, .65, .68), size, .85)) == 1):
+        return 'WINDOW_RESET'
     # Encounter Reward Card is the pick-one screen a cleared node hands back. It
     # carries Cancel as well, so it has to be named before the generic dialog veto.
     # Live evidence evidence/runtime/window-20261006-034714/frame-0022.json.

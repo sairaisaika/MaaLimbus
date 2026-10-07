@@ -1467,6 +1467,94 @@
       ]
     },
     {
+      "id": "window_reset",
+      "title": "周记录重置通知（The weekly record has been reset / Moving over to the Window.；Cancel 留下，Confirm 去 Window 永不点）",
+      "why": "实机 run-continue-8 step 64：在 NODE_PANEL 按 Enter 后盖到地图上的两按钮确认框，驱动把它判成 UNKNOWN_DIALOG 并停机 unexpected_successor。它盖住地图但地图仍透出来，所以必须先给它命名，再让计划点 Cancel 留下这一局。",
+      "evidence": [
+        "evidence/runtime/window-20261007-164753/frame-0252.json"
+      ],
+      "identity": [
+        {
+          "id": "window_reset.weekly_reset_label",
+          "kind": "ocr",
+          "pattern": "^The weekly record has been reset\\.?$",
+          "roi": [
+            0.36,
+            0.40,
+            0.64,
+            0.47
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "window_reset.moving_label",
+          "kind": "ocr",
+          "pattern": "^Moving over to the Window\\.?$",
+          "roi": [
+            0.39,
+            0.44,
+            0.60,
+            0.49
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "window_reset.cancel_label",
+          "kind": "ocr",
+          "pattern": "Cancel$",
+          "roi": [
+            0.36,
+            0.61,
+            0.47,
+            0.68
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "window_reset.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.53,
+            0.61,
+            0.65,
+            0.68
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "window_reset.cancel_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-164753/frame-0252.json",
+            "box": [
+              730,
+              673,
+              148,
+              45
+            ],
+            "source": "实测 OCR 框＝× Cancel；点它拒绝这次周记录重置通知，留在正在打的那一局里"
+          }
+        },
+        {
+          "id": "window_reset.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-164753/frame-0252.json",
+            "box": [
+              1050,
+              678,
+              150,
+              36
+            ],
+            "source": "Confirm＝离开地牢去 Window，会把进行中的一局扔掉；登记它只为让 window.FORBIDDEN_CONTROLS 拒点"
+          }
+        }
+      ]
+    },
+    {
       "id": "reward_card",
       "title": "遭遇奖励卡（Select Encounter Reward Card：选 1 张后 Confirm；X Cancel 永不点）",
       "evidence": [

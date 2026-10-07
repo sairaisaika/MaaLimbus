@@ -486,6 +486,29 @@ def test_resume_dialog_resumes_and_never_halts_the_run():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_weekly_reset_notice_is_declined_and_never_takes_the_window():
+    # Live proof: evidence/runtime/window-20261007-164753/frame-0252.json — the notice
+    # run-continue-8 raised over the floor 3 map (step 64). Cancel keeps the run in the
+    # dungeon; Confirm would move it to the Window and throw the run away.
+    cancel = [730, 673, 148, 45]
+    plan = plan_step('WINDOW_RESET', controls={'window_reset.cancel_button': cancel})
+    assert plan['action'] == CLICK
+    assert plan['target'] == cancel
+    assert plan['advance'] is True
+    assert plan['reason'] == 'the_weekly_reset_notice_is_declined_and_the_run_stays'
+    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'WINDOW_RESET')
+    missing = plan_step('WINDOW_RESET', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'weekly_reset_cancel_not_anchored'
+    # Confirm is the irreversible branch and stays refused however the anchors are
+    # arranged: naming it as the click, or mis-registering the cancel box onto it.
+    confirm = [1050, 678, 150, 36]
+    named = plan_step('WINDOW_RESET', controls={'window_reset.cancel_button': confirm,
+                                                'window_reset.confirm_button': confirm})
+    assert named['action'] == RECORD
+    assert named['reason'] == 'control_is_forbidden'
+
+
 def test_the_graces_page_buys_what_is_affordable_then_leaves_by_its_own_enter():
     # Live: evidence/runtime/window-20261006-193843/frame-0004.json reads the page
     # title at the top left and its own Enter at [1740,986,102,42]; the + button of
