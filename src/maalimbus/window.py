@@ -296,13 +296,23 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # real frame yet. Refuse by name rather than falling through to the
         # generic observe-only answer, so the driver says what is missing.
         return _refuse(page, 'battle_result_control_not_anchored')
+    if page == 'PASS_LEVEL_UP':
+        # Spending a weekly bonus levels the battle pass and the notice it raises sits on
+        # top of Before Entry (live evidence/runtime/window-20261007-171928/frame-0007.json):
+        # run-continue-12 pressed the menu's Enter under it and nothing moved. Its own
+        # Confirm is the way out, and it is the only control on the notice.
+        box = controls.get('pass_level_up.confirm_button')
+        if box is None:
+            return _refuse(page, 'pass_level_up_confirm_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_pass_level_up_notice_is_acknowledged_to_clear_the_menu')
     if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY'):
         box = controls.get('entry.enter_button')
         if box is None:
             return _refuse(page, 'entry_enter_button_not_anchored')
         return _plan(page, CLICK, target=box,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
-                             'LEVEL_WARNING', 'ENTRY_CONFIRM', 'UNKNOWN'),
+                             'LEVEL_WARNING', 'ENTRY_CONFIRM', 'PASS_LEVEL_UP', 'UNKNOWN'),
                      reason='before_entry_enter_starts_the_free_run')
     if page == 'ENTRY_CONFIRM':
         # The entry page's Enter only raises the confirmation; the control that

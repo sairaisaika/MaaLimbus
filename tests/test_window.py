@@ -532,6 +532,25 @@ def test_the_expired_session_claims_its_rewards_and_never_dismisses_them():
     assert misregistered['reason'] == 'control_is_forbidden'
 
 
+def test_the_pass_level_notice_is_acknowledged_instead_of_the_covered_menu():
+    # Live proof: evidence/runtime/window-20261007-171928/frame-0005.json — the notice
+    # that follows a weekly bonus being spent, drawn over Before Entry whose own Enter
+    # stays readable. run-continue-12 clicked that Enter and the page did not move.
+    confirm = [884, 682, 160, 46]
+    plan = plan_step('PASS_LEVEL_UP', controls={'pass_level_up.confirm_button': confirm})
+    assert plan['action'] == CLICK
+    assert plan['target'] == confirm
+    assert plan['advance'] is True
+    assert plan['reason'] == 'the_pass_level_up_notice_is_acknowledged_to_clear_the_menu'
+    assert successor_ok(plan, 'MIRROR_ENTRY') and not successor_ok(plan, 'PASS_LEVEL_UP')
+    missing = plan_step('PASS_LEVEL_UP', controls={})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'pass_level_up_confirm_not_anchored'
+    # The menu under it accepts the notice as the successor of its own Enter.
+    entry = plan_step('MIRROR_ENTRY', controls={'entry.enter_button': [1606, 718, 112, 44]})
+    assert successor_ok(entry, 'PASS_LEVEL_UP')
+
+
 def test_the_weekly_bonus_question_spends_one_only_for_a_run_that_finished():
     # Live proof: evidence/runtime/window-20261007-171228/frame-0003.json — the second
     # question the claim asks ("Spend your 'Weekly Bonuses, to claim the / bonus

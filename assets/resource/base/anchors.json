@@ -3283,6 +3283,68 @@
           }
         }
       ]
+    },
+    {
+      "id": "pass_level_up",
+      "title": "通行证升级通知（Pass Level Up；Confirm 是唯一出口）",
+      "why": "实机 run-continue-12 step 1：在领奖第二问点 Confirm（花掉一次周奖励）后，游戏在 Before Entry 之上盖出本通知（Pass Level 67 / Battle Pass XP 十格 / Confirm）。因为它是盖在镜牢入口页上的浮层，必须先于 MIRROR_ENTRY 命名，否则驱动会对着被盖住的 Enter 空点（那一帧两个页面的词同时可读）而 `unexpected_successor` 停机。证据 evidence/runtime/window-20261007-171928/frame-0005.json。",
+      "evidence": [
+        "evidence/runtime/window-20261007-171928/frame-0005.json"
+      ],
+      "identity": [
+        {
+          "id": "pass_level_up.title",
+          "kind": "ocr",
+          "pattern": "^Pass Level Up$",
+          "roi": [
+            0.4,
+            0.3,
+            0.6,
+            0.38
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "pass_level_up.xp_label",
+          "kind": "ocr",
+          "pattern": "^Battle Pass XP$",
+          "roi": [
+            0.38,
+            0.41,
+            0.56,
+            0.49
+          ],
+          "threshold": 0.85
+        },
+        {
+          "id": "pass_level_up.confirm_label",
+          "kind": "ocr",
+          "pattern": "^Confirm$",
+          "roi": [
+            0.44,
+            0.61,
+            0.57,
+            0.7
+          ],
+          "threshold": 0.85
+        }
+      ],
+      "controls": [
+        {
+          "id": "pass_level_up.confirm_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-171928/frame-0005.json",
+            "box": [
+              884,
+              682,
+              160,
+              46
+            ],
+            "source": "实测 OCR 框＝Confirm [884,682,160,46]；这一页只有它可点，点完回到 Before Entry"
+          }
+        }
+      ]
     }
   ],
   "pending": [
@@ -3300,11 +3362,6 @@
       "id": "run_end_entry_return",
       "what": "一局结束后的结算出口与回到镜牢入口再入场",
       "why": "收据＋轮换 index 推进的终点；「中途再入场」的 Dungeon Progress 弹窗已在 resume_dialog 页证明，仍缺一局结束后的出口路径"
-    },
-    {
-      "id": "previous_session_expired",
-      "what": "上一周镜牢未结算时弹出的提示（LALC 模板文案 “The previous session has expired. Please claim your rewards.” ＋ 领取按钮）",
-      "why": "这类软锁是 LALC 明确交回人工的一类（mirror_enter_last_week → report_error “请手动结算上周的镜牢再启动 | Please finish your Dungeon and restart”）；MaaLimbus 命中即停机并通知用户，绝不代替用户结算或重启客户端"
     }
   ]
 }

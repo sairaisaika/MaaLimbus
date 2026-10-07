@@ -1,4 +1,5 @@
 """The rule that turns an observed page into one ledger event, and no more."""
+import json
 from types import SimpleNamespace
 
 from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, EXPIRED_CONFIRM_REASON,
@@ -192,6 +193,15 @@ def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):
     expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
            proof=frame(tmp_path, 'expired.png'))
     assert earned_its_payout(store) is False
+    # A receipt written before it carried settled_at cannot be compared with a run that
+    # was filed later: live config/user-run-ledger.json was in exactly that state, and
+    # spending there (the old fallback) spent one of three bonuses on rewards the run
+    # never earned. Not knowing keeps the bonus.
+    stale = read_json(path)
+    for entry in stale['receipts']:
+        entry.pop('settled_at', None)
+    path.write_text(json.dumps(stale), encoding='utf-8')
+    assert earned_its_payout(RunStore(path, [SimpleNamespace(slot=s) for s in ORDER])) is False
     # A run that reaches its receipt afterwards spends one.
     store.start()
     for floor in range(1, 5):

@@ -319,6 +319,19 @@ def classify(records, locale, size):
     # The Before Entry page is the concrete two-token exit from the mirror menu.
     # It has to stay after the tutorial veto above: the live overlay carries these
     # same two labels while the underlying Enter is inert.
+    # Spending a weekly bonus levels the battle pass, and that notice is drawn on top of
+    # Before Entry: live evidence/runtime/window-20261007-171928/frame-0005.json reads
+    # 'Pass Level Up' [828,351,258,40] over 'Pass Level' [594,468,106,20] / '67'
+    # [596,496,102,105] / 'Battle Pass XP' [782,470,242,40] and 'Confirm'
+    # [884,682,160,46], with the menu's own Enter [1606,718,112,44] still readable
+    # underneath. run-continue-12 pressed that Enter while the notice was up and the page
+    # did not move, so this has to be named before the menu it covers.
+    if (find(records, locale.get('pass_level_up', r'(?!)'), (.40, .30, .60, .38), size, .85)
+            and find(records, locale.get('battle_pass_xp', r'(?!)'), (.38, .41, .56, .49),
+                     size, .85)
+            and find(records, locale.get('gift_confirm', r'(?!)'), (.44, .61, .57, .70),
+                     size, .85)):
+        return 'PASS_LEVEL_UP'
     if (find(records, locale['enter'], (.76, .55, .97, .85), size)
         and find(records, locale['exploring'], (.68, .10, .96, .3), size)):
         return 'MIRROR_ENTRY'

@@ -109,6 +109,23 @@ def test_the_weekly_reset_notice_is_named_and_its_confirm_is_not_the_identified_
     assert classify(labels, words, size) == 'UNKNOWN'
 
 
+def test_the_pass_level_notice_is_named_over_the_menu_it_covers():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # Live proof: evidence/runtime/window-20261007-171928/frame-0005.json (sha
+    # aa7c595bbc77). Spending a weekly bonus at the claim levelled the battle pass, and
+    # the notice landed on top of Before Entry while that page's own Enter stayed
+    # readable: run-continue-12 pressed it and nothing moved. Naming the notice has to
+    # win over the menu underneath, or the driver keeps clicking a covered button.
+    frame = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261007-171928/frame-0005.json').read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    size = tuple(frame['size'])
+    assert classify(records, words, size) == 'PASS_LEVEL_UP'
+    # Take the notice away and the same frame is the menu it was covering.
+    menu = [t for t in records if t.text.strip() not in ('Pass Level Up', 'Battle Pass XP')]
+    assert classify(menu, words, size) == 'MIRROR_ENTRY'
+
+
 def test_the_weekly_bonus_question_is_named_before_anything_is_spent():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261007-171228/frame-0003.json (sha

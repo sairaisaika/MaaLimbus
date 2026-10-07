@@ -175,6 +175,13 @@ def earned_its_payout(store, *, settled_now=False):
     abandoned = data.get('abandoned') or []
     left_at = abandoned[-1].get('abandoned_at') if abandoned else None
     settled_at = receipt.get('settled_at')
-    if left_at and settled_at:
+    if abandoned:
+        if not (left_at and settled_at):
+            # A ledger written before receipts carried ``settled_at`` cannot say which
+            # settled last -- live config/user-run-ledger.json held a team-4 receipt from
+            # before the change and an expired run filed after it, and the old permissive
+            # fallback spent one of three weekly bonuses on rewards that run never earned.
+            # Not knowing is not a reason to spend a weekly resource.
+            return False
         return settled_at > left_at
     return bool(receipt.get('victory') or receipt.get('reward'))

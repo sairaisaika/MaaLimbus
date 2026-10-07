@@ -50,6 +50,8 @@
   "claim_the_rewards": "^Claim the rewards\\?$",
   "spend_weekly_bonuses": "^Spend your '?Weekly Bonuses,? to claim the$",
   "bonus_rewards": "^bonus rewards\\?$",
+  "pass_level_up": "^Pass Level Up$",
+  "battle_pass_xp": "^Battle Pass XP$",
   "weekly_reset": "^The weekly record has been reset\\.?$",
   "weekly_moving": "^Moving over to the Window\\.?$",
   "sin_cost": "^SIN\\s*\\|?\\s*COST$",
