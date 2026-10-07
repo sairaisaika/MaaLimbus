@@ -676,6 +676,112 @@
       ]
     },
     {
+      "id": "run_reward",
+      "title": "通关奖励弹窗（Exploration Reward：Give Up Rewards / To Window / Claim）",
+      "why": "结算页的 Claim Rewards 点下去会弹出这个模态窗：左边是 Floor 5 [NORMAL] 6/6、Starlight 15、Battle Pass XP x30、Projection Rate x25、Manager EXP 100，底部三个控件分别是 Give Up Rewards（放弃＝丢掉整局奖励）、To Window（离开）、Claim（左下带一个绿色感叹号角标）。2026-10-07 实机第一次走到这里：弹窗盖住结算页的中心，而结算页自己的 'Claim Rewards' 仍读得到，所以驱动把 70 步全点在弹窗背后的死按钮上（build/window-run102.json）；本页必须先于 run_claim 判定。",
+      "evidence": [
+        "evidence/runtime/window-20261007-021150/frame-0002.json"
+      ],
+      "identity": [
+        {
+          "id": "run_reward.title",
+          "kind": "ocr",
+          "pattern": "^Exploration Reward$",
+          "roi": [
+            0.36,
+            0.1,
+            0.64,
+            0.2
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [792,156,338,42] score 1.0"
+        },
+        {
+          "id": "run_reward.to_window",
+          "kind": "ocr",
+          "pattern": "^To Window$",
+          "roi": [
+            0.42,
+            0.71,
+            0.58,
+            0.78
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [874,800,172,33] score 1.0"
+        },
+        {
+          "id": "run_reward.claim_label",
+          "kind": "ocr",
+          "pattern": "^Claim$",
+          "roi": [
+            0.61,
+            0.7,
+            0.7,
+            0.77
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 框 [1238,796,98,41] score 1.0；同帧结算页背后还有一个 [1682,865,82,30] 的 Claim，靠 ROI 分开"
+        },
+        {
+          "id": "run_reward.give_up_label",
+          "kind": "ocr",
+          "pattern": "^\\s*Give\\s?Up\\s?Rewards$",
+          "roi": [
+            0.2,
+            0.7,
+            0.42,
+            0.78
+          ],
+          "threshold": 0.85,
+          "note": "实机 OCR 把两行读成 ' GiveUpRewards' [450,796,278,39] score 0.99，所以正则允许空格缺失；这条只用于核对该页，永不作为点击目标"
+        }
+      ],
+      "controls": [
+        {
+          "id": "run_reward.claim_button",
+          "kind": "geometry",
+          "box": [
+            1200,
+            780,
+            200,
+            60
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-021150/frame-0002.json",
+            "box": [
+              1200,
+              780,
+              200,
+              60
+            ],
+            "source": "实机 OCR 'Claim'[1238,796,98,41] 所在按钮的框；中心 (1300,810) 稳落在按钮内、又远离 To Window 与 Give Up Rewards"
+          },
+          "note": "只点这一块＝领取奖励；绝不点左边的 Give Up Rewards"
+        },
+        {
+          "id": "run_reward.give_up_button",
+          "kind": "geometry",
+          "box": [
+            430,
+            780,
+            320,
+            75
+          ],
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261007-021150/frame-0002.json",
+            "box": [
+              430,
+              780,
+              320,
+              75
+            ],
+            "source": "实机 OCR ' GiveUpRewards'[450,796,278,39] 的框；登记出来只为让 FORBIDDEN_CONTROLS 认得出它"
+          },
+          "note": "登记但不许点：这是「放弃奖励」，等于把五层通关的奖励丢掉"
+        }
+      ]
+    },
+    {
       "id": "home",
       "title": "主界面大厅（底部 Window/Sinners/Inventory/Drive 导航）",
       "evidence": [

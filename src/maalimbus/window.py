@@ -51,7 +51,9 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
                       'gift_pick.refuse_button', 'gift_warning.confirm_button',
                       'entry_confirm.cancel_button', 'level_warning.cancel_button',
                       'star_confirm.cancel_button', 'initial_gifts.refuse_button',
-                      'gift_search_forgo.cancel_button', 'event_check.skip_button')
+                      'gift_search_forgo.cancel_button', 'event_check.skip_button',
+                      # The reward modal's Give Up Rewards throws the five-floor run away.
+                      'run_reward.give_up_button')
 
 #: Pages that clear themselves: the planner has no control to send, so the driver
 #: waits for the page to change instead of treating it as the end of the run.
@@ -180,6 +182,16 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'tutorial_next_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
+    if page == 'RUN_REWARD_DIALOG':
+        # The modal the summary's claim opens: 'Exploration Reward' with Give Up Rewards,
+        # To Window and Claim. Its Claim is the only control sent -- giving the rewards up
+        # would throw the run away, and To Window leaves without them -- and it is exempt
+        # from the loop guard because the reward split animates before the modal closes.
+        box = controls.get('run_reward.claim_button')
+        if box is None:
+            return _refuse(page, 'run_reward_claim_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_reward_modal_is_claimed_and_never_given_up')
     if page == 'RUN_CLAIM':
         # The run summary -- five floors cleared, Total Progress 100% -- is claimed here
         # and nowhere else: live evidence/runtime/window-20261007-020715/frame-0006.json

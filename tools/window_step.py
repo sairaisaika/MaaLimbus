@@ -87,6 +87,9 @@ LOOP_GUARD_EXEMPT_REASONS = (
     # Claiming the run summary plays its own reward animation before the page moves, so
     # the same reason repeats a few times without the page name changing.
     'claiming_is_the_only_forward_input_on_the_run_summary',
+    # The reward modal's Claim plays the reward split before it closes, so the same
+    # reason and the same page name repeat without meaning the tap was lost.
+    'the_reward_modal_is_claimed_and_never_given_up',
 )
 PIPELINE_DIR = ROOT / 'build/window-debug'
 PIPELINE = {

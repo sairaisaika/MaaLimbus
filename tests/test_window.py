@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.vision import Text, classify  # noqa: E402
-from maalimbus.window import (ANY, CLICK, NODE, RECORD, SWIPE, plan_step,
-                              resolve_overlay,
+from maalimbus.window import (ANY, CLICK, FORBIDDEN_CONTROLS, NODE, RECORD,
+                              SWIPE, plan_step, resolve_overlay,
                               step_result, successor_ok)  # noqa: E402
 
 CONTROLS = {'node_panel.enter_button': [1668, 780, 124, 63],
@@ -139,6 +139,27 @@ def test_pre_battle_team_battles_when_the_counter_already_reads_full():
     plan = plan_step('PRE_BATTLE_TEAM', controls=CONTROLS,
                      team={'states': states, 'participants': [10, 11]})
     assert plan['reason'] == 'team_card_joins_the_next_unpicked_identity'
+
+
+def test_the_reward_modal_is_claimed_and_its_give_up_is_forbidden():
+    # Live proof: window-20261007-021150/frame-0002.json is that modal -- 'Exploration
+    # Reward' over 'GiveUpRewards' [450,796,278,39], 'To Window' [874,800,172,33] and
+    # 'Claim' [1238,796,98,41] -- with the summary's own Claim still readable behind it.
+    box = [1200, 780, 200, 60]
+    plan = plan_step('RUN_REWARD_DIALOG', controls={'run_reward.claim_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'the_reward_modal_is_claimed_and_never_given_up'
+    assert plan['advance'] is True and plan['expect'] == [ANY]
+    # Giving the rewards up is registered as an anchor and can never be a target.
+    given_up = plan_step('RUN_REWARD_DIALOG',
+                         controls={'run_reward.give_up_button': [430, 780, 320, 75]})
+    assert given_up['action'] == RECORD
+    assert given_up['reason'] == 'run_reward_claim_not_anchored'
+    assert 'run_reward.give_up_button' in FORBIDDEN_CONTROLS
+    blind = plan_step('RUN_REWARD_DIALOG', controls={})
+    assert blind['action'] == RECORD
+    assert blind['reason'] == 'run_reward_claim_not_anchored'
 
 
 def test_the_run_summary_is_claimed_and_never_paged_back_and_forth():

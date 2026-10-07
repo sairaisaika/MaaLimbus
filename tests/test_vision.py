@@ -439,3 +439,27 @@ def test_the_run_summary_is_named_so_its_rewards_can_be_claimed():
     # not this page and must not be clicked through.
     without = [t for t in records if t.text.strip() != 'Claim']
     assert classify(without, words, tuple(frame['size'])) != 'RUN_CLAIM'
+
+
+def test_the_reward_modal_is_named_before_the_summary_behind_it():
+    """Live evidence/runtime/window-20261007-021150/frame-0002.json (run 102).
+
+    The claim opens a modal whose three controls are Give Up Rewards, To Window and
+    Claim, while the summary behind it still reads 'Claim Rewards'. Seventy steps of the
+    run clicked that dead background button, so the modal must win the page name.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-021150/frame-0002.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Exploration Reward' for t in records)
+    assert any(t.text.strip() == 'To Window' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'RUN_REWARD_DIALOG'
+    # Both Claims are in this frame -- the modal's [1238,796,98,41] and the summary's
+    # [1682,865,82,30] -- so the page name must not depend on the word alone.
+    claims = [t for t in records if t.text.strip() == 'Claim']
+    assert len(claims) == 2
+    # Without the modal's own title the page is the summary behind it.
+    without = [t for t in records if t.text.strip() != 'Exploration Reward']
+    assert classify(without, words, tuple(frame['size'])) == 'RUN_CLAIM'

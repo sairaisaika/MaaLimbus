@@ -64,6 +64,17 @@ def classify(records, locale, size):
     # [234,704,232,44] and '100%' [274,760,154,89], with 'Claim' [1682,865,82,30] and
     # 'Rewards' [1662,901,124,28] as the only forward control. The four words are read
     # together because Previous/Next sit beside Claim and must never be mistaken for it.
+    # The claim opens its own modal over the summary, and the summary's own words stay
+    # readable behind it, so this page is judged first: live
+    # evidence/runtime/window-20261007-021150/frame-0002.json reads 'Exploration Reward'
+    # over 'To Window' [874,800,172,33] and 'Claim' [1238,796,98,41] with 'GiveUpRewards'
+    # [450,796,278,39] beside them, while the summary's 'Claim' [1682,865,82,30] is still
+    # in the same frame. Clicking the summary's button while this modal is open does
+    # nothing at all (build/window-run102.json spent seventy steps proving that).
+    if (find(records, locale.get('exploration_reward', r'(?!)'), (.36, .10, .64, .17), size, .85)
+            and find(records, locale.get('to_window', r'(?!)'), (.42, .71, .58, .78), size, .85)
+            and find(records, locale.get('claim', r'(?!)'), (.61, .70, .70, .77), size, .85)):
+        return 'RUN_REWARD_DIALOG'
     if (find(records, locale.get('exploration', r'(?!)'), (.10, .11, .28, .20), size, .85)
             and find(records, locale.get('complete', r'(?!)'), (.11, .16, .25, .24), size, .85)
             and find(records, locale.get('claim', r'(?!)'), (.86, .78, .93, .85), size, .85)

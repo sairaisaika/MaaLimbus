@@ -17,13 +17,18 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / 'assets' / 'resource' / 'base' / 'anchors.json'
 UNKNOWN_PAGE = 'NOT_A_REAL_PAGE'
 
+# A few anchor page ids are shorter than the recognition page they prove, because
+# the anchor name is also the file/naming stem. The driver only ever asks about the
+# recognised page, so the coverage question has to be asked under that spelling.
+PAGE_ALIASES = {'RUN_REWARD': 'RUN_REWARD_DIALOG'}
+
 
 def _proven_pages():
     registry = json.loads(REGISTRY.read_text(encoding='utf-8'))
     pages = registry['pages']
     names = [p['id'] for p in pages] if isinstance(pages, list) else list(pages)
     assert len(names) >= 20, names
-    return [name.upper() for name in names]
+    return [PAGE_ALIASES.get(name.upper(), name.upper()) for name in names]
 
 
 def test_the_fallback_refusal_is_named():
