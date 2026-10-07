@@ -1,4 +1,5 @@
 """The event page's choice column and skill check (no device)."""
+import json
 from pathlib import Path
 import sys
 
@@ -8,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.event_vision import (ODDS_TEMPLATE_DIR, OPTION_BAND,
-                                    best_check_choice, check_box, choice_options,
-                                    gift_hints, odds_scores,
+                                    best_check_choice, check_box, check_stage,
+                                    choice_options, gift_hints, odds_scores,
                                     preferred_choice)  # noqa: E402
 
 SIZE = (1920, 1080)
@@ -97,6 +98,23 @@ def test_a_slot_with_unreadable_odds_is_never_chosen():
     assert best_check_choice([{'index': 1, 'tier': None, 'score': 0.9}]) is None
     assert best_check_choice([]) is None
     assert best_check_choice(None) is None
+
+
+def test_the_commence_button_names_the_stage_the_check_has_reached():
+    # Live proof: window-20261006-205435/frame-0002.json is the same check page after an
+    # identity was taken: it prints 'Predicted Odds: Very High' and 'Commence' where the
+    # untouched page (window-20261006-204421/frame-0001.json) still had SKIP.
+    frame = json.loads((ROOT / 'evidence/runtime/window-20261006-205435/frame-0002.json')
+                       .read_text(encoding='utf-8'))
+    assert check_stage(frame['ocr']) == 'commence'
+    before = json.loads((ROOT / 'evidence/runtime/window-20261006-204421/frame-0001.json')
+                        .read_text(encoding='utf-8'))
+    assert check_stage(before['ocr']) is None
+    # Plain strings work too, and nothing at all is not a stage.
+    assert check_stage([{'text': 'Commence'}]) == 'commence'
+    assert check_stage(['Commence']) == 'commence'
+    assert check_stage(['SKIP']) is None
+    assert check_stage(None) is None
 
 
 def test_every_check_box_sits_on_its_own_card():

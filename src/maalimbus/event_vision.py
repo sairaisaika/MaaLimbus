@@ -203,3 +203,24 @@ def best_check_choice(scores, *, min_score=ODDS_MIN_SCORE):
         if best is None or rank > best[1]:
             best = (item.get('index'), rank)
     return best[0] if best else None
+
+
+#: The label the check page puts on the button that commits the chosen identity's roll
+#: (locale key ``commence``). Live frame window-20261006-205435/frame-0002 reads it at
+#: [1578,946,240,48] with score 1.0, next to 'Predicted Odds: Very High'.
+COMMENCE_TEXT = 'Commence'
+
+
+def check_stage(tokens):
+    """``'commence'`` once a check page has an identity chosen and is asking to roll.
+
+    Choosing a slot does not leave the page: the question and the odds row stay, and the
+    bottom-right SKIP is replaced by Commence plus the prediction panel. Which of those
+    two buttons the frame shows is the only thing that separates the stages, so the plan
+    knows whether to aim at another identity or to commit the roll it already has.
+    """
+    for token in tokens or ():
+        text = token.get('text') if isinstance(token, dict) else token
+        if str(text or '').strip() == COMMENCE_TEXT:
+            return 'commence'
+    return None

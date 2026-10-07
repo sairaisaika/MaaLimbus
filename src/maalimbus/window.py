@@ -266,11 +266,25 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # one's odds caption over its card. The driver reads those captions off the live
         # frame (OCR merges the whole row into one token) and hands over the best slot's
         # card box, so the roll goes to the identity the game itself rates highest.
+        # Choosing the identity does not leave the page: it swaps the bottom-right SKIP
+        # for Commence and prints the prediction (live frame window-20261006-205435/
+        # frame-0002 reads 'Commence' [1578,946,240,48] with 'Predicted Odds: Very High'),
+        # so the driver's second pass over the same page reports that stage and its
+        # button is what commits the roll.
         state = check or {}
+        if state.get('stage') == 'commence':
+            box = controls.get('event_check.commence_button')
+            if box is None:
+                return _refuse(page, 'event_check_commence_not_anchored')
+            return _plan(page, CLICK, target=box, advance=True,
+                         expect=('CUTSCENE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
+                                 'EVENT_CHECK', ANY),
+                         reason='the_skill_check_is_committed_with_its_commence',
+                         detail={'slot': state.get('slot'), 'tier': state.get('tier')})
         box = state.get('box')
         if not box:
             return _refuse(page, 'no_event_check_candidate_observed')
-        return _plan(page, CLICK, target=box, expect=(ANY,),
+        return _plan(page, CLICK, target=box, expect=('EVENT_CHECK', ANY), advance=True,
                      reason='the_skill_check_is_rolled_by_the_best_odds',
                      detail={'slot': state.get('slot'), 'tier': state.get('tier')})
     if page == 'EVENT_CHOICE':

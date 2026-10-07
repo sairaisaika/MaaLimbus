@@ -39,8 +39,9 @@ from maa.toolkit import Toolkit
 from maalimbus import anchors
 from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
 from maalimbus.controller_lease import ControllerLease
-from maalimbus.event_vision import (best_check_choice, check_box, choice_options,
-                                    gift_hints, odds_scores, preferred_choice)
+from maalimbus.event_vision import (best_check_choice, check_box, check_stage,
+                                    choice_options, gift_hints, odds_scores,
+                                    preferred_choice)
 from maalimbus.jobs import wait_job, wait_task
 from maalimbus.map_vision import (NODE_BADGE_TEMPLATE, map_clicks)
 from maalimbus import session_flow as flows
@@ -225,9 +226,18 @@ def check_of(directory, record):
     The check page prints an odds caption over every identity card, and OCR merges the
     whole row into one token, so the captions are matched as templates instead (see
     maalimbus.event_vision). The best trusted slot's card box is what the plan clicks.
+
+    Choosing a slot does not leave the page: the same page then prints the prediction
+    and replaces its SKIP with Commence (live frame window-20261006-205435/frame-0002,
+    sha 3526edb3f80a), so once that button is what the frame shows the plan gets the
+    commence stage instead of another card box and the roll is committed rather than
+    re-aimed at a second identity.
     """
     if record['scene'] != 'EVENT_CHECK':
         return None
+    stage = check_stage(record.get('ocr') or ())
+    if stage:
+        return {'stage': stage}
     image, name = latest_frame(directory)
     if image is None:
         return None

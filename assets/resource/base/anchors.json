@@ -1570,7 +1570,8 @@
       "title": "事件技能检定页（Who should do it?）",
       "evidence": [
         "evidence/runtime/window-20261006-204421/frame-0001.json",
-        "evidence/runtime/window-20261006-204143/frame-0002.json"
+        "evidence/runtime/window-20261006-204143/frame-0002.json",
+        "evidence/runtime/window-20261006-205435/frame-0002.json"
       ],
       "identity": [
         {
@@ -1613,6 +1614,20 @@
               83
             ],
             "source": "SKIP＝没人去做这次检定，等于直接放弃；登记它只为让 window.FORBIDDEN_CONTROLS 拒点（204421 那帧按钮太暗没读出，故用 204143 的实测框）"
+          }
+        },
+        {
+          "id": "event_check.commence_button",
+          "kind": "geometry",
+          "verified_on": {
+            "frame": "evidence/runtime/window-20261006-205435/frame-0002.json",
+            "box": [
+              1578,
+              946,
+              240,
+              48
+            ],
+            "source": "选完罪人后同一页把右下 SKIP 换成 Commence（实机 OCR 'Commence' [1578,946,240,48] 1.0，同帧还有 'Predicted Odds: Very High' [1204,718,394,40]）；点它才真正掷检定"
           }
         }
       ],

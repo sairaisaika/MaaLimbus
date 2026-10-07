@@ -54,5 +54,6 @@
   "rec": "^REC$",
   "choices": "^Choices$",
   "who_should_do_it": "^Who should do it\\?$",
-  "choose_character": "^Choose a character to perform$"
+  "choose_character": "^Choose a character to perform$",
+  "commence": "^Commence$"
 }

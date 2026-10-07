@@ -879,14 +879,22 @@ def test_the_skill_check_is_rolled_by_the_best_odds_and_never_skipped():
     # Live proof: evidence/runtime/window-20261006-204421/frame-0001.json prints an odds
     # caption over each identity card, and card 1 (VeryHigh) is the one worth sending.
     # The driver reads the row and hands that card's box over; the page has no anchored
-    # control of its own, because the row is read live.
+    # control of its own, because the row is read live. Picking the card keeps the page
+    # (evidence/runtime/window-20261006-205435/frame-0002.json is the same page after the
+    # click), so the step passes on the changed frame rather than on a new scene.
     card = [76, 923, 84, 113]
     plan = plan_step('EVENT_CHECK', check={'slot': 1, 'tier': 'very_high', 'box': card})
     assert plan['action'] == CLICK
     assert plan['target'] == card
     assert plan['reason'] == 'the_skill_check_is_rolled_by_the_best_odds'
     assert plan['detail'] == {'slot': 1, 'tier': 'very_high'}
-    assert successor_ok(plan, 'MAP') and not successor_ok(plan, 'EVENT_CHECK')
+    assert plan['expect'] == ['EVENT_CHECK', ANY]
+    assert plan['advance'] is True
+    assert not successor_ok(plan, 'EVENT_CHECK')
+    assert step_result(plan, sent=True, before='EVENT_CHECK', after='EVENT_CHECK',
+                       page='EVENT_CHECK', frame_changed=True)['passed']
+    assert not step_result(plan, sent=True, before='EVENT_CHECK', after='EVENT_CHECK',
+                           page='EVENT_CHECK', frame_changed=False)['passed']
     # No slot read means no input at all: the check is never guessed at.
     unread = plan_step('EVENT_CHECK', check=None)
     assert unread['action'] == RECORD
@@ -898,3 +906,22 @@ def test_the_skill_check_is_rolled_by_the_best_odds_and_never_skipped():
                       check={'slot': 1, 'box': skip})
     assert named['action'] == RECORD
     assert named['reason'] == 'control_is_forbidden'
+
+
+def test_the_chosen_skill_check_identity_is_committed_with_its_commence():
+    # Live proof: evidence/runtime/window-20261006-205435/frame-0002.json is the same
+    # check page after an identity was picked - it prints 'Predicted Odds: Very High' and
+    # 'Commence' [1578,946,240,48] where the untouched page had SKIP, and the driver
+    # reports that stage instead of aiming at a second card.
+    box = [1578, 946, 240, 48]
+    plan = plan_step('EVENT_CHECK', controls={'event_check.commence_button': box},
+                     check={'stage': 'commence'})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert plan['reason'] == 'the_skill_check_is_committed_with_its_commence'
+    assert successor_ok(plan, 'CUTSCENE') and successor_ok(plan, 'EVENT_RESULT_READY')
+    assert not successor_ok(plan, 'EVENT_CHECK') or plan['advance'] is True
+    # A registration without the button sends nothing.
+    missing = plan_step('EVENT_CHECK', check={'stage': 'commence'})
+    assert missing['action'] == RECORD
+    assert missing['reason'] == 'event_check_commence_not_anchored'
