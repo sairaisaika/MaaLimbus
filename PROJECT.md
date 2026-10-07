@@ -9,7 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 16:10 local
+## Latest continuation: 2026-10-07 16:45 local
+- **里程碑：轮换账本在实机上自己前进了一格**（m12942 的驱动线与用户长期目标「保存轮换队并再入场」同时闭环）。窗口 `--label run-continue-7`（`evidence/runtime/window-20261007-162956`，`--run-store config/user-run-ledger.json`）从 team 4 的这一局打到结算，journal 里四条 `run_ledger_event` 按序落地：`20:31:29 floor_clear 5`（frame-0025）、`20:31:29 final_victory`（frame-0025）、`20:31:34 reward_received`（frame-0029）、`20:32:06 entry_returned`（frame-0045）。
+- **账本读数**：`python tools/run_ledger.py --path config/user-run-ledger.json status` ⇒ `slots [5,4,1,6,2,7,3]`、**`rotation 2 -> team 1`**、`completed 1`、`active run none`；receipt `8de51ee326254dada65ae776aa1c1e11` 带 `team 4`／`floors [1,2,3,4,5]`／`victory true`／`reward true`，每个事件各带一帧 sha256 证据（floor_clear 1..4 来自 `window-20261007-134338/frame-0307.json`、`window-20261007-140234/frame-0271.json`、`frame-0375.json`、`frame-0814.json`，其余来自本窗口 frame-0025/0029/0045）。随后新一局已经**自己用 team 1 进场**并推进（`SHOP → SHOP_LEAVE → MAP → NODE_PANEL`）。
+- **这一段补掉的停机点**：① 剧情 cutscene 连点三次时循环守卫误杀——step 185 的第三次 SKIP 恰恰揭出 `EVENT_CHECK_READY`，却被 `the_same_plan_repeated` 判失败停机；把 `the_cutscene_is_skipped_to_resume_the_run` 加进 `LOOP_GUARD_EXEMPT_REASONS`（步数预算兜底）后重启窗口，立刻 `EVENT_CHECK_READY → BATTLE_HUD`（提交 `3e5e1ba`）。② 更早的三条（地图 visit 记忆 `ba0f5a3`、wave 丢首位数字 `cbb4b7f`、`--flow` 逗号链 `d57b020`）。
+- **文档**：`docs/acceptance.md` 新增顶部一节「the rotation ledger advanced on its own after a completed run」，并把它下面旧段落的「Not claimed: the rotation ledger still does not advance itself」改成「Since superseded」。
+- **仍未申报**：JP/MXU 实机、体力（Enkephalin）兑换、Windows 包 `dist/`（三个输入归档在本机，可用 `tools/build_windows_package.py --mxu … --maa … --mxu-source … --verified-dungeon-clear` 重出）；账本还没有「中途放弃」路径 ⇒ 团灭后选「Accept results」的局会一直挂在 active。
+- **全量测试 403 passed；`tools/verify_anchors.py` 41 page(s), 0 broken。**
+
+## Prior continuation: 2026-10-07 16:10 local
 - **继续按 m12942「从零开始驱动脚本打镜牢、我只负责看卡在哪里」推进：又抓到三个真停机点，全部修掉并实机验证。**
   1. **地图候选被「已经点过」的记忆锁死（提交 `ba0f5a3`）**：`build/window-run-continue-4.json` 在 floor 1「The Outcast」上点开被点亮的「?」节点 `[1067,389]` → 节点面板 → Enter → 剧情/事件 → 起始礼物 → **回到同一张地图**；此后 9 个候选全部点不开面板，步 14 `unexpected_successor` 停机。用受控探针 `tools/map_zoom.py --click "1087,409"` 手动点同一坐标**立刻打开节点面板**（`build/live-probe-question.png`「The Outcast」＋Enter）⇒ 真因是 `MapProgress.tried` 只按「具名换层」清空，把同一个 visit 里已点过的、仍然有效的节点永久排除。新增 `MapProgress.leave()`：**一步的落点只要离开地图（且不是 None/UNKNOWN）就结束这次 visit**、允许重走同一批点；层号抖动仍然不会清空（run110 的保护不动）。测试 `tests/test_map_progress.py::test_leaving_the_map_offers_its_spots_again_on_the_next_visit`。
   2. **战斗 HUD 因 wave 计数丢首位数字而整页判 UNKNOWN（提交 `cbb4b7f`）**：`evidence/runtime/window-20261007-151655/frame-0529.json` 的左上角读到 `"/10" [98,39,34,24] 0.99` 与干净的 `"TURN" [20,97,42,22] 1.0`，同时 START／Win／Rate／Damage 全部可读，却因为兜底正则 `^\d{1,2}/\d{1,2}$` 要求斜杠前有数字而 `battle_hud()` 返回 None ⇒ 窗口在战斗页等了十轮后 `page_unreadable_after_waiting` 停机（step 150）。正则改成 `^\d{0,2}\s*/\s*\d{1,2}$`（允许丢首位数字；该角只有战斗页会同时有 TURN 与计数）。测试 `tests/test_map_vision.py::test_the_battle_hud_survives_a_counter_that_lost_its_first_digit`。

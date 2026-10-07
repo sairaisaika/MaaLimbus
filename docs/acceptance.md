@@ -1,5 +1,40 @@
 # Acceptance evidence
 
+## 2026-10-07 the rotation ledger advanced on its own after a completed run
+
+- **The driven run closed its own loop.** Window `--label run-continue-7`
+  (`evidence/runtime/window-20261007-162956`) was started from an active run at team 4
+  with `--run-store config/user-run-ledger.json` and drove it to the end. The journal's
+  four `run_ledger_event`s are `floor_clear 5` (20:31:29Z, frame-0025), `final_victory`
+  (20:31:29Z, frame-0025), `reward_received` (20:31:34Z, frame-0029) and `entry_returned`
+  (20:32:06Z, frame-0045).
+- **The ledger now reads** `slots [5,4,1,6,2,7,3]`, **`rotation 2 -> team 1`**,
+  `completed 1`, `active run none` (`tools/run_ledger.py --path
+  config/user-run-ledger.json status`). Its receipt `8de51ee326254dada65ae776aa1c1e11`
+  carries `team 4`, `floors [1,2,3,4,5]`, `victory true`, `reward true`, and one evidence
+  frame (with sha256) per event: `floor_clear-1 ->
+  evidence/runtime/window-20261007-134338/frame-0307.json`, `floor_clear-2 ->
+  window-20261007-140234/frame-0271.json`, `floor_clear-3 -> .../frame-0375.json`,
+  `floor_clear-4 -> .../frame-0814.json`, `floor_clear-5 -> .../frame-0025.json`,
+  `final_victory -> .../frame-0025.json`, `reward_received -> .../frame-0029.json`,
+  `entry_returned -> .../frame-0045.json`. The next run then entered on team 1 on its own
+  (`SHOP -> SHOP_LEAVE -> MAP -> NODE_PANEL` in the same journal).
+- **Why it had not advanced before**: `run_wiring.ledger_event` finished a run only when
+  `RUN_CLAIM` saw five cleared floors, but floor 5 can never be proved from a map page
+  (there is no floor 6 to stand on), so `RUN_CLAIM` now settles floor 5 and then the
+  victory itself (commit `a961044`); the driver's `record_ledger_event` asks that page
+  repeatedly until it settles nothing new, and the report field is the `ledger_events`
+  list.
+- **Stalls this pass fixed**, each with a live frame and a test: the map forgetting that a
+  spot it already tried is still the step after the event ends (`MapProgress.leave`,
+  commit `ba0f5a3`), the battle HUD's wave counter losing its leading digit (`/10`, commit
+  `cbb4b7f`), a story cutscene skipped three times tripping the same-plan guard on the one
+  skip that revealed the check page (commit `3e5e1ba`), and `--flow launch,to_mirror,
+  enter_mirror` chaining a cold start into a driven run (commit `d57b020`).
+- **Not claimed**: no live JP/MXU evidence, no Enkephalin conversion, and the rotation
+  ledger has no abandon path yet, so a run that ends on a wipe (the `BATTLE_DEFEAT`
+  "Accept results" row) stays open until the next settlement or a manual reseed.
+
 ## 2026-10-07 five floors cleared, rewards claimed, the run re-entered
 
 - **Five hard floors, live.** The window drove one dungeon from floor 1 to the floor-5
@@ -29,8 +64,9 @@
   badge lift, because run107 spent every click on four lifted badge boxes while the red
   "?" node's own icon at `(1087,409)` was the step (a manual 1920-space tap on
   `(1080,428)` opened its panel; commit `7a17842`).
-- **Not claimed**: the rotation ledger still does not advance itself (the team slot is the
-  fixed `--team 5`), and no live JP/MXU or Enkephalin-conversion evidence exists yet.
+- **Since superseded**: that pass still used the fixed `--team 5`, but the rotation ledger
+  has since advanced itself on a completed run — see the section above. Still not claimed:
+  live JP/MXU evidence and Enkephalin conversion.
 
 ## 2026-10-06 first real battle entered, fought and won from the map
 
