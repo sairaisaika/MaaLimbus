@@ -290,6 +290,29 @@ def test_the_second_skill_check_wording_is_the_same_page():
     assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK'
 
 
+def test_the_picked_check_asks_what_will_you_do_and_is_still_the_check():
+    """Live evidence/runtime/window-20261006-235032/frame-0013.json, floor 3 (run 84).
+
+    Once an identity is picked the same page swaps its prompt for "What will you do?"
+    over the prediction and its SKIP for Commence, and the reader -- which knew only
+    the two questions -- left the page UNKNOWN while the run waited out its clock
+    (build/window-run84.json). The page's own choice list (frame-0001 of the same
+    window) is a different page and stays one.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261006-235032/frame-0013.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'What will you do?' for t in records)
+    assert any(t.text.strip() == 'Commence' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'EVENT_CHECK'
+    choices = json.loads((root / 'evidence/runtime/window-20261006-235032/frame-0001.json')
+                         .read_text())
+    listed = [Text(t['text'], tuple(t['box']), t['score']) for t in choices['ocr']]
+    assert classify(listed, words, tuple(choices['size'])) == 'EVENT_CHOICE'
+
+
 def test_the_resolved_skill_check_is_its_own_page_while_its_control_is_dark():
     # Live proof: evidence/runtime/window-20261006-205922 is the aftermath of a roll -
     # 'Check Passed' over the threshold and the story written into the left panel.

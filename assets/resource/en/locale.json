@@ -55,6 +55,7 @@
   "choices": "^Choices$",
   "who_should_do_it": "^Who should do it\\?$",
   "who_will_take_the_challenge": "^Who will take the challenge\\?$",
+  "what_will_you_do": "^What will you do\\?$",
   "choose_character": "^Choose a character to perform$",
   "commence": "^Commence$",
   "check_outcome": "^Check (?:Passed|Failed)$"

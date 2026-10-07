@@ -136,11 +136,15 @@ def classify(records, locale, size):
     # nothing else on this page distinguishes it from the cutscene, so requiring the
     # second line would hand the page back to the cutscene branch and press SKIP on a
     # check the run should have attempted.
-    # The question is worded two ways across encounters, and a sparser OCR pass drops the
-    # prompt's second line, so the page is named by whichever of the question or the
-    # chooser caption the pass managed to read.
+    # The question is worded several ways across encounters, and a sparser OCR pass drops
+    # the prompt's second line, so the page is named by whichever of the question or the
+    # chooser caption the pass managed to read. Once an identity is picked the page asks
+    # "What will you do?" over the prediction instead (evidence/runtime/
+    # window-20261006-235032/frame-0013.json, whose bottom-right control is Commence).
     if (find(records, locale.get('who_should_do_it', r'(?!)'), (.62, .23, .82, .30), size, .85)
             or find(records, locale.get('who_will_take_the_challenge', r'(?!)'),
+                    (.62, .23, .82, .30), size, .85)
+            or find(records, locale.get('what_will_you_do', r'(?!)'),
                     (.62, .23, .82, .30), size, .85)
             or find(records, locale.get('choose_character', r'(?!)'),
                     (.63, .38, .90, .47), size, .85)):

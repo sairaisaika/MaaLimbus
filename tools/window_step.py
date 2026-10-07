@@ -303,7 +303,15 @@ def arrows_of(directory):
 
 def resolve_scene(registry, directory, record):
     """Page identity, with the tutorial overlay taking precedence while it is up."""
-    return resolve_overlay(record['scene'],
+    scene = record['scene']
+    # The skill check prints its question several ways -- "Who should do it?", "Who will
+    # take the challenge?" (window-20261006-234203) and "What will you do?" -- and a
+    # wording the locale has not learned yet would leave the rolled page UNKNOWN while
+    # the run waited out its clock (build/window-run84.json). Its Commence button exists
+    # nowhere else, so the button names the page whatever the question says.
+    if scene == 'UNKNOWN' and check_stage(record.get('ocr') or ()) == 'commence':
+        scene = 'EVENT_CHECK'
+    return resolve_overlay(scene,
                            overlay_hit=bool(overlay_hit(registry, directory, record)))
 
 
@@ -520,10 +528,12 @@ def main() -> int:
                              'starlight; "select" instead leaves through Select')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
-                             'times in one run: a misleading overlay once produced twelve '
-                             'passed rounds of TUTORIAL then To Battle! with nothing '
-                             'changing. The guide book itself is exempt, because it '
-                             'legitimately advances card by card from the same control')
+                             'times in one visit to one page: a misleading overlay once '
+                             'produced twelve passed rounds of TUTORIAL then To Battle! with '
+                             'nothing changing. Leaving the page resets the counts, so the '
+                             'three separate cutscenes a floor-3 run skipped are not a loop. '
+                             'The guide book itself is exempt, because it legitimately '
+                             'advances card by card from the same control')
     parser.add_argument('--observe-page', action='store_true',
                         help='read the live page once and print its scene and OCR tokens '
                              'as JSON, then stop: the cheap way to see a screen without '
@@ -724,6 +734,7 @@ def main() -> int:
         gift_picks = 0
         initial_picked = 0
         repeated_plans = {}
+        guard_page = None
         while step < goal:
             record = observe(tasker, directory, deadline)
             page = resolve_scene(registry, directory, record)
@@ -1016,6 +1027,13 @@ def main() -> int:
                 # Battles are exempt because a fight legitimately alternates the same
                 # two clicks (Win Rate then START) for as many turns as it has waves;
                 # the step budget, not this guard, bounds them.
+                # The counts belong to one visit to one page: a run that leaves and
+                # comes back is moving (live run window-20261006-234203 skipped three
+                # separate cutscenes on floor 3, and the third skip stopped the run),
+                # so a page change starts the counts over.
+                if page != guard_page:
+                    repeated_plans = {}
+                    guard_page = page
                 key = (page, plan['action'], plan.get('node'),
                        None if plan.get('target') is None else tuple(plan['target']))
                 repeated_plans[key] = repeated_plans.get(key, 0) + 1
