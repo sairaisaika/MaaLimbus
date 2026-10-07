@@ -1,5 +1,39 @@
 # Acceptance evidence
 
+## 2026-10-07 the claim's second question is answered from the ledger, not the page
+
+- **The page asks before it spends.** Claiming the rewards a weekly reset left behind
+  raises a second question: "Spend your 'Weekly Bonuses, to claim the / bonus rewards?"
+  with `× Cancel` and `Confirm` over the dimmed reward modal
+  (`evidence/runtime/window-20261007-171228/frame-0003.json`, sha `be5d7c3077df`).
+  Window `--label run-continue-11` stopped on it as `page_is_observe_only` at step 1.
+- **Why it is not a free click.** Weekly Bonuses are three per week and they reset rather
+  than accumulate; an unfinished run auto-concedes when the week turns and that week's
+  bonus is lost, though its cleared floors can still be claimed in a later week (Steam
+  discussion of patch 1973530, thread 597403944640085425). So the page cannot answer for
+  itself.
+- **What the script does now.** The window names `RUN_REWARD_BONUS` and asks the ledger:
+  `run_wiring.earned_its_payout()` returns true only for the run that finished its floors,
+  by comparing the receipt's `settled_at` with the abandoned run's `abandoned_at` (a
+  receipt now carries that stamp). A completed run answers `Confirm` and spends one; a run
+  the game expired or the player gave up answers `Cancel` and keeps them. When the ledger
+  holds an abandoned run but cannot say which settled last, it keeps them: not knowing is
+  not a reason to spend a weekly resource.
+- **How it went live.** `run-continue-12` step 0 reached that page first and answered
+  `Confirm` -- the old fallback treated the team-4 receipt, written before receipts carried
+  `settled_at`, as the newer record. The claim paid out (Weekly Bonuses went 3/3 -> 2/3,
+  Weekly Projection Cap 0/1000 -> 10/1000) and the game levelled the battle pass, raising
+  `Pass Level Up` (`evidence/runtime/window-20261007-171928/frame-0005.json`, sha
+  `aa7c595bbc77`) over Before Entry. That notice covered the menu's own `Enter`
+  `[1606,718,112,44]` while the menu stayed readable, so step 1 clicked the covered button
+  and stopped with `unexpected_successor`.
+- **The notice is its own page now.** `PASS_LEVEL_UP` is named before `MIRROR_ENTRY` (an
+  overlay wins over the page it covers) and acknowledges itself; Before Entry accepts it as
+  a successor. `run-continue-13` then walked `PASS_LEVEL_UP -> MIRROR_ENTRY ->
+  ENTRY_CONFIRM -> DUNGEON_TEAM` on the rotation's own team 1.
+- Not claimed: that `Cancel` at the second question keeps the same rewards unspent; the
+  ledger's rule is the conservative reading.
+
 ## 2026-10-07 a weekly reset invalidates a run and the script files it
 
 - **The game, not the script, ends the run.** Window `--label run-continue-8`

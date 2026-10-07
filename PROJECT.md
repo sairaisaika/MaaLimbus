@@ -9,7 +9,14 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Latest continuation: 2026-10-07 19:05 local
+## Latest continuation: 2026-10-07 19:30 local
+- **停机点：花掉周奖励后，通行证升级通知盖在镜牢入口页上（提交 `36c7902`）**。`run-continue-12` step 0 在第二问点 Confirm（花了 1/3 次周奖励、把这一局的残余奖励领到手：Weekly Bonuses 变 2/3、Weekly Projection Cap 变 10/1000），游戏随即弹出 **Pass Level Up** 通知（`Pass Level 67`／`Battle Pass XP` 十格／`✓ Confirm`），它盖在 **Before Entry** 之上，而入口页自己的 `Enter` 仍可读 ⇒ 驱动把这一帧判成 `MIRROR_ENTRY`，对着被盖住的 Enter 空点，`unexpected_successor` 停机（证据帧 `evidence/runtime/window-20261007-171928/frame-0005.json`，sha `aa7c595bbc77`；现场 `build/live-run12.png`）。
+- **处理**：`locale` 加 `pass_level_up`／`battle_pass_xp`，`vision.py` 把 `PASS_LEVEL_UP` 判在 `MIRROR_ENTRY` **之前**（浮层要赢过它盖住的页面），`window.py` 点它唯一的 `pass_level_up.confirm_button`（reason `the_pass_level_up_notice_is_acknowledged_to_clear_the_menu`），`MIRROR_ENTRY` 的 expect 接受 `PASS_LEVEL_UP`；anchors 新增 `pass_level_up` 页（Confirm 几何 `[884,682,160,46]`），`pending` 里已被证明的 `previous_session_expired` 移除。
+- **同时修掉一个会乱花钱的兜底**：`run_wiring.earned_its_payout()` 原先在缺少时间戳时退回「receipt 有 victory/reward 就算挣到」，而账本里那张 team 4 的 receipt 写于「receipt 带 `settled_at`」之前，于是这一问被判成「打过的一局」而点了 Confirm —— 实际那一局的奖励来自被周重置作废的 run。现在只要账本里有 `abandoned` 而时间戳无法比较，就**不花**周奖励（不知道就不花）。
+- **测试**：`tests/test_vision.py::test_the_pass_level_notice_is_named_over_the_menu_it_covers`（钉 frame-0005；把通知两行拿掉后同一帧必须回到 `MIRROR_ENTRY`，证明优先级）、`tests/test_window.py::test_the_pass_level_notice_is_acknowledged_instead_of_the_covered_menu`、`tests/test_run_wiring.py` 的 `earned_its_payout` 用例加了「时间戳缺失 ⇒ 保留周奖励」。**全量 418 passed；`tools/verify_anchors.py` 45 page(s), 0 broken。**
+- **仍未申报**：JP/MXU 实机、体力（Enkephalin）兑换、Windows 包 `dist/`（三个输入归档在本机，可用 `tools/build_windows_package.py --mxu … --maa … --mxu-source … --verified-dungeon-clear` 重出）。
+
+## Prior continuation: 2026-10-07 19:05 local
 - **停机点：领奖的第二问会花掉「周奖励」，不能见 Confirm 就点。** 在 **Exploration Reward** 弹窗点 Claim 之后，游戏又追一问 **「Spend your 'Weekly Bonuses, to claim the / bonus rewards?」**（`✕ Cancel`／`Confirm`，背后是变暗的奖励弹窗；证据帧 `evidence/runtime/window-20261007-171228/frame-0003.json`，sha `be5d7c3077df`；现场 `build/live-claim-confirm.png`）。`run-continue-11` 只把它当无名对话框，于是 step 1 `page_is_observe_only` 停机。
 - **网络事实（Steam 讨论 <https://steamcommunity.com/app/1973530/discussions/0/597403944640085425/>）**：周奖励每週只有 3 次、**每周重置且不累积**；打完不领（弹窗的 `To Window`）可以留到以后领，届时用「未来那一周」的 bonus；跨周进行中的一局会被自动判负（auto-concede），**当周 bonus 直接作废**，但已清层数仍可在下一周领奖。⇒ 这一问花的是有限资源。
 - **决策：由账本回答这一问。** 真正打完（receipt：`victory`/`reward`）的那一局才花一次 bonus 点 Confirm；被游戏作废或玩家放弃的那一局（归档在 `abandoned`）点 Cancel 把 bonus 留下。落地（提交 `a76f292`）：
