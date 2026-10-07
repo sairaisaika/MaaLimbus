@@ -71,6 +71,38 @@ def warm_control(image, label_box, *, min_area=2000, window=(60, 20, 60, 150)):
     return None if best is None else tuple(best[1:])
 
 
+def dial_control(image, *, roi=(0.60, 0.66, 0.78, 0.88), min_area=4000, min_side=60):
+    """The battle's turn dial: the large warm disc that submits the turn, or None.
+
+    Some boards draw the START word so small under their dial that OCR never returns
+    it: live frame evidence/runtime/window-20261007-004730/frame-0326.png (floor 3, turn
+    6/25) has no 'START' token at all, so start_button found nothing, the driver fell
+    back to re-assigning skills, and the fight stood still through 140 clicks
+    (build/window-run95.json, build/window-run96.json). The dial itself is a big warm
+    blob at 1920 (1327,741,125,154) area 6646, left of the Win Rate button, so it is read
+    by colour inside a band that excludes those buttons -- nothing else in that band is
+    that large, and the blob is only used when no readable START word exists.
+    """
+    height, width = image.shape[:2]
+    x0, y0 = int(width * roi[0]), int(height * roi[1])
+    x1, y1 = int(width * roi[2]), int(height * roi[3])
+    crop = image[y0:y1, x0:x1]
+    if crop.size == 0:
+        return None
+    blue, green, red = (crop[:, :, 0].astype(int), crop[:, :, 1].astype(int),
+                        crop[:, :, 2].astype(int))
+    mask = ((red > 150) & (green > 90) & (blue < 110)).astype(np.uint8)
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        bx, by, bwidth, bheight, area = stats[index]
+        if area < min_area or bwidth < min_side or bheight < min_side:
+            continue
+        if best is None or area > best[0]:
+            best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
+    return None if best is None else tuple(best[1:])
+
+
 def start_button(records, size, image=None):
     """The battle's `START` action box: its control when the frame is available.
 
@@ -85,7 +117,10 @@ def start_button(records, size, image=None):
     # then fell back to re-assigning skills instead of submitting the turn.
     matches = find(records, r'^START$', (.40, .63, .88, .80), size, .85)
     if len(matches) != 1:
-        return None
+        # No readable START word: this board keeps it too small under its own dial
+        # (live build/live-battle2.png), so the dial is read by colour instead of
+        # re-assigning skills for a turn that never gets submitted.
+        return None if image is None else dial_control(image)
     label = matches[0].box
     if image is None:
         return label

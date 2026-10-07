@@ -7,10 +7,12 @@ retained live battle frame so a live step can only click inside the game's own
 import json
 from pathlib import Path
 
+import cv2
+import numpy as np
 import pytest
 
 from maalimbus.battle_vision import (auto_assign_buttons, auto_assign_plan, battle_hud,
-                                     begin_turn_plan, start_button)
+                                     begin_turn_plan, dial_control, start_button)
 from maalimbus.vision import Text
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -139,3 +141,33 @@ def test_battle_auto_assign_node_is_bounded_and_not_wired_to_the_theme_drag():
     agent = (ROOT / 'agent/recognition.py').read_text(encoding='utf-8')
     assert "battle_mode')=='win_rate'" in agent
     assert "battle_mode')=='start_turn'" in agent
+
+
+def test_the_turn_dial_is_read_by_colour_when_no_start_word_is_drawn():
+    """Live: evidence/runtime/window-20261007-004730/frame-0326.png has no START token.
+
+    Floor 3's board keeps the word too small under its own dial, so start_button found
+    nothing, the driver re-assigned skills instead, and the fight stood still at turn
+    6/25 through 140 clicks (build/window-run95.json, build/window-run96.json). The dial
+    is the large warm blob at 1920 (1327,741,125,154) area 6646, left of the Win Rate
+    button, so it is read by colour inside a band that excludes those buttons.
+    """
+    size = (1920, 1080)
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    cv2.circle(frame, (1389, 818), 60, (40, 120, 235), -1)
+    # The Win Rate / Damage buttons are warm as well, but they sit outside the band and
+    # are smaller than the dial, so neither may be mistaken for it.
+    cv2.rectangle(frame, (1486, 796), (1590, 838), (40, 120, 235), -1)
+    cv2.rectangle(frame, (1472, 863), (1548, 889), (40, 120, 235), -1)
+    assert dial_control(frame) == (1329, 758, 121, 121)
+    # With no START word either, the dial is what the turn is submitted with.
+    assert start_button([], size, frame) == (1329, 758, 121, 121)
+    # A readable START word still wins: the label's own warm control is read under it
+    # (the synthetic Win Rate button above), never the colour fallback.
+    label = [Text('START', (1518, 738, 60, 28), 1.0)]
+    assert start_button(label, size, frame) == (1486, 796, 105, 43)
+    # A small warm speck is not a control at all.
+    speck = np.zeros((1080, 1920, 3), np.uint8)
+    cv2.circle(speck, (1389, 818), 12, (40, 120, 235), -1)
+    assert dial_control(speck) is None
+    assert dial_control(np.zeros((1080, 1920, 3), np.uint8)) is None
