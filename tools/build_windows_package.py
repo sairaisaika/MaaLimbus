@@ -13,6 +13,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from maalimbus.archives import extract_checked
+from maalimbus.release_package import export_assets
 ARCHIVES = {
     'mxu': ('825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724',
             'https://github.com/MistEO/MXU/releases/download/v2.7.1/MXU-win-x86_64-v2.7.1.zip'),
@@ -20,6 +21,8 @@ ARCHIVES = {
             'https://github.com/MaaXYZ/MaaFramework/releases/download/v5.12.2/MAA-win-x86_64-v5.12.2.zip'),
     'mxu_source': ('B350877C03598922B14D1804923E331361ACF64534494945274B80B5D28CEC35',
                    'https://github.com/MistEO/MXU/tree/9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3'),
+    'maa_source': ('0013BAAA2F30B14EA6B102A5F1A1438D7CC97A60AAAA5040F755DA711B0A4ACF',
+                   'https://github.com/MaaXYZ/MaaFramework/tree/f625a60edeccd4549f9a71c0f74628d827ade8fb'),
 }
 
 
@@ -79,6 +82,8 @@ def main():
                         help='the acceptance record hashed into build-info when the clear '
                              'is claimed')
     args = parser.parse_args()
+    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip():
+        raise ValueError('Commit the source before building a release candidate')
     if args.clear_evidence is not None and not args.clear_evidence.is_file():
         raise ValueError(f'Missing acceptance record: {args.clear_evidence}')
     inputs = {key: getattr(args, key).resolve() for key in ARCHIVES}
@@ -116,6 +121,7 @@ def main():
     (app/'interface.json').write_text(json.dumps(interface, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (app/'sources').mkdir()
     shutil.copyfile(inputs['mxu_source'], app/'sources/MXU-v2.7.1-source.zip')
+    shutil.copyfile(inputs['maa_source'], app/'sources/MaaFramework-v5.12.2-source.zip')
     copy_public_sources(app/'sources/MaaLimbus-source.zip')
     result = subprocess.run([str(app/'agent/MaaLimbusAgent.exe'), '--self-test'],
                             cwd=stage, capture_output=True, text=True, timeout=45)
@@ -144,12 +150,8 @@ def main():
                 if p.is_file() and 'evidence' not in p.relative_to(app).parts}
     (app/'package-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     # Verification can create empty evidence dirs. No private runtime data enters the zip.
-    archive = stage/'MaaLimbus-win-x64-development.zip'
-    with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as output:
-        for name in [*manifest, 'package-manifest.json']:
-            output.write(app/name, name)
-    record = {'app':str(app),'archive':str(archive),'sha256':digest(archive),
-              'files':len(manifest),'self_test':self_test,'published':False}
+    record = dict(app=str(app), self_test=self_test,
+                  **export_assets(app, stage/'release-assets'))
     (ROOT/'build/windows-package-latest.json').write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(record,indent=2))
 

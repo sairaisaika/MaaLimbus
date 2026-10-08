@@ -20,9 +20,9 @@ A native Windows Limbus Company automation learning project powered by MaaFramew
 
 ## Introduction
 
-MaaLimbus uses the MaaFramework Win32 controller, Pipeline and Python Agent with English and Japanese resources. A local Windows development package with MXU has been built; desktop UI and live operation remain unverified.
+MaaLimbus uses the MaaFramework Win32 controller, Pipeline and Python Agent with English and Japanese resources. A native MXU development app is installed. Actual MuMu ADB evidence proves one English Hard five-floor run, paid rewards, saved-team rotation and reentry; Windows game input and Japanese live operation remain open.
 
-The priority is **five Hard Mirror Dungeon floors → verified rewards → saved-team rotation → repeat**. The complete loop is neither implemented nor verified live. This is not yet a working dungeon farming tool.
+The priority is **five Hard Mirror Dungeon floors → verified rewards → saved-team rotation → repeat**. This chain has real MuMu evidence. Unknown pages still retain evidence and stop; arbitrary teams, game updates and prolonged unattended farming remain unverified.
 
 Recognition uses local text, stable icons and positions rather than variable dungeon covers. Clicks stay inside target boxes and delays vary within finite bounds; transitions require recognized postconditions.
 
@@ -44,16 +44,14 @@ Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md).
 
 | Feature | Verified scope | Remaining work |
 | --- | --- | --- |
-| Windows control | Capture, identity/privilege checks, single-controller lock | Live input postconditions |
-| Dungeon entry | Actual Maa parser and offline navigation | Complete post-entry workflow |
-| Saved teams | Library selection and [experimental deployment](docs/deployment.md) count/local-ordinal derived replay | Live geometry, order editor, battle start and rotation |
-| Floor gifts | OCR/icons, ownership and team ranking replay | Selection quota, receipt, next floor |
-| Theme packs | Fixed glyph/title recognition, saved team weights and native drag replay; [details](docs/theme-packs.md) | Live selection, Japanese titles and map transition |
-| Battle planning | Experimental native one-shot P, fresh-frame/risk-text replay; [details](docs/battle-planning.md) | Complete selection/clash/survival, E.G.O, actual turns and victory |
-| Five floors and repeat | Completion evidence and rotation storage | Battles, actual rewards and loop |
-| Enkephalin conversion/refill | Budget policy tests | Native actions and balance checks |
-| Mail/daily rewards | Design and task labels | Implementation and live tests |
-| GitHub updates | Metadata cache, persisted retry deadlines, isolated download and package validation | MXU update UI, installation/rollback, public Release test |
+| Native control | MuMu Maa simulated touch, bounded random delay and shared controller gate | Windows live game input, Japanese E2E |
+| Tasks and builds | Six MXU entries, global builds and Mirror single/rotation modes | Complete saved-editor restart and GUI Start dispatch |
+| Hard Mirror | Real five floors, named gift receipts, paid payout, Team2 to Team7 reentry | Shops/fusion, arbitrary layouts and prolonged unattended runs |
+| Battle and packs | Native WinRate/START touch, independent Hard/title gates and bounded drag | Full clash/strategy policies and Japanese |
+| Experience / thread | Independent entries referencing saved builds | Stage, spending and battle flows; currently capture and stop |
+| Conversion / daily rewards | Entries and budget foundations | Actual actions and receipts; currently capture and stop |
+| GitHub updates | Desktop startup check, persistent limits, validation, configuration-preserving install/rollback | New public version download and visible version restart |
+| Learning | Reviewed hashes and episode-separated data preparation | Only two samples; model training and enablement not completed |
 
 A bounded development session requests standard Windows UAC consent:
 

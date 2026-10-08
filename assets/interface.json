@@ -2,7 +2,7 @@
   "interface_version": 2,
   "name": "MaaLimbus",
   "label": "MaaLimbus",
-  "version": "v0.1.0",
+  "version": "v0.1.1",
   "github": "https://github.com/sairaisaika/MaaLimbus",
   "license": "../LICENSE",
   "description": "$description",

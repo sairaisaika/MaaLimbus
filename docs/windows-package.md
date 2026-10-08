@@ -7,7 +7,7 @@
 使用已审核的本地归档；工具不自动联网下载、不覆盖旧安装，输入哈希不一致会拒绝。每次输出到新的 `build/windows-package-<唯一标识>` 目录。
 
 ```powershell
-python tools/build_windows_package.py --mxu <MXU归档.zip> --maa <Maa归档.zip> --mxu-source <MXU对应源码归档.zip>
+python tools/build_windows_package.py --mxu <MXU归档.zip> --maa <Maa归档.zip> --mxu-source <MXU对应源码归档.zip> --maa-source <Maa对应源码归档.zip>
 ```
 
 | 输入 | 审核版本/来源 | SHA-256 |
@@ -15,10 +15,13 @@ python tools/build_windows_package.py --mxu <MXU归档.zip> --maa <Maa归档.zip
 | MXU 二进制 | 官方 v2.7.1 Windows x86_64 归档 | 825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724 |
 | Maa 二进制 | 官方 v5.12.2 Windows x86_64 归档 | 55DCEE2306F95656949165237E781322F6858A1675A3B271BC045A50F43C41B7 |
 | MXU 对应源码 | 已缓存的原始源码归档，提交 9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3 | B350877C03598922B14D1804923E331361ACF64534494945274B80B5D28CEC35 |
+| Maa 对应源码 | v5.12.2 实际发布提交 f625a60edeccd4549f9a71c0f74628d827ade8fb | 0013BAAA2F30B14EA6B102A5F1A1438D7CC97A60AAAA5040F755DA711B0A4ACF |
 
 源归档哈希标识本地已审核输入的精确内容，不声称是上游发布的校验签名。改版本必须先审核新的来源及对应源码，再修改固定输入。
 
 输出记录在 `build/windows-package-latest.json`。包内 `build-info.json` 保存输入来源/哈希、代码版本/是否有未提交变更、明确的验收缺口；`package-manifest.json` 保存逐文件校验。
+
+v0.1.1 候选构建要求源码已提交。更新资产输出为 `release-assets/MaaLimbus-win-x64-v0.1.1.zip` 与 `SHA256SUMS`，由实际 interface 版本生成，不再使用更新器拒绝的 development 文件名。导出前校验完整 manifest、应用身份、独立启动器和对应源码，检查嵌套项目源码 ZIP 的私有目录。输出目录必须新建，不能覆盖旧候选。此动作不会发布 Release；依赖分发审计与公开下载安装验证仍独立验收。
 
 源码归档只取公开源码、资源、测试、工具与文档。账户配置、运行日志、截图证据和旧安装目录均不复制到开发 ZIP。MXU 对应源码单独随包保存，Maa 原生依赖的完整源码/许可分发审计仍待完成。
 

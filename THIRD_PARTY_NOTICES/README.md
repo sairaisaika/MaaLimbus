@@ -11,6 +11,11 @@ terms; the root's `or-later` designation does not extend third-party permissions
   [upstream LICENSE.md](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/LICENSE.md).
   The incorporated [GPL v3 text](GPL-3.0.txt) is retained from
   [GNU](https://www.gnu.org/licenses/gpl-3.0.txt).
+  The v5.12.2 runtime's actual release commit is
+  `f625a60edeccd4549f9a71c0f74628d827ade8fb`; the candidate package also includes
+  its pinned source archive in `sources/MaaFramework-v5.12.2-source.zip`.
+  Its LICENSE matches the retained notice. This does not claim the separate
+  native dependency source/notices audit is complete.
 - MXU 2.7.1, `9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3`: unmodified
   Windows desktop executable; [original AGPL notice](MXU-AGPL-3.0.txt).
   The cached corresponding source archive accompanies the local development
