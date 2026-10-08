@@ -31,7 +31,8 @@ def main():
         assert (selection_floor(texts,(1920,1080))==2)==expected
         assert observed['scene']==('THEME_PACKS' if expected else 'UNKNOWN')
         mode=theme_page(frame,rec.theme_catalog(),texts,rec.locale)
-        assert mode is None # Recognition grants neither Hard proof nor Swipe.
+        assert mode==('hard' if expected else None)
+        # Mode OCR is independent of cards; changed covers grant no pack target.
         results.append(dict(case=case,page=observed['scene'],mode=mode,device_input=False,evidence=str(journal.directory)))
     output=ROOT/'build/floor-two-successor-replay.json'
     output.write_text(json.dumps(dict(passed=True,cases=results),indent=2)+'\n')

@@ -1,5 +1,16 @@
 # Acceptance evidence
 
+## October8 real floor2 entry and regular HUD recovery
+
+084019 dragged Emotional Judgment once. First successor carried staleFloor1 and
+stopped with theme pending; read-only084059 thenprovedExploringFloor2 and exact
+Emotional Judgment, resolved at084129 startup withoutanotherdrag. Hard proof used
+native narrowOCR .99996 behindthree independentpagecontrols; no loweredthreshold.
+Regularencounter actual084129/frame0024 lacksWAVE and wholeOCRdigit1. Nativefour-case
+replay provesTURN1 plus bothassignmentcontrols, with missingcontrols/digit refusing.
+Actual084553 sentWinRate thenSTART once each andenteredanimation. No encounter
+victory/floor2clear/finalreward acceptance follows. Python510passed; fullgoalopen.
+
 ## October8 real Hard floor1 and both named gift receipts
 
 Actual081248 picked Golden Urn once after retained original Dimensional Recycle Bin,

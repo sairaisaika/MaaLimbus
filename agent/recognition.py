@@ -155,6 +155,27 @@ class LimbusRecognition(CustomRecognition):
                         box=(b.x,b.y,b.w,b.h) if hasattr(b,'x') else tuple(b)
                         records.append(Text(result.text,box,result.score))
         scene = classify(records, self.locale, size)
+        if scene in ('UNKNOWN','BATTLE_HUD') and len(find(records,r'^TURN$',(.0,.06,.06,.13),size,.9))==1 and auto_assign_buttons(records,size) is not None:
+            w,h=size;roi=(round(68*w/1920),round(90*h/1080),round(82*w/1920),round(40*h/1080))
+            detail=context.run_recognition_direct(JRecognitionType.OCR,
+                JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,3}$'],threshold=.9),image)
+            if detail is not None and detail.hit:
+                x,y,rw,rh=roi
+                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+rw and y<=t.box[1]+t.box[3]/2<=y+rh)]
+                for result in detail.filtered_results:records.append(Text(result.text,roi,result.score))
+        from maalimbus.theme_vision import selection_floor
+        if scene=='UNKNOWN' and selection_floor(records,size) is not None:
+            # Decorations beside HARD confuse the detector. Independent page
+            # controls gate a narrow recognizer; unchanged .9 confidence gate.
+            w,h=size;roi=(round(1372*w/1920),round(48*h/1080),round(64*w/1920),round(38*h/1080))
+            detail=context.run_recognition_direct(JRecognitionType.OCR,
+                JOCR(roi=roi,only_rec=True,expected=[r'^HARD$'],threshold=.9),image)
+            if detail is not None and detail.hit:
+                records=[t for t in records if not (t.text.strip()=='HARD'
+                         and .61<=(t.box[0]+t.box[2]/2)/w<=.83
+                         and 0<=(t.box[1]+t.box[3]/2)/h<=.13)]
+                for result in detail.filtered_results:
+                    records.append(Text(result.text,roi,result.score))
         if scene=='UNKNOWN' and initial_gifts.page(records,size,self.locale):
             scene='INITIAL_GIFTS'
         if scene=='UNKNOWN' and star_vision.page(records,size,self.locale) and star_vision.grid(image):
@@ -182,7 +203,6 @@ class LimbusRecognition(CustomRecognition):
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog(),records,self.locale):
             scene='THEME_PACKS'
         if scene=='UNKNOWN':
-            from maalimbus.theme_vision import selection_floor
             if selection_floor(records,size) is not None:
                 scene='THEME_PACKS' # Page identity only; mode/action gates remain.
         if scene=='UNKNOWN' and node_panel(records,size) is not None:

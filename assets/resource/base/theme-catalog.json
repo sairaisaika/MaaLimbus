@@ -30,6 +30,19 @@
       "path": "image/themes/mirror_theme_pack_new.png",
       "sha256": "5b5ba688309432258b57f33b041c0e3dfb089f53367c1f0b485928f79a50aa48",
       "source": "lalc_backend/img/general/mirror/mirror_theme_pack_new.png"
+    },
+    "theme_card_clip": {
+      "path": "image/navigation/theme-card-clip.png",
+      "sha256": "81a0857535f19e74e95be58fb599bbd119948109ae48944435ee249dddbdbc0b",
+      "source": "evidence\\runtime\\window-20261008-081811\\frame-0001.png",
+      "source_sha256": "bc331ab847ba087a478571d8dc75ee32703c6311d023dca77d1762ee25d196f0",
+      "source_rect": [
+        948,
+        254,
+        23,
+        52
+      ],
+      "purpose": "Fixed hanging clip; page geometry only; no pack or mode identity"
     }
   },
   "names": [

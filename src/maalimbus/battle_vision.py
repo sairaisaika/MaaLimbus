@@ -224,6 +224,13 @@ def battle_hud(records, size):
         # digit is allowed.
         wave = find(records, r'^\d{0,2}\s*/\s*\d{1,2}$', (.0, .02, .09, .08), size, .85)
     turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
+    if not wave and len(turn)==1 and auto_assign_buttons(records,size) is not None:
+        # Regular encounters omit WAVE entirely. A local numeric turn and both
+        # independent assignment controls identify this variant; wave stays None.
+        values=find(records,r'^\d{1,3}$',(.035,.077,.081,.121),size,.9)
+        if len(values)==1 and int(values[0].text)>0:
+            return dict(wave=None,turn=values[0].text,wave_box=None,turn_box=turn[0].box,
+                        diagnostics=['Win','Rate','Damage'],scope='regular HUD identity; wave absent, no turn submission or victory claim')
     if len(wave) != 1 or len(turn) != 1:
         return None
     corner = [t for t in records

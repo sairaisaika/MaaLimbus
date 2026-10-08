@@ -83,3 +83,43 @@ def test_catalog_checks_glyph_hashes(tmp_path):
     data['glyphs']={'hard_mode':dict(path='../outside.png',sha256='fake')}
     (tmp_path/'theme-catalog.json').write_text(json.dumps(data))
     with pytest.raises(ValueError):ThemeCatalog(tmp_path)
+
+
+def test_current_floor_two_mode_and_card_titles_remain_independent():
+    root=ROOT/'evidence/runtime/window-20261008-081811/frame-0001'
+    image=cv2.imread(str(root)+'.png');data=json.loads(Path(str(root)+'.json').read_text())
+    records=[Text(t['text'],tuple(t['box']),t['score']) for t in data['ocr']]
+    locale=json.loads((ROOT/'assets/resource/en/locale.json').read_text())
+    cat=catalog()
+    assert theme_page(image,cat,records,locale) is None # wholeOCR .827 does not pass.
+    narrow=Text('HARD',(1372,48,64,38),.9999)
+    assert theme_page(image,cat,records+[narrow],locale)=='hard'
+    assert theme_page(image,cat,records+[Text('HARD',narrow.box,.89)],locale) is None
+    assert theme_page(image,cat,records+[narrow,Text('NORMAL',narrow.box,.99)],locale) is None
+    for label in ('Pack Search','Refresh','SELECT FLOOR 2 THEME PACK'):
+        without=[t for t in records if t.text!=label]+[narrow]
+        no_details=image.copy();no_details[308:375,500:1420]=0
+        assert theme_page(no_details,cat,without,locale) is None
+    cards=pack_candidates(image,records,cat)
+    assert [c.name for c in cards]==[None,'Emotional Judgment','Emotional Craving']
+    altered=image.copy();altered[308:375,500:1420]=0 # Remove old detail glyphs.
+    cards=pack_candidates(altered,records,cat)
+    assert [c.name for c in cards]==[None,'Emotional Judgment','Emotional Craving']
+    assert 820<cards[1].box[0]<845 and 260<cards[1].box[1]<285
+    # Without visible clips and detail glyphs, title coordinates grant no input.
+    altered[250:310,500:1420]=0
+    assert pack_candidates(altered,records,cat)==[]
+
+
+def test_regular_battle_requires_numeric_turn_and_both_controls():
+    from maalimbus.battle_vision import battle_hud
+    path=ROOT/'evidence/runtime/window-20261008-084129/frame-0024.json'
+    data=json.loads(path.read_text());records=[Text(t['text'],tuple(t['box']),t['score']) for t in data['ocr']]
+    assert battle_hud(records,data['size']) is None
+    numeric=Text('1',(68,90,82,40),.9999)
+    hud=battle_hud(records+[numeric],data['size'])
+    assert hud and hud['wave'] is None and hud['turn']=='1'
+    for missing in ('TURN','Win','Rate','Damage'):
+        assert battle_hud([r for r in records if r.text!=missing]+[numeric],data['size']) is None
+    assert battle_hud(records+[Text('1',numeric.box,.89)],data['size']) is None
+    assert battle_hud(records+[numeric,numeric],data['size']) is None

@@ -91,6 +91,17 @@ class ThemeCatalog:
 
 
 def theme_page(image,catalog,records=(),locale=None):
+    size=(image.shape[1],image.shape[0])
+    # Header + two independent controls prove this page. Strict literal mode OCR
+    # is sufficient without a seasonal pack-detail glyph, but conflicts refuse.
+    if selection_floor(records,size) is not None:
+        hard_text=find(records,r'^HARD$',(.61,0,.83,.13),size,.9)
+        normal_text=find(records,r'^NORMAL$',(.61,0,.83,.13),size,.9)
+        if len(hard_text)+len(normal_text)>1:return None
+        if len(hard_text)+len(normal_text)==1:
+            other='normal_mode' if hard_text else 'hard_mode'
+            if catalog.matches(image,other,(.61,0,.83,.13)):return None
+            return 'hard' if hard_text else 'normal'
     details=catalog.matches(image,'theme_pack_detail',(.06,.14,.96,.36))
     hard=catalog.matches(image,'hard_mode',(.61,0,.83,.13))
     normal=catalog.matches(image,'normal_mode',(.61,0,.83,.13))
@@ -115,6 +126,19 @@ def theme_page(image,catalog,records=(),locale=None):
 def pack_candidates(image,records,catalog):
     h,w=image.shape[:2]; scale=w/1280
     details=catalog.matches(image,'theme_pack_detail',(.06,.14,.96,.36))
+    if not details and 'theme_card_clip' in catalog.glyphs and selection_floor(records,(w,h)) is not None:
+        clips=catalog.matches(image,'theme_card_clip',(.16,.21,.83,.30))
+        if not 1<=len(clips)<=6:return []
+        if max(y for x,y,bw,bh in clips)-min(y for x,y,bw,bh in clips)>8*scale:return []
+        # This fixed hanging clip exposes the center of each settled card. Map
+        # it to the card-local rectangle; titles still establish pack identity.
+        cards=[]
+        for x,y,bw,bh in clips:
+            cx=x+bw/2
+            box=(round(cx-90*scale),round(y+10*scale),round(180*scale),round(340*scale))
+            if any(max(box[0],b[0])<min(box[0]+box[2],b[0]+b[2]) for b in cards):return []
+            cards.append(box)
+        return _named_cards(image,records,catalog,cards)
     new=catalog.matches(image,'mirror_theme_pack_new',(.06,.13,.96,.36))
     cards=[]
     for gx,gy,gw,gh in details:
@@ -126,6 +150,11 @@ def pack_candidates(image,records,catalog):
         if any(max(x,b[0])<min(x+bw,b[0]+b[2]) for b in cards):
             return []
         cards.append(box)
+    return _named_cards(image,records,catalog,cards,new)
+
+
+def _named_cards(image,records,catalog,cards,new=()):
+    h,w=image.shape[:2];scale=w/1280
     candidates=[]
     for x,y,bw,bh in cards:
         # Maa's detector expands short labels by a few pixels. Permit that padding
@@ -134,7 +163,14 @@ def pack_candidates(image,records,catalog):
         texts=[t for t in records if t.score>=.8 and x-padding<=t.box[0] and t.box[0]+t.box[2]<=x+bw+padding
                and x<=t.box[0]+t.box[2]/2<=x+bw
                and y+235*scale<=t.box[1]+t.box[3]/2<=y+300*scale]
-        texts.sort(key=lambda t:(t.box[1],t.box[0]))
+        texts.sort(key=lambda t:t.box[1]+t.box[3]/2)
+        lines=[]
+        for text in texts:
+            cy=text.box[1]+text.box[3]/2
+            if lines and abs(cy-lines[-1][0])<=12*scale:
+                lines[-1][1].append(text)
+            else:lines.append((cy,[text]))
+        texts=[t for cy,line in lines for t in sorted(line,key=lambda t:t.box[0])]
         name=catalog.identity(' '.join(t.text for t in texts)) if texts else None
         is_new=any(x<=nx+nw/2<=x+bw and y<=ny+nh/2<=y+70*scale for nx,ny,nw,nh in new)
         candidates.append(PackCandidate(name,(x,y,bw,bh),is_new))

@@ -1,5 +1,21 @@
 # Native design and requirement ledger
 
+## Mode crop, settled packs and regular encounter HUD
+
+Independent floor-selection header, Refresh and Pack Search gate a native narrow
+HARD recognizer at the existing .9 threshold. Decorations are outside that crop;
+opposing mode evidence still vetoes. This does not prove pack identity. Settled
+card geometry can use the fixed hanging clip with retained crop/hash provenance,
+while card-local titles establish exact known names. Split same-row tokens sort
+left-to-right; unknown stylized or changed titles remain unknown. A drag keeps its
+pending transaction until the exact subsequent floor/pack map is independently
+visible; an early stale map never permits a second drag.
+
+Regular encounter HUDs can omit WAVE. The unique TURN label and both independently
+positioned Win/Rate and Damage controls gate local numeric turn OCR. The regular
+HUD requires that actual numeric value; its wave remains None. Missing counter or
+controls refuse rather than inventing 1/1. Animation/turn submission is not victory.
+
 ## Floor gift transactions and trial binding (October8 recovery)
 
 Bind each fresh Acquire plate to exactly one displayed title, Mounting Trials,
