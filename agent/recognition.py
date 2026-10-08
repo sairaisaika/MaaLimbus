@@ -26,7 +26,7 @@ from maalimbus.controller_lease import ControllerLease
 from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend,search_owned_names
 from maalimbus.jobs import wait_job
 from maalimbus import runner
-from maalimbus.runtime_paths import ROOT
+from maalimbus.runtime_paths import ROOT, data_directory, ledger_path
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import KEYWORDS, SINNERS
@@ -327,7 +327,7 @@ class LimbusRecognition(CustomRecognition):
             return None
         mode = params.get('team_mode')
         if params.get('initial_mode')=='confirm_forgo':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             path=data/'initial-gift-progress.json';progress=read_json(path)
             if (not progress.get('search_refuse_pending') or progress.get('search_confirm_pending')
                 or progress['search_refuse_pending'].get('extra_starlight_spent')!=0
@@ -342,7 +342,7 @@ class LimbusRecognition(CustomRecognition):
             box,delay=inset_box(matches[0].box),random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('initial_mode')=='refuse_search':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             path=data/'initial-gift-progress.json';progress=read_json(path)
             size=(argv.image.shape[1],argv.image.shape[0])
             if (progress.get('receipt_pending') or progress.get('search_refuse_pending')
@@ -358,7 +358,7 @@ class LimbusRecognition(CustomRecognition):
             box,delay=inset_box(matches[0].box),random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('initial_mode')=='receipt':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             path=data/'initial-gift-progress.json';progress=read_json(path)
             if progress.get('receipt_pending'):raise ValueError('Unverified gift acknowledgement pending')
             if not progress.get('commit_pending') or progress.get('pending') is not None:return None
@@ -378,7 +378,7 @@ class LimbusRecognition(CustomRecognition):
             box,delay=inset_box(matches[0].box),random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('initial_mode')=='commit':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             path=data/'initial-gift-progress.json';progress=read_json(path)
             teams=ProfileStore(data/'user-team-profiles.json').load()
             team=next((t for t in teams if t.slot==params.get('slot')),None)
@@ -394,7 +394,7 @@ class LimbusRecognition(CustomRecognition):
             box,delay=inset_box(matches[0].box),random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('initial_mode')=='pick':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             progress_path=data/'initial-gift-progress.json'
             progress=read_json(progress_path) if progress_path.exists() else {'selected':[],'pending':None}
             if progress['pending'] is not None:raise ValueError('Unverified initial gift input pending')
@@ -418,7 +418,7 @@ class LimbusRecognition(CustomRecognition):
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('initial_mode')=='group':
             if initial_gifts.counter(records,(argv.image.shape[1],argv.image.shape[0]))!=(0,2):return None
-            teams=ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-team-profiles.json').load()
+            teams=ProfileStore(data_directory(ROOT)/'user-team-profiles.json').load()
             team=next((t for t in teams if t.slot==params.get('slot')),None)
             if team is None or len(team.formation_keywords)!=1:return None
             keyword=next(iter(team.formation_keywords))
@@ -429,13 +429,13 @@ class LimbusRecognition(CustomRecognition):
             self.journal.record('initial_gift_group_intent',frame=frame,slot=team.slot,keyword=keyword,
                                 selected_count=0,verified_clear=False)
         elif params.get('star_mode')=='select_once':
-            settings=read_json(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-mirror-settings.json')
+            settings=read_json(data_directory(ROOT)/'user-mirror-settings.json')
             selected=settings.get('graces')
             if (settings.get('enhance') is not False or not isinstance(selected,list)
                 or not selected or any(not isinstance(g,str) or len(g)!=1 or g not in '0123456789' for g in selected)
                 or len(set(selected))!=len(selected) or type(settings.get('max_starlight'))is not int):
                 raise ValueError('Explicit base grace choices and budget required')
-            progress_path=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'star-selection-progress.json'
+            progress_path=data_directory(ROOT)/'star-selection-progress.json'
             progress=read_json(progress_path) if progress_path.exists() else {'selected':[],'pending':None}
             if progress['pending'] is not None:raise ValueError('Unverified star input remains pending; do not repeat it')
             if any(g not in selected for g in progress['selected']):raise ValueError('Star configuration changed during selection')
@@ -460,7 +460,7 @@ class LimbusRecognition(CustomRecognition):
             delay=random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('star_mode')=='enter':
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             settings=read_json(data/'user-mirror-settings.json')
             progress_path=data/'star-selection-progress.json'
             progress=read_json(progress_path)
@@ -489,7 +489,7 @@ class LimbusRecognition(CustomRecognition):
             box,delay=inset_box(matches[0].box),random.randint(350,750)
             context.override_pipeline({argv.node_name:{'pre_delay':delay}})
         elif params.get('star_mode') in ('disable_conversion','confirm'):
-            data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+            data=data_directory(ROOT)
             settings=read_json(data/'user-mirror-settings.json')
             progress=read_json(data/'star-selection-progress.json')
             if (settings.get('convert_remaining_starlight') is not False
@@ -581,7 +581,7 @@ class LimbusRecognition(CustomRecognition):
                 if not find(records,r'^SELECT\s*FLOOR\s*1\s*THEME\s*PACK$',(.38,.13,.63,.20),size,.85):return None
                 matches=catalog.matches(argv.image,'normal_mode',(.61,0,.83,.13))
                 if len(matches)!=1:return None
-                path=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'difficulty-switch-progress.json'
+                path=data_directory(ROOT)/'difficulty-switch-progress.json'
                 progress=read_json(path) if path.exists() else {}
                 if progress.get('pending'):raise ValueError('Difficulty switch result unverified; do not repeat')
                 progress['pending']=dict(before='normal',requested='hard',frame=str(self.journal.directory/(frame+'.png')))
@@ -737,7 +737,7 @@ class DifficultyProof(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
-        path=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'difficulty-switch-progress.json'
+        path=data_directory(ROOT)/'difficulty-switch-progress.json'
         progress=read_json(path)
         if not progress.get('pending'):return False
         wait_job(context.tasker.controller.post_screencap(),timeout=5)
@@ -760,7 +760,7 @@ class InitialReceiptProof(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
-        path=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'initial-gift-progress.json'
+        path=data_directory(ROOT)/'initial-gift-progress.json'
         progress=read_json(path);pending=progress.get('receipt_pending')
         if not pending:return False
         titles=initial_gifts.proven_titles(progress,ROOT/'evidence/runtime')
@@ -795,7 +795,7 @@ class InitialGiftProof(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
-        data=Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))
+        data=data_directory(ROOT)
         path=data/'initial-gift-progress.json';progress=read_json(path)
         pending=progress.get('pending')
         if pending is None:return False
@@ -860,7 +860,7 @@ class TeamAction(CustomAction):
         name is journalled and skipped instead of raised: a typo must not latch
         the callback closed.
         """
-        store=ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-team-profiles.json')
+        store=ProfileStore(data_directory(ROOT)/'user-team-profiles.json')
         teams=list(store.load()) if store.path.exists() else []
         team=self.recognition.team
         if team is None:
@@ -923,7 +923,7 @@ class TeamAction(CustomAction):
                 if not self.recognition.pending_pack:return True
                 weights=dict(team.pack_weights);weights[self.recognition.pending_pack]=params['weight']
                 configured=replace(team,pack_weights=tuple(weights.items()))
-            store=ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-team-profiles.json')
+            store=ProfileStore(data_directory(ROOT)/'user-team-profiles.json')
             teams=list(store.load())
             index=next(i for i,t in enumerate(teams) if t.slot==team.slot)
             teams[index]=configured;store.save(teams)
@@ -933,7 +933,7 @@ class TeamAction(CustomAction):
             return True
         if params.get('mode') == 'configure':
             slot = int(params.get('slot',1))
-            store=ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-team-profiles.json')
+            store=ProfileStore(data_directory(ROOT)/'user-team-profiles.json')
             teams=list(store.load()) if store.path.exists() else []
             existing=next((t for t in teams if t.slot==slot),Team(slot,frozenset()))
             configured=replace(existing,name=str(params.get('name',existing.name)))
@@ -1216,7 +1216,7 @@ def loop_parameters(params):
     """
     known = set(runner.settings().as_dict())
     chosen = dict(LOOP_DEFAULTS)
-    launch_path = Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT/'config'))/'user-launch.json'
+    launch_path = data_directory(ROOT)/'user-launch.json'
     if launch_path.exists():
         saved_launch = read_json(launch_path)
         chosen.update({key: saved_launch[key] for key in
@@ -1254,9 +1254,7 @@ def loop_store(settings, journal):
     path = settings.run_store
     if not path or settings.observe_only:
         return None, None
-    ledger = Path(str(path))
-    if not ledger.is_absolute():
-        ledger = ROOT / ledger
+    ledger = ledger_path(path, ROOT)
     try:
         existing = read_json(ledger) if ledger.exists() else None
         slots = existing['team_slots'] if existing else [settings.team]
@@ -1328,7 +1326,7 @@ class GlobalSettingsAction(CustomAction):
 
     @guarded_callback(False)
     def run(self, context, argv):
-        directory = Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT/'config'))
+        directory = data_directory(ROOT)
         changed = apply_builds(directory, collect_builds(context.get_node_data))
         choice = collect_mirror_queue(context.get_node_data)
         if choice is not None:

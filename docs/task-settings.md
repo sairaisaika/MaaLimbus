@@ -57,3 +57,5 @@ integration are still pending. No unimplemented task is
 reported as supported or accepted because its button exists. The native PI V2
 global_option and setting section protocol in the pinned MaaFramework source is
 the UI contract to use rather than a separate Lix frontend.
+
+Local development installations now have an explicit private `config/user-data-root.json` binding to the source configuration directory. Agent builds, progress transactions, launch preferences and config-relative ledgers resolve this single directory, including when MXU supplies the installation config environment. The binding tool requires a closed development app and disabled autorun/tasks, backs up both original state directories, and does not overwrite either ledger. Missing, chained or linked targets fail before input. Public packages do not contain this private binding; their state remains installation-local. Actual binding preserves entered Team7 scope4734; native dispatch with the refreshed Agent remains pending.
