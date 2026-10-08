@@ -259,6 +259,22 @@ def test_the_wiped_stage_is_retried_within_its_bound_and_then_left_alone():
     blind = plan_step('BATTLE_DEFEAT', controls={}, defeat={'row_sent': False})
     assert blind['action'] == RECORD
     assert blind['reason'] == 'defeat_retry_row_not_anchored'
+    # Only a window started with --defeat-accept presses the accept row, and only once the
+    # retries are spent: the driver is the operator saying the run may be filed for them.
+    accepted = plan_step('BATTLE_DEFEAT', controls=controls,
+                         defeat={'row_sent': False, 'spent': True, 'accept': True})
+    assert accepted['action'] == CLICK
+    assert accepted['target'] == controls['defeat.accept_button']
+    assert accepted['reason'] == \
+        'the_wiped_run_is_accepted_and_the_stage_select_comes_back'
+    assert accepted['expect'] == [ANY] and accepted['advance'] is True
+    # A retry in flight is still finished first, and a missing anchor is named.
+    still_retrying = plan_step('BATTLE_DEFEAT', controls=controls,
+                               defeat={'row_sent': True, 'spent': True, 'accept': True})
+    assert still_retrying['target'] == confirm
+    unanchored = plan_step('BATTLE_DEFEAT', controls={'defeat.confirm_button': confirm},
+                           defeat={'row_sent': False, 'spent': True, 'accept': True})
+    assert unanchored['reason'] == 'defeat_accept_row_not_anchored'
 
 
 def test_the_skill_detail_popup_is_dismissed_off_the_board():

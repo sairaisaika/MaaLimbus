@@ -279,7 +279,10 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # Confirm [930,770,126,36] that commits whichever row is picked. Retrying the
         # stage is the only input that keeps the run alive, and it is bounded by the
         # driver: once the retries are spent nothing is sent and the player decides,
-        # because neither accepting the deaths nor leaving the run is ours to choose.
+        # because accepting the deaths ends the run for real -- unless the window was
+        # started with --defeat-accept, which is the operator saying they want the run
+        # filed and the next one opened without them (the ledger files it as abandoned
+        # through run_wiring.reconcile once the game is back at the picker).
         defeat = defeat or {}
         if defeat.get('row_sent'):
             # The row is already highlighted: this dialog is one Confirm away from
@@ -290,6 +293,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                          reason='the_retry_is_confirmed_and_the_stage_starts_over')
         if defeat.get('spent'):
+            if defeat.get('accept'):
+                box = controls.get('defeat.accept_button')
+                if box is None:
+                    return _refuse(page, 'defeat_accept_row_not_anchored')
+                return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                             reason='the_wiped_run_is_accepted_and_the_stage_select_comes_back')
             return _refuse(page, 'defeat_retries_exhausted')
         box = controls.get('defeat.retry_button')
         if box is None:

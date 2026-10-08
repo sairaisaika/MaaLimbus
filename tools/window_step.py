@@ -663,6 +663,12 @@ def main() -> int:
                              'keeps the run alive, and once the tries are spent nothing is '
                              'sent, so the decision to accept the deaths stays with the '
                              'player')
+    parser.add_argument('--defeat-accept', action='store_true',
+                        help='after the retries are spent, press the dialog\'s own "Accept '
+                             'results and return to Stage select" row instead of stopping: '
+                             'the run is then filed as abandoned by the ledger (rotation '
+                             'unchanged) and the next entry starts a fresh one. Off by '
+                             'default, because accepting the deaths ends the run')
     parser.add_argument('--stop-page', default=None,
                         help='stop the window the moment this page is observed: a long '
                              'session (a run that ends with the settlement and then goes '
@@ -1023,12 +1029,14 @@ def main() -> int:
                 # sent once, then its own Confirm; a retry is counted only when that
                 # Confirm has landed, so --defeat-tries counts finished retries and a
                 # retry in flight is never cut in half. Once the tries are spent nothing
-                # is sent at all and the decision goes back to the player.
+                # is sent at all and the decision goes back to the player, unless the
+                # window was started with --defeat-accept.
                 spent = not defeat_row_sent and defeat_attempts >= max(1, args.defeat_tries)
-                defeat = {'row_sent': defeat_row_sent, 'spent': spent}
+                defeat = {'row_sent': defeat_row_sent, 'spent': spent,
+                          'accept': bool(args.defeat_accept)}
                 if spent:
                     journal.record('window_defeat', page=page, retries=defeat_attempts,
-                                   sent=False)
+                                   sent=bool(args.defeat_accept))
             else:
                 defeat_row_sent = False
             reward = reward_state(record) if page == 'REWARD_CARD' else None
