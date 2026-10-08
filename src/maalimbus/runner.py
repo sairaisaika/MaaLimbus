@@ -782,6 +782,19 @@ def reward_state(record):
     return counter_state(record)
 
 
+def unselected_reward_successor(record):
+    """Independent encounter-reward anchors, not a page label alone."""
+    texts = [r['text'].strip() for r in record.get('ocr', []) if r['score'] >= .9]
+    count = reward_state(record)
+    if (count == {'chosen': 0, 'required': 1}
+            and 'Select Encounter Reward Card' in texts
+            and 'Selectable' in texts
+            and any('Confirm' in t for t in texts)
+            and any('Cancel' in t for t in texts)):
+        return dict(count=count, title='Select Encounter Reward Card')
+    return None
+
+
 def gift_state(record, *, image=None, select_box=None, picks=0):
     """The floor gift page's pick state, as ``{'chosen': n, 'required': m, 'ready': b}``.
 
@@ -1582,7 +1595,12 @@ class MirrorRunner:
                 break
             # A tutorial card keeps the same page label but changes the pixels, so a
             # changed frame is the only evidence that the click landed.
-            if settled.get('image_sha256') not in (None, before_sha):
+            # Select can first show CONNECTING on the same gift offer. That pixel
+            # change is not a named GET receipt; spend the remaining read-only
+            # settle rounds without sending Select again.
+            awaiting_gift_receipt = plan.get('reason') == 'select_takes_the_picked_floor_gifts'
+            if (not awaiting_gift_receipt
+                    and settled.get('image_sha256') not in (None, before_sha)):
                 break
         if page=='DUNGEON_TEAM' and settled_page!='DUNGEON_TEAM':state['entry_reconciled']=False
         entry.update(page_after=settled_page, settled=settled,
@@ -1643,7 +1661,9 @@ class MirrorRunner:
                     if count==dict(chosen=0,required=1) and all(o.selection_source.endswith('_free_select_button') for o in offers):
                         next_free=dict(count=count,source=offers[0].selection_source,
                             offer=self.floor_gift_transaction.signature(offers))
-                self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory),next_free_offer=next_free)
+                self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory),
+                    next_free_offer=next_free,
+                    next_reward_offer=unselected_reward_successor(settled) if settled_page=='REWARD_CARD' else None)
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_receipt')
         if page=='GIFT_GET' and state.get('initial_receipt'):

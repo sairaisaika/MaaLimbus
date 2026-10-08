@@ -67,7 +67,7 @@ class FloorGiftTransaction:
         d['pending']=dict(kind='receipt',title=expected[0],proof=str(proof))
         write_json(self.path,d)
 
-    def observe_receipt(self, page, title, proof, *, next_free_offer=None):
+    def observe_receipt(self, page, title, proof, *, next_free_offer=None, next_reward_offer=None):
         from .initial_gifts import same_name
         d=self.data;p=d.get('pending')
         if not p or p['kind']!='receipt':raise ValueError('floor_gift_receipt_intent_missing')
@@ -78,12 +78,16 @@ class FloorGiftTransaction:
             and next_free_offer.get('count')=={'chosen':0,'required':1}
             and next_free_offer.get('source') in ('single_free_select_button','three_free_select_button')
             and next_free_offer.get('offer'))
-        final_successor=(not remaining and page in ('THEME_PACKS','MAP')) or bool(free_successor)
+        reward_successor=(not remaining and page=='REWARD_CARD' and next_reward_offer
+            and next_reward_offer.get('count')=={'chosen':0,'required':1}
+            and next_reward_offer.get('title')=='Select Encounter Reward Card')
+        final_successor=(not remaining and page in ('THEME_PACKS','MAP')) or bool(free_successor or reward_successor)
         if not (next_receipt or final_successor):
             raise ValueError('floor_gift_receipt_successor_not_proven')
         d['receipts'].append(dict(title=p['title'],receipt=p['proof'],successor=str(proof)))
         d['completed']=final_successor
         if free_successor:d['next_free_offer']=next_free_offer
+        if reward_successor:d['next_reward_offer']=next_reward_offer
         d['pending']=None if final_successor else dict(kind='commit',proof=str(proof))
         write_json(self.path,d)
 
