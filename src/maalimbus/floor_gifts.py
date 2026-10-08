@@ -22,7 +22,7 @@ class Trial:
     def penalty(self):
         # Survival-first heuristic: offense can change clashes; defense/HP mainly
         # lengthen fights. These weights are policy, not game formulas.
-        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0, 'damage_dealt': 20, 'base_power': 180}
+        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0, 'damage_dealt': 20, 'base_power': 180, 'clash_power': 240}
         effects=self.components or ((self.kind,self.amount),)
         return self.level * 30 + sum(amount*weights[kind] for kind,amount in effects)
 
@@ -51,6 +51,7 @@ class Offer:
 GRAMMAR = ((r'Defense Level\s*\+\s*(\d+)', 'defense'),
            (r'Offense Level\s*\+\s*(\d+)', 'offense'),
            (r'Base Power\s*\+\s*(\d+)', 'base_power'),
+           (r'Clash Power\s*\+\s*(\d+)', 'clash_power'),
            (r'Damage Taken\s*[-−]\s*(\d+(?:\.\d+)?)\s*%', 'damage_reduction'),
            (r'Max HP\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'hp'),
            (r'Damage Dealt\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'damage_dealt'))
@@ -79,7 +80,7 @@ def parse_trial(level, records):
         if remaining.startswith(','):
             remaining=remaining[1:].strip()
             if not remaining:raise ValueError('floor_gift_enemy_trial_unknown')
-    if not 0<level<=30 or not 1<=len(effects)<=2 or len({kind for kind,_ in effects})!=len(effects):
+    if not 0<level<=30 or not 1<=len(effects)<=3 or len({kind for kind,_ in effects})!=len(effects):
         raise ValueError('floor_gift_enemy_trial_unknown')
     if len(effects)==1:return Trial(level,*effects[0])
     return Trial(level,'compound',0,tuple(effects))
@@ -117,7 +118,9 @@ def observe(records, size, catalog, *, image=None, select_box=None):
             raise ValueError('floor_gift_identity_unknown')
         trials = find(records, r'^Mounting Trials$', (left,.57,right,.62),size,.9)
         levels = find(records, r'^\+\s*\d+$', (left,.62,right,.67),size,.85)
-        effects = find(records, r'.+', (left,.68,right,.74),size,.9)
+        # Three-effect trials start a row higher than two-effect trials. Keep
+        # that first row; headings and Enemy Level remain above this band.
+        effects = find(records, r'.+', (left,.66,right,.74),size,.9)
         if len(trials)!=1 or len(levels)!=1 or not effects:
             raise ValueError('floor_gift_enemy_trial_not_unique')
         level = int(re.findall(r'\d+', levels[0].text)[0])
