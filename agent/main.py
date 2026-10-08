@@ -13,6 +13,7 @@ from maa.agent.agent_server import AgentServer
 from maa.library import Library
 from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof, BattlePlanObservation
 from recognition import StarProof,InitialGiftProof,InitialReceiptProof,DifficultyProof
+from recognition import MapObservation, BattleObservation
 
 
 def main():
@@ -48,6 +49,12 @@ def main():
     AgentServer.register_custom_action('limbus_theme_observe',ThemeObservation(recognition))
     AgentServer.register_custom_action('limbus_deployment_proof',DeploymentProof(recognition))
     AgentServer.register_custom_action('limbus_battle_plan_observe',BattlePlanObservation(recognition))
+    # The map and battle observation nodes are read-only recorders that the pipeline
+    # names (`MapObserve` / `BattleObserve`) and the toolkit drives directly; a node
+    # whose custom_action was never registered cannot run at all, so both names must
+    # be here even though no task entry reaches them yet.
+    AgentServer.register_custom_action('limbus_map_observe',MapObservation(recognition))
+    AgentServer.register_custom_action('limbus_battle_observe',BattleObservation(recognition))
     AgentServer.start_up(sys.argv[-1])
     AgentServer.join()
     AgentServer.shut_down()
