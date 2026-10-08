@@ -9,7 +9,11 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-08 floor-digit retry
+## Current continuation: 2026-10-08 13:38 local
+- Quota recovered0%primary31%weekly; no reset/purchase. Both repos/docs/git and actualprocesses rechecked, FGO unchanged/paused/no launch. Retained124955 frame visiblycontains5, fullframe detection missed it. Native diagnostic only_rec digit362,125,48,52 reads5 .999851; fullheader55,120,370,65 readsExploringFloor5 .999164. Production uses both .9 gates with exactExploring/Floor high-confidence labels and independentpack header; both crops must uniquely agree before replacing incompleteheader. No pendingfloor used as observed digit; blinking still boundedreadonlyretry.
+- Three native cases actual/missingdigit/missingFloor passedzerodeviceinput; full563Python46.46s passed. Fresh133716 readonly realMAP/ExploringFloor5/SinkingDeluge verifiesfix with0inputs, build/floor-five-header-fixed-readonly-20261008.json. Theme pending still preserved until nextboundedrunner startup independently resolvesactualfloor5/map, no secondSwipe. Acceptedfloors[1,2,3,4], no floor5clear/finalpayout/rotation/reentry. Module/lunacy/refill/conversion0. Completegoal remainsopen.
+
+## Previous continuation: 2026-10-08 floor-digit retry
 - User confirms floor numeral can blink; new pending-theme MAP path rereads only within configured rounds/interval/deadline, no drag/input retry. Two offline cases prove later readable phase stops waiting and persistently missing phase exhausts at3observations with0inputs. Full563Python passed46.15s. Actual floor-five-blink-resume-live report PID66644 terminal with0inputs after bounded rereads, stillmissingdigit, pending retained. This did not resolve floor5; further native digit recognition must use retained frames and strict independent header/pack gates. Unverified narrow-crop experiment discarded, no synthetic digit or pendingfloor used as observation. Goal remains open, acceptedfloors[1,2,3,4].
 
 ## Previous continuation: 2026-10-08 12:38 local

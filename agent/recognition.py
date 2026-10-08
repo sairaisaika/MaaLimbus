@@ -154,7 +154,28 @@ class LimbusRecognition(CustomRecognition):
                         b=result.box
                         box=(b.x,b.y,b.w,b.h) if hasattr(b,'x') else tuple(b)
                         records.append(Text(result.text,box,result.score))
+        map_local=[]
         scene = classify(records, self.locale, size)
+        if scene in ('MAP','UNKNOWN'):
+            header=map_header(records,size)
+            labels=find(records,r'^Exploring$',(.02,.10,.14,.17),size,.9)
+            floors=find(records,r'^Floor$',(.12,.10,.20,.17),size,.9)
+            if header and header.floor is None and len(labels)==len(floors)==1:
+                w,h=size
+                readings=[]
+                for source_roi,expected in (((362,125,48,52),r'^[1-5]$'),
+                                           ((55,120,370,65),r'^Exploring Floor [1-5]$')):
+                    roi=tuple(round(v*(w/1920 if i%2==0 else h/1080)) for i,v in enumerate(source_roi))
+                    detail=context.run_recognition_direct(JRecognitionType.OCR,
+                        JOCR(roi=roi,only_rec=True,expected=[expected],threshold=.9),image)
+                    found=detail.filtered_results if detail is not None and detail.hit else []
+                    readings.append((roi,found))
+                    map_local.append(dict(purpose='map_floor_header',roi=list(roi),
+                        results=[dict(text=r.text,score=r.score) for r in found]))
+                digit,caption=readings[0][1],readings[1][1]
+                if len(digit)==len(caption)==1 and caption[0].text.strip().endswith(' '+digit[0].text.strip()):
+                    records=[t for t in records if t is not labels[0] and t is not floors[0]]
+                    records.append(Text(caption[0].text,readings[1][0],min(digit[0].score,caption[0].score)))
         if scene in ('UNKNOWN','BATTLE_HUD') and len(find(records,r'^TURN$',(.0,.06,.06,.13),size,.9))==1 and auto_assign_buttons(records,size) is not None:
             w,h=size;roi=(round(68*w/1920),round(90*h/1080),round(82*w/1920),round(40*h/1080))
             detail=context.run_recognition_direct(JRecognitionType.OCR,
@@ -182,7 +203,7 @@ class LimbusRecognition(CustomRecognition):
             scene='STAR_GRACES'
         if scene=='UNKNOWN' and deployment_page(records,self.locale,(image.shape[1],image.shape[0])):
             scene='DEPLOYMENT'
-        local=[]
+        local=map_local
         if scene=='DEPLOYMENT':
             # Isolated ordinal digits are often absent from the full-frame text
             # detector. Recognize only the small badge strips, retaining ROIs.
