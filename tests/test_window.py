@@ -750,7 +750,8 @@ def test_the_grace_selection_prompt_confirms_and_never_cancels():
     confirm = [1040, 778, 148, 35]
     cancel = [740, 774, 148, 41]
     plan = plan_step('STAR_CONFIRM', controls={'star_confirm.confirm_button': confirm,
-                                               'star_confirm.cancel_button': cancel})
+                                               'star_confirm.cancel_button': cancel},
+                     graces={'complete':True,'conversion':'unchecked','cost':0})
     assert plan['action'] == CLICK
     assert plan['target'] == confirm
     assert plan['reason'] == 'the_grace_selection_is_confirmed_before_the_run_starts'
@@ -758,12 +759,14 @@ def test_the_grace_selection_prompt_confirms_and_never_cancels():
     assert not successor_ok(plan, 'STAR_CONFIRM')
     # Cancel is the way back to the Graces page: it is never a target.
     assert plan_step('STAR_CONFIRM',
-                     controls={'star_confirm.cancel_button': cancel})['reason'] == \
+                     controls={'star_confirm.cancel_button': cancel},
+                     graces={'complete':True,'conversion':'unchecked','cost':0})['reason'] == \
         'star_confirm_button_not_anchored'
     # The driver always hands over every anchor of the page, so a mis-registered
     # confirm box that coincides with Cancel is refused.
     stolen = plan_step('STAR_CONFIRM', controls={'star_confirm.confirm_button': cancel,
-                                                 'star_confirm.cancel_button': cancel})
+                                                 'star_confirm.cancel_button': cancel},
+                     graces={'complete':True,'conversion':'unchecked','cost':0})
     assert stolen['reason'] == 'control_is_forbidden'
 
 

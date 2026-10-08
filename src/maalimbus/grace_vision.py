@@ -146,3 +146,25 @@ def plan_purchases(wanted, available, *, bought=(), costs=COSTS):
         spend += cost
         picked.append(index)
     return picked
+
+
+def conversion_state(image, records, template_dir):
+    """Current modal checkbox and displayed conversion cost, with no title/art anchor."""
+    import cv2
+    from .vision import find
+    if image is None or image.shape[:2]!=(1080,1920):return {}
+    crop=image[516:581,1060:1116]
+    scores={}
+    for state in ('checked','unchecked'):
+        candidates=[template_dir / ('star-convert-'+state+'.png')]
+        if state=='unchecked':candidates.append(template_dir/'star-convert-unchecked-current.png')
+        for path in candidates:
+            template=cv2.imread(str(path))
+            if template is None or template.shape[0]>crop.shape[0] or template.shape[1]>crop.shape[1]:continue
+            score=float(cv2.matchTemplate(crop,template,cv2.TM_CCOEFF_NORMED).max())
+            scores[state]=max(scores.get(state,0),score)
+    hits=[state for state,score in scores.items() if score>=.92]
+    costs=find(records,r'^\d{1,4}$',(.67,.415,.735,.473),(1920,1080),.85)
+    return dict(conversion=hits[0] if len(hits)==1 else None,
+                conversion_box=[1072,530,34,34],
+                cost=int(costs[0].text) if len(costs)==1 else None,scores=scores)

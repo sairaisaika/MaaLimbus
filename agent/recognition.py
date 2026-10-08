@@ -202,6 +202,35 @@ class LimbusRecognition(CustomRecognition):
             scene='BATTLE_HUD'
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
+        if scene in ('STAR_GRACES','STAR_CONFIRM'):
+            # The full text detector truncated 86 to 8 in actual frame-0005.
+            # A fixed numeric crop is accepted only with a fresh Available label.
+            if len(find(records,r'^Available$',(.70,.02,.80,.10),size,.85))==1:
+                roi=(1515,45,54,40)
+                detail=context.run_recognition_direct(JRecognitionType.OCR,
+                    JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,5}$'],threshold=.85),image)
+                if detail is None:raise RuntimeError('Maa local Available OCR returned no evidence')
+                x,y,w,h=roi
+                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
+                found=[]
+                if detail.hit:
+                    for result in detail.filtered_results:
+                        records.append(Text(result.text,roi,result.score))
+                        found.append(dict(text=result.text,score=result.score,box=list(roi)))
+                local.append(dict(purpose='available_starlight',roi=list(roi),only_rec=True,results=found))
+        if scene=='STAR_CONFIRM':
+            roi=(1318,459,66,45)
+            detail=context.run_recognition_direct(JRecognitionType.OCR,
+                JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,4}$'],threshold=.85),image)
+            if detail is None:raise RuntimeError('Maa local conversion cost OCR returned no evidence')
+            x,y,w,h=roi
+            records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
+            found=[]
+            if detail.hit:
+                for result in detail.filtered_results:
+                    records.append(Text(result.text,roi,result.score))
+                    found.append(dict(text=result.text,score=result.score,box=list(roi)))
+            local.append(dict(purpose='star_conversion_cost',roi=list(roi),only_rec=True,results=found))
         if scene=='STAR_GRACES':
             boxes=star_vision.grid(image)
             if boxes is not None:

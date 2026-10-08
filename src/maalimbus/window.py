@@ -124,7 +124,9 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       initial=initial, search=search, check=check, defeat=defeat,
                       bonus=bonus, difficulty=difficulty)
     forbidden = {tuple(box) for name, box in controls.items()
-                 if name in FORBIDDEN_CONTROLS}
+                 if name in FORBIDDEN_CONTROLS and not (
+                     page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
+                     and plan.get('reason')=='incomplete_graces_return_to_selection')}
     if plan.get('target') and tuple(plan['target']) in forbidden:
         return _refuse(page, 'control_is_forbidden')
     return plan
@@ -711,15 +713,22 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      expect=('GIFT_GET', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason='select_takes_the_starting_gift')
     if page == 'STAR_CONFIRM':
-        # The Graces page hands off to this prompt ("Continue with selected effects?").
-        # Live: evidence/runtime/window-20261006-194533/frame-0001.json reads its title,
-        # the prompt, Confirm [1040,778,148,35] and X Cancel [740,774,148,41]. Confirm
-        # keeps whatever the page selected and starts the run; Cancel only goes back.
-        box = controls.get('star_confirm.confirm_button')
-        if box is None:
-            return _refuse(page, 'star_confirm_button_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'STAR_GRACES', 'UNKNOWN'),
+        status=graces or {}
+        if status.get('incomplete'):
+            box=controls.get('star_confirm.cancel_button')
+            if box is None:return _refuse(page,'star_cancel_not_anchored')
+            return _plan(page,CLICK,target=box,expect=('STAR_GRACES',),
+                         reason='incomplete_graces_return_to_selection')
+        if not status.get('complete'):return _refuse(page,'grace_transaction_not_proven')
+        if status.get('conversion')=='checked':
+            return _plan(page,CLICK,target=status['conversion_box'],expect=(ANY,),advance=True,
+                         reason='disable_unauthorized_starlight_conversion')
+        if status.get('conversion')!='unchecked' or status.get('cost')!=0:
+            return _refuse(page,'starlight_conversion_off_and_cost_zero_not_proven')
+        box=controls.get('star_confirm.confirm_button')
+        if box is None:return _refuse(page,'star_confirm_button_not_anchored')
+        return _plan(page,CLICK,target=box,
+                     expect=('INITIAL_GIFTS','THEME_PACKS','MAP','STAR_GRACES','UNKNOWN'),
                      reason='the_grace_selection_is_confirmed_before_the_run_starts')
     if page == 'LEVEL_WARNING':
         # A rotation team whose average level sits below the recommendation raises

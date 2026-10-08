@@ -9,14 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-08 03:50 local
-- Pushed `6c075e6`: battle participants follow the saved team order. Private team 2 build is Charge/Tremor, order 3,4,9,1,7,2,12,5,8,10,11,6; other builds preserved.
-- Real Maa evidence: `window-20261008-032833` TEAMS #2 header; `033202` confirmed that team into STAR_GRACES. Preset #1 is a separate container, not the saved TEAMS number.
-- Current device checkpoint is **STAR_CONFIRM**, `evidence/runtime/window-20261008-034445/frame-0006.png`; native controller PID 47328 has exited. Selected cards 2 and 4 only, pool 116→86. Do not confirm, repeat entry, blindly reinitialize purchase state, or enable remaining-starlight conversion. Requested cards remain 2,4,5,7 with cap100/noEnhance; incomplete-selection guard added offline.
-- Owned stock 7681 is not the Available pool. Fresh label-relative Available OCR and native local card-cost OCR now gate purchases; actual configured base costs 10,20,30,40. Hard/Normal pack choice now requires current HARD proof; unknown/Normal stops. No Hard run, floor clear, payout, or reentry accepted this turn.
-- Stale ledger active `93baf3c9585c49578f65a966bd9e39a4` includes old floor1; reconcile new entry evidence before recording more clears. Preserve historical evidence; never inherit its clear as this run's result.
-- GUI MirrorLoop starts the shared native runner directly and preserves saved builds; separate team build task edits settings. Do not rebuild with stale frozen Agent. Latest full suite before incomplete-selection guard: 476 passed; guard regression pending.
-- Old Oct5 heartbeat checkpoint is stale; replace it with this checkpoint before unattended continuation. FGO stays paused; resource reward/refill budgets remain0.
+## Current continuation: 2026-10-08 04:05 local
+- Pushed `6c075e6` saved deployment order and `f969a94` Hard gate/native GUI team build. Local GUI freshly frozen/self-tested and desktop shortcut refreshed.
+- Test build remains team2 Charge/Tremor, order 3,4,9,1,7,2,12,5,8,10,11,6. Real TEAMS#2 header and twelve identities retained in 032833/033202; Preset#1 is another container.
+- **Root cause fixed**: full-frame OCR read Available86 as8 in `window-20261008-034445/frame-0004/5.json`, causing premature Enter. Native local numeric crop reads116/86 on all four retained frames; `build/grace-balance-replay.json` proves recognition only, zero device input. No thresholds lowered.
+- Durable `config/user-grace-transaction.json` now records intent before input, exact observed debit after input, pending blocks retries, scope/config/balance guards. Old ledger floor1 filed as abandoned using real new-entry evidence; new scope `d7c1499436f647208adc50860692a5c2` has no clears, team2, rotation4. Prior evidence preserved.
+- Actual recovery: incomplete modal Cancel returned to STAR_GRACES, `window-20261008-040049` bought only remaining cards5,7. Selected2,4,5,7 (Lix zero-based1,3,4,6), spent100, Available116→16, noEnhance. `040136` disabled remaining conversion. `040212` retained visible unchecked/Cost0. Matched current unchecked template added without lowering .92; checked and missing-checkbox negatives verified offline.
+- Current page is **INITIAL_GIFTS**, latest real read-only frame in `window-20261008-040314` (locate actual newest observe session if timestamp differs); native process59424 exited, zero input. Prior confirmation process8456 exited; fresh observer proves transition completed. No repeated Confirm or toggle needed.
+- Full Python suite479 passed before current checkbox-template addition; focused rerun pending. GUI must be refrozen after this transaction/OCR patch. Next: team2 Charge/Tremor gift strategy, actual Hard proof before any theme pack swipe, shop/gift rules, receipt budget gate. No Hard/clear/payout/reentry accepted in this continuation.
+- Reward modules/refill/conversion budgets0; FGO stays paused. Heartbeat refreshed/ACTIVE but its prompt is earlier STAR_CONFIRM checkpoint: read this PROJECT before resuming and update checkpoint. Existing old private star/initial-gift records must not overwrite this run's transaction or cause repeated input.
 
 ## Latest continuation: 2026-10-08 03:14 local (journal UTC 07:14)
 - **交接说明写在 `docs/handover-2026-10-08.md`**：入口（桌面 GUI 快捷方式／`tools/start-mirror.ps1`／`tools/run_ledger.py`）、仓库与提交状态（哪两处**未提交**、为什么不能单独提交 `assets/interface.json`）、已实机走通的链路、未解决的问题与建议顺序、用户的硬约束、文件地图。

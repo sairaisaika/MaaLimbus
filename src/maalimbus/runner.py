@@ -985,6 +985,9 @@ class MirrorRunner:
             self.artifacts['steps'] = result.setdefault('steps', [])
             self.artifacts['clicks_sent'] = int(result.get('clicks_sent') or 0)
         self.state = _fresh_state(self.settings, self.store)
+        from .grace_transaction import GraceTransaction
+        self.grace_transaction = (GraceTransaction(self.store.path.parent/'user-grace-transaction.json')
+                                  if self.store is not None else None)
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1186,7 +1189,31 @@ class MirrorRunner:
             initial = {'chosen': chosen, 'required': required, 'point': point,
                        'keyword': settings.gift_keyword if gift is None else None,
                        'reason': reason, 'gift': gift}
+        if page=='DUNGEON_TEAM' and self.store is not None and not settings.observe_only and not state.get('entry_reconciled'):
+            reconcile(self.store,page=page,proof=frame_file(directory))
+            self.run_id=self.store.start()
+            state['entry_reconciled']=True
+            state['run_settled_itself']=False
+            if self.grace_transaction is not None:
+                self.grace_transaction.begin(self.run_id,state['grace_wanted'],settings.grace_budget,
+                                             frame_file(directory))
         graces = None
+        transaction=self.grace_transaction
+        if page in ('STAR_GRACES','STAR_CONFIRM') and transaction is not None:
+            try:
+                records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+                available=available_starlight(records,record.get('size') or (1920,1080))
+                d=transaction.validate(self.run_id,state['grace_wanted'],settings.grace_budget,available)
+                state['grace_bought']=set(d['selected'])
+            except ValueError as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
+        if page=='STAR_CONFIRM' and transaction is not None:
+            from .grace_vision import conversion_state
+            image,_=latest_frame(directory)
+            graces=conversion_state(image,records,ROOT/'assets/resource/base/image/navigation')
+            complete=set(transaction.data['selected'])==set(state['grace_wanted'])
+            graces.update(complete=complete,incomplete=not complete)
         if page == 'STAR_GRACES':
             records = [Text(item['text'], tuple(item['box']), item['score'])
                        for item in record.get('ocr') or []]
@@ -1217,7 +1244,7 @@ class MirrorRunner:
             if wanted and wanted[0] in points:
                 graces = {'card': wanted[0], 'point': points[wanted[0]],
                           'available': available}
-        else:
+        elif page!='STAR_CONFIRM':
             state['grace_bought'] = set()
         check = check_of(directory, record, page=page)
         arrows = arrows_of(directory)
@@ -1272,6 +1299,9 @@ class MirrorRunner:
                 time.sleep(settings.interval)
                 return self._result(page, plan.get('target'), False, None, waiting=True)
             return self._result(page, plan.get('target'), False, entry['stopped'], done=True)
+        if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:
+            card=plan['detail']['card']
+            transaction.intent(card,board['costs'][card-1],available,frame_file(directory))
         point = None
         delay = random.randint(350, 750)
         if plan['action'] == NODE:
@@ -1322,6 +1352,7 @@ class MirrorRunner:
             # changed frame is the only evidence that the click landed.
             if settled.get('image_sha256') not in (None, before_sha):
                 break
+        if page=='DUNGEON_TEAM' and settled_page!='DUNGEON_TEAM':state['entry_reconciled']=False
         entry.update(page_after=settled_page, settled=settled,
                      scene_after=settled['scene'])
         if settled_page not in (None, 'MAP', 'UNKNOWN'):
@@ -1334,6 +1365,14 @@ class MirrorRunner:
                                  page=settled_page,
                                  frame_changed=(settled.get('image_sha256')
                                                 not in (None, before_sha))))
+        if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:
+            try:
+                observed=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                after_available=available_starlight(observed,settled.get('size') or (1920,1080))
+                if settled_page!='STAR_GRACES':raise ValueError('Grace purchase left selection unexpectedly')
+                transaction.observe(after_available,frame_file(directory))
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_grace_purchase')
         if self.store is not None and entry['passed']:
             # Every completed step is offered to the ledger; only the page that proves
             # an event (a floor's map, the run summary, the reward modal's Confirm, the
@@ -1365,14 +1404,6 @@ class MirrorRunner:
             # drawn for a new dungeon, so seeing it while the ledger still calls a run
             # active means that run ended without a receipt and the ledger would
             # otherwise never open the next one.
-            reconciled = reconcile(self.store, page=page,
-                                   proof=frame_file(directory),
-                                   on_event=lambda run: self.note(
-                                       'run_reconciled', run=run.get('id'),
-                                       evidence=str(frame_file(directory))))
-            if reconciled is not None:
-                entry['ledger_reconciled'] = reconciled.get('id')
-                state['run_settled_itself'] = False
         detail = plan.get('detail') or {}
         if entry['passed'] and detail.get('slot'):
             # The loadout slot has been sent; the next step on this page must fall

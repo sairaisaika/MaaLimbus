@@ -1,5 +1,10 @@
 # Acceptance evidence
 
+## October8 native star recovery, incomplete final goal
+
+Actual team2 entry and base cards2,4,5,7 now have four exact debits totaling100, pool116→16. Remaining-starlight conversion unchecked with Cost0 was retained before confirmation. Latest fresh observation is INITIAL_GIFTS, no current Hard proof or floor/reward acceptance. Native retained-frame OCR repair covers 86 truncated to8; offline replay is recognition evidence only. New run scope discards no history and inherits no prior floor1. Durable transaction refuses unresolved inputs and changed scope/config/balance. Python479 passed before the additional current checkbox sample.
+
+
 ## 2026-10-07 the bonus question grants the reward, and a finished run is receipted
 
 - **What went wrong.** `run-continue-21` (job `pwsh-508`, dir
