@@ -14,6 +14,7 @@ from maa.library import Library
 from recognition import LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof, BattlePlanObservation
 from recognition import StarProof,InitialGiftProof,InitialReceiptProof,DifficultyProof
 from recognition import MapObservation, BattleObservation
+from recognition import MirrorLoopAction
 
 
 def main():
@@ -55,6 +56,9 @@ def main():
     # be here even though no task entry reaches them yet.
     AgentServer.register_custom_action('limbus_map_observe',MapObservation(recognition))
     AgentServer.register_custom_action('limbus_battle_observe',BattleObservation(recognition))
+    # `MirrorLoop` is the whole dungeon: it drives `maalimbus.runner` inside this task,
+    # so the packaged app runs the same loop the command line runs.
+    AgentServer.register_custom_action('limbus_mirror_loop',MirrorLoopAction(recognition))
     AgentServer.start_up(sys.argv[-1])
     AgentServer.join()
     AgentServer.shut_down()

@@ -58,8 +58,12 @@
       "description": "$windows_front_description"
     },
     {
-      "name": "mumu-adb", "label": "$mumu_adb", "type": "Adb",
-      "display_long_side": 1920, "adb": {}, "description": "$mumu_adb_description"
+      "name": "mumu-adb",
+      "label": "$mumu_adb",
+      "type": "Adb",
+      "display_long_side": 1920,
+      "adb": {},
+      "description": "$mumu_adb_description"
     }
   ],
   "resource": [
@@ -158,6 +162,44 @@
         "mirror"
       ],
       "description": "$battle_plan_scope",
+      "default_check": false
+    },
+    {
+      "name": "mirror_loop",
+      "label": "$mirror_loop",
+      "entry": "TeamKeywordSet",
+      "group": [
+        "mirror"
+      ],
+      "description": "$mirror_loop_scope",
+      "option": [
+        "team_keywords",
+        "team_keywords_extra",
+        "team_build_name",
+        "run_team"
+      ],
+      "default_check": false
+    },
+    {
+      "name": "team_build",
+      "label": "$team_build",
+      "entry": "TeamKeywordSet",
+      "group": [
+        "mirror"
+      ],
+      "description": "$team_build_scope",
+      "option": [
+        "team_keywords",
+        "team_keywords_extra",
+        "team_build_name"
+      ],
+      "pipeline_override": {
+        "TeamBuildSave": {
+          "next": [
+            "TeamBuildDone"
+          ]
+        }
+      },
       "default_check": false
     }
   ],
@@ -3915,6 +3957,469 @@
                 "mode": "deployment_slot",
                 "position": 12,
                 "sinner": "Gregor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "team_keywords": {
+      "type": "select",
+      "label": "$team_keywords",
+      "description": "$team_keywords_description",
+      "default_case": "Charge+Tremor",
+      "cases": [
+        {
+          "name": "Bleed",
+          "label": "Bleed",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Bleed"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Blunt",
+          "label": "Blunt",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Blunt"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Burn",
+          "label": "Burn",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Burn"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Charge",
+          "label": "Charge",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Charge"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Charge+Tremor",
+          "label": "Charge + Tremor",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Charge",
+                  "Tremor"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Keywordless",
+          "label": "Keywordless",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Keywordless"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Pierce",
+          "label": "Pierce",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Pierce"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Poise",
+          "label": "Poise",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Poise"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Rupture",
+          "label": "Rupture",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Rupture"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Sinking",
+          "label": "Sinking",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Sinking"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Slash",
+          "label": "Slash",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Slash"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Tremor",
+          "label": "Tremor",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Tremor"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "name": "Vestige",
+          "label": "Vestige",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "mode": "keywords",
+                "keywords": [
+                  "Vestige"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "team_keywords_extra": {
+      "type": "input",
+      "label": "$team_keywords_extra",
+      "description": "$team_keywords_extra_description",
+      "inputs": [
+        {
+          "name": "extra",
+          "label": "$team_keywords_extra",
+          "default": "",
+          "pipeline_type": "string"
+        }
+      ],
+      "pipeline_override": {
+        "TeamKeywordExtra": {
+          "custom_action_param": {
+            "mode": "keywords_add",
+            "keywords": [
+              "{extra}"
+            ]
+          }
+        }
+      }
+    },
+    "team_build_name": {
+      "type": "input",
+      "label": "$team_build_name",
+      "description": "$team_build_name_description",
+      "inputs": [
+        {
+          "name": "build",
+          "label": "$team_build_name",
+          "default": "",
+          "pipeline_type": "string"
+        }
+      ],
+      "pipeline_override": {
+        "TeamBuildSave": {
+          "custom_action_param": {
+            "mode": "save",
+            "name": "{build}"
+          }
+        }
+      }
+    },
+    "run_team": {
+      "type": "select",
+      "label": "$run_team",
+      "description": "$run_team_description",
+      "default_case": "2",
+      "cases": [
+        {
+          "name": "1",
+          "label": "1",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "2",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 2
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "3",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "4",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 4
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "5",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 5
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "6",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 6
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "7",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 7
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "8",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 8
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "9",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 9
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "10",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 10
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "11",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 11
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "12",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 12
+              }
+            }
+          }
+        },
+        {
+          "name": "13",
+          "label": "13",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 13
+              }
+            }
+          }
+        },
+        {
+          "name": "14",
+          "label": "14",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 14
+              }
+            }
+          }
+        },
+        {
+          "name": "15",
+          "label": "15",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 15
+              }
+            }
+          }
+        },
+        {
+          "name": "16",
+          "label": "16",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 16
+              }
+            }
+          }
+        },
+        {
+          "name": "17",
+          "label": "17",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 17
+              }
+            }
+          }
+        },
+        {
+          "name": "18",
+          "label": "18",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 18
+              }
+            }
+          }
+        },
+        {
+          "name": "19",
+          "label": "19",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 19
+              }
+            }
+          }
+        },
+        {
+          "name": "20",
+          "label": "20",
+          "pipeline_override": {
+            "MirrorLoop": {
+              "custom_action_param": {
+                "team": 20
               }
             }
           }

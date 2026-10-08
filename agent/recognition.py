@@ -2,10 +2,13 @@ import hashlib
 import json
 import os
 import random
+import time
+import traceback
 from datetime import datetime, timezone
 from dataclasses import replace
 from functools import wraps
 from pathlib import Path
+from types import SimpleNamespace
 
 import cv2
 from maa.custom_action import CustomAction
@@ -22,6 +25,7 @@ from maalimbus.storage import ProfileStore
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend,search_owned_names
 from maalimbus.jobs import wait_job
+from maalimbus import runner
 from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
@@ -31,6 +35,7 @@ from maalimbus import star_vision
 from maalimbus import initial_gifts
 from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
 from maalimbus.storage import read_json, write_json
+from maalimbus.storage import RunStore
 
 
 def guarded_callback(failed_result):
@@ -1008,3 +1013,234 @@ class LimbusTerminal(CustomAction):
                                        last_scene=self.recognition.last_scene,
                                        verified_clear=False)
         return False
+
+
+# ------------------------------------------------------------------ the whole run
+
+
+#: The environment variable that aims one run's evidence at a known directory.
+LOOP_DIR_ENV = 'MAALIMBUS_RUN_DIR'
+#: Every runner setting can also be overridden as ``MAALIMBUS_LOOP_<SETTING>``.
+LOOP_ENV_PREFIX = 'MAALIMBUS_LOOP_'
+#: A whole run's own wall clock. A node's ``timeout`` is the timeout of its ``next``
+#: list, not of a custom action, so the run has to bound itself.
+LOOP_BUDGET_SECONDS = 5400.0
+#: This action's defaults on top of the runner's: the CLI defaults describe one
+#: one-shot window, while this node drives the whole dungeon and its run ledger.
+LOOP_DEFAULTS = {'steps': 400, 'run_store': 'config/user-run-ledger.json'}
+#: Node parameters that are not runner settings.
+LOOP_EXTRA_PARAMS = ('directory', 'budget')
+
+
+def loop_flag(raw):
+    """An environment string as the boolean it means."""
+    return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def loop_environment():
+    """Read every ``MAALIMBUS_LOOP_<SETTING>`` override, typed like its default.
+
+    The CLI cannot pass a node's ``custom_action_param``, so the environment is how a
+    live run is aimed without a second controller or an edit to the pipeline.
+    """
+    chosen = {}
+    for name, default in runner.settings().as_dict().items():
+        raw = os.environ.get(LOOP_ENV_PREFIX + name.upper())
+        if raw is None:
+            continue
+        if isinstance(default, bool):
+            chosen[name] = loop_flag(raw)
+        elif isinstance(default, int):
+            chosen[name] = int(raw)
+        elif isinstance(default, float):
+            chosen[name] = float(raw)
+        else:
+            chosen[name] = raw or None
+    return chosen
+
+
+def loop_parameters(params):
+    """One run's settings, and the parameters that were not settings.
+
+    Precedence: the CLI defaults, this action's whole-run defaults, the environment,
+    then the node's own ``custom_action_param``. A parameter the runner does not know
+    is reported rather than silently kept, so a typo shows up in the run journal.
+    """
+    known = set(runner.settings().as_dict())
+    chosen = dict(LOOP_DEFAULTS)
+    chosen.update(loop_environment())
+    chosen.update({key: value for key, value in params.items() if key in known})
+    ignored = sorted(set(params) - known - set(LOOP_EXTRA_PARAMS))
+    return runner.settings(chosen), ignored
+
+
+def loop_budget(params):
+    """How long the run may take, in seconds."""
+    raw = params.get('budget')
+    if raw is None:
+        raw = os.environ.get(LOOP_ENV_PREFIX + 'BUDGET')
+    return LOOP_BUDGET_SECONDS if raw is None else max(1.0, float(raw))
+
+
+def loop_directory(params):
+    """Where one run's evidence goes: the node, the environment, then a fresh stamp."""
+    chosen = params.get('directory') or os.environ.get(LOOP_DIR_ENV)
+    if chosen:
+        directory = Path(chosen)
+        if not directory.is_absolute():
+            directory = ROOT / directory
+    else:
+        stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        directory = ROOT / 'evidence/runtime' / ('pi-' + stamp)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def loop_store(settings, journal):
+    """The run ledger the CLI uses, or ``(None, None)`` when it cannot be opened.
+
+    ``RunStore`` refuses a ledger written for another rotation and a team list that
+    repeats. A run is still worth driving when only its bookkeeping is unavailable, so
+    the refusal is journalled and the loop goes on without a ledger. An opened ledger
+    also decides the team, because the rotation is what says which team enters next.
+    """
+    path = settings.run_store
+    if not path or settings.observe_only:
+        return None, None
+    ledger = Path(str(path))
+    if not ledger.is_absolute():
+        ledger = ROOT / ledger
+    try:
+        existing = read_json(ledger) if ledger.exists() else None
+        slots = existing['team_slots'] if existing else [settings.team]
+        store = RunStore(ledger, [SimpleNamespace(slot=slot) for slot in slots])
+        run_id = store.start()
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        journal.record('mirror_loop_store_skipped', path=str(path), error=str(error))
+        return None, None
+    settings.team = store.team_slot
+    return store, run_id
+
+
+def write_loop_result(directory, result):
+    """Write one run's summary next to its evidence and return the path."""
+    path = Path(directory) / 'agent-result.json'
+    path.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str),
+                    encoding='utf-8')
+    return path
+
+
+class AgentJob:
+    """The job surface ``run_node`` reads, for a node already run to its end.
+
+    ``Context.run_task`` is synchronous, so the job standing for it is never pending:
+    a caller that polls ``done`` sees it finished without waiting for anything.
+    """
+
+    def __init__(self, detail):
+        self.detail = detail
+        self.done = True
+        self.succeeded = bool(detail is not None and detail.status.succeeded)
+
+
+class AgentTasker:
+    """A tasker that runs pipeline nodes through ``Context.run_task``.
+
+    ``context.tasker.post_task`` cannot be used from inside a custom action: the
+    framework's task runner is a single worker, so a node posted here queues behind the
+    very task that is waiting for it, and the wait ends in a stop that kills this run.
+    ``Context.run_task`` is the framework's own way to run a node from a callback -- it
+    runs the sub-task synchronously on this thread.
+
+    ``MaaObserver`` reads ``context.tasker`` and calls ``post_task`` on what it finds,
+    so this proxy is both the context the observer is handed and the tasker it drives.
+    """
+
+    def __init__(self, context):
+        self.context = context
+        self.tasker = self
+        self.entries = []
+
+    def post_task(self, entry, pipeline_override=None):
+        self.entries.append(entry)
+        return AgentJob(self.context.run_task(entry, pipeline_override))
+
+    def post_stop(self):
+        """Nothing to stop: every node this proxy posts has already finished."""
+        return AgentJob(None)
+
+
+class MirrorLoopAction(CustomAction):
+    """Drive a whole Mirror Dungeon run from inside the task the agent already owns.
+
+    The loop is :mod:`maalimbus.runner` -- the same one ``tools/window_step.py`` drives
+    from the command line -- and this action only supplies the Maa instances the PI
+    gave the agent: the controller as the device, ``context.run_task`` as the tasker the
+    observation nodes run through, and the run directory as the evidence journal. Input
+    leaves through the controller's own ``post_click``/``post_swipe``, because that
+    controller is the process that owns the device.
+
+    The run always reports through the journal: ``mirror_loop_start`` once,
+    ``mirror_loop_stopped`` when the loop returns, whatever its reason, and
+    ``mirror_loop_error`` with a traceback when the wiring or the device failed. The
+    summary the runner returns is written to ``agent-result.json`` in the run directory.
+    """
+
+    def __init__(self, recognition):
+        super().__init__()
+        self.recognition = recognition
+
+    @guarded_callback(False)
+    def run(self, context, argv):
+        params = json.loads(argv.custom_action_param or '{}')
+        directory = loop_directory(params)
+        settings, ignored = loop_parameters(params)
+        budget = loop_budget(params)
+        deadline = time.monotonic() + budget
+        # The observation nodes journal through the recognition and the loop reads the
+        # run directory, so both halves of one run share one journal.
+        journal = Journal(directory)
+        self.recognition.journal = journal
+        result = dict(pid=os.getpid(), address=settings.address, controller='Maa AgentServer',
+                      observe_only=bool(settings.observe_only), steps=[], clicks_sent=0,
+                      verified_clear=False, foreground_before=None)
+        loop = None
+        try:
+            device = runner.MaaDevice(context.tasker.controller, deadline=deadline)
+            observer = runner.MaaObserver(AgentTasker(context), directory)
+            store, run_id = loop_store(settings, journal)
+            if store is not None:
+                result['run_ledger'] = dict(path=str(store.path), run=run_id,
+                                            team=store.team_slot,
+                                            rotation=store.data['rotation'])
+            journal.record('mirror_loop_start', directory=str(directory), budget=budget,
+                           deadline=deadline, ignored_params=ignored, **settings.as_dict())
+            loop = runner.MirrorRunner(device, settings=settings,
+                locale=self.recognition.locale_name,
+                registry=json.loads(runner.REGISTRY.read_text(encoding='utf-8')),
+                store=store, directory=directory, journal=journal, observer=observer,
+                run_id=run_id, result=result)
+            loop.configure(deadline=deadline)
+            result = loop.run(steps=1 if settings.observe_only else int(settings.steps),
+                              interval=float(settings.interval),
+                              round_limit=1 if settings.observe_only else int(settings.steps),
+                              deadline=deadline)
+        except TimeoutError as error:
+            # This run's own budget, or a device job that outlived its own timeout: a
+            # bounded stop, reported with the record of what already happened.
+            result = loop.summary() if loop is not None else result
+            result['reason'] = 'loop_deadline_exceeded'
+            result['error'] = str(error)
+        except Exception as error:
+            journal.record('mirror_loop_error', error=str(error),
+                           error_type=type(error).__name__, traceback=traceback.format_exc(),
+                           verified_clear=False)
+            write_loop_result(directory, {'reason': 'mirror_loop_failed', 'error': str(error),
+                                          'error_type': type(error).__name__})
+            return False
+        write_loop_result(directory, result)
+        journal.record('mirror_loop_stopped', reason=result.get('reason'),
+                       steps=len(result.get('steps') or []),
+                       clicks_sent=result.get('clicks_sent', 0),
+                       passed=result.get('passed'), directory=str(directory))
+        return True

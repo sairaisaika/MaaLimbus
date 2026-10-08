@@ -42,5 +42,17 @@
   "deployment_position_9": "Deployment position 9",
   "deployment_position_10": "Deployment position 10",
   "deployment_position_11": "Deployment position 11",
-  "deployment_position_12": "Deployment position 12"
+  "deployment_position_12": "Deployment position 12",
+  "mirror_loop": "Mirror Dungeon · full five-floor loop",
+  "mirror_loop_scope": "Play a whole run with the team the rotation points at: entry, five floors, rewards, re-entry. The keywords chosen below are written into the team and saved as a team build first.",
+  "team_build": "Team · save the build only",
+  "team_build_scope": "Write the keywords into the team and save it as a team build, without starting a run.",
+  "team_keywords": "Keywords for this run",
+  "team_keywords_description": "The team keywords the formation and the gift plan use; Charge + Tremor by default.",
+  "team_keywords_extra": "Extra keywords (blank keeps them)",
+  "team_keywords_extra_description": "Extra keywords, comma separated, e.g. Charge,Tremor.",
+  "team_build_name": "Team build name (blank keeps it)",
+  "team_build_name_description": "The name this formation is saved under; blank keeps the team's current name.",
+  "run_team": "Team slot",
+  "run_team_description": "Which team this run uses; the rotation ledger wins when it points at a team."
 }

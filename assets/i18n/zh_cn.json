@@ -42,5 +42,17 @@
   "deployment_position_9": "出战位置 9",
   "deployment_position_10": "出战位置 10",
   "deployment_position_11": "出战位置 11",
-  "deployment_position_12": "出战位置 12"
+  "deployment_position_12": "出战位置 12",
+  "mirror_loop": "镜牢 · 自动五层循环",
+  "mirror_loop_scope": "按当前轮换指向的队伍自动打完一整局：入口、五层、领奖、再入场。开始前先把下面选的体系写进编队并保存成 team build。",
+  "team_build": "编队 · 只保存 team build",
+  "team_build_scope": "只把体系写进编队并保存成 team build 文件，不开始打。",
+  "team_keywords": "本局体系（关键词）",
+  "team_keywords_description": "写进当前队伍的体系关键词，编队与礼物计划都用它；默认充能＋震动。",
+  "team_keywords_extra": "追加体系（留空则不改）",
+  "team_keywords_extra_description": "额外追加的关键词，逗号分隔，例如 Charge,Tremor。",
+  "team_build_name": "team build 名称（留空沿用）",
+  "team_build_name_description": "保存这份编队时用的名字；留空则沿用编队已有的名字。",
+  "run_team": "队伍槽位",
+  "run_team_description": "本局使用哪一支队伍；轮换账本指向的队伍优先。"
 }

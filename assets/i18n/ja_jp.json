@@ -42,5 +42,17 @@
   "deployment_position_9": "出撃順 9",
   "deployment_position_10": "出撃順 10",
   "deployment_position_11": "出撃順 11",
-  "deployment_position_12": "出撃順 12"
+  "deployment_position_12": "出撃順 12",
+  "mirror_loop": "鏡牢 · 全5階ループ",
+  "mirror_loop_scope": "ローテーションの隊で1回分を自動で走ります：入口、5階、報酬、再入場。開始前に下で選んだ体系を隊に書き込み、team build として保存します。",
+  "team_build": "編成 · team build を保存だけ",
+  "team_build_scope": "体系を隊に書き込んで team build として保存するだけで、走りません。",
+  "team_keywords": "今回の体系（キーワード）",
+  "team_keywords_description": "隊に書き込むキーワード。編成とギフト計画が参照します。既定は Charge + Tremor。",
+  "team_keywords_extra": "追加体系（空なら変更なし）",
+  "team_keywords_extra_description": "追加キーワード。カンマ区切り、例 Charge,Tremor。",
+  "team_build_name": "team build 名（空なら現状維持）",
+  "team_build_name_description": "この編成を保存する名前。空なら現在の名前を保ちます。",
+  "run_team": "隊スロット",
+  "run_team_description": "今回使う隊。ローテーション台帳が指す隊が優先されます。"
 }
