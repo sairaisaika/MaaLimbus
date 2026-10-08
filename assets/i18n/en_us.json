@@ -71,5 +71,19 @@
   "software_auto_update": "GitHub automatic updates",
   "software_auto_update_description": "The desktop launcher checks official stable releases before opening the app, preserves settings and rolls back failed installs. Offline or rate-limited checks use the local version. Applies on next launch.",
   "software_update_enabled": "Check and install on startup",
-  "software_update_disabled": "Disable automatic updates"
+  "software_update_disabled": "Disable automatic updates",
+  "main_open_game": "Open game",
+  "main_open_game_description": "Launch Android through Maa and verify the foreground; leave an already open game running. Connect the game window first on Windows.",
+  "main_mirror": "Mirror Dungeon",
+  "main_mirror_description": "Use global saved builds and deployment order. Choose one team or a rotation here. Hard by default; spending requires a configured budget.",
+  "main_experience": "Experience Luxcavation",
+  "main_experience_description": "Uses a saved team. Stage and cost recognition are under development; currently captures evidence and stops.",
+  "main_thread": "Thread Luxcavation",
+  "main_thread_description": "Uses a saved team. Stage and cost recognition are under development; currently captures evidence and stops.",
+  "main_rewards": "Collect rewards",
+  "main_rewards_description": "Mail and daily reward recognition are under development; currently captures evidence and stops. Mirror rewards stay in the Mirror task.",
+  "main_stamina": "Convert Enkephalin",
+  "main_stamina_description": "Budgeted conversion recognition is under development; currently captures evidence and stops without spending.",
+  "lux_saved_team": "Saved team",
+  "lux_keep_saved": "Keep saved default"
 }

@@ -102,102 +102,54 @@
   ],
   "task": [
     {
-      "name": "mirror_hard",
-      "label": "$mirror_hard",
-      "entry": "MirrorHard",
-      "group": [
-        "mirror"
-      ],
-      "description": "$mirror_status",
-      "default_check": false
-    },
-    {
-      "name": "select_saved_team",
-      "label": "$select_saved_team",
-      "entry": "TeamLibraryStart",
-      "group": [
-        "mirror"
-      ],
-      "description": "$team_library_scope",
-      "option": [
-        "team_slot",
-        "team_name"
-      ],
-      "default_check": false
-    },
-    {
-      "name": "select_theme_pack",
-      "label": "$select_theme_pack",
-      "entry": "ThemePackStart",
-      "group": [
-        "mirror"
-      ],
-      "description": "$theme_pack_scope",
-      "option": [
-        "team_slot",
-        "pack_name",
-        "pack_weight"
-      ],
-      "default_check": false
-    },
-    {
-      "name": "prepare_deployment",
-      "label": "$prepare_deployment",
-      "entry": "DeploymentStart",
-      "group": [
-        "mirror"
-      ],
-      "description": "$deployment_scope",
-      "option": [
-        "team_slot",
-        "deployment_preset"
-      ],
-      "default_check": false
-    },
-    {
-      "name": "prepare_battle_plan",
-      "label": "$prepare_battle_plan",
-      "entry": "BattlePlanStart",
-      "group": [
-        "mirror"
-      ],
-      "description": "$battle_plan_scope",
+      "name": "open_game",
+      "label": "$main_open_game",
+      "entry": "OpenGameTask",
+      "description": "$main_open_game_description",
       "default_check": false
     },
     {
       "name": "mirror_loop",
-      "label": "$mirror_loop",
-      "entry": "GlobalSettingsApply",
-      "group": [
-        "mirror"
-      ],
-      "description": "$mirror_loop_scope",
+      "label": "$main_mirror",
+      "entry": "MirrorTask",
+      "description": "$main_mirror_description",
+      "default_check": false,
       "option": [
         "mirror_team_mode"
-      ],
+      ]
+    },
+    {
+      "name": "experience",
+      "label": "$main_experience",
+      "entry": "ExperienceTask",
+      "description": "$main_experience_description",
+      "default_check": false,
+      "option": [
+        "experience_team"
+      ]
+    },
+    {
+      "name": "thread",
+      "label": "$main_thread",
+      "entry": "ThreadTask",
+      "description": "$main_thread_description",
+      "default_check": false,
+      "option": [
+        "thread_team"
+      ]
+    },
+    {
+      "name": "rewards",
+      "label": "$main_rewards",
+      "entry": "RewardsTask",
+      "description": "$main_rewards_description",
       "default_check": false
     },
     {
-      "name": "team_build",
-      "label": "$team_build",
-      "entry": "TeamKeywordSet",
-      "group": [
-        "mirror"
-      ],
-      "description": "$team_build_scope",
-      "option": [
-        "team_keywords",
-        "team_keywords_extra",
-        "team_build_name",
-        "team_build_slot"
-      ],
-      "pipeline_override": {
-        "TeamBuildSave": {
-          "next": [
-            "TeamBuildDone"
-          ]
-        }
-      },
+      "name": "stamina",
+      "label": "$main_stamina",
+      "entry": "StaminaTask",
+      "description": "$main_stamina_description",
       "default_check": false
     }
   ],
@@ -4975,7 +4927,9 @@
     "mirror_queue_18": {"type":"select","label":"18.","default_case":"18","cases":[{"name":"1","label":"Team 1","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":1}}}},{"name":"2","label":"Team 2","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":2}}}},{"name":"3","label":"Team 3","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":3}}}},{"name":"4","label":"Team 4","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":4}}}},{"name":"5","label":"Team 5","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":5}}}},{"name":"6","label":"Team 6","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":6}}}},{"name":"7","label":"Team 7","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":7}}}},{"name":"8","label":"Team 8","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":8}}}},{"name":"9","label":"Team 9","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":9}}}},{"name":"10","label":"Team 10","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":10}}}},{"name":"11","label":"Team 11","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":11}}}},{"name":"12","label":"Team 12","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":12}}}},{"name":"13","label":"Team 13","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":13}}}},{"name":"14","label":"Team 14","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":14}}}},{"name":"15","label":"Team 15","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":15}}}},{"name":"16","label":"Team 16","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":16}}}},{"name":"17","label":"Team 17","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":17}}}},{"name":"18","label":"Team 18","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":18}}}},{"name":"19","label":"Team 19","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":19}}}},{"name":"20","label":"Team 20","pipeline_override":{"MirrorTaskQueue18":{"attach":{"slot":20}}}}]},
     "mirror_queue_19": {"type":"select","label":"19.","default_case":"19","cases":[{"name":"1","label":"Team 1","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":1}}}},{"name":"2","label":"Team 2","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":2}}}},{"name":"3","label":"Team 3","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":3}}}},{"name":"4","label":"Team 4","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":4}}}},{"name":"5","label":"Team 5","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":5}}}},{"name":"6","label":"Team 6","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":6}}}},{"name":"7","label":"Team 7","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":7}}}},{"name":"8","label":"Team 8","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":8}}}},{"name":"9","label":"Team 9","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":9}}}},{"name":"10","label":"Team 10","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":10}}}},{"name":"11","label":"Team 11","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":11}}}},{"name":"12","label":"Team 12","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":12}}}},{"name":"13","label":"Team 13","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":13}}}},{"name":"14","label":"Team 14","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":14}}}},{"name":"15","label":"Team 15","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":15}}}},{"name":"16","label":"Team 16","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":16}}}},{"name":"17","label":"Team 17","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":17}}}},{"name":"18","label":"Team 18","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":18}}}},{"name":"19","label":"Team 19","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":19}}}},{"name":"20","label":"Team 20","pipeline_override":{"MirrorTaskQueue19":{"attach":{"slot":20}}}}]},
     "mirror_queue_20": {"type":"select","label":"20.","default_case":"20","cases":[{"name":"1","label":"Team 1","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":1}}}},{"name":"2","label":"Team 2","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":2}}}},{"name":"3","label":"Team 3","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":3}}}},{"name":"4","label":"Team 4","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":4}}}},{"name":"5","label":"Team 5","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":5}}}},{"name":"6","label":"Team 6","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":6}}}},{"name":"7","label":"Team 7","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":7}}}},{"name":"8","label":"Team 8","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":8}}}},{"name":"9","label":"Team 9","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":9}}}},{"name":"10","label":"Team 10","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":10}}}},{"name":"11","label":"Team 11","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":11}}}},{"name":"12","label":"Team 12","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":12}}}},{"name":"13","label":"Team 13","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":13}}}},{"name":"14","label":"Team 14","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":14}}}},{"name":"15","label":"Team 15","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":15}}}},{"name":"16","label":"Team 16","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":16}}}},{"name":"17","label":"Team 17","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":17}}}},{"name":"18","label":"Team 18","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":18}}}},{"name":"19","label":"Team 19","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":19}}}},{"name":"20","label":"Team 20","pipeline_override":{"MirrorTaskQueue20":{"attach":{"slot":20}}}}]},
-    "mirror_team_mode": {"type":"select","label":"$mirror_team_mode","default_case":"saved","cases":[{"name":"saved","label":"$mirror_queue_saved","pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"saved"}}}},{"name":"single","label":"$mirror_queue_single","option":["mirror_single_team"],"pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"single"}}}},{"name":"rotation","label":"$mirror_queue_rotation","option":["mirror_queue_count","mirror_queue_1","mirror_queue_2","mirror_queue_3","mirror_queue_4","mirror_queue_5","mirror_queue_6","mirror_queue_7","mirror_queue_8","mirror_queue_9","mirror_queue_10","mirror_queue_11","mirror_queue_12","mirror_queue_13","mirror_queue_14","mirror_queue_15","mirror_queue_16","mirror_queue_17","mirror_queue_18","mirror_queue_19","mirror_queue_20"],"pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"rotation"}}}}]}
+    "mirror_team_mode": {"type":"select","label":"$mirror_team_mode","default_case":"saved","cases":[{"name":"saved","label":"$mirror_queue_saved","pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"saved"}}}},{"name":"single","label":"$mirror_queue_single","option":["mirror_single_team"],"pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"single"}}}},{"name":"rotation","label":"$mirror_queue_rotation","option":["mirror_queue_count","mirror_queue_1","mirror_queue_2","mirror_queue_3","mirror_queue_4","mirror_queue_5","mirror_queue_6","mirror_queue_7","mirror_queue_8","mirror_queue_9","mirror_queue_10","mirror_queue_11","mirror_queue_12","mirror_queue_13","mirror_queue_14","mirror_queue_15","mirror_queue_16","mirror_queue_17","mirror_queue_18","mirror_queue_19","mirror_queue_20"],"pipeline_override":{"MirrorTaskTeamMode":{"attach":{"team_mode":"rotation"}}}}]},
+    "experience_team": {"label":"$lux_saved_team","type":"select","default_case":"saved","cases":[{"name":"saved","label":"$lux_keep_saved"},{"name":"1","label":"Team 1","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":1}}}},{"name":"2","label":"Team 2","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":2}}}},{"name":"3","label":"Team 3","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":3}}}},{"name":"4","label":"Team 4","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":4}}}},{"name":"5","label":"Team 5","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":5}}}},{"name":"6","label":"Team 6","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":6}}}},{"name":"7","label":"Team 7","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":7}}}},{"name":"8","label":"Team 8","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":8}}}},{"name":"9","label":"Team 9","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":9}}}},{"name":"10","label":"Team 10","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":10}}}},{"name":"11","label":"Team 11","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":11}}}},{"name":"12","label":"Team 12","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":12}}}},{"name":"13","label":"Team 13","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":13}}}},{"name":"14","label":"Team 14","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":14}}}},{"name":"15","label":"Team 15","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":15}}}},{"name":"16","label":"Team 16","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":16}}}},{"name":"17","label":"Team 17","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":17}}}},{"name":"18","label":"Team 18","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":18}}}},{"name":"19","label":"Team 19","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":19}}}},{"name":"20","label":"Team 20","pipeline_override":{"LuxExperienceTeam":{"attach":{"slot":20}}}}]},
+    "thread_team": {"label":"$lux_saved_team","type":"select","default_case":"saved","cases":[{"name":"saved","label":"$lux_keep_saved"},{"name":"1","label":"Team 1","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":1}}}},{"name":"2","label":"Team 2","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":2}}}},{"name":"3","label":"Team 3","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":3}}}},{"name":"4","label":"Team 4","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":4}}}},{"name":"5","label":"Team 5","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":5}}}},{"name":"6","label":"Team 6","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":6}}}},{"name":"7","label":"Team 7","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":7}}}},{"name":"8","label":"Team 8","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":8}}}},{"name":"9","label":"Team 9","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":9}}}},{"name":"10","label":"Team 10","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":10}}}},{"name":"11","label":"Team 11","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":11}}}},{"name":"12","label":"Team 12","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":12}}}},{"name":"13","label":"Team 13","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":13}}}},{"name":"14","label":"Team 14","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":14}}}},{"name":"15","label":"Team 15","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":15}}}},{"name":"16","label":"Team 16","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":16}}}},{"name":"17","label":"Team 17","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":17}}}},{"name":"18","label":"Team 18","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":18}}}},{"name":"19","label":"Team 19","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":19}}}},{"name":"20","label":"Team 20","pipeline_override":{"LuxThreadTeam":{"attach":{"slot":20}}}}]}
   },
   "icon": "misc/Don-Quixote.png",
   "welcome": "../README.md",

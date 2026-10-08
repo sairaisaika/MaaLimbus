@@ -59,6 +59,6 @@ def test_native_global_sections_use_independent_keys_and_start_before_mirror():
         assert 'pipeline_override' not in option['cases'][0]
         assert len(option['cases'][1]['option']) == 14
     task = next(t for t in pi['task'] if t['name'] == 'mirror_loop')
-    assert task['entry'] == 'GlobalSettingsApply'
+    assert task['entry'] == 'MirrorTask'
     nodes = json.loads((root/'assets/resource/base/pipeline/mirror.json').read_text(encoding='utf-8'))
     assert nodes['GlobalSettingsApply']['next'] == ['MirrorLoop']

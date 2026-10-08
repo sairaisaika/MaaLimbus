@@ -71,5 +71,19 @@
   "software_auto_update": "GitHub 自動更新",
   "software_auto_update_description": "デスクトップの起動入口で公式安定版を確認します。設定を保持し、インストール失敗時は復元します。オフラインや制限中はローカル版を使用します。次回起動から適用。",
   "software_update_enabled": "起動時に確認してインストール",
-  "software_update_disabled": "自動更新を無効にする"
+  "software_update_disabled": "自動更新を無効にする",
+  "main_open_game": "ゲームを開く",
+  "main_open_game_description": "AndroidはMaaで起動して前面のゲームを確認します。起動済みの場合は再起動しません。Windowsは先にゲームへ接続してください。",
+  "main_mirror": "鏡ダンジョン",
+  "main_mirror_description": "全体設定の保存チームと出撃順を使用。単一またはローテーションを選択。既定はハード、消費には予算設定が必要です。",
+  "main_experience": "経験値採光",
+  "main_experience_description": "保存チームを使用。ステージと消費の認識は開発中で、現在は画面を保存して停止します。",
+  "main_thread": "紐採光",
+  "main_thread_description": "保存チームを使用。ステージと消費の認識は開発中で、現在は画面を保存して停止します。",
+  "main_rewards": "報酬を受け取る",
+  "main_rewards_description": "メール・デイリー報酬の認識は開発中です。現在は画面を保存して停止します。鏡報酬は鏡タスク内で処理。",
+  "main_stamina": "エンケファリン変換",
+  "main_stamina_description": "予算内の変換認識は開発中です。現在は画面を保存して停止し、消費しません。",
+  "lux_saved_team": "保存チーム",
+  "lux_keep_saved": "保存済みの既定チーム"
 }

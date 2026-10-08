@@ -23,7 +23,7 @@ def test_independent_option_nodes_and_complete_custom_parameters():
     assert changed['team_slot'].isdisjoint(changed['pack_name']|changed['pack_weight']|changed['team_name'])
     assert changed['pack_name'].isdisjoint(changed['pack_weight'])
     tasks={t['entry']:t for t in interface['task']}
-    assert not tasks['ThemePackStart']['default_check']
+    assert 'ThemePackStart' not in tasks  # preferences no longer appear as main tasks
     assert nodes['ThemePackDrag']['max_hit']==1
     assert nodes['ThemePackBoundary']['custom_action_param']['reason']=='theme_drag_recorded_map_verification_pending'
 
@@ -33,7 +33,7 @@ def test_deployment_requires_saved_order_or_explicit_preset_and_is_bounded():
     nodes=json.loads((ROOT/'assets/resource/base/pipeline/mirror.json').read_text(encoding='utf-8'))
     preset=interface['option']['deployment_preset']
     assert preset['default_case']=='saved'
-    assert not next(t for t in interface['task'] if t['entry']=='DeploymentStart')['default_check']
+    assert all(t['entry']!='DeploymentStart' for t in interface['task'])
     assert nodes['DeploymentNext']['max_hit']==12
     assert nodes['DeploymentComplete']['custom_action']=='limbus_deployment_proof'
     assert nodes['DeploymentBoundary']['custom_action_param']['reason']=='deployment_order_observed_battle_not_started'

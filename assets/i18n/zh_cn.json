@@ -71,5 +71,19 @@
   "software_auto_update": "GitHub 自动更新",
   "software_auto_update_description": "从桌面快捷方式启动时检查官方稳定版；关闭软件后安装并保留设置，失败回滚。断网或限流继续使用本地版本。下次启动生效。",
   "software_update_enabled": "启动时自动检查和安装",
-  "software_update_disabled": "关闭自动更新"
+  "software_update_disabled": "关闭自动更新",
+  "main_open_game": "打开游戏",
+  "main_open_game_description": "Android 使用 Maa 启动并确认前台游戏；游戏已经打开时不重复启动。Windows 请先连接游戏窗口。",
+  "main_mirror": "自动镜牢",
+  "main_mirror_description": "使用总设置保存的队伍、体系和出战顺序；在此选择单队或轮换。默认困难，消费须有配置预算。",
+  "main_experience": "自动经验本",
+  "main_experience_description": "引用已保存队伍。关卡与消耗识别尚在开发，当前保存现场后停止。",
+  "main_thread": "自动纺锤本",
+  "main_thread_description": "引用已保存队伍。关卡与消耗识别尚在开发，当前保存现场后停止。",
+  "main_rewards": "领取奖励",
+  "main_rewards_description": "邮件与每日奖励识别尚在开发，当前保存现场后停止。镜牢本轮领奖由镜牢任务处理。",
+  "main_stamina": "体力兑换",
+  "main_stamina_description": "预算内体力兑换识别尚在开发，当前保存现场后停止，不消费。",
+  "lux_saved_team": "使用已保存队伍",
+  "lux_keep_saved": "沿用已保存默认队伍"
 }

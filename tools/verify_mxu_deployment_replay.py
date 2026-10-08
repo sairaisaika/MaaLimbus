@@ -29,13 +29,14 @@ from verify_deployment_replay import Replay
 
 def resolve_choices(interface, task):
     """Select only active children, using exact stored case names."""
-    spec=next(t for t in interface['task'] if t['name']==task['taskName'])
-    if spec['entry']!='DeploymentStart':raise ValueError('Expected deployment task')
+    spec=next((t for t in interface['task'] if t['name']==task['taskName']),None)
+    if spec is None:raise ValueError('Saved task no longer exists in this interface')
     overrides={}
     def visit(name):
         value=task['optionValues'][name]
         if value['type']!='select':raise ValueError('Expected fixed select option')
-        case=next(c for c in interface['option'][name]['cases'] if c['name']==value['caseName'])
+        case=next((c for c in interface['option'][name]['cases'] if c['name']==value['caseName']),None)
+        if case is None:raise ValueError('Unknown saved option case')
         for node,params in case.get('pipeline_override',{}).items():
             if node in overrides:raise ValueError('Unexpected overlapping PI nodes')
             overrides[node]=params
@@ -55,6 +56,9 @@ def main():
     assert not config['settings']['autoRunOnLaunch']
     tasks=[t for i in config['instances'] for t in i['tasks']]
     assert len(tasks)==1 and not tasks[0]['enabled']
+    selected=next((t for t in read_json(app/'interface.json')['task'] if t['name']==tasks[0]['taskName']),None)
+    if selected is None or selected['entry']!='DeploymentStart':
+        raise ValueError('This legacy deployment verifier requires its original diagnostic interface')
     patches=resolve_choices(read_json(app/'interface.json'),tasks[0])
     assert patches['DeploymentPreset']['custom_action_param']['preset']=='custom'
     draft=DeploymentDraft()

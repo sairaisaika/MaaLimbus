@@ -52,7 +52,7 @@ def test_labels_are_diagnostic_local_and_not_a_survival_authorization():
 def test_battle_task_never_submits_or_retries_turn():
     interface=json.loads((ROOT/'assets/interface.json').read_text(encoding='utf-8'))
     nodes=json.loads((ROOT/'assets/resource/base/pipeline/mirror.json').read_text(encoding='utf-8'))
-    assert not next(t for t in interface['task'] if t['entry']=='BattlePlanStart')['default_check']
+    assert all(t['entry']!='BattlePlanStart' for t in interface['task'])
     assert nodes['BattlePlanOnce']['action']=='ClickKey' and nodes['BattlePlanOnce']['key']==80
     assert nodes['BattlePlanOnce']['max_hit']==1
     assert nodes['BattlePlanOnce']['next']==['BattlePlanObserve']

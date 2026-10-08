@@ -1175,7 +1175,7 @@ LOOP_ENV_PREFIX = 'MAALIMBUS_LOOP_'
 LOOP_BUDGET_SECONDS = 5400.0
 #: This action's defaults on top of the runner's: the CLI defaults describe one
 #: one-shot window, while this node drives the whole dungeon and its run ledger.
-LOOP_DEFAULTS = {'steps': 400, 'run_store': 'config/user-run-ledger.json'}
+LOOP_DEFAULTS = {'steps': 400, 'run_store': 'config/user-run-ledger.json', 'grace_budget': 0}
 #: Node parameters that are not runner settings.
 LOOP_EXTRA_PARAMS = ('directory', 'budget')
 
@@ -1410,3 +1410,54 @@ class MirrorLoopAction(CustomAction):
                        clicks_sent=result.get('clicks_sent', 0),
                        passed=result.get('passed'), directory=str(directory))
         return True
+
+
+class MainTaskAction(CustomAction):
+    """Six task entries, one controller owner and explicit task evidence."""
+    def __init__(self, recognition):
+        super().__init__()
+        self.recognition=recognition
+
+    @guarded_callback(False)
+    def run(self,context,argv):
+        params=json.loads(argv.custom_action_param or '{}')
+        task=params['task']
+        from maalimbus.task_preferences import TASKS
+        if task not in TASKS:raise ValueError('Unknown main task')
+        directory=loop_directory(params)
+        journal=Journal(directory)
+        self.recognition.journal=journal
+        lease=ControllerLease.acquire(ROOT/'build/controller.lock')
+        try:
+            if task=='open_game':
+                if context.tasker.controller.info.get('type')=='win32':
+                    if not InputPreflight(self.recognition).run(context,argv):
+                        raise ValueError('Actual Windows game identity failed')
+                    result=dict(passed=True,reason='existing_windows_game_verified',input_sent=False)
+                else:
+                    from maalimbus.game_launch import open_game
+                    result=open_game(context.tasker.controller,data_directory(ROOT),journal)
+            else:
+                if not InputPreflight(self.recognition).run(context,argv):
+                    raise ValueError('Actual controller identity failed')
+                if task=='mirror':
+                    if not GlobalSettingsAction(self.recognition).run(context,argv):return False
+                    node=context.get_node_data('MirrorLoop')
+                    selected=SimpleNamespace(custom_action_param=json.dumps(node['action']['param']['custom_action_param']),node_name='MirrorLoop')
+                    return MirrorLoopAction(self.recognition).run(context,selected)
+                observer=runner.MaaObserver(AgentTasker(context),directory)
+                record=runner.observe(observer,time.monotonic()+30)
+                result=dict(passed=False,reason='task_page_policy_not_implemented',task=task,
+                            observation=record,input_sent=False,verified_clear=False)
+                if task in ('experience','thread'):
+                    preference=TaskPreferences(data_directory(ROOT))
+                    if not preference.path.exists():preference.set_lux_defaults()
+                    choice=context.get_node_data('Lux'+task.title()+'Team')['attach']['slot']
+                    if choice is not None:preference.set_lux_defaults(**{task+'_team':choice})
+                    build=preference.build_for(task)
+                    result['saved_team']=dict(slot=build.slot,keywords=sorted(build.keywords),deployment=list(build.deployment))
+                journal.record('main_task_stopped',**result)
+            write_loop_result(directory,result)
+            return bool(result.get('passed'))
+        finally:
+            lease.close()

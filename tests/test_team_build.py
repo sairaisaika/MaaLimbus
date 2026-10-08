@@ -104,19 +104,15 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
         slot = int(case['name'])
         assert case['pipeline_override']['TeamKeywordSet']['custom_action_param']['slot'] == slot
     tasks = {t['name']: t for t in pi['task']}
-    assert tasks['team_build']['entry'] == 'TeamKeywordSet'
+    assert 'team_build' not in tasks
     # Global settings apply only explicit edits; the legacy build replace chain
     # is not run as part of the Mirror task.
-    assert tasks['mirror_loop']['entry'] == 'GlobalSettingsApply'
+    assert tasks['mirror_loop']['entry'] == 'MirrorTask'
     assert nodes['GlobalSettingsApply']['next'] == ['MirrorLoop']
     assert all(nodes[f'Global_global_team_{i}']['attach']['global_build']['edit'] is False
                for i in range(1,21))
     assert 'team_keywords' not in tasks['mirror_loop']['option']
-    assert 'team_build_slot' in tasks['team_build']['option']
-    assert 'team_keywords' in tasks['team_build']['option']
     assert tasks['mirror_loop']['option']==['mirror_team_mode']
-    only_save = tasks['team_build']['pipeline_override']['TeamBuildSave']
-    assert only_save['next'] == ['TeamBuildDone']
     assert 'TeamBuildSave' not in tasks['mirror_loop'].get('pipeline_override', {})
 
 

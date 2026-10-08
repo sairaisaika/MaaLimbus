@@ -49,6 +49,18 @@ class TaskPreferences:
         # tasks that reference team1; no stale per-task character duplicates.
         return next(p for p in self.profiles.load() if p.slot==slot)
 
+    def set_lux_defaults(self, **choices):
+        if self.path.exists():
+            value=deepcopy(self.load())
+        else:
+            ledger=self.path.parent/'user-run-ledger.json'
+            queue=read_json(ledger)['team_slots'] if ledger.exists() else [self.profiles.load()[0].slot]
+            value=dict(version=1,mirror=dict(difficulty='hard',team_mode='single' if len(queue)==1 else 'rotation',teams=queue),
+                       luxcavation=dict(experience_team=queue[0],thread_team=queue[0]))
+        value['luxcavation'].update(choices)
+        self.save(value)
+        return value
+
     def set_mirror_queue(self,mode,queue):
         """Explicit idle queue changes retain receipts and the next slot if possible.
 
