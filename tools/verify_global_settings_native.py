@@ -11,6 +11,7 @@ from maalimbus.jobs import wait_job
 from maalimbus.global_settings import collect_builds, apply_builds
 from maalimbus.storage import SINNERS, ProfileStore, write_json
 from maalimbus.policies import Team
+from maalimbus.task_preferences import collect_mirror_queue
 
 
 def main():
@@ -60,9 +61,20 @@ def main():
         assert resource.override_pipeline({f'Global_global_team_{slot}':
                                            {'attach':{'global_build':{'edit':False}}}})
     assert collect_builds(resource.get_node_data) == {}
+    assert collect_mirror_queue(resource.get_node_data) is None
+    for node, attach in [('MirrorTaskTeamMode',{'team_mode':'rotation'}),
+                         ('MirrorTaskQueueCount',{'count':5})]:
+        assert resource.override_pipeline({node:{'attach':attach}})
+    for n,slot in enumerate((5,4,1,2,3),1):
+        assert resource.override_pipeline({f'MirrorTaskQueue{n}':{'attach':{'slot':slot}}})
+    assert collect_mirror_queue(resource.get_node_data)==('rotation',[5,4,1,2,3])
+    assert resource.override_pipeline({'MirrorTaskTeamMode':{'attach':{'team_mode':'single'}},
+                                       'MirrorTaskSingleTeam':{'attach':{'slot':2}}})
+    assert collect_mirror_queue(resource.get_node_data)==('single',[2])
     proof = dict(passed=True, controller_created=False, device_input=False,
                  edited_slots=[2,5], independent_native_patches=len(patches),
-                 unknown_or_duplicate_rejected=True, gui_verified=False)
+                 unknown_or_duplicate_rejected=True, gui_verified=False,
+                 native_mirror_single_and_rotation=True)
     write_json(ROOT/'build/global-settings-native-verification.json', proof)
     print(json.dumps(proof))
 

@@ -60,5 +60,12 @@
   "global_build_description": "Save systems and all twelve deployment positions globally. Keep saved leaves imported builds intact. Edits are validated and saved before the next Mirror task.",
   "global_build_edit": "Build configuration",
   "global_build_saved": "Keep saved build",
-  "global_build_edit_now": "Edit and save this build"
+  "global_build_edit_now": "Edit and save this build",
+  "global_build_name": "Saved build name",
+  "mirror_team_mode": "Team usage",
+  "mirror_queue_saved": "Keep saved rotation",
+  "mirror_queue_single": "Single saved team",
+  "mirror_queue_rotation": "Ordered team rotation",
+  "mirror_single_team": "Saved team",
+  "mirror_queue_count": "Rotation length"
 }

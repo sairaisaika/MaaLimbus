@@ -60,5 +60,12 @@
   "global_build_description": "編成の体系と12人の出撃順を共通設定に保存します。保存済みを使う場合は既存の編成を変更しません。編集内容は次の鏡ダンジョンタスク開始前に検証・保存されます。",
   "global_build_edit": "編成設定",
   "global_build_saved": "保存済み編成を使う",
-  "global_build_edit_now": "この編成を編集して保存"
+  "global_build_edit_now": "この編成を編集して保存",
+  "global_build_name": "保存する編成名",
+  "mirror_team_mode": "編成の使用方法",
+  "mirror_queue_saved": "保存済みの順番を使う",
+  "mirror_queue_single": "1つの保存編成を使う",
+  "mirror_queue_rotation": "複数の編成を順番に使う",
+  "mirror_single_team": "使用する編成",
+  "mirror_queue_count": "使用する編成数"
 }

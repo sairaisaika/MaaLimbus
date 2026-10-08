@@ -114,7 +114,7 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
     assert 'team_keywords' not in tasks['mirror_loop']['option']
     assert 'team_build_slot' in tasks['team_build']['option']
     assert 'team_keywords' in tasks['team_build']['option']
-    assert tasks['mirror_loop']['option']==['run_team']
+    assert tasks['mirror_loop']['option']==['mirror_team_mode']
     only_save = tasks['team_build']['pipeline_override']['TeamBuildSave']
     assert only_save['next'] == ['TeamBuildDone']
     assert 'TeamBuildSave' not in tasks['mirror_loop'].get('pipeline_override', {})

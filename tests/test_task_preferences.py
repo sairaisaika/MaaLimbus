@@ -1,7 +1,7 @@
 import pytest
 from maalimbus.task_preferences import TaskPreferences
 from maalimbus.policies import Team
-from maalimbus.storage import ProfileStore,SINNERS
+from maalimbus.storage import ProfileStore,SINNERS,write_json,read_json
 
 
 def setup(tmp_path):
@@ -38,3 +38,28 @@ def test_invalid_task_references_preserve_saved_settings(tmp_path,change):
     value['mirror'].update(change)
     with pytest.raises(ValueError):preferences.save(value)
     assert preferences.path.read_bytes()==original
+
+
+def test_idle_queue_change_retains_receipts_and_next_team(tmp_path):
+    preferences,profiles,value=setup(tmp_path)
+    path=tmp_path/'user-run-ledger.json'
+    receipt={'id':'real-completed-run','team':2,'reward_received':True}
+    write_json(path,dict(version=1,team_slots=[5,4,1,2,3],rotation=3,
+                        completed_runs=1,active=None,receipts=[receipt]))
+    preferences.set_mirror_queue('rotation',[1,2,3])
+    actual=read_json(path)
+    assert actual['rotation']==1 and actual['team_slots']==[1,2,3]
+    assert actual['receipts']==[receipt] and actual['completed_runs']==1
+    assert actual['queue_changes'][0]['previous']==[5,4,1,2,3]
+
+
+def test_active_run_rejects_new_queue_without_changing_either_file(tmp_path):
+    preferences,profiles,value=setup(tmp_path)
+    preferences.save(value)
+    path=tmp_path/'user-run-ledger.json'
+    write_json(path,dict(version=1,team_slots=value['mirror']['teams'],rotation=0,
+                        active={'id':'active','team':5},receipts=[]))
+    original=(path.read_bytes(),preferences.path.read_bytes())
+    with pytest.raises(ValueError,match='active run'):
+        preferences.set_mirror_queue('single',[2])
+    assert original==(path.read_bytes(),preferences.path.read_bytes())

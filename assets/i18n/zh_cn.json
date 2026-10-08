@@ -60,5 +60,12 @@
   "global_build_description": "总设置保存队伍的体系和十二名罪人出战顺序。保留已保存配置不会覆盖导入的队伍；修改将在下一次镜牢任务开始前验证并保存。",
   "global_build_edit": "队伍配置",
   "global_build_saved": "使用已保存队伍（不覆盖）",
-  "global_build_edit_now": "编辑并保存此队伍"
+  "global_build_edit_now": "编辑并保存此队伍",
+  "global_build_name": "保存队伍名称",
+  "mirror_team_mode": "队伍使用方式",
+  "mirror_queue_saved": "沿用已保存轮换",
+  "mirror_queue_single": "单队（编辑队伍后继续使用）",
+  "mirror_queue_rotation": "多队按顺序轮换",
+  "mirror_single_team": "使用队伍",
+  "mirror_queue_count": "轮换队伍数量"
 }

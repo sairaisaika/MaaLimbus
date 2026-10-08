@@ -1869,5 +1869,189 @@
   "Global_global_team_20_order_9": {"recognition":"DirectHit","action":"DoNothing","next":[],"attach":{"global_build":{"deployment":{"9":"Rodion"}}}},
   "Global_global_team_20_order_10": {"recognition":"DirectHit","action":"DoNothing","next":[],"attach":{"global_build":{"deployment":{"10":"Sinclair"}}}},
   "Global_global_team_20_order_11": {"recognition":"DirectHit","action":"DoNothing","next":[],"attach":{"global_build":{"deployment":{"11":"Outis"}}}},
-  "Global_global_team_20_order_12": {"recognition":"DirectHit","action":"DoNothing","next":[],"attach":{"global_build":{"deployment":{"12":"Gregor"}}}}
+  "Global_global_team_20_order_12": {"recognition":"DirectHit","action":"DoNothing","next":[],"attach":{"global_build":{"deployment":{"12":"Gregor"}}}},
+  "MirrorTaskSingleTeam": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 2
+    },
+    "next": []
+  },
+  "MirrorTaskQueueCount": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "count": 5
+    },
+    "next": []
+  },
+  "MirrorTaskQueue1": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 1
+    },
+    "next": []
+  },
+  "MirrorTaskQueue2": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 2
+    },
+    "next": []
+  },
+  "MirrorTaskQueue3": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 3
+    },
+    "next": []
+  },
+  "MirrorTaskQueue4": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 4
+    },
+    "next": []
+  },
+  "MirrorTaskQueue5": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 5
+    },
+    "next": []
+  },
+  "MirrorTaskQueue6": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 6
+    },
+    "next": []
+  },
+  "MirrorTaskQueue7": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 7
+    },
+    "next": []
+  },
+  "MirrorTaskQueue8": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 8
+    },
+    "next": []
+  },
+  "MirrorTaskQueue9": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 9
+    },
+    "next": []
+  },
+  "MirrorTaskQueue10": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 10
+    },
+    "next": []
+  },
+  "MirrorTaskQueue11": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 11
+    },
+    "next": []
+  },
+  "MirrorTaskQueue12": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 12
+    },
+    "next": []
+  },
+  "MirrorTaskQueue13": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 13
+    },
+    "next": []
+  },
+  "MirrorTaskQueue14": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 14
+    },
+    "next": []
+  },
+  "MirrorTaskQueue15": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 15
+    },
+    "next": []
+  },
+  "MirrorTaskQueue16": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 16
+    },
+    "next": []
+  },
+  "MirrorTaskQueue17": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 17
+    },
+    "next": []
+  },
+  "MirrorTaskQueue18": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 18
+    },
+    "next": []
+  },
+  "MirrorTaskQueue19": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 19
+    },
+    "next": []
+  },
+  "MirrorTaskQueue20": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "slot": 20
+    },
+    "next": []
+  },
+  "MirrorTaskTeamMode": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "team_mode": "saved"
+    },
+    "next": []
+  }
 }

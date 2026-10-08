@@ -37,6 +37,7 @@ from maalimbus.map_vision import map_header, route_decision, node_panel, pre_bat
 from maalimbus.storage import read_json, write_json
 from maalimbus.storage import RunStore
 from maalimbus.global_settings import apply_builds, collect_builds
+from maalimbus.task_preferences import TaskPreferences, collect_mirror_queue
 
 
 def guarded_callback(failed_result):
@@ -1259,6 +1260,9 @@ def loop_store(settings, journal):
     try:
         existing = read_json(ledger) if ledger.exists() else None
         slots = existing['team_slots'] if existing else [settings.team]
+        preferences = TaskPreferences(ledger.parent)
+        if preferences.path.exists():
+            slots = preferences.load()['mirror']['teams']
         store = RunStore(ledger, [SimpleNamespace(slot=slot) for slot in slots])
         run_id = store.start()
     except (OSError, ValueError, KeyError, TypeError) as error:
@@ -1326,6 +1330,9 @@ class GlobalSettingsAction(CustomAction):
     def run(self, context, argv):
         directory = Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT/'config'))
         changed = apply_builds(directory, collect_builds(context.get_node_data))
+        choice = collect_mirror_queue(context.get_node_data)
+        if choice is not None:
+            TaskPreferences(directory).set_mirror_queue(*choice)
         self.recognition.journal.record('global_build_settings_applied', slots=changed,
                                         device_input=False)
         return True

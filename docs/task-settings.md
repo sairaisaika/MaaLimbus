@@ -35,8 +35,25 @@ therefore use distinct inert nodes with native `attach` metadata, rather than
 assuming nested action-param patches will deep-merge. An invalid run ledger now
 stops the loop before game input instead of allowing bookkeeping to be skipped.
 
-The six main task entries, task reference/rotation UI, visual global-editor
-restart verification and full live integration are still pending. No unimplemented task is
+Mirror now references global builds through keep-current-rotation, single-team,
+or ordered-rotation selectors. Rotation length is 1..20 and positions are fixed
+team dropdowns; only the selected length applies. Changing the queue during an
+active run rejects without replacing ledger/preferences. Idle changes preserve
+completed receipts and retain the next saved team when it is still in the queue.
+Native resource replay proves the single-team and five-team parameters; actual
+new Mirror UI task dispatch and next team entry remain pending.
+
+Actual native GUI opened, displayed global Team2 editors, persisted edit mode,
+and was restored to keep-saved without starting a task. A local-only migration
+then seeded the saved private order/name/system after normal GUI exit, retained
+a configuration backup and copied 12 missing private state files into the local
+app. Existing customized editors are preserved. Team2's seeded order matches
+3,4,9,1,7,2,12,5,8,10,11,6. A fresh GUI restart loaded the installation, but the
+new order's visible dropdown/restart acceptance is still pending. Private data
+is not part of public package assembly.
+
+The six main task entries, visual saved-order restart verification and full live
+integration are still pending. No unimplemented task is
 reported as supported or accepted because its button exists. The native PI V2
 global_option and setting section protocol in the pinned MaaFramework source is
 the UI contract to use rather than a separate Lix frontend.

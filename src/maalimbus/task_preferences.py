@@ -1,4 +1,5 @@
 """Task preferences reference global saved builds; never copy characters into tasks."""
+from copy import deepcopy
 from .storage import ProfileStore,read_json,write_json
 
 TASKS=('open_game','mirror','experience','thread','rewards','stamina')
@@ -47,3 +48,52 @@ class TaskPreferences:
         # Reload the global profile each time. Editing team1 once affects all
         # tasks that reference team1; no stale per-task character duplicates.
         return next(p for p in self.profiles.load() if p.slot==slot)
+
+    def set_mirror_queue(self,mode,queue):
+        """Explicit idle queue changes retain receipts and the next slot if possible.
+
+        The ledger remains the authority for actual entry. Preference-file failure
+        after the ledger write stops the action; no controller input follows it.
+        """
+        teams=self.profiles.load()
+        if self.path.exists():
+            value=deepcopy(self.load())
+        else:
+            default=queue[0] if queue else teams[0].slot
+            value=dict(version=1,mirror=dict(difficulty='hard',team_mode=mode,teams=queue),
+                       luxcavation=dict(experience_team=default,thread_team=default))
+        value['mirror'].update(team_mode=mode,teams=queue)
+        self.validate(value)
+        ledger_path=self.path.parent/'user-run-ledger.json'
+        if ledger_path.exists():
+            ledger=read_json(ledger_path)
+            old=ledger.get('team_slots')
+            rotation=ledger.get('rotation')
+            if (ledger.get('version')!=1 or not isinstance(old,list) or not old or
+                    type(rotation) is not int or not 0<=rotation<len(old)):
+                raise ValueError('Invalid existing ledger; refuse queue change')
+            if old!=queue:
+                if ledger.get('active') is not None:
+                    raise ValueError('Finish the active run before changing its rotation')
+                next_slot=old[rotation]
+                revised=deepcopy(ledger)
+                revised['team_slots']=list(queue)
+                revised['rotation']=queue.index(next_slot) if next_slot in queue else 0
+                revised.setdefault('queue_changes',[]).append(dict(previous=old,selected=list(queue),
+                    previous_rotation=rotation,rotation=revised['rotation'],source='native_mirror_settings'))
+                write_json(ledger_path,revised)
+        self.save(value)
+        return value
+
+
+def collect_mirror_queue(get_node):
+    mode=get_node('MirrorTaskTeamMode')['attach']['team_mode']
+    if mode=='saved':return None
+    if mode=='single':
+        queue=[get_node('MirrorTaskSingleTeam')['attach']['slot']]
+    elif mode=='rotation':
+        count=get_node('MirrorTaskQueueCount')['attach']['count']
+        if type(count) is not int or not 1<=count<=20:raise ValueError('Invalid rotation size')
+        queue=[get_node(f'MirrorTaskQueue{n}')['attach']['slot'] for n in range(1,count+1)]
+    else:raise ValueError('Unknown mirror team mode')
+    return mode,queue
