@@ -50,7 +50,7 @@ from maalimbus import session_flow as flows
 from maalimbus import gift_plan
 from maalimbus.grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from maalimbus.map_progress import MapProgress
-from maalimbus.run_wiring import earned_its_payout, expire, settle
+from maalimbus.run_wiring import earned_its_payout, expire, reconcile, settle
 from maalimbus.storage import RunStore, read_json
 from maalimbus.overlay_vision import carousel_dots, page_turn_arrows
 from maalimbus.reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND,
@@ -1216,6 +1216,19 @@ def main() -> int:
                                  if journal is not None else None)
                 if expired is not None:
                     entry['ledger_expired'] = expired.get('id')
+                    run_settled_itself = False
+                # A run the game no longer holds is filed too: the loadout picker is only
+                # drawn for a new dungeon, so seeing it while the ledger still calls a run
+                # active means that run ended without a receipt (a wipe the player
+                # accepted) and the ledger would otherwise never open the next one.
+                reconciled = reconcile(run_store, page=page,
+                                       proof=frame_file(directory),
+                                       on_event=lambda run: journal.record(
+                                           'run_reconciled', run=run.get('id'),
+                                           evidence=str(frame_file(directory)))
+                                       if journal is not None else None)
+                if reconciled is not None:
+                    entry['ledger_reconciled'] = reconciled.get('id')
                     run_settled_itself = False
             if entry['passed'] and plan.get('detail', {}).get('slot'):
                 # The loadout slot has been sent; the next step on this page must

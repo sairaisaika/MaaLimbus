@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, EXPIRED_CONFIRM_REASON,
                                  MAP_FORWARD_REASON, REWARD_CONFIRM_REASON,
-                                 earned_its_payout, expire, ledger_event, settle)
+                                 earned_its_payout, expire, ledger_event, reconcile, settle)
 from maalimbus.storage import RunStore, read_json, seed_run_store
 
 MAP = dict(page='MAP', reason=MAP_FORWARD_REASON)
@@ -174,6 +174,33 @@ def test_an_expired_session_files_the_run_and_leaves_the_rotation_alone(tmp_path
     assert expire(store, page='EXPIRED_SESSION', reason='something_else', proof=proof) is None
     assert expire(store, page='EXPIRED_SESSION', reason=EXPIRED_CONFIRM_REASON,
                   proof=proof) is None
+
+
+def test_the_team_picker_files_a_run_the_game_no_longer_holds(tmp_path):
+    # A run still in progress answers the entry with the Dungeon Progress dialog, so the
+    # loadout picker is only drawn for a new dungeon. Reaching it while the ledger still
+    # calls a run active means that run ended without a receipt -- a wipe the player
+    # accepted (live: run-continue-18 was wiped on floor 5 and its dialog offers 'Accept
+    # results and return to Stage select') -- and the ledger must let the next run open.
+    path, store = store_at(tmp_path, rotation=1)
+    store.start()
+    settle(store, **MAP, floor=2, proof=frame(tmp_path, 'f1.png'))
+    proof = frame(tmp_path, 'picker.png')
+    seen = []
+    filed = reconcile(store, page='DUNGEON_TEAM', proof=proof, on_event=seen.append)
+    assert filed is not None and filed['floors'] == [1]
+    assert [run['id'] for run in seen] == [filed['id']]
+    data = read_json(path)
+    assert data['active'] is None
+    assert data['abandoned'][-1]['id'] == filed['id']
+    assert 'picker.png' in data['abandoned'][-1]['note']
+    assert data['rotation'] == 1
+    # The next team select (or the same one, seen twice) files nothing more.
+    assert reconcile(store, page='DUNGEON_TEAM', proof=proof) is None
+    # And no other page files a run.
+    store.start()
+    assert reconcile(store, page='MIRROR_ENTRY', proof=proof) is None
+    assert read_json(path)['active'] is not None
 
 
 def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):

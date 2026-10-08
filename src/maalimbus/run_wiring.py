@@ -148,6 +148,35 @@ def expire(store, *, page, reason=None, proof=None, note=None, on_event=None):
     return active
 
 
+def reconcile(store, *, page, proof=None, note=None, on_event=None):
+    """File a run the game no longer holds, when the team picker proves it is gone.
+
+    The loadout picker is only drawn for a *new* dungeon: a run still in progress answers
+    with the Dungeon Progress dialog ("Resume" / "Halt Exploration", live
+    evidence/runtime/window-20261006-025617/frame-0002.json) instead of the picker. So
+    reaching the picker while the ledger still calls a run active means the game has none
+    -- the player accepted a wipe, or the run ended some other way -- and the ledger would
+    otherwise keep a run that can never take a receipt, which also stops the next run from
+    being opened at all (``settle`` only starts a run when the store has none).
+
+    An abandoned run keeps the rotation where it stands, so the team that could not clear
+    the floors is the team that tries again.
+    """
+    if page != 'DUNGEON_TEAM':
+        return None
+    active = (store.data or {}).get('active')
+    if active is None:
+        return None
+    detail = note or ('the team picker was drawn with no dungeon in progress, so the run '
+                      'the ledger still held was filed as abandoned')
+    if proof is not None:
+        detail = '%s; evidence %s' % (detail, proof)
+    store.abandon(note=detail)
+    if on_event is not None:
+        on_event(active)
+    return active
+
+
 def earned_its_payout(store, *, settled_now=False):
     """True when the run being paid out is one that finished its floors.
 
