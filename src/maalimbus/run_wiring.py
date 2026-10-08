@@ -9,7 +9,7 @@ mapping, kept pure so the rule can be tested without a device:
 * the run summary (`RUN_CLAIM`, "Exploration Complete" at 100%) is the final victory,
   but only once all five floors are on the ledger, because that is what the summary
   itself is drawn from;
-* the reward modal's own Confirm (`RUN_REWARD_CONFIRM`) is the claimed reward;
+* reward confirmation is an input intent, never evidence of received rewards;
 * the loadout picker's Confirm (`DUNGEON_TEAM`) is the entry returned, since it is the
   input that takes the rotated team back in.
 
@@ -66,17 +66,10 @@ def ledger_event(*, page, reason=None, floor=None, cleared=(), victory=False,
             return LedgerEvent('final_victory')
         return None
     if page == 'RUN_REWARD_CONFIRM' and reason == REWARD_CONFIRM_REASON:
-        if victory and not reward:
-            return LedgerEvent('reward_received')
+        # Only a separate verified receipt/balance transaction may credit payout.
         return None
     if page == 'RUN_REWARD_BONUS' and reason == BONUS_CONFIRM_REASON:
-        # The weekly-bonus question is the claim's real gate when the run is the one the
-        # reset did not expire: confirming it is the input that hands the rewards over
-        # (live evidence/runtime/window-20261007-203856, 00:39:02). Without this the run
-        # reaches the next loadout with victory but no reward, which is a completion the
-        # ledger can never receipt. Cancelling keeps the bonus and grants nothing.
-        if victory and not reward:
-            return LedgerEvent('reward_received')
+        # A weekly bonus question also proves no receipt or resource balance change.
         return None
     if page == 'DUNGEON_TEAM' and reason == ENTRY_CONFIRM_REASON:
         if reward:

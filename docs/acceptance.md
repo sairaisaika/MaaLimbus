@@ -994,3 +994,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 ### 2026-10-08 real Hard five-floor completion, payout pending
 - Actual window144554 frame0457 shows Exploration Complete, all five HARD floor columns, fifth-floor7/7 andTotalProgress100%. Frame0458/459 reward modal showsCLEAR Floor5 HARD7/7; all three PNGhashes/currentteam2/scope/ledger validated in build/floor-five-real-verification-20261008.json. Seven Python andfour native retained-frame positive/negative summary cases passed; replay remains recognition evidence only.
 - Final paid Claim was not sent. Actual visible cost6modules withweekly1/3, currentbudget0/pending. Offered rewards do not prove receipt. Budget question pending; no claim/toggle/giveup/toWindow/rotation/reentry. Full goal remains active and broader software/updater/Release acceptance is unfinished.
+
+### 2026-10-08 paid claim false-credit repair (offline)
+- Removed RUN_REWARD_CONFIRM/weekly-bonus Confirm automatic reward_received ledger credit. Receipt remainsfalse and rotation stayslocked after both inputs. Same-scope budget/currentcost/currency/balances plus durable claim/confirm intents have offlinefoundation coverage; no livepaid controls or receiptrecognizer enabled.
+- 44 focused and595fullPython47.68s passed. Native retainedcost diagnostic reads6 .985492 but secondcost-6 .733909 fails.9; productioncostgate remainsdisabled. No deviceinput, budgetreply/paidpayout/rotation/reentry acceptance stillpending.

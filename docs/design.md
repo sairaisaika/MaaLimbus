@@ -254,3 +254,14 @@ Windows x86_64 portable MXU/Agent/Maa package with notices and reproducible buil
 
 Published sources: https://github.com/MaaXYZ/MaaFramework and
 https://github.com/HSLix/LixAssistantLimbusCompany . Upstream checkouts are local ignored caches.
+
+## Paid reward intents and receipt boundary
+
+Claim and weekly-bonus Confirm are inputs, not reward_received events. A separate
+actual receipt and account-balance proof must establish payout before the ledger
+permits rotation. The paid-page runtime gate stays closed until scoped budget,
+independent currency/cost and before balances are proven. The current transaction
+foundation persists reservations and each input intent across restarts; changed
+offers/scopes and unresolved intents cannot be retried or replaced with a larger
+budget. Confirmation preserves pending state and never marks completion. This
+foundation has no live input activation or invented receipt recognizer.

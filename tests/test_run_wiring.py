@@ -62,12 +62,12 @@ def test_the_run_summary_proves_floor_five_and_then_the_victory():
     assert ledger_event(page='RUN_CLAIM', cleared=()) is None
 
 
-def test_the_reward_is_claimed_by_the_modal_s_own_confirm():
+def test_modal_confirmation_never_proves_reward_receipt():
     page = dict(page='RUN_REWARD_CONFIRM')
     assert ledger_event(**page, reason=REWARD_CONFIRM_REASON, cleared=(1, 2, 3, 4, 5)) is None
     event = ledger_event(**page, reason=REWARD_CONFIRM_REASON, cleared=(1, 2, 3, 4, 5),
                          victory=True)
-    assert event.kind == 'reward_received'
+    assert event is None
     assert ledger_event(**page, reason='the_reward_modal_is_claimed_and_never_given_up',
                         cleared=(1, 2, 3, 4, 5), victory=True) is None
 
@@ -218,7 +218,9 @@ def test_the_team_picker_receipts_a_run_that_finished_and_was_paid(tmp_path):
     settle(store, page='RUN_CLAIM', proof=frame(tmp_path, 'summary.png'))
     settle(store, page='RUN_REWARD_BONUS', reason=BONUS_CONFIRM_REASON,
            proof=frame(tmp_path, 'bonus.png'))
-    assert read_json(path)['active']['reward'] is True
+    assert read_json(path)['active']['reward'] is False
+    # An independent verified receipt is supplied by this ledger-only fixture.
+    store.record(store.data['active']['id'],'receipt-fixture','reward_received',frame(tmp_path,'actual-receipt.png'))
     seen = []
     filed = reconcile(store, page='DUNGEON_TEAM', proof=frame(tmp_path, 'picker.png'),
                       on_event=seen.append)
@@ -272,7 +274,9 @@ def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):
     # stopped, and the next window has only the active run to read.
     assert earned_its_payout(store) is True
     settle(store, page='RUN_CLAIM', proof=proof)
-    settle(store, page='RUN_REWARD_CONFIRM', reason=REWARD_CONFIRM_REASON, proof=proof)
+    assert settle(store, page='RUN_REWARD_CONFIRM', reason=REWARD_CONFIRM_REASON, proof=proof)==[]
+    assert not store.data['active']['reward']
+    store.record(store.data['active']['id'],'receipt-fixture','reward_received',frame(tmp_path,'paid-receipt.png'))
     settle(store, page='DUNGEON_TEAM', reason=ENTRY_CONFIRM_REASON, proof=proof)
     assert read_json(path)['receipts'], 'the finished run should have left a receipt'
     assert earned_its_payout(store) is True
