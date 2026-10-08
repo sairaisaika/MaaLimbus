@@ -1117,6 +1117,14 @@ class MirrorRunner:
                                        'battle_progress_stalled')
                 return self._result(page, None, False, stopped, done=True)
         team = team_state(record, self.controls) if page == 'PRE_BATTLE_TEAM' else None
+        if team is not None:
+            from .storage import ProfileStore, SINNERS
+            slot = self.store.team_slot if self.store is not None else settings.team
+            profiles = ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT / 'config')) / 'user-team-profiles.json')
+            if profiles.path.exists():
+                saved = next((t for t in profiles.load() if t.slot == slot), None)
+                if saved is not None and saved.deployment:
+                    team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
         if page == 'DUNGEON_TEAM':
             # The rotation decides which loadout to bring; the planner clicks the slot
             # once, and once that click has been sent the next step falls through to

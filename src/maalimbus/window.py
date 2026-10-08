@@ -765,7 +765,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         picked, capacity = (list((team or {}).get('participants') or []) + [None, None])[:2]
         full = bool(picked) and bool(capacity) and picked >= capacity
         if not full:
-            for index, state in enumerate(states):
+            order = (team or {}).get('order') or list(range(1, len(states) + 1))
+            if (len(order) != len(states) or set(order) != set(range(1, len(states) + 1))):
+                return _refuse(page, 'saved_deployment_order_invalid')
+            for card in order:
+                index = card - 1
+                state = states[index]
                 box = controls.get('pre_battle.card_%02d' % (index + 1))
                 if state is None and box is not None:
                     return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
