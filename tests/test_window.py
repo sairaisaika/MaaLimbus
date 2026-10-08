@@ -626,8 +626,26 @@ def test_the_battle_result_is_waited_out_rather_than_stopped_on():
     # Live: build/window-run62.json stopped on BATTLE_RESULT with nothing sent, and the
     # next observation already showed the post-battle story and then the map.
     from maalimbus.window import WAIT_PAGES
-    assert WAIT_PAGES == ('UNKNOWN', 'BATTLE_RESULT')
+    assert WAIT_PAGES == ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT')
     assert 'MAP' not in WAIT_PAGES and 'PRE_BATTLE_TEAM' not in WAIT_PAGES
+
+
+def test_the_wiped_run_is_waited_into_its_dialog_and_the_battle_expects_it():
+    # Live: evidence/runtime/window-20261007-195545/frame-0222.json is the DEFEAT banner
+    # over Gebura's line with no rows drawn yet; run-continue-18 stopped on it
+    # ('page_is_observe_only') because only BATTLE_DEFEAT had a plan. The banner is waited
+    # out, and a battle that kills the team is allowed to hand over to it.
+    from maalimbus.vision import classify
+    from maalimbus.window import plan_step
+    frame = json.loads(
+        (ROOT / 'evidence/runtime/window-20261007-195545/frame-0222.json').read_text('utf-8'))
+    words = json.loads((ROOT / 'assets/resource/en/locale.json').read_text('utf-8'))
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert classify(tokens, words, tuple(frame['size'])) == 'DEFEAT'
+    battle = plan_step('BATTLE_HUD', controls={'battle.start_control': [1440, 771, 121, 134]},
+                       start_box=[1440, 771, 121, 134])
+    assert 'DEFEAT' in battle['expect']
+    assert plan_step('DEFEAT', controls={})['reason'] == 'page_is_observe_only'
 
 
 def test_the_forgone_gift_search_is_confirmed_and_never_cancelled():

@@ -67,7 +67,13 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
 #: Live: build/window-run62.json stopped on BATTLE_RESULT (step 31) with nothing sent,
 #: and the very next observation already showed the post-battle story and then the map
 #: ("Exploring Floor 1" / "Flat-broke Gamblers"), so the result screen needs no click.
-WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT')
+#: DEFEAT is the same kind of page and is on the list for the same reason: live
+#: evidence/runtime/window-20261007-195545/frame-0222.json (00:10:26) reads the DEFEAT
+#: banner [726,434,470,225] over Gebura's 'All of your employees are dead.' with no rows
+#: on screen yet, and run-continue-18 stopped there ('page_is_observe_only') while the
+#: game was still drawing the stage-failure dialog that follows it - the dialog is
+#: BATTLE_DEFEAT and that page is the one with a plan and a bounded retry count.
+WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -807,11 +813,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # on that frame), so the forward input is unchanged: assign, then submit.
         if start_box:
             return _plan(page, CLICK, target=start_box,
-                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'UNKNOWN'),
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
+                                 'UNKNOWN'),
                          reason='start_button_submits_the_assigned_turn')
         if auto_assign and auto_assign.get('win_rate'):
             return _plan(page, CLICK, target=auto_assign['win_rate'],
-                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'UNKNOWN'),
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
+                                 'UNKNOWN'),
                          reason='win_rate_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
     return _refuse(page, 'page_is_observe_only')
