@@ -1,5 +1,11 @@
 # Acceptance evidence
 
+## October8 six native task entries
+
+Installed50b9ae2 passed staged/installed Agent checks with17private files retained. Actual sameGUI14460 rendered six task choices and Mirror saved/single/rotation modes. Five own-window frames are hashed in `build/six-task-gui-real-verification.json`; task was disabled and saved-mode restored with autorunFalse. No game connection or GUI Start dispatch was performed. Actual native OpenGameTask PID20860 separately verified existing MuMu foreground without restart/input and preserved STAR_GRACES/active4734 ledgerhash. Cold launch and the four unfinished daily/lux/conversion flows remain unaccepted.692Python passed; new conditional queue UI is source-verified, not yet installed at this checkpoint.
+
+Reviewed learning data preparation binds real verifier image hashes and groups whole runs into one split. Actual2samples/2episodes manifest has insufficient class coverage, training_readyFalse/model_trainedFalse/productionFalse. It is data preparation, not a trained black-box controller or game-learning acceptance.
+
 ## October8 unified local private state
 
 Actual GUI57260 closed normally before binding/replacement. Both installed and source private directories were retained in a unique backup; source entered Team7 scope4734 was not changed.683Python passed,17focused and11package/preservation passed. Installed dd8cc4f Agent self-test independently reports the actual app runner root and source config private directory, with17private files preserved by replacement. `build/private-state-installed-verification.json` retains ledger hash and actual self-test output. This proves installed path/state resolution, not native GUI task dispatch or six-task completion. No game input or resources were used.

@@ -24,7 +24,7 @@ def test_actual_pi_queue_choices_keep_independent_node_parameters():
     assert patches['MirrorTaskQueueCount']['attach']['count']==5
     assert patches['MirrorTaskQueue1']['attach']['slot']==1
     assert patches['MirrorTaskQueue3']['attach']['slot']==3
-    assert len([n for n in patches if n.startswith('MirrorTaskQueue')])==21
+    assert len([n for n in patches if n.startswith('MirrorTaskQueue')])==6
 
 
 def test_inactive_rotation_children_are_not_resolved():
