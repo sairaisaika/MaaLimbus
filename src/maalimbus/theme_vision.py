@@ -16,6 +16,19 @@ import numpy as np
 
 from .gift_vision import normalized
 from .vision import Text,find
+import re
+
+
+def selection_floor(records,size):
+    """Page identity only, independent of tilted covers and mode glyphs.
+
+    Does not prove Hard/Normal and grants no drag or difficulty switch.
+    """
+    headers=find(records,r'^SELECT\s*FLOOR\s*[1-5]\s*THEME\s*PACK$',(.38,.13,.63,.20),size,.9)
+    refresh=find(records,r'^Refresh$',(.79,0,.91,.10),size,.9)
+    search=find(records,r'^Pack Search$',(.10,0,.21,.10),size,.9)
+    if len(headers)!=1 or len(refresh)!=1 or len(search)!=1:return None
+    return int(re.search(r'FLOOR\s*([1-5])',headers[0].text,re.I)[1])
 
 
 @dataclass(frozen=True)

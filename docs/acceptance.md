@@ -1,5 +1,19 @@
 # Acceptance evidence
 
+## October8 real Hard floor1 and both named gift receipts
+
+Actual081248 picked Golden Urn once after retained original Dimensional Recycle Bin,
+with1/2→2/2. Native081512 Select produced full Dimensional Recycle Bin GET; its
+acknowledgement produced Golden Urn GET; that acknowledgement reachedSELECT FLOOR2
+THEME PACK. Unknown classification stopped all inputs. Native zero-input five-case
+page-identity replay then fresh081811 independently classified the real successor,
+and exact pending receipt/hash plus next-floor header resolved the transaction and
+recorded floor1 in current d7c1499436f647208adc50860692a5c2/team2 ledger. No paid
+reward, module/lunacy/refill/conversion input. Both names and successor paths are in
+private transaction/proof files. Python508passed; page identity never grants mode or
+pack drag. Current floor2 Hard/card glyph mismatch remains gated. No five-floor,
+final payout, rotation/reentry, full ML or Release acceptance follows from floor1.
+
 ## October8 factory decision and native result recovery
 
 Real050053 question pages showedYes/No withhelpercaptions; oldmin_length8 discardedactualchoices andkeptclickingProceed. Exactquestion/labels rule selectsNo; unknownbinaryquestionsstop. Native051115 senttwoNo in the alreadyactiveevent and reachedfactoryexplosion/30HP-loss result. Single051346 rightresulttouch then exposedexplicitCyborglostUpgradeFactoryAtWorkPassive; contextual051543 resultacknowledgement+Continue returnedBATTLE_HUD. This provesfactory-event recovery, not no-loss combat or floorclear. Latest051724GIFT_PICKcounter1/2 hasfirstDimensionalRecycleBin selected butuncommitted. Oldstop-page ran afterinput; nowbefore-inputveto tested. Floor/claim/rotation/reentry acceptance remainsopen.

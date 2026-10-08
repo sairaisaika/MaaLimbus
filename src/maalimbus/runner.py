@@ -997,6 +997,10 @@ class MirrorRunner:
         from .theme_transaction import ThemeTransaction
         self.theme_transaction=(ThemeTransaction(self.store.path.parent/'user-theme-transaction.json')
                                 if self.store is not None else None)
+        from .floor_gift_transaction import FloorGiftTransaction
+        self.floor_gift_transaction=(FloorGiftTransaction(self.store.path.parent/'user-floor-gift-transaction.json')
+                                     if self.store is not None else None)
+        self.floor_gift_catalog=None
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1235,6 +1239,7 @@ class MirrorRunner:
             state['defeat_row_sent'] = False
         reward = reward_state(record) if page == 'REWARD_CARD' else None
         gift, cards = None, None
+        floor_offers=None
         if page == 'GIFT_PICK':
             gift = gift_state(record, image=latest_frame(directory)[0],
                               select_box=self.controls.get('gift_pick.select_button'),
@@ -1242,8 +1247,45 @@ class MirrorRunner:
             cards = gift_cards([Text(item['text'], tuple(item['box']), item['score'])
                                 for item in record.get('ocr') or []],
                                record.get('size') or (1920, 1080))
+            from . import floor_gifts
+            from .gift_vision import GiftCatalog
+            from .storage import ProfileStore
+            try:
+                if self.floor_gift_transaction is None:
+                    raise ValueError('floor_gift_transaction_missing')
+                if self.floor_gift_catalog is None:
+                    self.floor_gift_catalog=GiftCatalog(ROOT/'assets/resource/base')
+                texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+                floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog)
+                d=self.floor_gift_transaction.prepare(self.run_id,floor_offers,gift,frame_file(directory))
+                profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
+                              if p.slot==self.store.team_slot),None)
+                if profile is None:raise ValueError('floor_gift_saved_team_missing')
+                ranking=floor_gifts.rank(floor_offers,profile,d['selected'])
+                gift['ranking']=ranking
+                if gift['chosen']<gift['required']:
+                    if not ranking:raise ValueError('floor_gift_no_allowed_offer')
+                    selected=next(o for o in floor_offers if o.title==ranking[0]['title'])
+                    gift.update(target=list(selected.box),title=selected.title)
+                self.note('floor_gift_ranking',team=profile.slot,ranking=ranking,
+                          selected=d['selected'],proof=str(frame_file(directory)))
+            except (ValueError,FileNotFoundError) as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
         else:
             state['gift_picks'] = 0
+        floor_receipt=None
+        floor_tx=self.floor_gift_transaction
+        if floor_tx is not None and floor_tx.data and floor_tx.data['scope']==self.run_id and floor_tx.data['commit_sent'] and not floor_tx.data['completed']:
+            from . import initial_gifts
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            floor_receipt=initial_gifts.receipt_name(texts,record.get('size') or (1920,1080))
+            d=floor_tx.data
+            remaining=[n for n in d['selected'] if n not in [r['title'] for r in d['receipts']]]
+            if (page!='GIFT_GET' or not d['pending'] or d['pending']['kind']!='commit'
+                or not any(initial_gifts.same_name(floor_receipt,n) for n in remaining)):
+                stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
+                return self._result(page,None,False,stopped,done=True)
         plan_controls=dict(self.controls)
         if page=='EVENT_RESULT':
             from .event_vision import factory_result_panel
@@ -1464,6 +1506,13 @@ class MirrorRunner:
             transaction.intent(card,board['costs'][card-1],available,frame_file(directory))
         if page=='INITIAL_GIFTS' and (initial or {}).get('gift'):
             g=initial['gift'];self.initial_transaction.intent(g['row'],g['title'],count,frame_file(directory))
+        if page=='GIFT_PICK' and (gift or {}).get('title'):
+            self.floor_gift_transaction.intent(gift['title'],
+                dict(chosen=gift['chosen'],required=gift['required']),frame_file(directory))
+        if plan.get('reason')=='select_takes_the_picked_floor_gifts':
+            self.floor_gift_transaction.commit(frame_file(directory))
+        if floor_receipt:
+            self.floor_gift_transaction.receipt_intent(floor_receipt,frame_file(directory))
         if page=='GIFT_GET' and state.get('initial_receipt'):
             from .storage import write_json
             self.initial_transaction.data['receipt_pending']=state['initial_receipt']
@@ -1563,6 +1612,29 @@ class MirrorRunner:
                 self.initial_transaction.observe(post_count,initial_gifts.selected_rows(post_image),frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_initial_gift_selection')
+        if page=='GIFT_PICK' and (gift or {}).get('title'):
+            try:
+                from . import floor_gifts
+                if settled_page!='GIFT_PICK':raise ValueError('floor_gift_selection_left_page')
+                post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog)
+                self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_selection')
+        if plan.get('reason')=='select_takes_the_picked_floor_gifts':
+            from . import initial_gifts
+            post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+            title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
+            if settled_page!='GIFT_GET' or not any(initial_gifts.same_name(title,n) for n in self.floor_gift_transaction.data['selected']):
+                entry.update(passed=False,reason='floor_gift_commit_receipt_not_proven',stopped='unverified_floor_gift_commit')
+        if floor_receipt:
+            try:
+                from . import initial_gifts
+                post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
+                self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory))
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_receipt')
         if page=='GIFT_GET' and state.get('initial_receipt'):
             from . import initial_gifts
             from .storage import write_json

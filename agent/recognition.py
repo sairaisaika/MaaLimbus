@@ -181,6 +181,10 @@ class LimbusRecognition(CustomRecognition):
                 local.append(dict(sinner=sinner,roi=roi,only_rec=True,results=found))
         if scene=='UNKNOWN' and theme_page(image,self.theme_catalog(),records,self.locale):
             scene='THEME_PACKS'
+        if scene=='UNKNOWN':
+            from maalimbus.theme_vision import selection_floor
+            if selection_floor(records,size) is not None:
+                scene='THEME_PACKS' # Page identity only; mode/action gates remain.
         if scene=='UNKNOWN' and node_panel(records,size) is not None:
             # A click on the map opens this node info panel. It is judged before the
             # map on purpose: the panel leaves the floor header readable behind it, so

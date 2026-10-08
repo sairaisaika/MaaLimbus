@@ -616,7 +616,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             # slots), so the boxes read from this frame's plates come first and the
             # anchored slot is only the fallback.
             derived = list(cards or [])
-            box = (derived[chosen] if chosen < len(derived)
+            box = state.get('target') or (derived[chosen] if chosen < len(derived)
                    else controls.get('gift_pick.card_%02d' % (chosen + 1)))
             if box is None:
                 return _refuse(page, 'gift_pick_card_not_anchored')

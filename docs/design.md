@@ -1,5 +1,29 @@
 # Native design and requirement ledger
 
+## Floor gift transactions and trial binding (October8 recovery)
+
+Bind each fresh Acquire plate to exactly one displayed title, Mounting Trials,
+enemy-level increment and supported numeric effect within its own column. Unknown
+season text, missing/ambiguous titles/effects or counters refuse. Preserve the full
+display title for actual GET receipts even when catalog canonical names truncate.
+Saved block wins; allow/keyword preferences offset modest trial risk only. Current
+survival-first weights are level30, offense90, defense10, damage reduction3, HP1,
+preference40 and owned60. They are explicit heuristics, not game formulas or a
+universal optimal strategy. Generic keywordless gifts receive no invented synergy.
+
+Persist one pick before input; require exactly+1 counter and unchanged offer set.
+Persist Select before input; require the exact selected gift's actual GET. Each
+receipt acknowledgement persists before input and needs a distinct expected receipt
+or, after every selected receipt, an independently identified next-floor page.
+Unknown postconditions retain pending and stop. Legacy selection adoption is an
+explicit evidence migration with scope/input/target/frame hashes, never automatic
+clearing of an unknown pending transaction. Counterless and JP trials remain gated.
+
+The floor selection header, Refresh and Pack Search can establish page identity
+independently of tilted cover glyphs. This grants no Hard/Normal proof, pack identity
+or drag target. Those action gates retain their existing thresholds. Real floor2
+glyph mismatch is an open recognition blocker after the actual floor1 clear.
+
 ## Cyborg factory and semantic progress (October8)
 
 Actual factory city-question pages contain shortYes/No options and longer helper
