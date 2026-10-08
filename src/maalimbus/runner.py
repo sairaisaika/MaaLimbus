@@ -1065,6 +1065,20 @@ class MirrorRunner:
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
         frame, candidates = candidates_of(directory, record)
+        if settings.stop_page and page==settings.stop_page:
+            stopped=self._record(page,record,frame,candidates,None,'stop_page_reached')
+            return self._result(page,None,False,stopped,done=True)
+        if page=='EVENT_RESULT':
+            from .event_vision import event_result_content
+            signature=event_result_content(record.get('ocr'),record.get('size') or (1920,1080))
+            state['event_unchanged']=(state.get('event_unchanged',0)+1
+                                      if signature and signature==state.get('event_signature') else 0)
+            state['event_signature']=signature
+            if state['event_unchanged']>=3:
+                stopped=self._record(page,record,frame,candidates,None,'event_result_semantic_progress_stalled')
+                return self._result(page,None,False,stopped,done=True)
+        else:
+            state['event_unchanged']=0;state['event_signature']=None
         if page in ('BATTLE_HUD','DEPLOYMENT') and self.deployment_transaction is not None:
             d=self.deployment_transaction.data
             if d and d.get('submit_pending') and d['scope']==self.run_id:
@@ -1089,6 +1103,16 @@ class MirrorRunner:
             choice_index = preferred_choice(options,
                                             gift_hints(record.get('ocr'),
                                                        record.get('size')))
+            from .event_vision import cyborg_city_choice
+            try:
+                city_choice=cyborg_city_choice(record.get('ocr'),record.get('size'),options)
+            except ValueError as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
+            if city_choice is not None:
+                choice_index=city_choice
+                self.note('cyborg_city_choice',answer='No',source='current exact city question and Yes/No labels',
+                          strategy='three No answers disable the factory; each page is freshly identified')
         if page == 'MAP':
             if self.theme_transaction is not None and self.theme_transaction.data.get('pending'):
                 from .theme_vision import ThemeCatalog
@@ -1221,6 +1245,10 @@ class MirrorRunner:
         else:
             state['gift_picks'] = 0
         plan_controls=dict(self.controls)
+        if page=='EVENT_RESULT':
+            from .event_vision import factory_result_panel
+            box=factory_result_panel(record.get('ocr'),record.get('size') or (1920,1080))
+            if box:plan_controls['factory_result.result_panel']=list(box)
         if page=='DEPLOYMENT_RESET':
             from .vision import deployment_reset_confirm
             texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]

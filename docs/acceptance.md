@@ -1,5 +1,9 @@
 # Acceptance evidence
 
+## October8 factory decision and native result recovery
+
+Real050053 question pages showedYes/No withhelpercaptions; oldmin_length8 discardedactualchoices andkeptclickingProceed. Exactquestion/labels rule selectsNo; unknownbinaryquestionsstop. Native051115 senttwoNo in the alreadyactiveevent and reachedfactoryexplosion/30HP-loss result. Single051346 rightresulttouch then exposedexplicitCyborglostUpgradeFactoryAtWorkPassive; contextual051543 resultacknowledgement+Continue returnedBATTLE_HUD. This provesfactory-event recovery, not no-loss combat or floorclear. Latest051724GIFT_PICKcounter1/2 hasfirstDimensionalRecycleBin selected butuncommitted. Oldstop-page ran afterinput; nowbefore-inputveto tested. Floor/claim/rotation/reentry acceptance remainsopen.
+
 ## October8 actual corrected team2 deployment
 
 `window-20261008-045214/frame-0008.png` visibly shows sinner-card ordinals4,6,1,2,8,12 /5,9,3,10,11,7, corresponding to requested deployment3,4,9,1,7,2,12,5,8,10,11,6. ClearSelection opened a reset question044512; a single scoped confirmation044740 yielded0/12. Each subsequent selection has fresh participant-count evidence and the persisted sequence agrees. Native local numericOCR replay on actual1/12,8/12,12/12 frames passed with no device input. Full Python490passed. First diagnostic battle realVICTORY044013/frame0043 is a battle result only; no floorclear, payout or complete-run acceptance follows from it. JP reset/pause localization and live JP remain unverified.

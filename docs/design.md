@@ -1,5 +1,20 @@
 # Native design and requirement ledger
 
+## Cyborg factory and semantic progress (October8)
+
+Actual factory city-question pages contain shortYes/No options and longer helper
+captions. Preserve the short controls; never treatPressTheButton captions as
+choices. Current exactquestion plus two unique high-confidence labels gatesNo.
+The public walkthrough describes threeNo answers; do not force three inputs when
+the live successor already proves the factory stopped. Reference:
+https://limbuscompany.fandom.com/wiki/Have_You_Become_Strong
+Factory results contain independently readableHP-loss and disabled-passive pages.
+Their own rightpanel advances them; tappingleftstory is not equivalent. Require
+exactfactoryexplosion context, No, Result and currenteffect text before binding
+that target. A changingRECclock does not proveprogress; identicalmeaningful
+story/result content stops afterthreeunchanged readings. A requestedstop_page is
+checked immediatelyafterobservation, before thefirst input onthat page.
+
 ## Deployment reset and inherited selection (October8)
 
 Before selecting a saved order, a nonzero inherited participant count requires a

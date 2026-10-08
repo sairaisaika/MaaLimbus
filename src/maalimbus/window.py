@@ -403,6 +403,9 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      duration=700, expect=(ANY,),
                      reason='the_floor_theme_pack_is_pulled_down_to_be_taken')
     if page == 'EVENT_RESULT':
+        if controls.get('factory_result.result_panel'):
+            return _plan(page,CLICK,target=controls['factory_result.result_panel'],expect=(ANY,),advance=True,
+                         reason='the_factory_result_is_acknowledged_on_its_own_panel')
         # The outcome page plays the event's own story with a dimmed bottom-right
         # control, and tapping the story panel is what turns that control into a
         # bright Continue (live: window-20261006-045451/frame-0001.json is dim, and

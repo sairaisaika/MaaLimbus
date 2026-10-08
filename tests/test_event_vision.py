@@ -15,6 +15,47 @@ from maalimbus.event_vision import (ODDS_TEMPLATE_DIR, OPTION_BAND,
 
 SIZE = (1920, 1080)
 
+
+def test_factory_question_uses_no_label_instead_of_helper_caption():
+    from maalimbus.event_vision import cyborg_city_choice
+    recs=[dict(text='<DO YOU LOVE THE CITY YOU LIVE IN?>',box=[114,641,484,26],score=.98),
+          dict(text='Yes.',box=[1096,309,80,26],score=.99),
+          dict(text='Press the button to proceed.',box=[1096,333,290,26],score=.99),
+          dict(text='No.',box=[1096,464,60,26],score=.99),
+          dict(text='Press the button to stop.',box=[1096,494,270,26],score=.99)]
+    options=choice_options(recs,SIZE)
+    assert [text for _,text in options]==['Yes.','No.']
+    assert cyborg_city_choice(recs,SIZE,options)==1
+    with pytest.raises(ValueError):cyborg_city_choice(recs[1:],SIZE,options)
+    recs[0]['text']='<DIFFERENT QUESTION?>'
+    with pytest.raises(ValueError):cyborg_city_choice(recs,SIZE,options)
+    recs[0]['text']='<DO YOU LOVE THE CITY YOU LIVE IN?>';recs[3]['score']=.2
+    with pytest.raises(ValueError):cyborg_city_choice(recs,SIZE,options)
+
+
+def test_factory_result_panel_requires_exact_event_context():
+    from maalimbus.event_vision import factory_result_panel
+    recs=[dict(text='Result',box=[1068,168,138,42],score=.99),
+          dict(text='No.',box=[1062,317,44,32],score=.99),
+          dict(text='After a short notice, the factory exploded with a massive bang.',box=[110,573,740,30],score=.99),
+          dict(text='All Identities lose 30 HP.',box=[1090,470,320,28],score=.99)]
+    assert factory_result_panel(recs,SIZE)==(1090,470,320,28)
+    assert factory_result_panel(recs[1:],SIZE) is None
+    assert factory_result_panel(recs[:2]+recs[3:],SIZE) is None
+    recs[-1]['text']='All the Cyborgs have lost their [Upgrade'
+    assert factory_result_panel(recs,SIZE)==(1090,470,320,28)
+
+
+def test_rec_clock_does_not_count_as_event_result_progress():
+    from maalimbus.event_vision import event_result_content
+    records=[dict(text='Same resolved outcome',box=[1090,470,320,28],score=.99),
+             dict(text='00:00:25:32',box=[136,200,128,22],score=.99)]
+    first=event_result_content(records,SIZE)
+    records[1]['text']='00:00:31:00'
+    assert event_result_content(records,SIZE)==first
+    records[0]['text']='Next resolved outcome'
+    assert event_result_content(records,SIZE)!=first
+
 #: the lived skill check page, kept in the repository as evidence.
 CHECK_FRAME = ROOT / 'evidence/runtime/window-20261006-204421/frame-0001.png'
 

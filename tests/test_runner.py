@@ -227,3 +227,10 @@ def test_battle_submission_intent_survives_device_failure(tmp_path,monkeypatch):
     monkeypatch.setattr(device,'click',fail_click)
     with pytest.raises(RuntimeError,match='simulated controller disconnect'):runner.step()
     with pytest.raises(ValueError):DeploymentTransaction(t.path).prepare('test',order,(12,12))
+
+
+def test_stop_page_prevents_the_first_input_on_that_page(tmp_path):
+    runner,device=window(tmp_path,[CLAIM_FRAME],{'stop_page':'RUN_CLAIM'})
+    result=runner.step()
+    assert result['done'] and result['stopped']=='stop_page_reached'
+    assert not result['input_sent'] and device.clicks==[]

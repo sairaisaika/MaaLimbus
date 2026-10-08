@@ -63,13 +63,45 @@ def choice_options(records, size, *, band=OPTION_BAND, min_length=8):
     for item in records or []:
         text = _text(item)
         box = _box(item)
-        if len(text) < min_length or HINT_PATTERN.match(text):
+        binary=bool(re.fullmatch(r'(?:Yes|No)[.!]?',text,re.I))
+        if ((len(text) < min_length and not binary) or HINT_PATTERN.match(text)
+                or re.fullmatch(r'Press the button to (?:proceed|stop)\.',text,re.I)):
             continue
         if not _in_band(box, size, band):
             continue
         rows.append((box[1], box, text))
     rows.sort(key=lambda row: (row[0], row[1][0]))
     return [(box, text) for _, box, text in rows]
+
+
+def cyborg_city_choice(records,size,options):
+    """Only this exact factory question may select No; never infer from a portrait."""
+    question=[r for r in records or [] if
+              re.fullmatch(r'<?DO YOU LOVE THE CITY YOU LIVE IN\?>?',_text(r),re.I)
+              and _in_band(_box(r),size,(.03,.40,.51,.75))
+              and float(getattr(r,'score',r.get('score',0) if isinstance(r,dict) else 0))>=.9]
+    binary=[(i,text) for i,(box,text) in enumerate(options)
+            if re.fullmatch(r'(?:Yes|No)[.!]?',text,re.I)
+            and any(_box(r)==box and float(getattr(r,'score',r.get('score',0) if isinstance(r,dict) else 0))>=.9
+                    for r in records or [])]
+    if not binary:return None
+    if len(question)!=1:raise ValueError('Binary event question is not independently identified')
+    yes=[i for i,text in binary if re.fullmatch(r'Yes[.!]?',text,re.I)]
+    no=[i for i,text in binary if re.fullmatch(r'No[.!]?',text,re.I)]
+    if len(yes)!=1 or len(no)!=1:raise ValueError('Factory question Yes/No controls are ambiguous')
+    return no[0]
+
+
+def factory_result_panel(records,size):
+    from .vision import Text,find
+    texts=[r if isinstance(r,Text) else Text(_text(r),_box(r),r.get('score',0)) for r in records or []]
+    if (len(find(texts,r'^Result$',(.53,.13,.66,.22),size,.9))!=1
+            or len(find(texts,r'^No\.$',(.53,.26,.64,.36),size,.9))!=1
+            or len(find(texts,r'^After a short notice, the factory exploded with a massive bang\.$',
+                        (.04,.49,.49,.60),size,.9))!=1):return None
+    content=find(texts,r'^All (?:Identities lose \d+ HP\.|the Cyborgs have lost their \[Upgrade)$',
+                 (.54,.40,.91,.54),size,.9)
+    return content[0].box if len(content)==1 else None
 
 
 def gift_hints(records, size, *, band=OPTION_BAND):
@@ -88,8 +120,8 @@ def gift_hints(records, size, *, band=OPTION_BAND):
 def preferred_choice(options, hints, *, gap=HINT_GAP):
     """The index of the option a reward announcement sits under, else ``0``.
 
-    Falls back to the first row so the page always has one bounded input: every
-    option continues the run, so picking one is never a guess about coordinates.
+    The fallback is only a generic preference, not proof that a choice advances
+    the run. Callers reject unsupported binary questions and enforce progress.
     """
     if not options:
         return 0
@@ -98,6 +130,17 @@ def preferred_choice(options, hints, *, gap=HINT_GAP):
         if any(0 <= hint - box[1] <= gap or 0 <= hint - bottom <= gap for hint in hints):
             return index
     return 0
+
+
+def event_result_content(records,size):
+    """Meaningful story/result text; the changing REC clock is not progress."""
+    values=[]
+    for r in records or []:
+        box=_box(r)
+        if (_in_band(box,size,(.04,.44,.51,.75)) or _in_band(box,size,(.54,.40,.91,.60))):
+            text=re.sub(r'\W+','',_text(r).casefold())
+            if any(c.isalpha() for c in text):values.append((box[1],box[0],text))
+    return tuple(text for _,_,text in sorted(values))
 
 
 #: The skill check ("Who should do it?" / "Choose a character to perform the check
