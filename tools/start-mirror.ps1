@@ -1,6 +1,6 @@
 <# The one command the desktop shortcut runs: start the live Mirror Dungeon window.
 
-It does the four things a fresh session needs and that a bare
+It does the five things a fresh session needs and that a bare
 `python tools/window_step.py` call does not:
 
   1. find the Maa native library (the driver needs its directory);
@@ -10,7 +10,10 @@ It does the four things a fresh session needs and that a bare
      `window_failed` on `dumpsys window` (live 2026-10-08 02:15);
   3. replay the nonce from build/map-probe-authorization.json, the gate every
      live tool demands before it may send input;
-  4. tee the console to build/mirror-console-<stamp>.log, so a window that
+  4. ask GitHub once (cached, backed off) whether a newer release exists, and
+     stage it into build/updates when one does -- `-NoUpdate` skips the check,
+     `update = false` in the settings file disables it for good;
+  5. tee the console to build/mirror-console-<stamp>.log, so a window that
      stopped at 03:00 can still be read at breakfast.
 
 Settings come from config/user-launch.json when that file exists (it is
@@ -20,7 +23,8 @@ user asked for, and any key of that file overrides the matching default.
 [CmdletBinding()]
 param(
     [string]$Label,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$NoUpdate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,6 +49,9 @@ $TaskSettings = [ordered]@{
     gift_search    = 'refuse'
     flow           = 'to_mirror,enter_mirror'
     after_flow     = $true
+    update         = $true
+    update_stage   = $true
+    update_timeout = 120
 }
 $TaskUser = Join-Path $TaskRoot 'config/user-launch.json'
 if (Test-Path -LiteralPath $TaskUser) {
@@ -97,6 +104,34 @@ $TaskGate = @(
     '--authorize', $TaskNonce
 )
 
+if ($TaskSettings.update -and -not $NoUpdate) {
+    # The player asked the software to keep itself current from GitHub. One bounded,
+    # cached check runs before the window: `config/user-update-state.json` remembers the
+    # answer and backs off for an hour (longer on a rate limit), so starting the script
+    # many times is not a request loop. A release is staged -- downloaded, checksummed
+    # and unpacked into build/updates -- and installing it stays deliberate, because the
+    # files of a window that is about to drive the game must not be swapped underneath.
+    $TaskUpdate = Join-Path $TaskRoot 'tools/check_update.py'
+    if (Test-Path -LiteralPath $TaskUpdate) {
+        try {
+            $TaskUpdateArgs = @($TaskUpdate, '--timeout', [string]$TaskSettings.update_timeout)
+            if ($TaskSettings.update_stage -and -not $DryRun) { $TaskUpdateArgs += '--stage' }
+            $TaskUpdateJson = (& $TaskPython $TaskUpdateArgs 2>&1 | Out-String) | ConvertFrom-Json
+            $TaskUpdateLine = "update: $($TaskUpdateJson.status)"
+            if ($TaskUpdateJson.version) { $TaskUpdateLine += " $($TaskUpdateJson.version)" }
+            if (@($TaskUpdateJson.PSObject.Properties.Name) -contains 'stage') {
+                $TaskUpdateLine += " (stage: $($TaskUpdateJson.stage.status)"
+                if ($TaskUpdateJson.stage.reason) { $TaskUpdateLine += " $($TaskUpdateJson.stage.reason)" }
+                $TaskUpdateLine += ')'
+                if ($TaskUpdateJson.stage.package) { $TaskUpdateLine += " -> $($TaskUpdateJson.stage.package)" }
+            }
+            Write-Host $TaskUpdateLine
+        } catch {
+            Write-Host "update: check failed ($($_.Exception.Message))"
+        }
+    }
+}
+
 $TaskFlow = [string]$TaskSettings.flow
 if ($TaskFlow) {
     # A window starts either from the lobby or from inside a run a previous window
@@ -140,7 +175,13 @@ if ($DryRun) {
     return
 }
 
-& $TaskPython @TaskArgs 2>&1 | Tee-Object -FilePath $TaskLog
+# `Tee-Object -FilePath` created no file under a background invocation (2026-10-08
+# 02:26, the log path was printed and never appeared), so the console is copied the
+# long way: every line is shown and appended before the pipeline moves on.
+& $TaskPython @TaskArgs 2>&1 | ForEach-Object {
+    Write-Host $_
+    Add-Content -LiteralPath $TaskLog -Value $_ -Encoding utf8
+}
 $TaskCode = $LASTEXITCODE
 Write-Host "the window stopped with exit code $TaskCode"
 Write-Host "console log: $TaskLog"

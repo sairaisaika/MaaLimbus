@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from maalimbus.archives import extract_checked
 ARCHIVES = {
-    'mxu': ('A2375C171EEB360B7D3E7762FB30CDFB452860D8485FBB5D542AE8A053BE8E7D',
-            'https://github.com/MistEO/MXU/releases/download/v2.5.1/MXU-win-x86_64-v2.5.1.zip'),
+    'mxu': ('825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724',
+            'https://github.com/MistEO/MXU/releases/download/v2.7.1/MXU-win-x86_64-v2.7.1.zip'),
     'maa': ('55DCEE2306F95656949165237E781322F6858A1675A3B271BC045A50F43C41B7',
             'https://github.com/MaaXYZ/MaaFramework/releases/download/v5.12.2/MAA-win-x86_64-v5.12.2.zip'),
     'mxu_source': ('9DBD168F01F6A74E28B79949E8FDC735BFB8DDE666C5EC8D6409D821A5519B6E',
