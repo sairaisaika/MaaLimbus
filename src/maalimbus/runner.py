@@ -1256,7 +1256,8 @@ class MirrorRunner:
                 if self.floor_gift_catalog is None:
                     self.floor_gift_catalog=GiftCatalog(ROOT/'assets/resource/base')
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
-                floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog)
+                floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog,
+                    image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
                 d=self.floor_gift_transaction.prepare(self.run_id,floor_offers,gift,frame_file(directory))
                 profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
                               if p.slot==self.store.team_slot),None)
@@ -1268,7 +1269,8 @@ class MirrorRunner:
                     selected=next(o for o in floor_offers if o.title==ranking[0]['title'])
                     gift.update(target=list(selected.box),title=selected.title)
                 self.note('floor_gift_ranking',team=profile.slot,ranking=ranking,
-                          selected=d['selected'],proof=str(frame_file(directory)))
+                          selected=d['selected'],selection_source=floor_offers[0].selection_source,
+                          proof=str(frame_file(directory)))
             except (ValueError,FileNotFoundError) as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
@@ -1617,7 +1619,8 @@ class MirrorRunner:
                 from . import floor_gifts
                 if settled_page!='GIFT_PICK':raise ValueError('floor_gift_selection_left_page')
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
-                post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog)
+                post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
+                    image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
                 self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_selection')

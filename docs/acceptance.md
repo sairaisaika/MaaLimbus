@@ -1,5 +1,19 @@
 # Acceptance evidence
 
+## October8 actual Lightning Rod acquisition within floor2
+
+Prior084911 bounded task terminal12:58UTC after34inputs stopped before the single
+counterless gift. 091114 sent one native randomized card touch, then ambiguity
+STOP retained pending. Original before/after frames independently prove dim/no
+outline to lit/four orange segments. Explicit evidence reconciliation checked
+original scope, input, target/touch and both hashes, without another device input.
+`build/lightning-rod-selection-real-verification-20261008.json` records selection.
+Native five-case replay has zero device input and refuses missing title/refuse/
+outline; 24 focused tests pass. 091508 then sent Select and one actual named GET
+acknowledgement. `frame-0003.json` is Lightning Rod GET, `frame-0004.json` proves
+MAP/ExploringFloor2/EmotionalJudgment. Transaction completed/pendingNone. No cost
+consumed. Accepted floors remain[1]; this receipt does not prove floor2clear.
+
 ## October8 real floor2 entry and regular HUD recovery
 
 084019 dragged Emotional Judgment once. First successor carried staleFloor1 and

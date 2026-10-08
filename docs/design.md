@@ -33,7 +33,18 @@ receipt acknowledgement persists before input and needs a distinct expected rece
 or, after every selected receipt, an independently identified next-floor page.
 Unknown postconditions retain pending and stop. Legacy selection adoption is an
 explicit evidence migration with scope/input/target/frame hashes, never automatic
-clearing of an unknown pending transaction. Counterless and JP trials remain gated.
+clearing of an unknown pending transaction. Counterless multi-card and JP trials remain gated.
+
+The centered single free gift layout has no counter or enemy trial. Require one
+known full title, Acquire plate, Select and Refuse Gift, no cost/trial text, and
+the measured centered layout. Selection uses agreement between the Select patch
+and all four orange UI outline segments outside the artwork: dim plus absent
+outline is unselected; lit plus four present segments is selected; disagreement
+stops. The source is explicitly `single_free_select_button`, not a physical OCR
+counter. Persist the same scoped intent and require the unchanged offer, then
+actual named GET and MAP/theme successor. The outline is selection UI evidence,
+never gift identity or payout evidence. Retained unknown pending is reconciled
+only explicitly against original input/target/scope and both PNG hashes.
 
 The floor selection header, Refresh and Pack Search can establish page identity
 independently of tilted cover glyphs. This grants no Hard/Normal proof, pack identity
