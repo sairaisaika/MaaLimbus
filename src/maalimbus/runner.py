@@ -1155,6 +1155,11 @@ class MirrorRunner:
                                        'battle_progress_stalled')
                 return self._result(page, None, False, stopped, done=True)
         team = team_state(record, self.controls) if page == 'PRE_BATTLE_TEAM' else None
+        if page=='DEPLOYMENT_RESET':
+            d=self.deployment_transaction.data if self.deployment_transaction else None
+            pending=d.get('pending') if d else None
+            team={'reset_pending':bool(d and d['scope']==self.run_id and pending
+                  and pending['kind']=='clear' and not pending.get('confirm_sent'))}
         if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team
@@ -1168,6 +1173,13 @@ class MirrorRunner:
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
                 return self._result(page,None,False,stopped,done=True)
             try:
+                pending=self.deployment_transaction.data.get('pending') if self.deployment_transaction.data else None
+                if pending and self.deployment_transaction.data['scope']==self.run_id:
+                    if pending['kind']=='clear' and team['participants'][0]==0:
+                        self.deployment_transaction.observe(tuple(team['participants']))
+                    elif (pending['kind']=='card' and team['participants'][0]==pending['before']+1
+                          and team['states'][pending['card']-1] in ('selected','backup')):
+                        self.deployment_transaction.observe(tuple(team['participants']))
                 team.update(self.deployment_transaction.prepare(self.run_id,team['order'],tuple(team['participants'])))
             except ValueError as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
@@ -1209,6 +1221,19 @@ class MirrorRunner:
         else:
             state['gift_picks'] = 0
         plan_controls=dict(self.controls)
+        if page=='DEPLOYMENT_RESET':
+            from .vision import deployment_reset_confirm
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            box=deployment_reset_confirm(texts,record.get('size') or (1920,1080))
+            if box:plan_controls['deployment_reset.confirm']=list(box)
+        if page=='PRE_BATTLE_TEAM':
+            from .map_vision import pre_battle_team_page
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            current_team=pre_battle_team_page(texts,record.get('size') or (1920,1080))
+            if current_team is not None:
+                # Clear Selection is a page identity anchor, not a static control.
+                # Bind its fresh, paired caption before asking the planner to reset.
+                plan_controls['pre_battle.clear_selection']=list(current_team.clear_selection.box)
         initial = None
         if page == 'INITIAL_GIFTS':
             from . import initial_gifts
@@ -1425,6 +1450,8 @@ class MirrorRunner:
             kind='clear' if plan['reason'].startswith('clear_inherited') else 'card'
             self.deployment_transaction.intent(kind,tuple(team['participants']),(plan.get('detail') or {}).get('card_index'))
         point = None
+        if plan.get('reason')=='confirm_pending_deployment_reset_once':
+            self.deployment_transaction.confirm_clear(self.run_id)
         delay = random.randint(350, 750)
         if plan['action'] == NODE:
             self.note('window_intent', page=page, node=plan['node'],
@@ -1536,10 +1563,12 @@ class MirrorRunner:
                                                ThemeCatalog(ROOT/'assets/resource/base'),frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_theme_drag')
-        if page=='PRE_BATTLE_TEAM' and plan.get('reason') in ('clear_inherited_participant_order_before_saved_deployment','team_card_joins_the_next_unpicked_identity'):
+        if ((page=='PRE_BATTLE_TEAM' and plan.get('reason') in ('clear_inherited_participant_order_before_saved_deployment','team_card_joins_the_next_unpicked_identity'))
+                or plan.get('reason')=='confirm_pending_deployment_reset_once'):
             try:
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
-                self.deployment_transaction.observe(participants(post_records,settled.get('size') or (1920,1080)))
+                if not (plan['reason']=='clear_inherited_participant_order_before_saved_deployment' and settled_page=='DEPLOYMENT_RESET'):
+                    self.deployment_transaction.observe(participants(post_records,settled.get('size') or (1920,1080)))
             except ValueError as error:entry.update(passed=False,reason=str(error),stopped='unverified_deployment_input')
         if plan.get('reason')=='battle_button_submits_the_team' and entry['passed'] and self.deployment_transaction is not None:
             from .storage import write_json

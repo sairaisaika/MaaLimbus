@@ -1,5 +1,21 @@
 # Native design and requirement ledger
 
+## Deployment reset and inherited selection (October8)
+
+Before selecting a saved order, a nonzero inherited participant count requires a
+fresh ClearSelection caption. This is an identity anchor and must be bound from
+the current page, not guessed from the static control list. The real game asks
+ResetDeploymentOrder before clearing. Persist the clear intent, then persist
+confirm_sent before one scoped confirmation. Only actual0/capacity resolves it;
+unknown frames or unchanged counts keep the pending transaction and stop input.
+Card selections require exact+1 counts. Crash recovery requires the same scope,
+expected count and selected/backup caption on the exact pending card. The native
+numeric-only counter crop is consulted only on independently identified prebattle
+pages; whole-screen OCR dropping a numerator never justifies another click.
+Pause-menu Settings/Resume independently veto behind-modal battle controls. This
+observed English menu grants no automatic retry/give-up action. Japanese menu
+localization remains unverified and is outside these English live proofs.
+
 ## Map node vocabulary and upstream comparison (October6)
 
 The map panel is a boss-cell grid, not the six-slot option grid LALC models. Pinned

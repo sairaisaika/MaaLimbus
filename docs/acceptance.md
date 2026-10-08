@@ -1,5 +1,9 @@
 # Acceptance evidence
 
+## October8 actual corrected team2 deployment
+
+`window-20261008-045214/frame-0008.png` visibly shows sinner-card ordinals4,6,1,2,8,12 /5,9,3,10,11,7, corresponding to requested deployment3,4,9,1,7,2,12,5,8,10,11,6. ClearSelection opened a reset question044512; a single scoped confirmation044740 yielded0/12. Each subsequent selection has fresh participant-count evidence and the persisted sequence agrees. Native local numericOCR replay on actual1/12,8/12,12/12 frames passed with no device input. Full Python490passed. First diagnostic battle realVICTORY044013/frame0043 is a battle result only; no floorclear, payout or complete-run acceptance follows from it. JP reset/pause localization and live JP remain unverified.
+
 ## October8 Hard floor1 map and failed inherited deployment order
 
 Actual Hard theme page041437 and successor042100 ExploringFloor1/To beCrushed prove Hard entry and selected theme, not a clear. Current042218 BATTLE_HUD after WinRate, no START: pre-battle inherited Ryoshu/Meursault/Gregor/YiSang as positions1–4. Added remainingcards and12/12 is therefore NOT the requested saved order. Offline durable clear/count/sequence repair added; real reordered-team validation remains open. No current run combat victory, floorclear, finalclaim, or rotation/reentry acceptance.

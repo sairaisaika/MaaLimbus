@@ -196,6 +196,21 @@ class LimbusRecognition(CustomRecognition):
             # carries its own `Clear Selection` and `Battle!` actions, so the generic
             # team-library judgement above is corrected only with both captions.
             scene='PRE_BATTLE_TEAM'
+        if scene=='PRE_BATTLE_TEAM':
+            # Full-screen detection dropped the numerator in actual 1/12.
+            # Recognize only the fixed counter within an independently proven page.
+            roi=(1700,754,128,58)
+            detail=context.run_recognition_direct(JRecognitionType.OCR,
+                JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,2}\s*/\s*\d{1,2}$'],threshold=.85),image)
+            if detail is None:raise RuntimeError('Maa local participant OCR returned no evidence')
+            x,y,w,h=roi
+            records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
+            found=[]
+            if detail.hit:
+                for result in detail.filtered_results:
+                    records.append(Text(result.text,roi,result.score))
+                    found.append(dict(text=result.text,score=result.score,box=list(roi)))
+            local.append(dict(purpose='deployment_participants',roi=list(roi),only_rec=True,results=found))
         if scene=='UNKNOWN' and battle_hud(records,size) is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
             # from artwork, and this identifies the page only.

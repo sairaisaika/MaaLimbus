@@ -9,6 +9,29 @@ from maalimbus.vision import Text, classify, inset_box
 LOCALES = Path(__file__).resolve().parents[1] / 'assets/resource'
 
 
+def test_battle_pause_menu_vetoes_visible_underlying_hud():
+    words=json.loads((LOCALES/'en/locale.json').read_text())
+    menu=[Text('Settings',(918,365,136,45),.99),
+          Text('Resume',(922,456,124,34),.99),
+          Text('Retry',(894,536,94,37),.99),
+          Text('Stage',(986,541,90,30),.99),
+          Text('Give Up',(922,621,124,36),.99)]
+    hud=[Text('WAVE',(25,20,100,30),.99), Text('TURN',(160,20,100,30),.99)]
+    assert classify(menu+hud,words,(1920,1080))=='UNKNOWN_DIALOG'
+    assert classify(menu[:2]+hud,words,(1920,1080))=='UNKNOWN_DIALOG'
+    assert classify(menu[:2]+[Text('Retry Stage',(894,536,182,37),.99)]+menu[4:]+hud,
+                    words,(1920,1080))=='UNKNOWN_DIALOG'
+
+
+def test_deployment_reset_question_vetoes_underlying_team():
+    words=json.loads((LOCALES/'en/locale.json').read_text())
+    records=[Text('Reset Deployment Order?',(772,502,374,34),.99),
+             Text('X Cancel',(698,726,142,36),.99),Text('Confirm',(1122,726,110,38),.99),
+             Text('Clear Selection',(1620,704,210,26),.99),Text('To Battle!',(1620,857,200,48),.99)]
+    assert classify(records,words,(1920,1080))=='DEPLOYMENT_RESET'
+    assert classify(records[1:],words,(1920,1080))!='DEPLOYMENT_RESET'
+
+
 def test_gift_receipt_vetoes_underlying_initial_page_and_requires_confirm():
     words=json.loads((LOCALES/'en/locale.json').read_text())
     records=[Text('E.G.O Gift GET!',(430,240,150,30),.99),

@@ -9,7 +9,14 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-08 04:28 local
+## Current continuation: 2026-10-08 04:55 local
+- Actual team2 deployment order is now proven by `evidence/runtime/window-20261008-045214/frame-0008.png`: positions map to3,4,9,1,7,2,12,5,8,10,11,6; HongLu is backup12. Counts were individually0/12 through12/12, durable sequence matches and pending is empty. Earlier042218 order remains a recorded failure, never accepted retroactively.
+- First diagnostic battle produced real VICTORY in `044013/frame-0043.png` after three submitted turns. No floorclear or reward accepted. Pause-menu RetryStage reset battle with the same order; its transient DEFEAT animation was caused by retry, not a combat-loss inference.
+- Fixed native pause-menu veto, fresh ClearSelection identity/control binding and actual ResetDeploymentOrder modal transaction. Clear click044512 opened confirmation; confirm044740 proved0/12. Persisted confirm_sent forbids replay; unknown/mismatched counts retain pending. Actual first-card1/12 missed by wholeOCR; native only_rec fixed numericROI1700,754,128,58 replayed actual1/12,8/12,12/12 without device input. Current native sequence completed in045214.
+- Current bounded native battle window PID and terminal state must be checked using `build/correct-order-battle-progress.json` / latest runtime directory and process command line. Do not start another controller while it remains live. Window was started after correct order,40steps, stop-pageGIFT_PICK; active tasks are observation-only for other sessions. Never restart on monitoring timeout.
+- Full Python490passed; actual Maa participant replay3cases passed. New code not yet frozen/published at this checkpoint. Hard041437, themeToBeCrushed042100, star100/remaining16, two initial gift receipts and budgets unchanged. No Hard five-floor clear, final paid claim, rotation/reentry acceptance. FGO paused.
+
+## Previous continuation: 2026-10-08 04:28 local
 - Current real page **BATTLE_HUD**, latest actual session `evidence/runtime/window-20261008-042218`, nativePID22880 terminal. First WinRate touch sent, no START sent. Do not restart/redo entry/mode/graces/gifts/pack.
 - Scope d7c1499436f647208adc50860692a5c2/team2/rotation4, zero floor clears. Hard proof041437 unchanged. Star2,4,5,7 spent100,116→16,noEnhance,unchecked/Cost0. Employee Card and Portable Battery Socket real receipts041101/041119; optionalsearchrefused0spend. Historical ledger evidence preserved, no inheritedfloor1.
 - **Pack real successor verified**: scopedtheme intent now uses freshpack_candidates+saved profileweights/recommend_pack (no weights=>neutral_default explicitly logged). Actual To be Crushed dragged once; immediateUNKNOWN causedstop, freshread-only `042100` saysExploringFloor1/To beCrushed. Theme pending resolved with that exact floor/name proof, no repeateddrag. Native MAP→NODE_PANEL→PRE_BATTLE042128 retained.

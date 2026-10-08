@@ -27,7 +27,25 @@ def inset_box(box, ratio=.2):
     return (x + dx, y + dy, max(1, w - 2 * dx), max(1, h - 2 * dy))
 
 
+def deployment_reset_confirm(records, size):
+    if (len(find(records,r'^Reset Deployment Order\?$',(.38,.44,.62,.51),size,.85))==1
+            and len(find(records,r'^(?:X\s*)?Cancel$',(.34,.65,.46,.73),size,.85))==1):
+        buttons=find(records,r'^Confirm$',(.56,.65,.66,.73),size,.85)
+        if len(buttons)==1:return buttons[0].box
+    return None
+
+
 def classify(records, locale, size):
+    if deployment_reset_confirm(records,size) is not None:
+        return 'DEPLOYMENT_RESET'
+    # The pause menu leaves WAVE/TURN/START visible behind its four buttons.
+    # Keep it observe-only; retry/give-up decisions require a separate recovery.
+    pause_roi = (.38, .31, .60, .64)
+    # Two independent central menu labels suffice for a veto, even if OCR misses
+    # Retry/Stage or Give Up. This grants no action on the partially read modal.
+    pause_labels = (r'^Settings$', r'^Resume$')
+    if all(len(find(records, p, pause_roi, size, .85)) == 1 for p in pause_labels):
+        return 'UNKNOWN_DIALOG'
     # Tutorial overlays expose inactive underlying Enter/menu text.
     # Never treat those underlying labels as actionable entry evidence.
     # Live proof: evidence/runtime/window-20261006-023714/frame-0001.json is that

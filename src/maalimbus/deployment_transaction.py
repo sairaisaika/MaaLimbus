@@ -22,3 +22,8 @@ class DeploymentTransaction:
         if p['kind']=='clear':d['sequence']=[]
         else:d['sequence'].append(p['card'])
         d['pending']=None;write_json(self.path,d)
+    def confirm_clear(self,scope):
+        d=self.data;p=d.get('pending') if d else None
+        if not d or d['scope']!=scope or not p or p['kind']!='clear' or p.get('confirm_sent'):
+            raise ValueError('Deployment reset confirmation is not authorized by pending clear')
+        p['confirm_sent']=True;write_json(self.path,d)

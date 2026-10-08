@@ -1323,3 +1323,15 @@ def test_hard_switch_is_offered_only_with_fresh_normal_target():
     assert plan_step('THEME_PACKS',difficulty='normal',controls={'theme_packs.enable_hard':box})['reason']=='enable_hard_on_proven_floor_one'
     assert plan_step('THEME_PACKS',difficulty=None,controls={'theme_packs.enable_hard':box})['action']==RECORD
     assert plan_step('THEME_PACKS',difficulty='normal',controls={})['action']==RECORD
+
+
+def test_inherited_deployment_uses_registered_clear_selection_anchor():
+    import json
+    from pathlib import Path
+    anchors=json.loads((Path(__file__).resolve().parents[1]/'assets/resource/base/anchors.json').read_text())
+    assert 'pre_battle.clear_selection' in json.dumps(anchors)
+    box=[1640,706,188,22]
+    plan=plan_step('PRE_BATTLE_TEAM',controls={'pre_battle.clear_selection':box},
+                   team={'reset_required':True,'participants':[12,12]})
+    assert plan['action']==CLICK and plan['target']==box
+    assert plan_step('PRE_BATTLE_TEAM',team={'reset_required':True})['action']==RECORD

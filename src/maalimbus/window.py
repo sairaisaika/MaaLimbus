@@ -149,6 +149,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     """
     controls = controls or {}
     nodes = dict(PAGE_NODES, **(nodes or {}))
+    if page=='DEPLOYMENT_RESET':
+        box=controls.get('deployment_reset.confirm')
+        if box is None or not (team or {}).get('reset_pending'):
+            return _refuse(page,'deployment_reset_pending_intent_not_proven')
+        return _plan(page,CLICK,target=box,expect=('PRE_BATTLE_TEAM',),
+                     reason='confirm_pending_deployment_reset_once')
     if page == 'HOME':
         box = controls.get('home.drive_button')
         if box is None:
@@ -783,7 +789,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         picked, capacity = (list((team or {}).get('participants') or []) + [None, None])[:2]
         full = bool(picked) and bool(capacity) and picked >= capacity
         if (team or {}).get('reset_required'):
-            box=controls.get('pre_battle_team.clear_selection')
+            box=controls.get('pre_battle.clear_selection')
             if box is None:return _refuse(page,'deployment_clear_selection_not_anchored')
             return _plan(page,CLICK,target=box,expect=(ANY,),advance=True,
                          reason='clear_inherited_participant_order_before_saved_deployment')
