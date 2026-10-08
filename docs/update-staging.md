@@ -17,13 +17,22 @@ tag 使用 `v0.1.0` / `0.1.0` 形式；checksum 行格式为 SHA-256、空格、
 
 `stage-result.json` 的 `staged` 仅表示下载与包校验通过；`installed`、`executed`
 始终为 false。失败后的完整下载或解压内容保留在该次隔离目录供检查，结果仍为 failed。
-尚未实现安装替换/备份回滚，也未接入 MXU 更新按钮，不能把暂存成功解释为更新完成。
+安装由独立的 `tools/install_update.py --stage <暂存目录> --install <安装目录>` 完成。
+它重新校验 manifest、PI 项目/版本，拒绝源码目录、链接、降级与未结束的旧安装事务。
+CIM 核实安装目录进程已退出，并持有安装目录外的控制器锁；不会结束进程或绕过 UAC。
+同父目录候选/备份保留全部 config/evidence/logs/build，逐文件比较私有数据哈希。
+替换后复核公有文件、PI 版本与实际 Agent 自检/资源目录；验证失败恢复原目录，保留失败目录。
+断电或回滚失败时保留 journal/backup 并拒绝重试，需核对证据后人工恢复。
+尚未接入 MXU 更新按钮，不能把暂存或 Agent 自检解释为完整 GUI 自动更新验收。
 
 ```powershell
 python tools/check_update.py --stage --timeout 120
 python tools/verify_update_stage.py --package-record build/windows-package-latest.json
+python tools/verify_update_install.py
 ```
 
 第二个命令使用已有开发 ZIP 和派生的稳定 Release 元数据，通过离线传输完整校验
 真实包；不联网、不执行包、不修改安装、不创建游戏控制器。证据保存到
 `build/update-stage-verification.json`。公开 Release 下载及实际更新界面仍待验证。
+第三个命令只在新建隔离目录用保留开发包实测目录替换、实际 Agent 自检和注入失败回滚，
+保留 `build/update-install-verification.json`，不替换桌面安装、不联网、不发送游戏输入。
