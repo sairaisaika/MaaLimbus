@@ -126,7 +126,9 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
-                     and plan.get('reason')=='incomplete_graces_return_to_selection')}
+                     and plan.get('reason')=='incomplete_graces_return_to_selection') and not (
+                     page=='GIFT_PICK' and name=='gift_pick.refuse_button'
+                     and plan.get('reason')=='refuse_proven_owned_single_free_gift')}
     if plan.get('target') and tuple(plan['target']) in forbidden:
         return _refuse(page, 'control_is_forbidden')
     return plan
@@ -589,6 +591,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=('GIFT_PICK', 'UNKNOWN'),
                      reason='the_warning_is_cancelled_to_keep_the_remaining_gift_choices')
     if page == 'GIFT_PICK':
+        if (gift or {}).get('refuse_owned'):
+            box=(gift or {}).get('refuse_target')
+            if not box:return _refuse(page,'owned_gift_refuse_control_missing')
+            return _plan(page,CLICK,target=box,expect=('MAP','REWARD_CARD','GIFT_WARNING','UNKNOWN'),
+                         reason='refuse_proven_owned_single_free_gift')
         # The floor hands out its gifts here: a row of cards and a Select button that
         # stays dark until the pick is satisfied. Two live variants exist — a
         # four-card round that prints "Select 0/2" and a three-card round that prints

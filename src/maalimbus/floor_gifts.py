@@ -165,7 +165,7 @@ def observe_single_free(records, size, catalog, box, image, select_box):
     if not (dim or lit):
         raise ValueError('single_free_gift_selection_ambiguous')
     offer = Offer(titles[0].text, canonical, frozenset(catalog.entries[canonical]['keywords']),
-                  tuple(box), Trial(0,'none',0), False, 'single_free_select_button')
+                  tuple(box), Trial(0,'none',0), bool(find(records,r'^Owned$',(.40,.20,.47,.245),size,.9)), 'single_free_select_button')
     return [offer], dict(chosen=int(lit), required=1)
 
 

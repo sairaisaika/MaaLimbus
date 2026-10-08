@@ -1289,7 +1289,15 @@ class MirrorRunner:
                 if profile is None:raise ValueError('floor_gift_saved_team_missing')
                 ranking=floor_gifts.rank(floor_offers,profile,d['selected'])
                 gift['ranking']=ranking
-                if gift['chosen']<gift['required']:
+                owned_single=(len(floor_offers)==1 and floor_offers[0].owned
+                    and floor_offers[0].selection_source=='single_free_select_button'
+                    and gift['chosen']==0 and not d['selected'])
+                if owned_single:
+                    from .vision import find
+                    refuse=find(texts,r'^Refuse Gift$',(.68,.77,.80,.84),record['size'],.9)
+                    if len(refuse)!=1:raise ValueError('owned_gift_refuse_control_missing')
+                    gift.update(refuse_owned=True,refuse_target=list(refuse[0].box))
+                elif gift['chosen']<gift['required']:
                     if not ranking:raise ValueError('floor_gift_no_allowed_offer')
                     selected=next(o for o in floor_offers if o.title==ranking[0]['title'])
                     gift.update(target=list(selected.box),title=selected.title)
@@ -1496,6 +1504,15 @@ class MirrorRunner:
                          graces=graces, initial=initial, check=check, defeat=defeat,
                          search={'mode': settings.gift_search},
                          bonus={'spend': state['run_settled_itself']})
+        if page=='UNKNOWN_DIALOG' and self.floor_gift_transaction is not None:
+            from .floor_gift_transaction import refusal_confirm_target
+            d=self.floor_gift_transaction.data;p=d.get('pending') if d else None
+            target=refusal_confirm_target(record)
+            if (d and d['scope']==self.run_id and p and p['kind']=='refuse_owned'
+                and not p.get('confirm_sent') and target):
+                plan=dict(page=page,action='click',target=target,node=None,
+                    expect=['MAP','REWARD_CARD','UNKNOWN'],advance=False,
+                    reason='confirm_proven_owned_gift_refusal')
         entry = {'step': state['step'], 'page_before': page, 'scene_before': record['scene'],
                  'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                  'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
@@ -1536,6 +1553,11 @@ class MirrorRunner:
         if page=='GIFT_PICK' and (gift or {}).get('title'):
             self.floor_gift_transaction.intent(gift['title'],
                 dict(chosen=gift['chosen'],required=gift['required']),frame_file(directory))
+        if plan.get('reason')=='refuse_proven_owned_single_free_gift':
+            self.floor_gift_transaction.refuse_owned(floor_offers,
+                dict(chosen=gift['chosen'],required=gift['required']),frame_file(directory))
+        if plan.get('reason')=='confirm_proven_owned_gift_refusal':
+            self.floor_gift_transaction.refusal_confirm_intent(self.run_id,frame_file(directory))
         if plan.get('reason')=='select_takes_the_picked_floor_gifts':
             self.floor_gift_transaction.commit(frame_file(directory))
         if floor_receipt:
@@ -1660,6 +1682,13 @@ class MirrorRunner:
             title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
             if settled_page!='GIFT_GET' or not any(initial_gifts.same_name(title,n) for n in self.floor_gift_transaction.data['selected']):
                 entry.update(passed=False,reason='floor_gift_commit_receipt_not_proven',stopped='unverified_floor_gift_commit')
+        if plan.get('reason') in ('refuse_proven_owned_single_free_gift','confirm_proven_owned_gift_refusal'):
+            try:
+                self.floor_gift_transaction.observe_refusal(settled_page,frame_file(directory),
+                    map_floor=settled.get('floor'),
+                    next_reward_offer=unselected_reward_successor(settled) if settled_page=='REWARD_CARD' else None)
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_refusal')
         if floor_receipt:
             try:
                 from . import initial_gifts

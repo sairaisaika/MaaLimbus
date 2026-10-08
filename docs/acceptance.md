@@ -986,3 +986,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 - Full five-floor combat/reward/rotation integration and real-game acceptance
   remain incomplete. FGO was not reopened. New PNG branding does not change the
   executable's embedded Explorer icon; the running MXU window uses the PI icon.
+
+### 2026-10-08 owned single-free gift refusal
+- Actual fifth-floor Bloody Gadget Owned offer was refused once, then its exact continuation question confirmed once. Fresh read-only REWARD_CARD0/1 successor and original input/hash/scope proofs complete the refusal transaction; no gift receipt or floor clear is credited.
+- 571 Python tests and eight native retained-frame cases passed. Missing Owned cannot authorize refusal; missing title/control/question fails. Unknown successor and already-sent confirmation retain pending and reject another input. Other forbidden controls stay forbidden. Final payout and complete software/updater/Release acceptance remain open.

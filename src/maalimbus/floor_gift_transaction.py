@@ -57,6 +57,35 @@ class FloorGiftTransaction:
         d['pending']=dict(kind='commit',proof=str(proof))
         write_json(self.path,d)
 
+    def refuse_owned(self, offers, count, proof):
+        d=self.data
+        if (d['pending'] or d['commit_sent'] or d['selected'] or d['completed']
+            or count!={'chosen':0,'required':1} or self.signature(offers)!=d['offer']
+            or len(offers)!=1 or not offers[0].owned
+            or offers[0].selection_source!='single_free_select_button'):
+            raise ValueError('floor_gift_owned_refusal_not_proven')
+        d['pending']=dict(kind='refuse_owned',title=offers[0].title,proof=str(proof))
+        write_json(self.path,d)
+
+    def observe_refusal(self, page, proof, *, map_floor=None, next_reward_offer=None):
+        d=self.data;p=d['pending']
+        if not p or p['kind']!='refuse_owned':raise ValueError('floor_gift_refusal_intent_missing')
+        known_map=page=='MAP' and map_floor in range(1,6)
+        known_reward=(page=='REWARD_CARD' and next_reward_offer
+            and next_reward_offer.get('count')=={'chosen':0,'required':1}
+            and next_reward_offer.get('title')=='Select Encounter Reward Card')
+        if not (known_map or known_reward):raise ValueError('floor_gift_refusal_successor_not_proven')
+        d['refusal']=dict(title=p['title'],before=p['proof'],successor=str(proof))
+        d['completed']=True;d['pending']=None
+        write_json(self.path,d)
+
+    def refusal_confirm_intent(self, scope, proof):
+        d=self.data;p=d.get('pending')
+        if d['scope']!=scope or not p or p['kind']!='refuse_owned' or p.get('confirm_sent'):
+            raise ValueError('floor_gift_refusal_confirm_would_repeat')
+        p.update(confirm_sent=True,confirm_proof=str(proof));write_json(self.path,d)
+
+
     def receipt_intent(self, title, proof):
         from .initial_gifts import same_name
         d=self.data;p=d.get('pending')
@@ -90,6 +119,18 @@ class FloorGiftTransaction:
         if reward_successor:d['next_reward_offer']=next_reward_offer
         d['pending']=None if final_successor else dict(kind='commit',proof=str(proof))
         write_json(self.path,d)
+
+
+def refusal_confirm_target(record):
+    """Exact current question and both controls, independent of background gift."""
+    from .vision import Text,find
+    records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+    size=record.get('size') or (1920,1080)
+    question=find(records,r'^Continue without choosing an E\.G\.O Gift\?$',(.34,.44,.67,.52),size,.9)
+    cancel=find(records,r'^[X×]?\s*Cancel$',(.35,.65,.46,.72),size,.9)
+    confirm=find(records,r'^Confirm$',(.55,.65,.66,.72),size,.9)
+    if len(question)!=1 or len(cancel)!=1 or len(confirm)!=1:return None
+    return list(confirm[0].box)
 
 
 def adopt_legacy_single_pick(transaction, result_path, evidence_root, scope, catalog):
