@@ -18,9 +18,12 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
+from maalimbus.update_install import plain_path,plain_tree,closed_app,self_test,private_hashes,PRIVATE,metadata
+from maalimbus.controller_lease import ControllerLease
 
 # The MXU release this app is assembled from; a renamed copy must match. MXU
 # v2.5.1 was pinned first, but it never raised its window on this machine (the
@@ -58,6 +61,45 @@ def freeze(entry, name, work):
     return work/'dist'/name
 
 
+def replace_local_app(staged,out,*,process_check=closed_app,validator=self_test,
+                      lease_factory=ControllerLease):
+    staged,out=plain_path(staged),plain_path(out)
+    if (out==Path(out.anchor) or out==Path.home() or (out/'.git').exists() or
+            out==staged or out in staged.parents or staged in out.parents):
+        raise ValueError('Unsafe local app destination')
+    plain_tree(staged)
+    if out.exists():plain_tree(out)
+    lease=lease_factory(ROOT/'build/controller.lock')
+    backup=out.parent/(out.name+'.backup-'+uuid.uuid4().hex)
+    before={};moved=False
+    try:
+        process_check(out)
+        if out.exists():
+            if not (out/'MaaLimbus.exe').is_file():raise ValueError('Not a local MaaLimbus app')
+            metadata(out)
+            before=private_hashes(out)
+            for name in PRIVATE:
+                if (out/name).exists():shutil.copytree(out/name,staged/name,dirs_exist_ok=True)
+            copied=private_hashes(staged)
+            if any(copied.get(name)!=sha for name,sha in before.items()):
+                raise ValueError('Local app private copy differs')
+            process_check(out)
+            out.rename(backup);moved=True
+        staged.rename(out)
+        proof=validator(out)
+        copied=private_hashes(out)
+        if not proof.get('agent_self_test') or any(copied.get(name)!=sha for name,sha in before.items()):
+            raise ValueError('Installed local app validation failed')
+        return dict(backup=str(backup) if moved else None,private_files=len(before),verification=proof)
+    except Exception:
+        if moved:
+            if out.exists():out.rename(out.parent/(out.name+'.failed-'+uuid.uuid4().hex))
+            backup.rename(out)
+        raise
+    finally:
+        lease.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mxu-exe', type=Path, default=ROOT/'build/mxu-2.7.1/mxu.exe',
@@ -75,14 +117,12 @@ def main():
     if not (args.maafw/'MaaFramework.dll').is_file():
         raise ValueError(f'Missing MaaFramework runtime: {args.maafw}')
 
-    out = args.out.resolve()
+    out = plain_path(args.out)
     keep_agent = out/'agent' if args.skip_agent and (out/'agent').is_dir() else None
     # Assemble beside the target and swap at the end: the previous app folder stays
     # usable if the freeze or the self-test fails, and reusing its frozen agent
     # cannot read a directory that was just deleted.
-    staged = out.parent/(out.name + '.staging')
-    if staged.exists():
-        shutil.rmtree(staged)
+    staged = out.parent/(out.name + '.staging-'+uuid.uuid4().hex)
     staged.mkdir(parents=True)
 
     shutil.copyfile(args.mxu_exe, staged/'MaaLimbus.exe')
@@ -115,11 +155,10 @@ def main():
         if Path(info['self_test']['application_root']).resolve() != staged or not info['self_test']['passed']:
             raise RuntimeError('Packaged Agent resolved the wrong resource directory')
     (staged/'build-info.json').write_text(json.dumps(info, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    if out.exists():
-        shutil.rmtree(out)
-    staged.rename(out)
+    installed=replace_local_app(staged,out)
     print(json.dumps({'app': str(out), 'exe': str(out/'MaaLimbus.exe'),
-                      'self_test': info.get('self_test', {}).get('passed')}, indent=2))
+                      'self_test': info.get('self_test', {}).get('passed'),
+                      'installation':installed}, indent=2))
 
 
 if __name__ == '__main__':
