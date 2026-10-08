@@ -48,7 +48,7 @@
   "to_list": "^To List$",
   "give_up_rewards": "^\\s*Give\\s?Up\\s?Rewards$",
   "claim_the_rewards": "^Claim the rewards\\?$",
-  "spend_weekly_bonuses": "^Spend your '?Weekly Bonuses,? to claim the$",
+  "spend_weekly_bonuses": "^Spend your '?Weekly Bonuses,? to claim the(?: bonus)?$",
   "bonus_rewards": "^bonus rewards\\?$",
   "pass_level_up": "^Pass Level Up$",
   "battle_pass_xp": "^Battle Pass XP$",

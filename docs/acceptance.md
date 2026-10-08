@@ -1,5 +1,36 @@
 # Acceptance evidence
 
+## 2026-10-07 the weekly-bonus question is named however the OCR breaks its two lines
+
+- **What stalled.** `run-continue-20` (job `pwsh-492`, dir
+  `evidence/runtime/window-20261007-203340`) took the stage-clear panel's Confirm
+  (`BATTLE_VICTORY → RUN_CLAIM`, 00:33:43) and the ledger filed `floor_clear 5` with
+  `final_victory` at 00:33:47, then alternated `RUN_CLAIM ↔ RUN_REWARD_DIALOG` for eight
+  clicks until `claim_family_made_no_progress` stopped it. The page it was really on is the
+  weekly-bonus question: `frame-0009.json` reads it as **one glued line**
+  `Spend your 'Weekly Bonuses, to claim the bonus [636,486,646,34] 0.97` above
+  `× Cancel [704,718,142,42]` and `Confirm [1112,720,112,34]`, where the pinned pair reading
+  (`evidence/runtime/window-20261007-171228/frame-0003.json`) has `... to claim the` plus
+  `bonus rewards?` on two lines.
+- **Why.** `spend_weekly_bonuses` demanded the line end in `the$` and `bonus_rewards`
+  demanded `bonus rewards?$`, so neither matched the glued reading; the run summary's four
+  words stayed readable behind the dialog and named the page `RUN_CLAIM`, so every click went
+  to the summary's `Claim Rewards [1638,855,180,80]` and dismissed the question instead of
+  answering it. The weekly bonus stayed at 2/3 throughout.
+- **What the script does now** (`battle_victory` commit `63aa2aa`; this one follows it).
+  `assets/resource/en/locale.json` reads `^Spend your '?Weekly Bonuses,? to claim the(?: bonus)?$`,
+  and `src/maalimbus/vision.py`'s `RUN_REWARD_BONUS` rule needs the question line (either
+  `spend_weekly_bonuses` or `bonus_rewards`) with `Confirm` and `Cancel`, its first ROI widened
+  to `(.33,.42,.68,.51)` to hold `[636,486,646,34]`. The rule already sat before `RUN_CLAIM`,
+  so only the reading changed. The plan spends a weekly bonus only for a run the ledger holds
+  as finished, and this run is one (`final_victory`), so the next window answers Confirm.
+- **Tests.** `tests/test_vision.py::test_the_weekly_bonus_question_is_named_before_anything_is_spent`
+  additionally pins frame-0009 (the glued line must classify as `RUN_REWARD_BONUS`) and its
+  negative now removes both lines of the question, since either one names the page. 428 passed;
+  `tools/verify_anchors.py` reports 45 page(s), 0 broken.
+- **Not claimed.** The glued reading is pinned on one frame only, and no run has yet been
+  driven from this question through `reward_received` to `entry_returned` under the new rule.
+
 ## 2026-10-07 the stage-clear result panel is read even when its badge is misread
 
 - **What stalled.** `run-continue-19` (job `pwsh-465`, dir

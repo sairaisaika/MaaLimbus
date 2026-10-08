@@ -140,8 +140,22 @@ def test_the_weekly_bonus_question_is_named_before_anything_is_spent():
     assert classify(records, words, size) == 'RUN_REWARD_BONUS'
     # Without the question line it is not this page: the buttons alone are shared with
     # every other confirmation in the game.
-    asked = [t for t in records if 'Weekly' not in t.text]
+    # Without either line of the question it is not this page: the buttons alone are
+    # shared with every other confirmation in the game. Either line names it, because the
+    # OCR may glue them together (frame-0009 below) or read only the second one.
+    asked = [t for t in records if 'Weekly' not in t.text and 'bonus rewards' not in t.text]
     assert classify(asked, words, size) != 'RUN_REWARD_BONUS'
+    # On a 1920x1080 frame the same question is read as one line -- live
+    # evidence/runtime/window-20261007-203340/frame-0009.json reads "Spend your 'Weekly
+    # Bonuses, to claim the bonus" [636,486,646,34] instead of the pair -- and the run
+    # summary's four words stay readable behind it, so run-continue-20 named the page
+    # RUN_CLAIM and spent its claim guard alternating the summary's Claim with the
+    # modal's, dismissing the question instead of answering it each time.
+    glued = json.loads((Path(__file__).resolve().parents[1]
+                        / 'evidence/runtime/window-20261007-203340/frame-0009.json').read_text())
+    tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in glued['ocr']]
+    assert any('Weekly Bonuses' in t.text and t.text.endswith('bonus') for t in tokens)
+    assert classify(tokens, words, tuple(glued['size'])) == 'RUN_REWARD_BONUS'
 
 
 def test_the_reward_modal_is_named_whichever_way_the_game_leaves_it():

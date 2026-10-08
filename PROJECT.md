@@ -9,6 +9,13 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
+## Latest continuation: 2026-10-07 21:05 local (journal UTC 01:05)
+- **结算面板的修复生效**：`run-continue-20`（job `pwsh-492`，dir `evidence/runtime/window-20261007-203340`）step 0 就是 `BATTLE_VICTORY → RUN_CLAIM`（reason `victory_confirm_clears_the_result_and_carries_the_rewards`，target `[1638,831,164,48]`）⇒ 第 5 层的结算页被正确命名并按下 Confirm，进到「Exploration Complete」总览；账本在同一分钟记下 `00:33:47 floor_clear 5` 与 `00:33:47 final_victory`（`active run 476f23dc team 1 floors=[1,2,3,4]` ⇒ 现在 5 层全清）。
+- **新停机点：周奖励的第二问在一张 1920×1080 的帧上被 OCR 粘成一行。** step 1-7 在 `RUN_CLAIM ↔ RUN_REWARD_DIALOG` 之间来回（8 次点击后 `claim_family_made_no_progress` 停机）：`frame-0009.json` 读的是**一整行** `Spend your 'Weekly Bonuses, to claim the bonus [636,486,646,34] 0.97`（配对读法里的 `bonus rewards?` 被并进去），于是 `spend_weekly_bonuses`（要求以 `the$` 结尾）与 `bonus_rewards` 都不命中 ⇒ 这一页被判成 `RUN_CLAIM`（总览的四个词还在它背后可读），驱动便一直点总览的 `Claim Rewards [1638,855,180,80]`，每次都把问题当 Cancel 关掉、回到奖励弹窗 ⇒ 死循环；周奖励仍是 `2/3`（没有被花掉）。
+- **处理**：`assets/resource/en/locale.json` 的 `spend_weekly_bonuses` 改成 `^Spend your '?Weekly Bonuses,? to claim the(?: bonus)?$`（两行或粘成一行的两种读法都命中），`src/maalimbus/vision.py` 的 `RUN_REWARD_BONUS` 规则改成「问题行（`spend_weekly_bonuses` 或 `bonus_rewards`）＋ `Confirm` ＋ `Cancel`」，第一条的 roi 放到 `(.33,.42,.68,.51)` 以覆盖 `[636,486,646,34]`，注释钉住 frame-0009 与这次死循环。识别顺序本来就正确（`RUN_REWARD_BONUS` 在 `RUN_CLAIM` 之前），坏的是正则。
+- **测试**：扩展 `tests/test_vision.py::test_the_weekly_bonus_question_is_named_before_anything_is_spent`（粘行帧必须判 `RUN_REWARD_BONUS`；负例改为把问题两行**都**拿掉）。**428 passed；`tools/verify_anchors.py` 45 page(s), 0 broken。**
+- **下一步**：重启驱动接着走 `RUN_REWARD_BONUS`（账本里这一局已有 `final_victory` ⇒ 按 Confirm 花一次周奖励）⇒ 期待 `reward_received` 与 `entry_returned`，轮换从 team 1 前进到 team 6。
+
 ## Latest continuation: 2026-10-07 20:45 local (journal UTC 00:45)
 - **停机点：第 5 层 boss 打完后的关卡结算页被判 UNKNOWN，等满 40 轮停机。** `run-continue-19`（job `pwsh-465`，dir `evidence/runtime/window-20261007-201340`）step 24 `page_unreadable_after_waiting`；证据帧 `frame-0218..0220.json`（00:30:03–00:30:17）是结算画面：左「Most Valued Employee／Damage Contributed 23%」＋boss 立绘与台词，右 `Victory [1486,146,276,100] 1.0`、`EX-GLEAR [1334,162,180,86] 0.86`、`LV.91`／`EXP +0`／`3992/5178`、十二张 Lv.60 卡与 `Confirm [1638,831,164,48] 1.0`（现场 `build/live-stall-19.png`）。
 - **真因**：`BATTLE_VICTORY` 的规则原来要求 `Victory` **且** `EX-CLEAR`，而这一帧的小字被 OCR 读成 `EX-GLEAR`（C 认成 G）⇒ 不命中 ⇒ 整页 UNKNOWN。这一页**不会自己走掉**（唯一前进输入就是那个 Confirm），所以把它当动画「等」是错的处理。

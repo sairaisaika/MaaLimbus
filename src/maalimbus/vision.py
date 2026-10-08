@@ -113,8 +113,18 @@ def classify(records, locale, size):
     # [842,524,234,27] and '× Cancel' [702,724,140,36] / 'Confirm' [1116,720,112,40],
     # with the reward modal dimmed behind it. That is the frame a run the weekly reset
     # expired is left with; the window treated it as an unnamed dialog and stopped.
-    if (find(records, locale.get('spend_weekly_bonuses', r'(?!)'), (.35, .42, .65, .50), size, .85)
-            and find(records, locale.get('bonus_rewards', r'(?!)'), (.42, .47, .58, .53), size, .85)
+    # On a 1920x1080 frame the same question is read as one line with its second line
+    # glued on -- live evidence/runtime/window-20261007-203340/frame-0009.json reads
+    # "Spend your 'Weekly Bonuses, to claim the bonus" [636,486,646,34] 0.97 over the
+    # same '× Cancel' [704,718,142,42] and 'Confirm' [1112,720,112,34] -- and the four
+    # summary words stay readable behind it, so the question was named RUN_CLAIM and
+    # run-continue-20 alternated the summary's Claim with the modal's until the claim
+    # guard stopped it, dismissing the question each time. The question line alone names
+    # this page, whichever way the OCR breaks it.
+    if ((find(records, locale.get('spend_weekly_bonuses', r'(?!)'), (.33, .42, .68, .51),
+              size, .85)
+         or find(records, locale.get('bonus_rewards', r'(?!)'), (.42, .47, .58, .53),
+                 size, .85))
             and find(records, locale.get('gift_confirm', r'(?!)'), (.56, .64, .66, .73), size, .85)
             and find(records, locale.get('cancel', r'(?!)'), (.34, .65, .46, .72), size, .85)):
         return 'RUN_REWARD_BONUS'
