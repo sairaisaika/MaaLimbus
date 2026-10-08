@@ -990,3 +990,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 ### 2026-10-08 owned single-free gift refusal
 - Actual fifth-floor Bloody Gadget Owned offer was refused once, then its exact continuation question confirmed once. Fresh read-only REWARD_CARD0/1 successor and original input/hash/scope proofs complete the refusal transaction; no gift receipt or floor clear is credited.
 - 571 Python tests and eight native retained-frame cases passed. Missing Owned cannot authorize refusal; missing title/control/question fails. Unknown successor and already-sent confirmation retain pending and reject another input. Other forbidden controls stay forbidden. Final payout and complete software/updater/Release acceptance remain open.
+
+### 2026-10-08 real Hard five-floor completion, payout pending
+- Actual window144554 frame0457 shows Exploration Complete, all five HARD floor columns, fifth-floor7/7 andTotalProgress100%. Frame0458/459 reward modal showsCLEAR Floor5 HARD7/7; all three PNGhashes/currentteam2/scope/ledger validated in build/floor-five-real-verification-20261008.json. Seven Python andfour native retained-frame positive/negative summary cases passed; replay remains recognition evidence only.
+- Final paid Claim was not sent. Actual visible cost6modules withweekly1/3, currentbudget0/pending. Offered rewards do not prove receipt. Budget question pending; no claim/toggle/giveup/toWindow/rotation/reentry. Full goal remains active and broader software/updater/Release acceptance is unfinished.
