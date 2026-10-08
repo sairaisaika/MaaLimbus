@@ -67,5 +67,9 @@
   "mirror_queue_single": "Single saved team",
   "mirror_queue_rotation": "Ordered team rotation",
   "mirror_single_team": "Saved team",
-  "mirror_queue_count": "Rotation length"
+  "mirror_queue_count": "Rotation length",
+  "software_auto_update": "GitHub automatic updates",
+  "software_auto_update_description": "The desktop launcher checks official stable releases before opening the app, preserves settings and rolls back failed installs. Offline or rate-limited checks use the local version. Applies on next launch.",
+  "software_update_enabled": "Check and install on startup",
+  "software_update_disabled": "Disable automatic updates"
 }

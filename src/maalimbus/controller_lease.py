@@ -1,13 +1,24 @@
 """One OS lock shared by native CLI and packaged Agent entry points."""
 from pathlib import Path
+import os
 
 _leases={}
+
+
+def lease_path(path):
+    path = Path(path)
+    # A source CLI and an installed Agent have different roots. The controller
+    # lock must survive app replacement and exclude both of them system-wide.
+    if path.name == 'controller.lock':
+        base = Path(os.environ.get('LOCALAPPDATA', Path.home()/'AppData/Local'))
+        return (base/'MaaLimbus/controller.lock').resolve()
+    return path.resolve()
 
 
 class ControllerLease:
     def __init__(self,path):
         import msvcrt
-        self.path=Path(path).resolve()
+        self.path=lease_path(path)
         self.path.parent.mkdir(parents=True,exist_ok=True)
         self.file=self.path.open('a+b')
         try:
@@ -21,7 +32,7 @@ class ControllerLease:
 
     @classmethod
     def acquire(cls,path):
-        key=str(Path(path).resolve())
+        key=str(lease_path(path))
         lease=_leases.get(key)
         if lease is None or lease.file.closed:
             lease=cls(path);_leases[key]=lease

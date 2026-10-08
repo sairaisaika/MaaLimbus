@@ -48,8 +48,10 @@ def test_invalid_second_edit_never_partially_replaces_first(tmp_path, fault):
 def test_native_global_sections_use_independent_keys_and_start_before_mirror():
     root = Path(__file__).resolve().parents[1]
     pi = json.loads((root/'assets/interface.json').read_text(encoding='utf-8'))
-    assert len(pi['setting']) == len(pi['global_option']) == 20
-    assert len(set(pi['global_option'])) == 20
+    build_sections = [s for s in pi['setting'] if s['name'].startswith('global_team_')]
+    assert len(build_sections) == 20
+    assert len(set(pi['global_option'])) == len(pi['global_option'])
+    assert 'software_auto_update' in pi['global_option']
     for slot in range(1, 21):
         name = f'global_team_{slot}'
         option = pi['option'][name]

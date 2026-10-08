@@ -102,7 +102,8 @@ def main():
         shutil.copyfile(ROOT/name, app/name)
     shutil.copyfile(stage/'mxu/LICENSE', app/'THIRD_PARTY_NOTICES/MXU-AGPL-3.0.txt')
     for entry, name, target in [('agent/main.py', 'MaaLimbusAgent', 'agent'),
-                                ('tools/run_native.py', 'MaaLimbusRunner', 'runner')]:
+                                ('tools/run_native.py', 'MaaLimbusRunner', 'runner'),
+                                ('tools/launch_app.py', 'MaaLimbusLauncher', 'launcher')]:
         shutil.copytree(freeze(ROOT/entry, name, stage/name), app/target)
     interface = json.loads((ROOT/'assets/interface.json').read_text(encoding='utf-8'))
     interface['agent'] = {'child_exec': './agent/MaaLimbusAgent.exe', 'child_args': []}

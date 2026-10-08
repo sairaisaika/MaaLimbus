@@ -139,6 +139,8 @@ def main():
     else:
         work = ROOT/'build'/('local-app-'+datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S'))
         shutil.copytree(freeze(ROOT/'agent/main.py', 'MaaLimbusAgent', work), staged/'agent')
+    launcher_work = ROOT/'build'/('launcher-'+uuid.uuid4().hex)
+    shutil.copytree(freeze(ROOT/'tools/launch_app.py', 'MaaLimbusLauncher', launcher_work), staged/'launcher')
 
     info = {'project': 'MaaLimbus', 'development_only': True, 'packaged_app': False,
             'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),

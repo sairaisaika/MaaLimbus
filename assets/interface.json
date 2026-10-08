@@ -202,6 +202,7 @@
     }
   ],
   "option": {
+    "software_auto_update": {"type":"select","label":"$software_auto_update","description":"$software_auto_update_description","default_case":"enabled","cases":[{"name":"enabled","label":"$software_update_enabled"},{"name":"disabled","label":"$software_update_disabled"}]},
     "team_slot": {
       "type": "select",
       "label": "$team_slot",
@@ -4979,6 +4980,7 @@
   "icon": "misc/Don-Quixote.png",
   "welcome": "../README.md",
   "global_option": [
+    "software_auto_update",
     "global_team_1",
     "global_team_2",
     "global_team_3",
@@ -5001,6 +5003,7 @@
     "global_team_20"
   ],
   "setting": [
+    {"name":"software_update","label":"$software_auto_update","option":["software_auto_update"],"default_expand":true},
     {
       "name": "global_team_1",
       "label": "Team 1",

@@ -19,9 +19,10 @@ $ErrorActionPreference = 'Stop'
 $TaskRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 
 $TaskApp = Join-Path $TaskRoot 'dist/MaaLimbus/MaaLimbus.exe'
+$TaskLauncher = Join-Path $TaskRoot 'dist/MaaLimbus/launcher/MaaLimbusLauncher.exe'
 if (-not $Target) {
     if (Test-Path -LiteralPath $TaskApp) {
-        $Target = $TaskApp
+        if (Test-Path -LiteralPath $TaskLauncher) { $Target = $TaskLauncher } else { $Target = $TaskApp }
         $WorkDir = Join-Path $TaskRoot 'dist/MaaLimbus'
         if (-not $Name) { $Name = 'MaaLimbus' }
     } else {

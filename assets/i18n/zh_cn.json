@@ -67,5 +67,9 @@
   "mirror_queue_single": "单队（编辑队伍后继续使用）",
   "mirror_queue_rotation": "多队按顺序轮换",
   "mirror_single_team": "使用队伍",
-  "mirror_queue_count": "轮换队伍数量"
+  "mirror_queue_count": "轮换队伍数量",
+  "software_auto_update": "GitHub 自动更新",
+  "software_auto_update_description": "从桌面快捷方式启动时检查官方稳定版；关闭软件后安装并保留设置，失败回滚。断网或限流继续使用本地版本。下次启动生效。",
+  "software_update_enabled": "启动时自动检查和安装",
+  "software_update_disabled": "关闭自动更新"
 }

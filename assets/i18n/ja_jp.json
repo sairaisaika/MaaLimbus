@@ -67,5 +67,9 @@
   "mirror_queue_single": "1つの保存編成を使う",
   "mirror_queue_rotation": "複数の編成を順番に使う",
   "mirror_single_team": "使用する編成",
-  "mirror_queue_count": "使用する編成数"
+  "mirror_queue_count": "使用する編成数",
+  "software_auto_update": "GitHub 自動更新",
+  "software_auto_update_description": "デスクトップの起動入口で公式安定版を確認します。設定を保持し、インストール失敗時は復元します。オフラインや制限中はローカル版を使用します。次回起動から適用。",
+  "software_update_enabled": "起動時に確認してインストール",
+  "software_update_disabled": "自動更新を無効にする"
 }

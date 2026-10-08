@@ -21,7 +21,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction, InputPreflight, ThemeObservation, DeploymentProof, BattlePlanObservation, MapObservation, BattleObservation
-from recognition import StarProof,InitialGiftProof,InitialReceiptProof,DifficultyProof, MirrorLoopAction
+from recognition import StarProof,InitialGiftProof,InitialReceiptProof,DifficultyProof, MirrorLoopAction, GlobalSettingsAction
 from maalimbus.windows_preflight import check_window, InputPermissionError, process_identity
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job, wait_task
@@ -139,6 +139,7 @@ def execute_task(args, directory, journal, state, controller, window, profile, s
     resource.register_custom_action('limbus_battle_plan_observe',BattlePlanObservation(recognition))
     # `--entry MirrorLoop` drives the whole dungeon through this hook.
     resource.register_custom_action('limbus_mirror_loop',MirrorLoopAction(recognition))
+    resource.register_custom_action('limbus_global_settings',GlobalSettingsAction(recognition))
     wait_job(resource.post_bundle(ROOT / 'assets/resource/base'), timeout=20, deadline=deadline)
     wait_job(resource.post_bundle(ROOT / f'assets/resource/{args.locale}'), timeout=20, deadline=deadline)
     tasker = Tasker()

@@ -42,7 +42,7 @@ def metadata(app, version=None):
     return info
 
 
-def closed_app(app):
+def closed_app(app, *, external_launcher_pid=None):
     """Read CIM identity locally; never print command lines or terminate processes."""
     if os.name != 'nt':
         raise StageError('Windows process verification required')
@@ -59,6 +59,13 @@ def closed_app(app):
     for record in records:
         executable = (record.get('ExecutablePath') or '').replace('/', '\\').casefold()
         command = (record.get('CommandLine') or '').replace('/', '\\').casefold()
+        # The copied launcher lives outside the installation, but its --app argument
+        # names it. Only this process may be excluded; no app/Agent is ignored.
+        if external_launcher_pid is not None and record.get('ProcessId') == external_launcher_pid:
+            if (external_launcher_pid != os.getpid() or not executable or
+                    executable.startswith(prefix)):
+                raise StageError('Updater must execute outside the installation')
+            continue
         if ((record.get('Name') or '').casefold() in
                 ('maalimbus.exe', 'maalimbusagent.exe', 'maalimbusrunner.exe') and not executable):
             raise StageError('Application process identity unavailable')
