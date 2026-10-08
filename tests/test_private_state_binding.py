@@ -1,4 +1,6 @@
 import json
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 import pytest
 from maalimbus.runtime_paths import data_directory, ledger_path
@@ -10,6 +12,7 @@ def binding(app, target):
 
 
 def test_shared_state_keeps_actual_active_scope(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]/'agent'))
     import recognition
     from recognition import loop_store, Journal
     from maalimbus.storage import RunStore

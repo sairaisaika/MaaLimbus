@@ -65,7 +65,7 @@ from .window import (NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
 #: repository root: the loop resolves the pipeline, the anchors and the templates
 #: relative to it, never relative to the caller's cwd (a Maa agent's cwd is not
 #: the repository).
-ROOT = Path(__file__).resolve().parents[2]
+from .runtime_paths import ROOT
 
 #: pages the loop guard never counts: the guide book advances card by card from the
 #: same control, and a battle legitimately alternates Win Rate and START.
@@ -1223,7 +1223,8 @@ class MirrorRunner:
         if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team
-            profiles = ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT / 'config')) / 'user-team-profiles.json')
+            from .runtime_paths import data_directory
+            profiles = ProfileStore(data_directory(ROOT) / 'user-team-profiles.json')
             if profiles.path.exists():
                 saved = next((t for t in profiles.load() if t.slot == slot), None)
                 if saved is not None and saved.deployment:

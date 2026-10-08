@@ -28,7 +28,13 @@ def main():
         GiftCatalog(ROOT / 'assets/resource/base')
         from maalimbus.theme_vision import ThemeCatalog
         ThemeCatalog(ROOT / 'assets/resource/base')
+        from maalimbus import runner
+        from maalimbus.runtime_paths import data_directory
+        if runner.ROOT != ROOT or not runner.REGISTRY.is_file():
+            raise RuntimeError('Runner resolved the wrong installed resource directory')
         print(json.dumps({'passed': True, 'application_root': str(ROOT),
+                          'runner_root': str(runner.ROOT),
+                          'private_state_directory': str(data_directory(ROOT)),
                           'device_controller': False, 'locales': ['en', 'jp']}))
         return
     if len(sys.argv) != 2:

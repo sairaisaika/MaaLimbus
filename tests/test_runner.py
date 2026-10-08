@@ -214,7 +214,10 @@ def test_battle_submission_intent_survives_device_failure(tmp_path,monkeypatch):
     order=[3,4,9,1,7,2,12,5,8,10,11,6]
     ProfileStore(tmp_path/'user-team-profiles.json').save([Team(2,frozenset({'Charge','Tremor'}),
         deployment=tuple(SINNERS[n-1] for n in order))])
-    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path))
+    installed = tmp_path/'installed-config'
+    installed.mkdir()
+    (installed/'user-data-root.json').write_text(json.dumps({'version':1,'directory':str(tmp_path)}))
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(installed))
     frame=ROOT/'evidence/runtime/window-20261008-045214/frame-0008.json'
     runner,device=window(tmp_path,[frame],{'team':2,'rounds':1})
     runner.run_id='test';t=DeploymentTransaction(tmp_path/'deployment.json')
