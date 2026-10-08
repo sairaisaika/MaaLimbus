@@ -110,7 +110,7 @@ def _refuse(page, reason):
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
-              search=None, check=None, defeat=None, bonus=None):
+              search=None, check=None, defeat=None, bonus=None, difficulty=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -122,7 +122,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
                       initial=initial, search=search, check=check, defeat=defeat,
-                      bonus=bonus)
+                      bonus=bonus, difficulty=difficulty)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS}
     if plan.get('target') and tuple(plan['target']) in forbidden:
@@ -133,7 +133,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
-               search=None, check=None, defeat=None, bonus=None):
+               search=None, check=None, defeat=None, bonus=None, difficulty=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -348,7 +348,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # RESUME_DIALOG is an accepted successor here for the same reason as above.
         return _plan(page, CLICK, target=box,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'LEVEL_WARNING',
-                             'MAP', 'RESUME_DIALOG', 'UNKNOWN'),
+                             'MAP', 'DUNGEON_TEAM', 'RESUME_DIALOG', 'UNKNOWN'),
                      reason='the_entry_confirmation_starts_the_run')
     if page == 'RESUME_DIALOG':
         box = controls.get('resume.resume_button')
@@ -370,6 +370,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='the_weekly_reset_notice_is_declined_and_the_run_stays')
     if page == 'THEME_PACKS':
+        if difficulty != 'hard':
+            return _refuse(page, 'hard_difficulty_not_proven')
         # "SELECT FLOOR n THEME PACK" hangs the candidate packs from a rack and asks
         # for one to be taken: the page's own prompt is "Select a Pack And Pull", and
         # a click on a pack only plays its hover animation (live probe
@@ -746,6 +748,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                          reason='dungeon_team_slot_is_selected_for_the_rotation',
                          detail={'slot': wanted})
         confirm = controls.get('team.confirm_button')
+        if wanted is not None and chosen != wanted:
+            return _refuse(page, 'wanted_team_header_not_proven')
         if confirm is None:
             return _refuse(page, 'dungeon_team_confirm_not_anchored')
         return _plan(page, CLICK, target=confirm,

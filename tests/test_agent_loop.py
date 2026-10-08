@@ -179,6 +179,17 @@ def test_the_directory_follows_the_node_then_the_environment(tmp_path, monkeypat
     assert stamped.name.startswith('pi-') and stamped.is_dir()
 
 
+def test_saved_launch_graces_are_shared_with_the_gui(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path))
+    (tmp_path/'user-launch.json').write_text(json.dumps({'graces':'2,4,5,7','grace_budget':100,'gift_keyword':'charge'}))
+    settings,ignored=loop_parameters({})
+    assert settings.graces=='2,4,5,7' and settings.grace_budget==100
+    assert settings.gift_keyword=='charge' and not ignored
+    settings,_=loop_parameters({'grace_budget':0})
+    assert settings.grace_budget==0
+
+
 def test_the_budget_is_bounded(monkeypatch):
     assert loop_budget({}) == 5400.0
     assert loop_budget({'budget': 0}) == 1.0

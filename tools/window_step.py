@@ -318,6 +318,10 @@ def main() -> int:
                 # and a window that stopped between them would leave the client idle.
                 result['flow_steps'].extend(window._flow(deadline, flows.flow(name),
                                                          bool(args.observe_only)))
+                if any(not (entry.get('passed') or entry.get('reason') == 'observe_only')
+                       for entry in result['flow_steps']):
+                    result = window.summary()
+                    return 1
         boxes = []
         for spec in (args.click_box or []):
             parts = [int(value) for value in spec.replace(' ', '').split(',')]

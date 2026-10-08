@@ -167,15 +167,12 @@
     {
       "name": "mirror_loop",
       "label": "$mirror_loop",
-      "entry": "TeamKeywordSet",
+      "entry": "MirrorLoop",
       "group": [
         "mirror"
       ],
       "description": "$mirror_loop_scope",
       "option": [
-        "team_keywords",
-        "team_keywords_extra",
-        "team_build_name",
         "run_team"
       ],
       "default_check": false
@@ -191,7 +188,8 @@
       "option": [
         "team_keywords",
         "team_keywords_extra",
-        "team_build_name"
+        "team_build_name",
+        "team_build_slot"
       ],
       "pipeline_override": {
         "TeamBuildSave": {
@@ -4420,6 +4418,234 @@
             "MirrorLoop": {
               "custom_action_param": {
                 "team": 20
+              }
+            }
+          }
+        }
+      ]
+    },
+    "team_build_slot": {
+      "type": "select",
+      "label": "$team_build_slot",
+      "description": "$team_build_slot_description",
+      "default_case": "1",
+      "cases": [
+        {
+          "name": "1",
+          "label": "1",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "2",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 2
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "3",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "4",
+          "label": "4",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 4
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "5",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 5
+              }
+            }
+          }
+        },
+        {
+          "name": "6",
+          "label": "6",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 6
+              }
+            }
+          }
+        },
+        {
+          "name": "7",
+          "label": "7",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 7
+              }
+            }
+          }
+        },
+        {
+          "name": "8",
+          "label": "8",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 8
+              }
+            }
+          }
+        },
+        {
+          "name": "9",
+          "label": "9",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 9
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "10",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 10
+              }
+            }
+          }
+        },
+        {
+          "name": "11",
+          "label": "11",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 11
+              }
+            }
+          }
+        },
+        {
+          "name": "12",
+          "label": "12",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 12
+              }
+            }
+          }
+        },
+        {
+          "name": "13",
+          "label": "13",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 13
+              }
+            }
+          }
+        },
+        {
+          "name": "14",
+          "label": "14",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 14
+              }
+            }
+          }
+        },
+        {
+          "name": "15",
+          "label": "15",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 15
+              }
+            }
+          }
+        },
+        {
+          "name": "16",
+          "label": "16",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 16
+              }
+            }
+          }
+        },
+        {
+          "name": "17",
+          "label": "17",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 17
+              }
+            }
+          }
+        },
+        {
+          "name": "18",
+          "label": "18",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 18
+              }
+            }
+          }
+        },
+        {
+          "name": "19",
+          "label": "19",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 19
+              }
+            }
+          }
+        },
+        {
+          "name": "20",
+          "label": "20",
+          "pipeline_override": {
+            "TeamKeywordSet": {
+              "custom_action_param": {
+                "slot": 20
               }
             }
           }

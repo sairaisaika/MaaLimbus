@@ -23,6 +23,18 @@ def test_every_flow_validates_and_unknown_names_are_refused():
         flow('no_such_flow')
 
 
+def test_drive_flow_reads_the_retained_split_mirror_caption_inside_its_band():
+    # Retained frame-0004.json from window-20261008-032510; no ignored runtime
+    # file dependency in CI. The full word is separate from the noisy fragment.
+    record={'size':[1920,1080],'ocr':[
+        {'text':'Dungeons','box':[605,477,148,30],'score':.98},
+        {'text':'geons','box':[664,478,78,28],'score':.8}]}
+    step=flow('to_mirror')[1]
+    hit=token_of(record['ocr'],record['size'],step)
+    assert hit and hit['text']=='Dungeons'
+    assert token_of([{'text':'Dungeons','box':[600,900,148,30],'score':.99}],(1920,1080),step) is None
+
+
 def test_the_launch_flow_starts_the_package_activity_itself():
     steps = flow('launch')
     assert steps[0].kind == 'start_app'

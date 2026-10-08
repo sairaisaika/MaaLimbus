@@ -11,6 +11,14 @@ PARTICIPANT_ROI = (0.86, 0.66, 0.97, 0.78)
 CARD_COUNT = 12
 
 
+def selected_saved_team(records, size):
+    """Read the selected loadout's header, never its separate Preset number."""
+    pattern=r'^\s*TEAMS\s*#\s*([1-7])\s*$'
+    hits=find(records,pattern,(.16,.13,.42,.22),size,.9)
+    if len(hits)!=1:return None
+    return int(re.fullmatch(pattern,hits[0].text,re.I).group(1))
+
+
 def card_states(records, boxes, size):
     """Read every pre-battle card's participation badge, in reading order.
 

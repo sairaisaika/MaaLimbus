@@ -1468,6 +1468,61 @@
     "next": [],
     "on_error": []
   },
+  "TeamKeywordSet": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "keywords",
+      "slot": 1,
+      "keywords": []
+    },
+    "timeout": 20000,
+    "next": [
+      "TeamKeywordExtra"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamKeywordExtra": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "keywords_add",
+      "keywords": []
+    },
+    "timeout": 20000,
+    "next": [
+      "TeamBuildSave"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamBuildSave": {
+    "recognition": "DirectHit",
+    "action": "Custom",
+    "custom_action": "limbus_team",
+    "custom_action_param": {
+      "mode": "save",
+      "name": ""
+    },
+    "timeout": 20000,
+    "next": [
+      "MirrorLoop"
+    ],
+    "on_error": [
+      "LimbusUnknown"
+    ]
+  },
+  "TeamBuildDone": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "next": [],
+    "on_error": []
+  },
   "MirrorLoop": {
     "recognition": "DirectHit",
     "action": "Custom",

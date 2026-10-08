@@ -54,5 +54,7 @@
   "team_build_name": "team build 名称（留空沿用）",
   "team_build_name_description": "保存这份编队时用的名字；留空则沿用编队已有的名字。",
   "run_team": "队伍槽位",
-  "run_team_description": "本局使用哪一支队伍；轮换账本指向的队伍优先。"
+  "run_team_description": "本局使用哪一支队伍；轮换账本指向的队伍优先。",
+  "team_build_slot": "要编辑的保存队（编号）",
+  "team_build_slot_description": "这份 team build 写在哪个保存队上；1..20，和轮换表用的是同一套编号。"
 }

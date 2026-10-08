@@ -54,5 +54,7 @@
   "team_build_name": "team build 名（空なら現状維持）",
   "team_build_name_description": "この編成を保存する名前。空なら現在の名前を保ちます。",
   "run_team": "隊スロット",
-  "run_team_description": "今回使う隊。ローテーション台帳が指す隊が優先されます。"
+  "run_team_description": "今回使う隊。ローテーション台帳が指す隊が優先されます。",
+  "team_build_slot": "編集する保存チーム（番号）",
+  "team_build_slot_description": "この team build を書き込む保存チーム。1..20、ローテーションと同じ番号です。"
 }

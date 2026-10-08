@@ -1126,14 +1126,12 @@ class MirrorRunner:
                 if saved is not None and saved.deployment:
                     team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
         if page == 'DUNGEON_TEAM':
-            # The rotation decides which loadout to bring; the planner clicks the slot
-            # once, and once that click has been sent the next step falls through to
-            # Confirm. The slot is read from the ledger on every loadout page, not
-            # frozen at startup: a window long enough to claim one reward and re-enter
-            # another run would otherwise bring the retired team again.
+            from .team_vision import selected_saved_team
+            # A click is intent; the fresh TEAMS header proves which slot is selected.
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
             team = {'wanted': self.store.team_slot if self.store is not None
                     else settings.team,
-                    'selected': state['team_slot_picked']}
+                    'selected': selected_saved_team(texts,record.get('size') or (1920,1080))}
         else:
             state['team_slot_picked'] = None
         defeat = None
@@ -1194,11 +1192,28 @@ class MirrorRunner:
                        for item in record.get('ocr') or []]
             available = available_starlight(records, record.get('size') or (1920, 1080))
             if available is None:
-                available = settings.grace_budget - sum(cost_of(index)
-                                                        for index in state['grace_bought'])
-            wanted = plan_purchases(state['grace_wanted'], available,
-                                    bought=state['grace_bought'])
-            points = plus_points(records, record.get('size') or (1920, 1080))
+                stopped = self._record(page, record, frame, candidates, None,
+                                       'starlight_available_balance_not_proven')
+                return self._result(page, None, False, stopped, done=True)
+            from .grace_vision import observed_board
+            image, _ = latest_frame(directory)
+            board=observed_board(image,records,state['grace_wanted']) if image is not None else None
+            if board is None:
+                stopped=self._record(page,record,frame,candidates,None,'configured_grace_costs_not_proven')
+                return self._result(page,None,False,stopped,done=True)
+            spent = sum(board['costs'][index-1] for index in state['grace_bought'])
+            total_budget = min(settings.grace_budget, available + spent)
+            wanted = plan_purchases(state['grace_wanted'], total_budget,
+                                    bought=state['grace_bought'], costs=board['costs'])
+            points = board['points']
+            self.journal.record('grace_purchase_plan', requested=state['grace_wanted'],
+                                bought=sorted(state['grace_bought']), available=available,
+                                budget=settings.grace_budget, costs=board['costs'], next=wanted)
+            remaining = set(state['grace_wanted']) - state['grace_bought']
+            if remaining and not wanted:
+                stopped=self._record(page,record,frame,candidates,None,
+                                     'configured_graces_incomplete_within_budget')
+                return self._result(page,None,False,stopped,done=True)
             if wanted and wanted[0] in points:
                 graces = {'card': wanted[0], 'point': points[wanted[0]],
                           'available': available}
@@ -1206,7 +1221,18 @@ class MirrorRunner:
             state['grace_bought'] = set()
         check = check_of(directory, record, page=page)
         arrows = arrows_of(directory)
+        difficulty = None
+        if page == 'THEME_PACKS':
+            from .theme_vision import ThemeCatalog, theme_page
+            image, _ = latest_frame(directory)
+            if image is not None:
+                texts = [Text(t['text'], tuple(t['box']), t['score']) for t in record.get('ocr', [])]
+                locale = json.loads((ROOT/'assets/resource/en/locale.json').read_text(encoding='utf-8'))
+                difficulty = theme_page(image, ThemeCatalog(ROOT/'assets/resource/base'), texts, locale)
+            self.journal.record('difficulty_gate', difficulty=difficulty,
+                                frame=frame, required='hard', verified_clear=False)
         plan = plan_step(page, controls=self.controls, arrows=arrows,
+                         difficulty=difficulty,
                          start_box=record.get('start_box'),
                          auto_assign=record.get('auto_assign_buttons'),
                          candidates=candidates, candidate_index=choice_index,

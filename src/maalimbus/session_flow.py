@@ -80,7 +80,7 @@ FLOWS = {
     'to_mirror': (
         Step('menu_drive', 'click', r'^Drive$', (.74, .86, .86, .95), .70,
              timeout_s=120, note='bottom-right Drive button -> dungeon selection'),
-        Step('drive_mirror_mode', 'click', r'^Mirror Dungeons$', (.28, .33, .46, .48), .70,
+        Step('drive_mirror_mode', 'click', r'^(?:Mirror Dungeons|Dungeons)$', (.28, .33, .46, .48), .70,
              timeout_s=120, note='left column card; the subtitle carries the season name'),
     ),
     'enter_mirror': (

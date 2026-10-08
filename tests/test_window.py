@@ -1044,7 +1044,7 @@ def test_the_theme_pack_page_is_pulled_down_and_never_clicked():
     # theme pack page ("SELECT FLOOR 2 THEME PACK", "Select a Pack And Pull").
     controls = {'theme_packs.pack_01': [520, 390, 250, 300],
                 'theme_packs.pull_to': [600, 900, 90, 60]}
-    plan = plan_step('THEME_PACKS', controls=controls)
+    plan = plan_step('THEME_PACKS', controls=controls, difficulty='hard')
     assert plan['action'] == SWIPE
     assert plan['target'] == [520, 390, 250, 300]
     assert plan['to'] == [645, 930]
@@ -1057,8 +1057,8 @@ def test_the_theme_pack_page_is_pulled_down_and_never_clicked():
     assert successor_ok(plan, 'MAP') is True
     assert successor_ok(plan, 'UNKNOWN') is True
     # Without the pack box, or without a pull target, the page refuses to guess.
-    assert plan_step('THEME_PACKS', controls={})['reason'] == 'theme_pack_card_not_anchored'
-    half = plan_step('THEME_PACKS', controls={'theme_packs.pack_01': [520, 390, 250, 300]})
+    assert plan_step('THEME_PACKS', controls={}, difficulty='hard')['reason'] == 'theme_pack_card_not_anchored'
+    half = plan_step('THEME_PACKS', controls={'theme_packs.pack_01': [520, 390, 250, 300]}, difficulty='hard')
     assert half['action'] == RECORD
     assert half['reason'] == 'theme_pack_pull_target_not_anchored'
 

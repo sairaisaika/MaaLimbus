@@ -29,7 +29,7 @@ from maalimbus import runner
 from maalimbus.runtime_paths import ROOT
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
-from maalimbus.storage import SINNERS
+from maalimbus.storage import KEYWORDS, SINNERS
 from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button
 from maalimbus import star_vision
 from maalimbus import initial_gifts
@@ -202,6 +202,23 @@ class LimbusRecognition(CustomRecognition):
             scene='BATTLE_HUD'
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
+        if scene=='STAR_GRACES':
+            boxes=star_vision.grid(image)
+            if boxes is not None:
+                for box in boxes:
+                    roi=star_vision.cost_roi(box)
+                    detail=context.run_recognition_direct(JRecognitionType.OCR,
+                        JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,3}$'],threshold=.85),image)
+                    if detail is None:raise RuntimeError('Maa local grace cost OCR returned no evidence')
+                    found=[]
+                    if detail.hit:
+                        for result in detail.filtered_results:
+                            if hasattr(result,'text'):
+                                # This box is the requested crop, not an invented
+                                # character box; retain native confidence and ROI.
+                                records.append(Text(result.text,tuple(roi),result.score))
+                                found.append(dict(text=result.text,score=result.score,box=list(roi)))
+                    local.append(dict(purpose='grace_cost',roi=list(roi),only_rec=True,results=found))
         name = self.journal.frame(image, records, scene,local_ocr=local)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
@@ -739,10 +756,47 @@ class TeamAction(CustomAction):
         super().__init__()
         self.recognition = recognition
 
+    def build(self, params, mode):
+        """Set, extend, or file a saved team's keyword build.
+
+        The team-build entry runs without a preceding loadout page, so the slot
+        comes from the node parameter when no team has been selected yet; every
+        mode writes the same profile file as the other preferences. The extra
+        keywords arrive as free text from a ProjectInterface input, so an unknown
+        name is journalled and skipped instead of raised: a typo must not latch
+        the callback closed.
+        """
+        store=ProfileStore(Path(os.environ.get('MAALIMBUS_DATA_PATH',ROOT/'config'))/'user-team-profiles.json')
+        teams=list(store.load()) if store.path.exists() else []
+        team=self.recognition.team
+        if team is None:
+            slot=int(params.get('slot',1))
+            team=next((t for t in teams if t.slot==slot),Team(slot,frozenset()))
+        index=next((i for i,t in enumerate(teams) if t.slot==team.slot),None)
+        if mode=='save':
+            configured=replace(team,name=str(params.get('name') or team.name))
+        else:
+            wanted=[str(k) for k in params.get('keywords') or [] if str(k)]
+            known=[k for k in wanted if k in KEYWORDS]
+            if len(known)!=len(wanted):
+                self.recognition.journal.record('team_keywords_rejected',slot=team.slot,
+                                                rejected=sorted(set(wanted)-set(known)))
+            keywords=set(known) if mode=='keywords' else set(team.keywords)|set(known)
+            configured=replace(team,keywords=frozenset(keywords))
+        if index is None:teams.append(configured)
+        else:teams[index]=configured
+        store.save(teams)
+        self.recognition.team=configured
+        self.recognition.journal.record('team_build_saved' if mode=='save' else 'team_preferences_saved',
+            slot=configured.slot,name=configured.name,keywords=sorted(configured.keywords),field=mode)
+        return True
+
     @guarded_callback(False)
     def run(self, context, argv):
         params = json.loads(argv.custom_action_param or '{}')
         mode=params.get('mode')
+        if mode in ('keywords','keywords_add','save'):
+            return self.build(params,mode)
         if mode in ('name','pack','weight','deployment','deployment_slot','deployment_commit'):
             team=self.recognition.team
             if team is None:return False
@@ -1068,6 +1122,11 @@ def loop_parameters(params):
     """
     known = set(runner.settings().as_dict())
     chosen = dict(LOOP_DEFAULTS)
+    launch_path = Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT/'config'))/'user-launch.json'
+    if launch_path.exists():
+        saved_launch = read_json(launch_path)
+        chosen.update({key: saved_launch[key] for key in
+                       ('graces','grace_budget','gift_keyword','gift_search') if key in saved_launch})
     chosen.update(loop_environment())
     chosen.update({key: value for key, value in params.items() if key in known})
     ignored = sorted(set(params) - known - set(LOOP_EXTRA_PARAMS))

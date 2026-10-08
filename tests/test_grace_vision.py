@@ -37,6 +37,15 @@ def test_the_available_counter_is_read_only_from_its_own_band():
                                (1920, 1080)) is None
 
 
+def test_owned_stock_must_not_be_mistaken_for_the_available_pool():
+    # Actual window-20261008-033202 header positions.
+    records=[Text('Owned',(1138,55,60,24),.99),Text('7681',(1230,43,98,44),.99),
+             Text('Available',(1396,55,94,24),.99),Text('116',(1488,47,74,38),.99),
+             Text('580',(1716,45,70,40),.99)]
+    assert available_starlight(records,(1920,1080))==116
+    assert available_starlight([r for r in records if r.text!='Available'],(1920,1080)) is None
+
+
 def test_the_purchase_plan_follows_the_asked_order_within_the_budget():
     # The player asked for 1,3,5,6,8 while testing, and the live page offered 60
     # starlight: 10 + 20 + 30 fits, 30 and 40 do not.
@@ -48,3 +57,9 @@ def test_the_purchase_plan_follows_the_asked_order_within_the_budget():
     assert plan_purchases([10], 59) == []
     assert plan_purchases([3, 3, 3], 20) == [3]
     assert plan_purchases([], 60) == []
+
+
+def test_configured_four_graces_remain_affordable_after_two_purchases():
+    costs=(0,10,0,20,30,0,40,0,0,0)
+    assert plan_purchases([2,4,5,7],100,costs=costs)==[2,4,5,7]
+    assert plan_purchases([2,4,5,7],100,bought={2,4},costs=costs)==[5,7]
