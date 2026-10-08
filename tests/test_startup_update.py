@@ -70,7 +70,8 @@ def test_rollback_can_launch_only_when_old_app_is_restored(tmp_path,status):
 def test_same_older_or_invalid_version_never_installs(tmp_path,tag):
     app=app_fixture(tmp_path)
     def forbidden(*a,**kw):raise AssertionError('Unexpected install')
-    assert startup_update(app,tmp_path/'work',client_factory=client(tag=tag),stage=forbidden,install=forbidden)['status']=='current'
+    result=startup_update(app,tmp_path/'work',client_factory=client(tag=tag),stage=forbidden,install=forbidden)
+    assert result['status']==('unsupported_release_tag' if tag=='invalid' else 'current')
 
 
 def test_source_and_installed_controller_locks_are_the_same(tmp_path):

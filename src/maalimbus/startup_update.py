@@ -56,6 +56,7 @@ def startup_update(app, work, *, client_factory=ReleaseClient, stage=stage_relea
                 write_json(app/'build/startup-update-result.json', result)
                 raise
         elif check['status'] in ('available', 'cached'):
-            result['status'] = 'current'
+            result['status'] = ('current' if re.fullmatch(r'v?\d+\.\d+\.\d+', tag)
+                                else 'unsupported_release_tag')
     write_json(app/'build/startup-update-result.json', result)
     return result
