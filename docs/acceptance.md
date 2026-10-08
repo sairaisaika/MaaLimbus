@@ -998,3 +998,7 @@ from a task returning success, a manifest loading, or a process staying alive.
 ### 2026-10-08 paid claim false-credit repair (offline)
 - Removed RUN_REWARD_CONFIRM/weekly-bonus Confirm automatic reward_received ledger credit. Receipt remainsfalse and rotation stayslocked after both inputs. Same-scope budget/currentcost/currency/balances plus durable claim/confirm intents have offlinefoundation coverage; no livepaid controls or receiptrecognizer enabled.
 - 44 focused and595fullPython47.68s passed. Native retainedcost diagnostic reads6 .985492 but secondcost-6 .733909 fails.9; productioncostgate remainsdisabled. No deviceinput, budgetreply/paidpayout/rotation/reentry acceptance stillpending.
+
+### 2026-10-08 actual native module-cost recognition
+- Six native retained-frame cases passed: both0458/0459 recognize6modules/weekly1; deletedcurrency/sign/digit/title reject.33focused and611fullPython49.23s passed. Nativecurrency/sign templates.95 andtwo digitOCR.9 remain strict, with sourcePNG/templatehash provenance.
+- Fresh170553 readonly0input frame0001 provesmodulecost6 (icon/sign1.0,digits.933789/.953475,weekly1/3.999948). No paidClaim/toggle/Confirm or resourcebudget change. Payment authorization, actualbeforebalances/receipt/afterbalances androtationreentry remainpending; this is not payout acceptance.

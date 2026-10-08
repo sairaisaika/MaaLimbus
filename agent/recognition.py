@@ -308,7 +308,10 @@ class LimbusRecognition(CustomRecognition):
                                 records.append(Text(result.text,tuple(roi),result.score))
                                 found.append(dict(text=result.text,score=result.score,box=list(roi)))
                     local.append(dict(purpose='grace_cost',roi=list(roi),only_rec=True,results=found))
-        name = self.journal.frame(image, records, scene,local_ocr=local)
+        from maalimbus.reward_cost import observe_native as observe_reward_cost
+        reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
+        name = self.journal.frame(image, records, scene,local_ocr=local,
+            reward_cost=reward_cost,reward_cost_provenance=reward_cost_provenance)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
         return records, scene, name

@@ -1,0 +1,27 @@
+{
+  "source": "evidence\\runtime\\window-20261008-144554\\frame-0458.png",
+  "source_png_sha256": "56b8071717be1e76941d3d5e055361e3ebcf4bdcda5bdcbe13121268102bff78",
+  "templates": [
+    {
+      "template": "assets\\resource\\base\\image\\reward\\module-currency.png",
+      "roi": [
+        1374,
+        790,
+        57,
+        55
+      ],
+      "sha256": "863cca9d59a49c881cd47b3ac3bddd6577a9e07d6c33c77988b51c1cdf73bf15"
+    },
+    {
+      "template": "assets\\resource\\base\\image\\reward\\deduction-sign.png",
+      "roi": [
+        1431,
+        807,
+        17,
+        26
+      ],
+      "sha256": "4724ab3a2781d6eb73f5bbb5660ecef8c86e6e207cd895675c0d99782f962d1d"
+    }
+  ],
+  "semantic": "Observed Enkephalin Module icon and deduction sign at paid Claim; not gift artwork"
+}

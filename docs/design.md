@@ -265,3 +265,11 @@ foundation persists reservations and each input intent across restarts; changed
 offers/scopes and unresolved intents cannot be retried or replaced with a larger
 budget. Confirmation preserves pending state and never marks completion. This
 foundation has no live input activation or invented receipt recognizer.
+
+Paid-offer recognition for the retained English1920x1080 layout now independently
+gates the module currency and deduction sign via native template recognition at
+.95, two numeric OCR crops at .9 with unique agreement, and weekly-bonus counter
+at .9. The current visible floor/HARD/encounter count, reward title and both
+forward controls must also agree. Provenance includes source/template hashes and
+all native scores/ROIs. This supplies only an observed cost; it never authorizes
+input, infers balances or grants a payout. Changed/JP layouts remain unknown.
