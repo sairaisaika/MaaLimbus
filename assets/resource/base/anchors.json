@@ -104,13 +104,14 @@
         "evidence/runtime/map-settle-20261006-000930/frame-0001.json",
         "evidence/runtime/team-page-battle-20261006-010230/frame-0001.json",
         "evidence/runtime/window-20261006-030750/frame-0001.json",
-        "evidence/runtime/window-20261006-030941/frame-0022.json"
+        "evidence/runtime/window-20261006-030941/frame-0022.json",
+        "evidence/runtime/window-20261008-030555/frame-0015.json"
       ],
       "identity": [
         {
           "id": "pre_battle.clear_selection",
           "kind": "ocr",
-          "pattern": "^\\s*Clear\\s+Selection\\s*$",
+          "pattern": "^\\s*Clear(?:\\s+Selection)?\\s*$",
           "roi": [
             0.86,
             0.62,
@@ -118,7 +119,7 @@
             0.71
           ],
           "threshold": 0.8,
-          "note": "实机在队伍选满后读成带前导空格的 ' Clear Selection'（window-20261006-030941/frame-0022.json）"
+          "note": "实机在队伍选满后读成带前导空格的 ' Clear Selection'（window-20261006-030941/frame-0022.json）；window-20261008-030555/frame-0015.json 把同一句读成同一行的两个词 'Clear' + 'Selection'，正则因此收下首词，两词必须同行的配对规则在 maalimbus.map_vision.clear_selection_caption 里"
         },
         {
           "id": "pre_battle.battle",

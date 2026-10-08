@@ -5,7 +5,8 @@ from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, LATTICE_PITCH
                                   ORNAMENT_LIFT, advance_candidates, enter_target,
                                   highlighted_nodes, lattice_neighbours, lit_nodes, map_clicks,
                                   map_header, map_page, node_markers, node_panel,
-                                  pre_battle_team_page, route_decision, yellow_flame_player)
+                                  pre_battle_team_page, route_decision, yellow_flame_player,
+                                  clear_selection_caption)
 from maalimbus.vision import Text, classify
 
 SIZE = (1920, 1080)
@@ -613,6 +614,36 @@ def test_pre_battle_page_survives_the_captions_it_actually_renders():
     assert pre_battle_team_page(in_band, SIZE) is None
     off_band = in_band[:1] + [Text('Battle!', (200, 100, 136, 46), 1.0)] + in_band[2:]
     assert pre_battle_team_page(off_band, SIZE).battle.box == (1678, 857, 136, 46)
+
+
+def test_the_clear_caption_is_read_when_ocr_splits_it_into_its_two_words():
+    # Live proof: evidence/runtime/window-20261008-030555/frame-0015.json reads the
+    # clear action as two tokens on one line, 'Clear' [1640,706,74,22] and
+    # 'Selection' [1706,706,122,22], where every earlier frame read it whole. The
+    # split alone left the page named TEAM_LIBRARY and run-continue-26 stopped on it.
+    recs = [Text('Battle!', (1678, 857, 134, 48), .999384),
+            Text('Clear', (1640, 706, 74, 22), 1.0),
+            Text('Selection', (1706, 706, 122, 22), .99976),
+            Text('0/12', (1710, 758, 114, 52), .876134)]
+    page = pre_battle_team_page(recs, SIZE)
+    assert page is not None
+    assert page.participants == ('0/12',)
+    # The synthesised caption spans both words on the line the game drew them.
+    assert page.clear_selection.box == (1640, 706, 188, 22)
+    assert clear_selection_caption(recs, SIZE).text == 'Clear Selection'
+    # One word alone is not the caption: the pair stays required.
+    assert clear_selection_caption(recs[:1] + recs[2:], SIZE) is None
+    assert pre_battle_team_page(recs[:1] + recs[2:], SIZE) is None
+    # The two words must share a line, and the earlier one must come first.
+    stacked = recs[:2] + [Text('Selection', (1706, 940, 122, 22), .99)]
+    assert clear_selection_caption(stacked, SIZE) is None
+    reversed_pair = recs[:1] + [Text('Selection', (1706, 706, 122, 22), .99),
+                                Text('Clear', (1640, 706, 74, 22), .99)]
+    assert clear_selection_caption(reversed_pair, SIZE).box == (1640, 706, 188, 22)
+    # Two pairs in the band is ambiguous and must not promote the page.
+    twice = recs + [Text('Clear', (1660, 730, 74, 22), .99),
+                    Text('Selection', (1730, 730, 122, 22), .99)]
+    assert clear_selection_caption(twice, SIZE) is None
 
 
 def live_map(root, name):

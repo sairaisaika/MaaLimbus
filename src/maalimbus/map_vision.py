@@ -1012,9 +1012,21 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
 # leading space. Anchoring the captions loosely keeps this page recognisable in
 # both states; both captions are still required together, so a looser pattern
 # cannot promote an unrelated page.
+#
+# The clear action is also read as two words on the same line rather than one
+# token: live evidence/runtime/window-20261008-030555/frame-0015.json reads
+# 'Clear' [1640,706,74,22] and 'Selection' [1706,706,122,22] where every earlier
+# frame read 'Clear Selection' whole. That single split left the page named
+# TEAM_LIBRARY, whose only plan is the saved-team library's, so the window stopped
+# on a page it drives perfectly well (frame-0014/frame-0015, run-continue-26). The
+# whole caption and the pair are therefore both accepted, and the pair must sit on
+# one line, left to right, with no more than a word-sized gap -- the same shape the
+# game draws.
 BATTLE_PATTERN = r'^\s*(?:Chain\s+)?(?:To\s+)?Battle!?\s*$'
 BATTLE_ROI = (.83, .77, .97, .87)
 CLEAR_SELECTION_PATTERN = r'^\s*Clear\s+Selection\s*$'
+CLEAR_WORD_PATTERN = r'^\s*Clear\s*$'
+SELECTION_WORD_PATTERN = r'^\s*Selection\s*$'
 CLEAR_SELECTION_ROI = (.83, .62, .98, .70)
 PARTICIPANTS_PATTERN = r'^\s*\d{1,2}\s*/\s*\d{1,2}\s*$'
 
@@ -1031,15 +1043,47 @@ class TeamPage:
     participants: tuple
 
 
+def clear_selection_caption(records, size):
+    """The page's clear action, as one token or as the two the game sometimes draws.
+
+    Returns the token, or a synthesised :class:`Text` spanning the pair, or ``None``
+    when neither reading is present. The pair has to be on one line and in reading
+    order; any horizontal gap is allowed, because the recognised boxes of two words
+    of one caption are never exactly adjacent.
+    """
+    whole = find(records, CLEAR_SELECTION_PATTERN, CLEAR_SELECTION_ROI, size, .8)
+    if len(whole) == 1:
+        return whole[0]
+    words = find(records, CLEAR_WORD_PATTERN, CLEAR_SELECTION_ROI, size, .8)
+    labels = find(records, SELECTION_WORD_PATTERN, CLEAR_SELECTION_ROI, size, .8)
+    pairs = []
+    for word in words:
+        for label in labels:
+            if label.box[0] < word.box[0]:
+                continue
+            middle = lambda box: (box[1] + box[3] / 2) / size[1]
+            if abs(middle(word.box) - middle(label.box)) > .03:
+                continue
+            pairs.append((word, label))
+    if len(pairs) != 1:
+        return None
+    word, label = pairs[0]
+    left, top = word.box[0], min(word.box[1], label.box[1])
+    right = max(word.box[0] + word.box[2], label.box[0] + label.box[2])
+    bottom = max(word.box[1] + word.box[3], label.box[1] + label.box[3])
+    return Text('Clear Selection', (left, top, right - left, bottom - top),
+                min(word.score, label.score))
+
+
 def pre_battle_team_page(records, size):
     """Return the pre-battle team page, or None when this is not that page."""
     battle = find(records, BATTLE_PATTERN, BATTLE_ROI, size, .8)
-    clear = find(records, CLEAR_SELECTION_PATTERN, CLEAR_SELECTION_ROI, size, .8)
-    if len(battle) != 1 or len(clear) != 1:
+    clear = clear_selection_caption(records, size)
+    if len(battle) != 1 or clear is None:
         return None
     participants = tuple(t.text.strip() for t in
                          find(records, PARTICIPANTS_PATTERN, (.80, .66, .98, .76), size, .8))
-    return TeamPage(battle[0], clear[0], participants)
+    return TeamPage(battle[0], clear, participants)
 
 
 def battle_target(page):
