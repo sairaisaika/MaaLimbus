@@ -729,18 +729,18 @@ def test_the_starting_gift_comes_from_the_rotation_keyword_then_select():
     assert named['reason'] == 'the_starting_gift_row_is_taken_from_the_tray'
     assert named['detail'] == {'keyword': None, 'gift': True}
     leave = plan_step('INITIAL_GIFTS', controls={'initial_gifts.select_button': select},
-                      initial={'point': None, 'keyword': 'bleed'})
+                      initial={'point': None, 'keyword': 'bleed','chosen':1,'required':1})
     assert leave['target'] == select
     assert leave['reason'] == 'select_takes_the_starting_gift'
     assert successor_ok(leave, 'MAP') and successor_ok(leave, 'THEME_PACKS')
     # A keyword the frame does not show must never become a blind click.
     assert plan_step('INITIAL_GIFTS', controls={})['reason'] == \
-        'initial_gift_select_not_anchored'
+        'initial_gift_selection_incomplete'
     # Refuse Gift abandons the starting gift, so it is never a target.
     refused = [1256, 865, 150, 28]
     stolen = plan_step('INITIAL_GIFTS',
                        controls={'initial_gifts.select_button': refused,
-                                 'initial_gifts.refuse_button': refused})
+                                 'initial_gifts.refuse_button': refused},initial={'chosen':1,'required':1})
     assert stolen['reason'] == 'control_is_forbidden'
 
 
@@ -1316,3 +1316,10 @@ def test_the_lit_control_of_the_resolved_skill_check_leaves_it():
     missing = plan_step('EVENT_CHECK_READY')
     assert missing['action'] == RECORD
     assert missing['reason'] == 'event_check_ready_continue_not_anchored'
+
+
+def test_hard_switch_is_offered_only_with_fresh_normal_target():
+    box=[1362,55,40,24]
+    assert plan_step('THEME_PACKS',difficulty='normal',controls={'theme_packs.enable_hard':box})['reason']=='enable_hard_on_proven_floor_one'
+    assert plan_step('THEME_PACKS',difficulty=None,controls={'theme_packs.enable_hard':box})['action']==RECORD
+    assert plan_step('THEME_PACKS',difficulty='normal',controls={})['action']==RECORD

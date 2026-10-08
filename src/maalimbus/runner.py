@@ -988,6 +988,9 @@ class MirrorRunner:
         from .grace_transaction import GraceTransaction
         self.grace_transaction = (GraceTransaction(self.store.path.parent/'user-grace-transaction.json')
                                   if self.store is not None else None)
+        from .initial_transaction import InitialTransaction
+        self.initial_transaction=(InitialTransaction(self.store.path.parent/'user-initial-transaction.json')
+                                  if self.store is not None else None)
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1164,31 +1167,58 @@ class MirrorRunner:
                                record.get('size') or (1920, 1080))
         else:
             state['gift_picks'] = 0
+        plan_controls=dict(self.controls)
         initial = None
         if page == 'INITIAL_GIFTS':
-            records = [Text(item['text'], tuple(item['box']), item['score'])
-                       for item in record.get('ocr') or []]
-            counter = counter_state(record, band=INITIAL_COUNTER_BAND) or {}
-            chosen, required = counter.get('chosen'), counter.get('required')
-            point, reason, gift = None, None, None
-            if required is None or (chosen or 0) < int(required):
-                # 0: open the rotation's keyword column; then take the gift the rotation
-                # names from the tray it fills.
-                if state['initial_picked'] == 0:
-                    point = keyword_panel_point(records,
-                                                record.get('size') or (1920, 1080),
-                                                settings.gift_keyword)
+            from . import initial_gifts
+            records = [Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            size=record.get('size') or (1920,1080)
+            count=initial_gifts.counter(records,size)
+            image,_=latest_frame(directory)
+            if count is None or self.initial_transaction is None:
+                stopped=self._record(page,record,frame,candidates,None,'initial_gift_counter_or_transaction_missing')
+                return self._result(page,None,False,stopped,done=True)
+            try:
+                d=self.initial_transaction.prepare(self.run_id,settings.gift_keyword,count,frame_file(directory))
+            except ValueError as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
+            chosen,required=count
+            point=reason=gift=None
+            rows=[initial_gifts.row_target(records,size,i) for i in (1,2,3)]
+            if chosen<required:
+                preferences=wanted_gifts(state['gift_plan'],settings.gift_keyword,fallback=())
+                selected={x['title'] for x in d['selected']}
+                candidates_by_name={r[1]:(i+1,r[0]) for i,r in enumerate(rows) if r is not None}
+                match=next((n for n in preferences if n in candidates_by_name and n not in selected),None)
+                if match:
+                    row,box=candidates_by_name[match]
+                    point=(box[0]+box[2]//2,box[1]+box[3]//2)
+                    gift=dict(row=row,title=match)
+                    reason='the_starting_gift_row_is_taken_from_the_tray'
+                elif not any(rows):
+                    box=initial_gifts.group_target(records,size,settings.gift_keyword.title())
+                    if box:point=(box[0]+box[2]//2,box[1]+box[3]//2)
                 else:
-                    box = initial_gift_box(records, record.get('size') or (1920, 1080),
-                                           wanted=wanted_gifts(state['gift_plan'],
-                                                               settings.gift_keyword))
-                    if box:
-                        point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
-                        gift = True
-                        reason = 'the_starting_gift_row_is_taken_from_the_tray'
-            initial = {'chosen': chosen, 'required': required, 'point': point,
-                       'keyword': settings.gift_keyword if gift is None else None,
-                       'reason': reason, 'gift': gift}
+                    stopped=self._record(page,record,frame,candidates,None,'configured_initial_gift_not_offered')
+                    return self._result(page,None,False,stopped,done=True)
+            elif initial_gifts.selected_rows(image)!=sorted(x['row'] for x in d['selected']):
+                stopped=self._record(page,record,frame,candidates,None,'initial_gift_selected_rows_not_proven')
+                return self._result(page,None,False,stopped,done=True)
+            initial=dict(chosen=chosen,required=required,point=point,
+                         keyword=settings.gift_keyword if gift is None else None,reason=reason,gift=gift)
+        if page=='GIFT_GET' and self.initial_transaction is not None:
+            d=self.initial_transaction.data
+            if d and d['scope']==self.run_id and len(d.get('acknowledged',[]))<len(d['selected']):
+                from . import initial_gifts
+                from .storage import write_json
+                records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+                title=initial_gifts.receipt_name(records,record.get('size') or (1920,1080))
+                expected=d['selected'][len(d.get('acknowledged',[]))]['title']
+                if d.get('receipt_pending') or not initial_gifts.same_name(title,expected):
+                    stopped=self._record(page,record,frame,candidates,None,'initial_gift_receipt_not_proven_or_pending')
+                    return self._result(page,None,False,stopped,done=True)
+                state['initial_receipt']=dict(title=expected,proof=str(frame_file(directory)))
         if page=='DUNGEON_TEAM' and self.store is not None and not settings.observe_only and not state.get('entry_reconciled'):
             reconcile(self.store,page=page,proof=frame_file(directory))
             self.run_id=self.store.start()
@@ -1256,9 +1286,22 @@ class MirrorRunner:
                 texts = [Text(t['text'], tuple(t['box']), t['score']) for t in record.get('ocr', [])]
                 locale = json.loads((ROOT/'assets/resource/en/locale.json').read_text(encoding='utf-8'))
                 difficulty = theme_page(image, ThemeCatalog(ROOT/'assets/resource/base'), texts, locale)
+            if difficulty=='normal' and self.store is not None:
+                from .storage import read_json
+                from .vision import find
+                path=self.store.path.parent/'user-difficulty-transaction.json'
+                progress=read_json(path) if path.exists() else {}
+                mode_boxes=ThemeCatalog(ROOT/'assets/resource/base').matches(image,'normal_mode',(.61,0,.83,.13))
+                header=find(texts,r'^SELECT\s*FLOOR\s*1\s*THEME\s*PACK$',(.38,.13,.63,.20),(1920,1080),.85)
+                if progress.get('pending'):
+                    stopped=self._record(page,record,frame,candidates,None,'difficulty_switch_pending')
+                    return self._result(page,None,False,stopped,done=True)
+                if len(header)==1 and len(mode_boxes)==1 and not (progress.get('scope')==self.run_id and progress.get('hard')):
+                    x,y,w,h=mode_boxes[0]
+                    plan_controls['theme_packs.enable_hard']=[x+110,y+13,40,24]
             self.journal.record('difficulty_gate', difficulty=difficulty,
                                 frame=frame, required='hard', verified_clear=False)
-        plan = plan_step(page, controls=self.controls, arrows=arrows,
+        plan = plan_step(page, controls=plan_controls, arrows=arrows,
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
                          auto_assign=record.get('auto_assign_buttons'),
@@ -1302,6 +1345,16 @@ class MirrorRunner:
         if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:
             card=plan['detail']['card']
             transaction.intent(card,board['costs'][card-1],available,frame_file(directory))
+        if page=='INITIAL_GIFTS' and (initial or {}).get('gift'):
+            g=initial['gift'];self.initial_transaction.intent(g['row'],g['title'],count,frame_file(directory))
+        if page=='GIFT_GET' and state.get('initial_receipt'):
+            from .storage import write_json
+            self.initial_transaction.data['receipt_pending']=state['initial_receipt']
+            write_json(self.initial_transaction.path,self.initial_transaction.data)
+        if plan.get('reason')=='enable_hard_on_proven_floor_one':
+            from .storage import write_json
+            path=self.store.path.parent/'user-difficulty-transaction.json'
+            write_json(path,dict(scope=self.run_id,pending=dict(before='normal',requested='hard',proof=str(frame_file(directory)))))
         point = None
         delay = random.randint(350, 750)
         if plan['action'] == NODE:
@@ -1373,6 +1426,39 @@ class MirrorRunner:
                 transaction.observe(after_available,frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_grace_purchase')
+        if page=='INITIAL_GIFTS' and (initial or {}).get('gift'):
+            try:
+                from . import initial_gifts
+                post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                post_count=initial_gifts.counter(post_records,settled.get('size') or (1920,1080))
+                post_image,_=latest_frame(directory)
+                self.initial_transaction.observe(post_count,initial_gifts.selected_rows(post_image),frame_file(directory))
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_initial_gift_selection')
+        if page=='GIFT_GET' and state.get('initial_receipt'):
+            from . import initial_gifts
+            from .storage import write_json
+            post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+            post_title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
+            current=state['initial_receipt']['title']
+            successor=(settled_page in ('GIFT_SEARCH','THEME_PACKS','MAP') or
+                       (settled_page=='GIFT_GET' and post_title and not initial_gifts.same_name(post_title,current)))
+            if successor:
+                d=self.initial_transaction.data
+                d.setdefault('acknowledged',[]).append(dict(title=current,receipt=state['initial_receipt']['proof'],successor=str(frame_file(directory))))
+                d['receipt_pending']=None;write_json(self.initial_transaction.path,d)
+                state['initial_receipt']=None
+            else:entry.update(passed=False,reason='initial_gift_receipt_successor_not_proven',stopped='unverified_initial_receipt')
+        if plan.get('reason')=='enable_hard_on_proven_floor_one':
+            from .theme_vision import theme_page,ThemeCatalog
+            from .storage import write_json
+            image,_=latest_frame(directory)
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+            locale=json.loads((ROOT/'assets/resource/en/locale.json').read_text())
+            mode=theme_page(image,ThemeCatalog(ROOT/'assets/resource/base'),texts,locale)
+            if mode=='hard':
+                write_json(path,dict(scope=self.run_id,pending=None,hard=True,proof=str(frame_file(directory))))
+            else:entry.update(passed=False,reason='hard_switch_successor_not_proven',stopped='unverified_hard_switch')
         if self.store is not None and entry['passed']:
             # Every completed step is offered to the ledger; only the page that proves
             # an event (a floor's map, the run summary, the reward modal's Confirm, the

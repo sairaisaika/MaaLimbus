@@ -372,6 +372,9 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='the_weekly_reset_notice_is_declined_and_the_run_stays')
     if page == 'THEME_PACKS':
+        if difficulty=='normal' and controls.get('theme_packs.enable_hard'):
+            return _plan(page,CLICK,target=controls['theme_packs.enable_hard'],expect=(ANY,),advance=True,
+                         reason='enable_hard_on_proven_floor_one')
         if difficulty != 'hard':
             return _refuse(page, 'hard_difficulty_not_proven')
         # "SELECT FLOOR n THEME PACK" hangs the candidate packs from a rack and asks
@@ -706,6 +709,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                          or 'the_starting_gift_is_picked_from_the_rotation_keyword',
                          detail={'keyword': state.get('keyword'),
                                  'gift': state.get('gift')})
+        if state.get('chosen') is None or state.get('chosen')!=state.get('required'):
+            return _refuse(page,'initial_gift_selection_incomplete')
         box = controls.get('initial_gifts.select_button')
         if box is None:
             return _refuse(page, 'initial_gift_select_not_anchored')

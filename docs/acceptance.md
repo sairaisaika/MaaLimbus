@@ -1,5 +1,10 @@
 # Acceptance evidence
 
+## October8 team2 gifts and actual Hard mode
+
+Employee Card and Portable Battery Socket selected under Charge with separate0/2→1/2→2/2 and row highlight proof, and each exact E.G.O Gift GET receipt plus next-page proof. Optional search refused once with no purchase. Actual Normal041201 switched once; fresh041437 provesHard via .92 glyph recognition despite low-confidence fullOCR. Current state is Hard floor1 pack selection, not a completed floor or run. No reward or rotation accepted. Full Python480passed before final added switch regression.
+
+
 ## October8 native star recovery, incomplete final goal
 
 Actual team2 entry and base cards2,4,5,7 now have four exact debits totaling100, pool116→16. Remaining-starlight conversion unchecked with Cost0 was retained before confirmation. Latest fresh observation is INITIAL_GIFTS, no current Hard proof or floor/reward acceptance. Native retained-frame OCR repair covers 86 truncated to8; offline replay is recognition evidence only. New run scope discards no history and inherits no prior floor1. Durable transaction refuses unresolved inputs and changed scope/config/balance. Python479 passed before the additional current checkbox sample.

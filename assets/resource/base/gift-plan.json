@@ -9,6 +9,14 @@
     "bleed": [
       "Wound Clerid",
       "Little and To-be-Naughty Plushie"
+    ],
+    "charge": [
+      "Employee Card",
+      "Portable Battery Socket"
     ]
-  }
+  },
+  "sources": [
+    "https://limbuscompany.wiki.gg/wiki/Hidden_Boss",
+    "Actual window-20261008-040706 right-tray names and effects"
+  ]
 }
