@@ -22,7 +22,7 @@ class Trial:
     def penalty(self):
         # Survival-first heuristic: offense can change clashes; defense/HP mainly
         # lengthen fights. These weights are policy, not game formulas.
-        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0, 'damage_dealt': 20}
+        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0, 'damage_dealt': 20, 'base_power': 180}
         effects=self.components or ((self.kind,self.amount),)
         return self.level * 30 + sum(amount*weights[kind] for kind,amount in effects)
 
@@ -36,6 +36,7 @@ class Offer:
     trial: Trial
     owned: bool
     selection_source: str = 'counter'
+    visible_benefit: int = 0
 
     def identity(self):
         value = dict(title=self.title, canonical=self.canonical,
@@ -43,11 +44,13 @@ class Offer:
         if not self.trial.components:value['trial'].pop('components')
         if self.selection_source != 'counter':
             value['selection_source'] = self.selection_source
+        if self.visible_benefit:value['visible_benefit']=self.visible_benefit
         return value
 
 
 GRAMMAR = ((r'Defense Level\s*\+\s*(\d+)', 'defense'),
            (r'Offense Level\s*\+\s*(\d+)', 'offense'),
+           (r'Base Power\s*\+\s*(\d+)', 'base_power'),
            (r'Damage Taken\s*[-−]\s*(\d+(?:\.\d+)?)\s*%', 'damage_reduction'),
            (r'Max HP\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'hp'),
            (r'Damage Dealt\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'damage_dealt'))
@@ -89,6 +92,8 @@ def observe(records, size, catalog, *, image=None, select_box=None):
     boxes = gift_cards(records, size)
     if state is None and len(boxes) == 1:
         return observe_single_free(records, size, catalog, boxes[0], image, select_box)
+    if state is None and len(boxes) == 3:
+        return observe_three_free(records,size,catalog,boxes,image,select_box)
     if state is None or not 1 <= len(boxes) <= 6:
         raise ValueError('floor_gift_counter_or_cards_not_proven')
     centers = [b[0]+b[2]/2 for b in boxes]
@@ -97,9 +102,16 @@ def observe(records, size, catalog, *, image=None, select_box=None):
     for index, box in enumerate(boxes):
         left, right = bounds[index]/size[0], bounds[index+1]/size[0]
         titles = find(records, r'.+', (left,.245,right,.30), size,.9)
-        if len(titles) != 1:
+        if not 1 <= len(titles) <= 3 or len({r.box for r in titles})!=len(titles):
             raise ValueError('floor_gift_title_not_unique')
-        title = titles[0].text
+        # A long title can wrap into separate OCR rows. Full joined text must
+        # still uniquely match the catalog; never discard an unknown suffix.
+        rows=[]
+        for token in sorted(titles,key=lambda r:(r.box[1]+r.box[3]/2,r.box[0])):
+            cy=token.box[1]+token.box[3]/2
+            if rows and abs(cy-rows[-1][0])<=12:rows[-1][1].append(token)
+            else:rows.append((cy,[token]))
+        title=' '.join(' '.join(r.text for r in sorted(row,key=lambda r:r.box[0])) for _,row in rows)
         canonical = catalog.text_identity(title)
         if canonical is None:
             raise ValueError('floor_gift_identity_unknown')
@@ -154,7 +166,7 @@ def observe_single_free(records, size, catalog, box, image, select_box):
     return [offer], dict(chosen=int(lit), required=1)
 
 
-def single_free_selection_edges(image, box, size):
+def single_free_selection_edges(image, box, size, *, bottom_span=350):
     """Four orange UI outline segments, outside the gift artwork and description.
 
     Geometry measured from the actual unselected/selected Lightning Rod pair
@@ -169,7 +181,7 @@ def single_free_selection_edges(image, box, size):
     patches=[(cx-195*scale,250*scale,12*scale,560*scale),
              (cx+184*scale,250*scale,12*scale,560*scale),
              (cx-175*scale,228*scale,350*scale,15*scale),
-             (cx-175*scale,835*scale,350*scale,15*scale)]
+             (cx-175*scale,835*scale,bottom_span*scale,15*scale)]
     values=[]
     for patch in patches:
         x,y,w,h=map(round,patch)
@@ -177,6 +189,50 @@ def single_free_selection_edges(image, box, size):
         hsv=cv2.cvtColor(image[y:y+h,x:x+w],cv2.COLOR_BGR2HSV)
         values.append(float(((hsv[:,:,0]>=10)&(hsv[:,:,0]<=40)&(hsv[:,:,1]>=160)&(hsv[:,:,2]>=180)).mean()))
     return values
+
+
+def observe_three_free(records,size,catalog,boxes,image,select_box):
+    """Measured three-choice free layout; exactly one selected UI outline.
+
+    No enemy trial/cost is omitted to obtain this variant. The selected state
+    needs Select plus every card's outline agreement, not a guessed counter.
+    """
+    if any(re.search(r'Mounting|Trials|Enemy Level|Defense Level|Damage Taken|Max HP|Lunacy|Modules?|Purchase|Cost',r.text,re.I) for r in records):
+        raise ValueError('three_free_gift_trial_or_cost_present')
+    select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
+    refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
+    if len(select)!=1 or len(refuse)!=1 or select_box is None:
+        raise ValueError('three_free_gift_controls_missing')
+    cx=select_box[0]+select_box[2]/2;cy=select_box[1]+select_box[3]/2
+    if not select[0].box[0]<=cx<=select[0].box[0]+select[0].box[2] or not select[0].box[1]<=cy<=select[0].box[1]+select[0].box[3]:
+        raise ValueError('three_free_gift_select_geometry_unknown')
+    centers=[(b[0]+b[2]/2)/size[0] for b in boxes]
+    if any(abs(a-b)>.02 for a,b in zip(centers,(.292,.500,.708))):
+        raise ValueError('three_free_gift_geometry_unknown')
+    bounds=[.18]+[(a+b)/2 for a,b in zip(centers,centers[1:])]+[.81]
+    offers=[];states=[]
+    for index,box in enumerate(boxes):
+        titles=find(records,r'.+',(bounds[index],.245,bounds[index+1],.30),size,.9)
+        if len(titles)!=1:raise ValueError('three_free_gift_title_not_unique')
+        title=titles[0].text;canonical=catalog.text_identity(title)
+        if canonical is None:raise ValueError('floor_gift_identity_unknown')
+        # The right card's lower edge is partly covered by Refuse Gift. Probe
+        # its visible left segment; never count that overlay as an absent edge.
+        edges=single_free_selection_edges(image,box,size,bottom_span=110)
+        if edges and max(edges)<.05:states.append(0)
+        elif edges and min(edges)>=.25:states.append(1)
+        else:raise ValueError('three_free_gift_outline_ambiguous')
+        # A bounded generic damage benefit, only for the complete visible pair.
+        # This is heuristic value; it never replaces title or receipt identity.
+        damage=find(records,r'^Skills with 1 Atk Weight deal$',(bounds[index],.40,bounds[index+1],.49),size,.9)
+        amount=find(records,r'^\+15% damage\.$',(bounds[index],.43,bounds[index+1],.49),size,.9)
+        benefit=15 if len(damage)==len(amount)==1 else 0
+        offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),tuple(box),
+                            Trial(0,'none',0),False,'three_free_select_button',benefit))
+    mean=button_mean(image,select_box);chosen=sum(states)
+    if mean is None or not ((chosen==0 and mean<=25) or (chosen==1 and mean>=45)):
+        raise ValueError('three_free_gift_selection_ambiguous')
+    return offers,dict(chosen=chosen,required=1)
 
 
 def rank(offers, team, selected):
@@ -188,8 +244,8 @@ def rank(offers, team, selected):
         preferred = offer.canonical in team.allow or bool(offer.keywords & team.keywords)
         # Preference offsets a modest trial, but never unconditionally beats a
         # large clash penalty. Non-synergy gifts have no invented roster benefit.
-        score = offer.trial.penalty - (40 if preferred else 0) + (60 if offer.owned else 0)
+        score = offer.trial.penalty - (40 if preferred else 0) + (60 if offer.owned else 0) - offer.visible_benefit
         ranking.append(dict(title=offer.title, canonical=offer.canonical,
                             score=score, trial=asdict(offer.trial),
-                            preferred=preferred, owned=offer.owned))
+                            preferred=preferred, owned=offer.owned,visible_benefit=offer.visible_benefit))
     return sorted(ranking,key=lambda r:(r['score'],r['title']))

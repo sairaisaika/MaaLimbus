@@ -1,5 +1,25 @@
 # Acceptance evidence
 
+## October8 actual Hard floor3 clear, three complete receipts
+
+094350 bounded120step task terminal14:03:57UTC/121inputs afterturnsubmission,
+thenfreshreadonlyREWARD_CARD;100508 rewardpick/Confirm reachedfour-card0/2 and
+stoppedbeforegiftinput. CompletewrappedMaterialInterferenceForceField and
+BasePower/HP trial were offlineverified; actual100754 selectedMaterial and
+MidwinterNightmare onceeach0/2→1/2→2/2.100819 Select+GET acknowledgements retained
+fullMidwinter frame0003 andMaterial frame0004, thenextra three-freeofferframe0005.
+Oldmissing-successor pending retained; explicit originalscope/input/target/touch/
+PNGhash + independently validated freeoffer resolvedreceipt withoutreack.
+101324 PhantomPain selectedonce; occludedrightbottomedgeSTOP keptpending. Five
+native actual/selected/negative replays measuredvisibleleftsegment; explicit
+originalinput/hash proof resolvedselection withoutreclick.101535 Selectonce
+initiallystillGIFT_PICK stopped; freshreadonly actualPhantomGET then101637 oneack
+reachedSELECTFLOOR4/Refresh/PackSearch. `build/floor-three-real-verification-20261008.json`
+checksallthreeactualfullreceipts/PNGhashes/scope andnextfloor4, ledger[1,2,3].
+542fullPython passed38.66s;3wrapped/BasePower and5threefree native caseszeroinput.
+No module/lunacy/conversion/refill/finalpayout. Floors4–5/rotation/reentry/fullscope
+stillopen. Inputsuccess/replay alone never counted asclear.
+
 ## October8 actual Hard floor2 clear and floor3 successor
 
 091754 terminal13:26UTC/62inputs stopped before the four-card gift page. Current

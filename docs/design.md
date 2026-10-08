@@ -32,6 +32,10 @@ otherwise complete clauses; unknown fragments are never skipped. One level cost
 plus the sum of all effects is charged; Damage Dealt uses conservative weight20
 per percentage point. Missing/duplicate/wrong-column components refuse. Exact
 Acquire E.G.O Gif truncation preserves its column anchor, not gift identity.
+Wrapped display titles join ordered rows only inside their own title strip and
+must uniquely match the catalog in full. Unknown suffixes are not discarded.
+Base Power uses integer grammar and conservative weight180; Coin Power remains
+unsupported. All scores are heuristics, not claimed combat formulas.
 
 Persist one pick before input; require exactly+1 counter and unchanged offer set.
 Persist Select before input; require the exact selected gift's actual GET. Each
@@ -51,6 +55,14 @@ counter. Persist the same scoped intent and require the unchanged offer, then
 actual named GET and MAP/theme successor. The outline is selection UI evidence,
 never gift identity or payout evidence. Retained unknown pending is reconciled
 only explicitly against original input/target/scope and both PNG hashes.
+The measured three-choice free layout uses the same principle with exactly one
+selected outline and both unselected outlines absent. The right card's bottom
+edge is partly covered by Refuse Gift; probe its visible left segment. The source
+is `three_free_select_button`. A bounded15 generic benefit requires the complete
+visible pair “Skills with 1 Atk Weight deal” / “+15% damage.”; no inferred resonance
+or roster benefit is scored. A last GET may lead to another free offer only when
+every selected named receipt is proved and the new offer is independently known,
+unselected, free and signature-bound. Otherwise retain pending and stop.
 
 The floor selection header, Refresh and Pack Search can establish page identity
 independently of tilted cover glyphs. This grants no Hard/Normal proof, pack identity

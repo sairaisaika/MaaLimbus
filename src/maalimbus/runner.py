@@ -1635,7 +1635,15 @@ class MirrorRunner:
                 from . import initial_gifts
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
-                self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory))
+                next_free=None
+                if settled_page=='GIFT_PICK':
+                    from .floor_gifts import observe as observe_gifts
+                    offers,count=observe_gifts(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
+                        image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
+                    if count==dict(chosen=0,required=1) and all(o.selection_source.endswith('_free_select_button') for o in offers):
+                        next_free=dict(count=count,source=offers[0].selection_source,
+                            offer=self.floor_gift_transaction.signature(offers))
+                self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory),next_free_offer=next_free)
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_receipt')
         if page=='GIFT_GET' and state.get('initial_receipt'):
