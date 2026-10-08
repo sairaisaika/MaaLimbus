@@ -125,3 +125,31 @@ def test_giving_up_a_run_files_it_and_keeps_the_rotation_where_it_stands(tmp_pat
     # The next window starts a fresh run on the same slot instead of resuming the dead one.
     second = RunStore(path, teams())
     assert second.start() != run and second.data['active']['team'] == 4
+
+
+def test_the_player_can_aim_the_next_entry_at_a_named_team(tmp_path):
+    """The rotation is a queue; the player sometimes names a team instead.
+
+    "Test team 2 now" cannot be said through the rotation, which only moves after a run
+    is receipted, and reseeding refuses a ledger that already holds a run. Pointing has
+    to move `rotation` alone: the receipts and the abandoned runs are the record of what
+    actually happened and may never be rewritten by a preference.
+    """
+    path = tmp_path/'ledger.json'
+    seed_run_store(path, ORDER, rotation=1)
+    store = RunStore(path, teams())
+    run = store.start()
+    with pytest.raises(ValueError):
+        store.point_at(2)  # an open run pins the slot the window will click
+    store.record(run, 'floor_clear-1', 'floor_clear', proof(tmp_path, 'f1.png'), floor=1)
+    store.abandon(note='the player asked for team 2')
+    before = read_json(path)
+    assert store.point_at(2) == 4
+    value = read_json(path)
+    assert value['rotation'] == 4 and RunStore(path, teams()).team_slot == 2
+    assert value['receipts'] == before['receipts']
+    assert value['abandoned'] == before['abandoned']
+    assert value['completed_runs'] == before['completed_runs']
+    assert store.start() and store.data['active']['team'] == 2
+    with pytest.raises(ValueError):
+        store.point_at(9)  # a slot that is not in the rotation is a typo, not a choice

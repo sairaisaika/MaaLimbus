@@ -143,6 +143,32 @@ class RunStore:
     def team_slot(self):
         return self.slots[self.data['rotation']]
 
+    def point_at(self, slot):
+        """Aim the rotation at one saved-team slot, changing nothing else.
+
+        The player asks for a team by number ("test team 2 now") while the rotation is
+        a queue that only ever moves forward, and only after a run is fully receipted.
+        Between the two there was no supported way to say which team the *next* entry
+        brings: editing `rotation` by hand works but validates nothing, and reseeding
+        refuses a ledger that already recorded a run. This points the rotation at `slot`
+        and leaves `active`, `receipts` and `abandoned` untouched.
+
+        It refuses an unknown slot -- a typo would otherwise aim the window at a slot
+        that is not part of the rotation -- and it refuses while a run is active,
+        because `team_slot` is what the window clicks on the loadout page: moving the
+        rotation under an open run would make the window bring a team the ledger's own
+        record of that run does not name.
+        """
+        if self.data['active'] is not None:
+            raise ValueError('Finish or abandon the active run before moving the rotation')
+        if slot not in self.slots:
+            raise ValueError('Slot is not part of this rotation')
+        data = copy.deepcopy(self.data)
+        data['rotation'] = self.slots.index(slot)
+        write_json(self.path, data)
+        self.data = data
+        return data['rotation']
+
     def start(self):
         if self.data['active'] is None:
             data = copy.deepcopy(self.data)

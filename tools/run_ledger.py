@@ -2,8 +2,10 @@
 
 The ledger is the player's own order of saved teams; the window asks it which team to
 bring and records the run's five floor clears, the final victory, the claimed reward
-and the entry back in. This tool only inspects and seeds it -- a run is never invented
-here, because every ledger event has to name the frame it was read from.
+and the entry back in. This tool inspects it, seeds it at a known rotation, files the
+active run when the player gives one up, and points the rotation at a slot the player
+names for the next entry -- a run is never invented here, because every ledger event
+has to name the frame it was read from.
 """
 import argparse
 import sys
@@ -34,6 +36,9 @@ def main():
     give_up = sub.add_parser('abandon', help='drop the active run and keep the rotation')
     give_up.add_argument('--note', default=None,
                          help='why the run is being given up (kept with the record)')
+    point = sub.add_parser('point', help='aim the next entry at one saved-team slot')
+    point.add_argument('--slot', type=int, required=True,
+                       help='the saved-team slot the next run should bring, e.g. 2')
     args = parser.parse_args()
 
     if args.action == 'seed':
@@ -52,6 +57,15 @@ def main():
         print('abandoned run %s team %d floors=%s (rotation stays at %d -> team %d)'
               % (dropped['id'][:8], dropped['team'], dropped['floors'],
                  store.data['rotation'], store.team_slot))
+    elif args.action == 'point':
+        value = read_json(args.path)
+        store = RunStore(args.path, [SimpleNamespace(slot=s) for s in value['team_slots']])
+        try:
+            index = store.point_at(args.slot)
+        except ValueError as error:
+            raise SystemExit(str(error))
+        print('rotation now %d -> team %d (of %s)'
+              % (index, store.team_slot, value['team_slots']))
 
     value = read_json(args.path)
     active = value.get('active')
