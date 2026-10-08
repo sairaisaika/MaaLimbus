@@ -1452,6 +1452,10 @@ class MirrorRunner:
         point = None
         if plan.get('reason')=='confirm_pending_deployment_reset_once':
             self.deployment_transaction.confirm_clear(self.run_id)
+        if plan.get('reason')=='battle_button_submits_the_team' and self.deployment_transaction is not None:
+            from .storage import write_json
+            self.deployment_transaction.data['submit_pending']=True
+            write_json(self.deployment_transaction.path,self.deployment_transaction.data)
         delay = random.randint(350, 750)
         if plan['action'] == NODE:
             self.note('window_intent', page=page, node=plan['node'],
@@ -1570,7 +1574,7 @@ class MirrorRunner:
                 if not (plan['reason']=='clear_inherited_participant_order_before_saved_deployment' and settled_page=='DEPLOYMENT_RESET'):
                     self.deployment_transaction.observe(participants(post_records,settled.get('size') or (1920,1080)))
             except ValueError as error:entry.update(passed=False,reason=str(error),stopped='unverified_deployment_input')
-        if plan.get('reason')=='battle_button_submits_the_team' and entry['passed'] and self.deployment_transaction is not None:
+        if plan.get('reason')=='battle_button_submits_the_team' and self.deployment_transaction is not None:
             from .storage import write_json
             self.deployment_transaction.data['submitted']=settled_page in ('BATTLE_HUD','DEPLOYMENT')
             self.deployment_transaction.data['submit_pending']=settled_page not in ('BATTLE_HUD','DEPLOYMENT')

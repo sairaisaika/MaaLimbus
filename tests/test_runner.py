@@ -205,3 +205,25 @@ def test_paid_reward_controls_stop_with_missing_module_budget(tmp_path,monkeypat
     assert result['stopped']=='reward_module_budget_pending'
     assert result['done'] and not result['input_sent']
     assert device.clicks==[] and device.swipes==[]
+
+
+def test_battle_submission_intent_survives_device_failure(tmp_path,monkeypatch):
+    from maalimbus.storage import ProfileStore,SINNERS
+    from maalimbus.policies import Team
+    from maalimbus.deployment_transaction import DeploymentTransaction
+    order=[3,4,9,1,7,2,12,5,8,10,11,6]
+    ProfileStore(tmp_path/'user-team-profiles.json').save([Team(2,frozenset({'Charge','Tremor'}),
+        deployment=tuple(SINNERS[n-1] for n in order))])
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path))
+    frame=ROOT/'evidence/runtime/window-20261008-045214/frame-0008.json'
+    runner,device=window(tmp_path,[frame],{'team':2,'rounds':1})
+    runner.run_id='test';t=DeploymentTransaction(tmp_path/'deployment.json')
+    t.prepare('test',order,(0,12))
+    for i,card in enumerate(order):t.intent('card',(i,12),card);t.observe((i+1,12))
+    runner.deployment_transaction=t
+    def fail_click(*args):
+        assert DeploymentTransaction(t.path).data['submit_pending'] is True
+        raise RuntimeError('simulated controller disconnect')
+    monkeypatch.setattr(device,'click',fail_click)
+    with pytest.raises(RuntimeError,match='simulated controller disconnect'):runner.step()
+    with pytest.raises(ValueError):DeploymentTransaction(t.path).prepare('test',order,(12,12))
