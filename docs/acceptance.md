@@ -1,5 +1,47 @@
 # Acceptance evidence
 
+## 2026-10-07 the wiped run is waited into its dialog, retried on a budget, and filed
+
+- **What stalled.** `run-continue-18` (job `pwsh-447`, dir
+  `evidence/runtime/window-20261007-195545`) fought floor 5 and was wiped: step 33 is
+  `page_before DEFEAT` / `page_after DEFEAT`, `action record`, `reason page_is_observe_only`,
+  `stopped page_is_observe_only` — nothing was sent on the one page that decides whether the
+  run survives. The frame behind it (`.../frame-0222.json`, 00:10:26) reads the banner
+  `DEFEAT [726,434,470,225]`, `Gebura [332,101,100,28]` and Gebura's three lines
+  (`All of your employees are dead. Bur this moment into` `[446,43,482,26]`), and **none** of
+  the dialog's rows yet, so it classified as `DEFEAT` and not `BATTLE_DEFEAT`.
+- **Why.** `src/maalimbus/window.py:70` held `WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT')`, and
+  only `BATTLE_DEFEAT` has a plan (`window.py:267-292`: pick the `Retry Stage` row, then send
+  its own `Confirm`, bounded by `--defeat-tries`; once spent it refuses with
+  `defeat_retries_exhausted`, because accepting the deaths or leaving the run is the player's
+  decision). The banner is a page that clears itself a moment later, like `BATTLE_RESULT`.
+- **What the script does now** (commit `8baaeb1`). `DEFEAT` joins `WAIT_PAGES`, and both battle
+  plans list it in their `expect`. Live proof that the dialog follows and the retry works:
+  `run-continue-19` (job `pwsh-465`, dir `evidence/runtime/window-20261007-201340`) read
+  `BATTLE_DEFEAT` at 00:13:43 and sent `the_wiped_stage_is_picked_for_a_retry`, then at 00:13:45
+  `the_retry_is_confirmed_and_the_stage_starts_over`, and was back in `BATTLE_HUD` at 00:14:02
+  submitting turns again (00:14:06, 00:15:18). `build/live-defeat.png`, captured after the stop,
+  shows the dialog the game had already drawn by then: `Floor in Progress 5/5`,
+  `All participating Sinners have been killed.`, `Remaining Units: 0/12`, and the three rows
+  `Return to Stage Select` / `Retry Stage` / `Accept results and return to Stage select` over
+  `✓ Confirm`.
+- **The ledger is reconciled too** (commit `1a0374d`). `src/maalimbus/run_wiring.py::reconcile`
+  files a run the game no longer holds: the loadout picker (`DUNGEON_TEAM`) is only drawn for a
+  **new** dungeon — a run still in progress answers the entry with the Dungeon Progress dialog
+  (`evidence/runtime/window-20261006-025617/frame-0002.json`: `Resume` / `Halt Exploration`) —
+  so seeing the picker while the ledger still calls a run active means that run ended without a
+  receipt (the wipe dialog's own `Accept results` row, which the player presses, not the script).
+  The run is filed into `abandoned` with the floors it reached and the rotation stays put, which
+  also keeps `settle` able to open the next run at all. `tools/window_step.py` calls it beside
+  the expired-session path and journals `run_reconciled`; `tests/test_run_wiring.py::
+  test_the_team_picker_files_a_run_the_game_no_longer_holds` pins the archive, the rotation and
+  the fact that no other page files anything. Full suite 427 passed.
+- **Not claimed.** Nothing here shows which of the three dialog rows the player should prefer,
+  that `Retry Stage` is free in every mode, or that a wipe always ends the run (the dialog itself
+  offers the retry, so the run can continue). The retry budget lives in the window that is
+  running: a fresh window starts counting again. Nor is anything claimed about the banner's
+  animation timing beyond the one frame above.
+
 ## 2026-10-07 the turn dial is only the lit one, and the Win Rate press lights it
 
 - **What stalled.** `run-continue-16` (job `pwsh-385`, report `build/window-run-continue-16.json`)
