@@ -23,6 +23,9 @@ MAP_FORWARD_REASON = 'map_node_click_is_the_only_proven_forward_input'
 #: the two inputs that settle the claim, from ``maalimbus.window``.
 REWARD_CONFIRM_REASON = 'the_reward_claim_is_confirmed_and_never_cancelled'
 ENTRY_CONFIRM_REASON = 'dungeon_team_confirm_brings_the_chosen_team_in'
+#: the weekly-bonus question's Confirm, from ``maalimbus.window``: the input that hands a
+#: finished run's rewards over when only that question stands between the claim and them.
+BONUS_CONFIRM_REASON = 'a_completed_run_spends_one_weekly_bonus_on_its_rewards'
 #: the expired-session page's Confirm, from ``maalimbus.window``.
 EXPIRED_CONFIRM_REASON = 'the_expired_session_is_confirmed_so_its_rewards_are_claimed'
 
@@ -63,6 +66,15 @@ def ledger_event(*, page, reason=None, floor=None, cleared=(), victory=False,
             return LedgerEvent('final_victory')
         return None
     if page == 'RUN_REWARD_CONFIRM' and reason == REWARD_CONFIRM_REASON:
+        if victory and not reward:
+            return LedgerEvent('reward_received')
+        return None
+    if page == 'RUN_REWARD_BONUS' and reason == BONUS_CONFIRM_REASON:
+        # The weekly-bonus question is the claim's real gate when the run is the one the
+        # reset did not expire: confirming it is the input that hands the rewards over
+        # (live evidence/runtime/window-20261007-203856, 00:39:02). Without this the run
+        # reaches the next loadout with victory but no reward, which is a completion the
+        # ledger can never receipt. Cancelling keeps the bonus and grants nothing.
         if victory and not reward:
             return LedgerEvent('reward_received')
         return None
@@ -167,6 +179,21 @@ def reconcile(store, *, page, proof=None, note=None, on_event=None):
     active = (store.data or {}).get('active')
     if active is None:
         return None
+    if active.get('victory') and active.get('reward') and proof is not None:
+        # The run finished and its reward was already granted; the only thing missing is
+        # the walk back to the entry, and a window that starts after the game drew the next
+        # run's loadout can never see it. That completion is worth a receipt: recording the
+        # return advances the rotation instead of throwing a finished run away. (The live
+        # ledger reached this shape by accident -- run 476f23dc held floor 5 and its final
+        # victory but no reward, so it was abandoned at 2026-10-08T00:39:35Z and the next
+        # run came up on the same team; with the bonus question wired, the same sequence
+        # now receipts the run before the picker is ever drawn.)
+        fresh = store.record(active['id'], 'entry_returned-run', 'entry_returned', proof)
+        filed = dict(active)
+        filed['how'] = 'receipt'
+        if on_event is not None and fresh:
+            on_event(filed)
+        return filed if fresh else None
     detail = note or ('the team picker was drawn with no dungeon in progress, so the run '
                       'the ledger still held was filed as abandoned')
     if proof is not None:

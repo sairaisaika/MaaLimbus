@@ -1,5 +1,37 @@
 # Acceptance evidence
 
+## 2026-10-07 the bonus question grants the reward, and a finished run is receipted
+
+- **What went wrong.** `run-continue-21` (job `pwsh-508`, dir
+  `evidence/runtime/window-20261007-203856`) walked the whole claim: 00:39:00 the reward
+  modal's `Claim`, 00:39:02 `a_completed_run_spends_one_weekly_bonus_on_its_rewards` on the
+  now correctly named `RUN_REWARD_BONUS` page, then the summary, the drive back to the mirror
+  menu, a new entry, team pick, graces, gift and gift search — one clean pass. The ledger,
+  though, filed that finished run as abandoned: `abandoned 476f23dc team 1 floors
+  [1,2,3,4,5] victory true reward false` at `2026-10-08T00:39:35Z`. Victory and all five
+  floors were there; only `reward` was missing, so `reconcile` read the next loadout as proof
+  the game had dropped a run and threw the completion away — `completed` stayed at 1 and the
+  rotation stayed on team 1, which is why the next dungeon came up on the same team.
+- **Why.** `run_wiring.ledger_event` only treated `RUN_REWARD_CONFIRM` +
+  `REWARD_CONFIRM_REASON` as the claim, but on this screen the input that hands the rewards
+  over is the weekly-bonus question's own Confirm; and `reconcile` abandoned every active run
+  it found at the loadout picker, including one whose ledger entry already said it finished
+  and was paid.
+- **What the script does now.** `run_wiring.BONUS_CONFIRM_REASON` joins `ledger_event`, so
+  confirming `RUN_REWARD_BONUS` records `reward_received` (only when the run holds its
+  victory; cancelling grants nothing), and `reconcile` files a `victory and reward` run as a
+  **receipt** through `entry_returned` — settled time, `completed_runs` and the rotation all
+  advance — abandoning only runs that never got paid. Its return value carries `how`
+  (`receipt` / `abandoned`) for the window's journal.
+- **Tests.** `tests/test_run_wiring.py::test_the_team_picker_receipts_a_run_that_finished_and_was_paid`
+  drives floors 1–4, the summary and the bonus question, then asserts the picker receipts the
+  run (no active run, `settled_at` set, rotation 1→2, nothing abandoned) and that seeing the
+  same picker again files nothing. 429 passed.
+- **Not claimed.** The live ledger was left as the game left it (rotation on team 1, matching
+  the dungeon that is running); the repeated team-1 turn is recorded history, and the fix is
+  only proven by the next run that settles under it. The bonus question's Confirm is pinned
+  as the reward input on one live window.
+
 ## 2026-10-07 the weekly-bonus question is named however the OCR breaks its two lines
 
 - **What stalled.** `run-continue-20` (job `pwsh-492`, dir

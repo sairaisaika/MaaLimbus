@@ -9,6 +9,15 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
+## Latest continuation: 2026-10-07 21:30 local (journal UTC 01:30)
+- **领奖路径在实机上走通了**：`run-continue-21`（job `pwsh-508`，dir `evidence/runtime/window-20261007-203856`）00:39:00 点奖励弹窗的 `Claim`，00:39:02 粘行修复后这一页被正确判成 `RUN_REWARD_BONUS` ⇒ `a_completed_run_spends_one_weekly_bonus_on_its_rewards`（target `[1116,720,112,40]`）⇒ 周奖励被按下 Confirm（花掉一次），领奖完成；00:39:04/06 收尾总览、00:39:22 回镜牢菜单、00:39:29 再入场、00:39:33-35 选出战位与确认、00:39:40-00:40:09 买 Grace／领初始礼物／拒绝礼物搜索 ⇒ **下一局已经开跑**（全套入口动作一次走完，没有空转）。
+- **但账本把这一局记错了**：`config/user-run-ledger.json` 里 `abandoned 476f23dc team 1 floors [1,2,3,4,5] victory true reward false`（`2026-10-08T00:39:35Z`）——**胜利、五层都记着，只有 `reward` 没记**，于是 00:39:33 看到出战位时 `reconcile` 把一局**已完成**的 run 当成「游戏已经不要它了」归档 ⇒ `completed` 仍是 1、轮换停在第 2 位（team 1）⇒ 游戏这一局又开了一队 1。
+- **两个真洞（提交 `???`）**：
+  1. `src/maalimbus/run_wiring.py` 的 `ledger_event` 只把 `RUN_REWARD_CONFIRM` + `REWARD_CONFIRM_REASON` 当作领奖，而实机上「按周奖励问题自己的 Confirm」才是把奖励交出去的输入（`RUN_REWARD_BONUS` + `a_completed_run_spends_one_weekly_bonus_on_its_rewards`）⇒ 新增常量 `BONUS_CONFIRM_REASON` 与对应分支（仅当 `victory and not reward` 记 `reward_received`；Cancel 什么都不给）。
+  2. `reconcile` 现在按账本自己记的事实分流：`victory and reward` ⇒ 用 `entry_returned` 把它落成 **receipt**（结算时间、`completed_runs`、轮换全部照常推进），其余才是 `abandoned`；返回值多一个 `how` 字段（`receipt`／`abandoned`）供驱动记进 entry。
+- **测试**：`tests/test_run_wiring.py::test_the_team_picker_receipts_a_run_that_finished_and_was_paid`（走完 1-4 层＋总览＋周奖励问题后，出战位必须把它 receipt 掉：`active` 清空、`receipts[-1]['settled_at']` 有值、轮换 1→2、`abandoned` 为空；同一页再看一次不再动）。**429 passed。**
+- **没动实机账本**：当前轮换仍是 team 1，与正在跑的那一局一致（那一次重复的 team 1 是真实发生过的历史）；这一局结算后（新代码已生效）轮换会前进到 team 6。
+
 ## Latest continuation: 2026-10-07 21:05 local (journal UTC 01:05)
 - **结算面板的修复生效**：`run-continue-20`（job `pwsh-492`，dir `evidence/runtime/window-20261007-203340`）step 0 就是 `BATTLE_VICTORY → RUN_CLAIM`（reason `victory_confirm_clears_the_result_and_carries_the_rewards`，target `[1638,831,164,48]`）⇒ 第 5 层的结算页被正确命名并按下 Confirm，进到「Exploration Complete」总览；账本在同一分钟记下 `00:33:47 floor_clear 5` 与 `00:33:47 final_victory`（`active run 476f23dc team 1 floors=[1,2,3,4]` ⇒ 现在 5 层全清）。
 - **新停机点：周奖励的第二问在一张 1920×1080 的帧上被 OCR 粘成一行。** step 1-7 在 `RUN_CLAIM ↔ RUN_REWARD_DIALOG` 之间来回（8 次点击后 `claim_family_made_no_progress` 停机）：`frame-0009.json` 读的是**一整行** `Spend your 'Weekly Bonuses, to claim the bonus [636,486,646,34] 0.97`（配对读法里的 `bonus rewards?` 被并进去），于是 `spend_weekly_bonuses`（要求以 `the$` 结尾）与 `bonus_rewards` 都不命中 ⇒ 这一页被判成 `RUN_CLAIM`（总览的四个词还在它背后可读），驱动便一直点总览的 `Claim Rewards [1638,855,180,80]`，每次都把问题当 Cancel 关掉、回到奖励弹窗 ⇒ 死循环；周奖励仍是 `2/3`（没有被花掉）。

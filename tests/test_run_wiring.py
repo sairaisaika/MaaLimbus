@@ -2,7 +2,8 @@
 import json
 from types import SimpleNamespace
 
-from maalimbus.run_wiring import (ENTRY_CONFIRM_REASON, EXPIRED_CONFIRM_REASON,
+from maalimbus.run_wiring import (BONUS_CONFIRM_REASON, ENTRY_CONFIRM_REASON,
+                                 EXPIRED_CONFIRM_REASON,
                                  MAP_FORWARD_REASON, REWARD_CONFIRM_REASON,
                                  earned_its_payout, expire, ledger_event, reconcile, settle)
 from maalimbus.storage import RunStore, read_json, seed_run_store
@@ -201,6 +202,36 @@ def test_the_team_picker_files_a_run_the_game_no_longer_holds(tmp_path):
     store.start()
     assert reconcile(store, page='MIRROR_ENTRY', proof=proof) is None
     assert read_json(path)['active'] is not None
+
+
+def test_the_team_picker_receipts_a_run_that_finished_and_was_paid(tmp_path):
+    # A completed run whose only missing step is the walk back to the entry. The window that
+    # filed the victory can stop before it (live run-continue-20 stopped on the stage-clear
+    # panel after its summary had already recorded floor 5 and the final victory), so the
+    # next window sees the game's next loadout instead. Filing the return advances the
+    # rotation; abandoning a finished run leaves the same team in place forever, which is
+    # what the live ledger did at 2026-10-08T00:39:35Z before this existed.
+    path, store = store_at(tmp_path, rotation=1)
+    store.start()
+    for floor in range(1, 5):
+        settle(store, **MAP, floor=floor + 1, proof=frame(tmp_path, 'f%d.png' % floor))
+    settle(store, page='RUN_CLAIM', proof=frame(tmp_path, 'summary.png'))
+    settle(store, page='RUN_REWARD_BONUS', reason=BONUS_CONFIRM_REASON,
+           proof=frame(tmp_path, 'bonus.png'))
+    assert read_json(path)['active']['reward'] is True
+    seen = []
+    filed = reconcile(store, page='DUNGEON_TEAM', proof=frame(tmp_path, 'picker.png'),
+                      on_event=seen.append)
+    data = read_json(path)
+    assert filed is not None and filed['how'] == 'receipt'
+    assert [run['id'] for run in seen] == [filed['id']]
+    assert data['active'] is None
+    assert data['receipts'][-1]['id'] == filed['id']
+    assert data['receipts'][-1]['settled_at']
+    assert data['rotation'] == 2, 'the finished run moves the rotation on'
+    assert not data.get('abandoned')
+    # Seen again (or on a later window) it files nothing more.
+    assert reconcile(store, page='DUNGEON_TEAM', proof=frame(tmp_path, 'picker2.png')) is None
 
 
 def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):
