@@ -1,5 +1,9 @@
 # Acceptance evidence
 
+## October8 unified local private state
+
+Actual GUI57260 closed normally before binding/replacement. Both installed and source private directories were retained in a unique backup; source entered Team7 scope4734 was not changed.683Python passed,17focused and11package/preservation passed. Installed dd8cc4f Agent self-test independently reports the actual app runner root and source config private directory, with17private files preserved by replacement. `build/private-state-installed-verification.json` retains ledger hash and actual self-test output. This proves installed path/state resolution, not native GUI task dispatch or six-task completion. No game input or resources were used.
+
 ## October8 actual saved rotation and next entry
 
 After the real scoped team2 Hard5 payout/HOME receipt, saved rotation5 selected
