@@ -1279,6 +1279,24 @@ def test_the_resolved_skill_check_is_tapped_through_its_story_panel():
     assert missing['reason'] == 'event_check_result_panel_not_anchored'
 
 
+def test_the_entry_press_accepts_the_held_run_prompt_as_its_successor():
+    # Live proof: evidence/runtime/window-20261008-030251/frame-0008.json is the Dungeon
+    # Progress prompt, read straight after MIRROR_ENTRY's own Enter. The game still held a
+    # run, so the free entry answered with Resume/Halt instead of a fresh run, and the
+    # window called that an unexpected successor and stopped (job pwsh-203,
+    # run-continue-25). Both entry pages accept it; that prompt's own Resume carries on.
+    box = [1606, 718, 112, 44]
+    plan = plan_step('MIRROR_ENTRY', controls={'entry.enter_button': box})
+    assert plan['action'] == CLICK
+    assert plan['target'] == box
+    assert successor_ok(plan, 'RESUME_DIALOG')
+    assert not successor_ok(plan, 'HOME')
+    confirmed = plan_step('ENTRY_CONFIRM',
+                          controls={'entry_confirm.confirm_button': [1124, 704, 90, 42]})
+    assert confirmed['action'] == CLICK
+    assert successor_ok(confirmed, 'RESUME_DIALOG')
+
+
 def test_the_lit_control_of_the_resolved_skill_check_leaves_it():
     # Live proof: evidence/runtime/window-20261006-210803/frame-0002.json is the same page
     # after the story was tapped through, with 'Continue' [1588,941,220,59] lit in the slot

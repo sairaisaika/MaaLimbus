@@ -325,9 +325,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('entry.enter_button')
         if box is None:
             return _refuse(page, 'entry_enter_button_not_anchored')
+        # Enter does not always start a fresh run: when the game still holds one, the
+        # same press answers with the Dungeon Progress prompt instead (live:
+        # evidence/runtime/window-20261008-030251/frame-0008.json is RESUME_DIALOG
+        # straight after this page's Enter, and the window stopped on it as an
+        # unexpected successor). Accept it and let that prompt's own Resume carry on.
         return _plan(page, CLICK, target=box,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
-                             'LEVEL_WARNING', 'ENTRY_CONFIRM', 'PASS_LEVEL_UP', 'UNKNOWN'),
+                             'LEVEL_WARNING', 'ENTRY_CONFIRM', 'PASS_LEVEL_UP', 'RESUME_DIALOG',
+                             'UNKNOWN'),
                      reason='before_entry_enter_starts_the_free_run')
     if page == 'ENTRY_CONFIRM':
         # The entry page's Enter only raises the confirmation; the control that
@@ -338,9 +344,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('entry_confirm.confirm_button')
         if box is None:
             return _refuse(page, 'entry_confirm_button_not_anchored')
+        # The confirmation can also be the press that raises the held-run prompt, so
+        # RESUME_DIALOG is an accepted successor here for the same reason as above.
         return _plan(page, CLICK, target=box,
                      expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'LEVEL_WARNING',
-                             'MAP', 'UNKNOWN'),
+                             'MAP', 'RESUME_DIALOG', 'UNKNOWN'),
                      reason='the_entry_confirmation_starts_the_run')
     if page == 'RESUME_DIALOG':
         box = controls.get('resume.resume_button')
