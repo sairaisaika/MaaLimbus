@@ -180,6 +180,8 @@ def build_parser():
                         help='x,y,w,h: send exactly one click and record the before/'
                              'after frames, for a control the anchors do not cover yet. '
                              'Repeat the option to send several clicks in one run')
+    parser.add_argument('--reward-action', choices=('claim','confirm','receipt','pass'), default=None,
+                        help='One scoped durable paid reward control, with fresh native proof')
     parser.add_argument('--swipe', action='append', default=None,
                         help='x1,y1,x2,y2[,duration_ms]: send exactly one swipe in '
                              'frame coordinates and record the before/after frames, '
@@ -304,6 +306,23 @@ def main() -> int:
             result['passed'] = True
             result['reason'] = 'page_observed'
             return 0
+        if args.reward_action:
+            if args.observe_only or run_store is None or args.click_box or args.swipe or flow_names:
+                raise ValueError('Reward action cannot be combined with other input modes')
+            from maalimbus.paid_reward_action import prepare as prepare_reward
+            def preflight(record):
+                # The observer persists the full native cost proof in the latest frame JSON.
+                frame=loop.frame_file(directory)
+                current=json.loads(frame.read_text(encoding='utf-8'))
+                return prepare_reward(args.reward_action,current,run_store.path.parent,run_id,str(frame))
+            entry=one_shot_click(window.device,window.observer,[0,0,1,1],
+                label='paid_reward_'+args.reward_action,deadline=deadline,journal=journal,
+                rounds=args.rounds,interval=args.interval,preflight=preflight)
+            entry['step']=0
+            window.artifacts['steps'].append(entry)
+            window.artifacts['clicks_sent']+=1
+            result=window.summary()
+            return 0 if entry['passed'] else 1
         if flow_names:
             for name in flow_names:
                 problems = flows.validate(name)

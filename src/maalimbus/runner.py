@@ -2049,13 +2049,15 @@ def _settle(observer, before, before_sha, rounds, interval, deadline):
 
 
 def one_shot_click(device, observer, box, *, label='one_shot_click', index=None,
-                   deadline=None, journal=None, rounds=3, interval=4.0):
+                   deadline=None, journal=None, rounds=3, interval=4.0, preflight=None):
     """One diagnostic click on a named box, proved by the frame changing.
 
     The window's ``--click-box``. It is not part of the dungeon loop: it exists so a
     calibration point can be pressed and watched, and it never plans anything.
     """
     before = observe(observer, deadline)
+    if preflight is not None:
+        box = preflight(before)
     before_sha = before.get('image_sha256')
     box = [int(value) for value in box]
     inset = inset_box(tuple(box), .3)

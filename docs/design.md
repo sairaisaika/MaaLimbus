@@ -258,13 +258,17 @@ https://github.com/HSLix/LixAssistantLimbusCompany . Upstream checkouts are loca
 ## Paid reward intents and receipt boundary
 
 Claim and weekly-bonus Confirm are inputs, not reward_received events. A separate
-actual receipt and account-balance proof must establish payout before the ledger
-permits rotation. The paid-page runtime gate stays closed until scoped budget,
-independent currency/cost and before balances are proven. The current transaction
+actual receipt and an independent completed return must establish payout before the ledger
+permits rotation. Account-balance changes are separately verified when visible;
+hidden balances must remain unknown, and computed Net Amount is not a wallet.
+The paid-page runtime gate stays closed until scoped budget and
+independent currency/cost are proven. The current transaction
 foundation persists reservations and each input intent across restarts; changed
 offers/scopes and unresolved intents cannot be retried or replaced with a larger
 budget. Confirmation preserves pending state and never marks completion. This
-foundation has no live input activation or invented receipt recognizer.
+CLI paid reward actions now have fresh native observation and durable per-control
+intents, exact acquired-reward/pass receipt gates, and explicit evidence reconciliation.
+They do not enable a generic Confirm fallback or credit reward_received on a click.
 
 Paid-offer recognition for the retained English1920x1080 layout now independently
 gates the module currency and deduction sign via native template recognition at
