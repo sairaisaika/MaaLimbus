@@ -198,14 +198,15 @@ def test_the_budget_is_bounded(monkeypatch):
     assert loop_budget({}) == 12.0
 
 
-def test_a_ledger_written_for_another_rotation_is_skipped_not_overwritten(tmp_path):
+def test_an_invalid_ledger_stops_before_input_and_is_not_overwritten(tmp_path):
     ledger = tmp_path / 'ledger.json'
     written = {'version': 1, 'team_slots': [3, 5], 'rotation': 9,
                'completed_runs': 2, 'active': None, 'receipts': []}
     ledger.write_text(json.dumps(written), encoding='utf-8')
     settings, _ = loop_parameters({'run_store': str(ledger)})
-    assert (loop_store(settings, Journal(tmp_path))) == (None, None)
-    skipped, = runner.events(tmp_path, 'mirror_loop_store_skipped')
+    with pytest.raises(ValueError, match='saved run ledger'):
+        loop_store(settings, Journal(tmp_path))
+    skipped, = runner.events(tmp_path, 'mirror_loop_store_rejected')
     assert 'rotation' in skipped['error']
     assert json.loads(ledger.read_text(encoding='utf-8')) == written
 

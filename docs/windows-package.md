@@ -1,6 +1,6 @@
 # Windows 开发包
 
-本地包包含未修改的 MXU 2.5.1、MaaFramework 5.12.2、独立打包的 Agent/有时限 Runner、EN/JP 资源、许可文本和公开项目源码。它用于开发验证，尚未完成桌面界面及游戏实机验收，未发布 Release。
+本地包包含未修改的 MXU 2.7.1、MaaFramework 5.12.2、独立打包的 Agent/有时限 Runner、EN/JP 资源、许可文本和公开项目源码。它用于开发验证，尚未完成桌面界面及游戏实机验收，未发布 Release。
 
 ## 构建
 
@@ -12,9 +12,9 @@ python tools/build_windows_package.py --mxu <MXU归档.zip> --maa <Maa归档.zip
 
 | 输入 | 审核版本/来源 | SHA-256 |
 | --- | --- | --- |
-| MXU 二进制 | 官方 v2.5.1 Windows x86_64 归档 | A2375C171EEB360B7D3E7762FB30CDFB452860D8485FBB5D542AE8A053BE8E7D |
+| MXU 二进制 | 官方 v2.7.1 Windows x86_64 归档 | 825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724 |
 | Maa 二进制 | 官方 v5.12.2 Windows x86_64 归档 | 55DCEE2306F95656949165237E781322F6858A1675A3B271BC045A50F43C41B7 |
-| MXU 对应源码 | 已缓存的原始源码归档，提交 fb05f97fde0c112e3e07740a385072638a24ba48 | 9DBD168F01F6A74E28B79949E8FDC735BFB8DDE666C5EC8D6409D821A5519B6E |
+| MXU 对应源码 | 已缓存的原始源码归档，提交 9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3 | B350877C03598922B14D1804923E331361ACF64534494945274B80B5D28CEC35 |
 
 源归档哈希标识本地已审核输入的精确内容，不声称是上游发布的校验签名。改版本必须先审核新的来源及对应源码，再修改固定输入。
 

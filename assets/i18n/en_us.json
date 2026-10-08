@@ -56,5 +56,9 @@
   "run_team": "Team slot",
   "run_team_description": "Which team this run uses; the rotation ledger wins when it points at a team.",
   "team_build_slot": "Saved team to edit (slot)",
-  "team_build_slot_description": "Which saved team this build is written to; 1..20, the same numbering the rotation uses."
+  "team_build_slot_description": "Which saved team this build is written to; 1..20, the same numbering the rotation uses.",
+  "global_build_description": "Save systems and all twelve deployment positions globally. Keep saved leaves imported builds intact. Edits are validated and saved before the next Mirror task.",
+  "global_build_edit": "Build configuration",
+  "global_build_saved": "Keep saved build",
+  "global_build_edit_now": "Edit and save this build"
 }

@@ -105,8 +105,12 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
         assert case['pipeline_override']['TeamKeywordSet']['custom_action_param']['slot'] == slot
     tasks = {t['name']: t for t in pi['task']}
     assert tasks['team_build']['entry'] == 'TeamKeywordSet'
-    # Running a saved team must not execute the build editor's replace operation.
-    assert tasks['mirror_loop']['entry'] == 'MirrorLoop'
+    # Global settings apply only explicit edits; the legacy build replace chain
+    # is not run as part of the Mirror task.
+    assert tasks['mirror_loop']['entry'] == 'GlobalSettingsApply'
+    assert nodes['GlobalSettingsApply']['next'] == ['MirrorLoop']
+    assert all(nodes[f'Global_global_team_{i}']['attach']['global_build']['edit'] is False
+               for i in range(1,21))
     assert 'team_keywords' not in tasks['mirror_loop']['option']
     assert 'team_build_slot' in tasks['team_build']['option']
     assert 'team_keywords' in tasks['team_build']['option']

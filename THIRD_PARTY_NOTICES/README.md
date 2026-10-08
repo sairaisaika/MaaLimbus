@@ -11,10 +11,10 @@ terms; the root's `or-later` designation does not extend third-party permissions
   [upstream LICENSE.md](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/LICENSE.md).
   The incorporated [GPL v3 text](GPL-3.0.txt) is retained from
   [GNU](https://www.gnu.org/licenses/gpl-3.0.txt).
-- MXU 2.5.1, `fb05f97fde0c112e3e07740a385072638a24ba48`: unmodified
+- MXU 2.7.1, `9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3`: unmodified
   Windows desktop executable; [original AGPL notice](MXU-AGPL-3.0.txt).
   The cached corresponding source archive accompanies the local development
-  package in `sources/MXU-v2.5.1-source.zip`; package metadata identifies its hash.
+  package in `sources/MXU-v2.7.1-source.zip`; package metadata identifies its hash.
   Desktop UI acceptance remains pending.
 - LixAssistantLimbusCompany `431b432e22f0b0da08b95d7c478fa213be20b3e8`:
   AGPL-3.0, audited saved-team, gift, dungeon and deployment semantics.

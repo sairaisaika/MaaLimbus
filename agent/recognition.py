@@ -36,6 +36,7 @@ from maalimbus import initial_gifts
 from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
 from maalimbus.storage import read_json, write_json
 from maalimbus.storage import RunStore
+from maalimbus.global_settings import apply_builds, collect_builds
 
 
 def guarded_callback(failed_result):
@@ -1248,13 +1249,7 @@ def loop_directory(params):
 
 
 def loop_store(settings, journal):
-    """The run ledger the CLI uses, or ``(None, None)`` when it cannot be opened.
-
-    ``RunStore`` refuses a ledger written for another rotation and a team list that
-    repeats. A run is still worth driving when only its bookkeeping is unavailable, so
-    the refusal is journalled and the loop goes on without a ledger. An opened ledger
-    also decides the team, because the rotation is what says which team enters next.
-    """
+    """Open the evidence ledger or stop before any game input on invalid state."""
     path = settings.run_store
     if not path or settings.observe_only:
         return None, None
@@ -1267,8 +1262,8 @@ def loop_store(settings, journal):
         store = RunStore(ledger, [SimpleNamespace(slot=slot) for slot in slots])
         run_id = store.start()
     except (OSError, ValueError, KeyError, TypeError) as error:
-        journal.record('mirror_loop_store_skipped', path=str(path), error=str(error))
-        return None, None
+        journal.record('mirror_loop_store_rejected', path=str(path), error=str(error))
+        raise ValueError('Cannot safely resume the saved run ledger') from error
     settings.team = store.team_slot
     return store, run_id
 
@@ -1319,6 +1314,21 @@ class AgentTasker:
     def post_stop(self):
         """Nothing to stop: every node this proxy posts has already finished."""
         return AgentJob(None)
+
+
+class GlobalSettingsAction(CustomAction):
+    """Persist explicitly edited MXU builds before the loop can send input."""
+    def __init__(self, recognition):
+        super().__init__()
+        self.recognition = recognition
+
+    @guarded_callback(False)
+    def run(self, context, argv):
+        directory = Path(os.environ.get('MAALIMBUS_DATA_PATH', ROOT/'config'))
+        changed = apply_builds(directory, collect_builds(context.get_node_data))
+        self.recognition.journal.record('global_build_settings_applied', slots=changed,
+                                        device_input=False)
+        return True
 
 
 class MirrorLoopAction(CustomAction):

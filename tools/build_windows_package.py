@@ -18,8 +18,8 @@ ARCHIVES = {
             'https://github.com/MistEO/MXU/releases/download/v2.7.1/MXU-win-x86_64-v2.7.1.zip'),
     'maa': ('55DCEE2306F95656949165237E781322F6858A1675A3B271BC045A50F43C41B7',
             'https://github.com/MaaXYZ/MaaFramework/releases/download/v5.12.2/MAA-win-x86_64-v5.12.2.zip'),
-    'mxu_source': ('9DBD168F01F6A74E28B79949E8FDC735BFB8DDE666C5EC8D6409D821A5519B6E',
-                   'https://github.com/MistEO/MXU/tree/fb05f97fde0c112e3e07740a385072638a24ba48'),
+    'mxu_source': ('B350877C03598922B14D1804923E331361ACF64534494945274B80B5D28CEC35',
+                   'https://github.com/MistEO/MXU/tree/9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3'),
 }
 
 
@@ -114,7 +114,7 @@ def main():
         resource['path'] = [p.replace('./resource/', './assets/resource/') for p in resource['path']]
     (app/'interface.json').write_text(json.dumps(interface, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (app/'sources').mkdir()
-    shutil.copyfile(inputs['mxu_source'], app/'sources/MXU-v2.5.1-source.zip')
+    shutil.copyfile(inputs['mxu_source'], app/'sources/MXU-v2.7.1-source.zip')
     copy_public_sources(app/'sources/MaaLimbus-source.zip')
     result = subprocess.run([str(app/'agent/MaaLimbusAgent.exe'), '--self-test'],
                             cwd=stage, capture_output=True, text=True, timeout=45)

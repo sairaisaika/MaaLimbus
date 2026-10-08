@@ -56,5 +56,9 @@
   "run_team": "队伍槽位",
   "run_team_description": "本局使用哪一支队伍；轮换账本指向的队伍优先。",
   "team_build_slot": "要编辑的保存队（编号）",
-  "team_build_slot_description": "这份 team build 写在哪个保存队上；1..20，和轮换表用的是同一套编号。"
+  "team_build_slot_description": "这份 team build 写在哪个保存队上；1..20，和轮换表用的是同一套编号。",
+  "global_build_description": "总设置保存队伍的体系和十二名罪人出战顺序。保留已保存配置不会覆盖导入的队伍；修改将在下一次镜牢任务开始前验证并保存。",
+  "global_build_edit": "队伍配置",
+  "global_build_saved": "使用已保存队伍（不覆盖）",
+  "global_build_edit_now": "编辑并保存此队伍"
 }

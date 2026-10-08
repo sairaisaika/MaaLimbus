@@ -56,5 +56,9 @@
   "run_team": "隊スロット",
   "run_team_description": "今回使う隊。ローテーション台帳が指す隊が優先されます。",
   "team_build_slot": "編集する保存チーム（番号）",
-  "team_build_slot_description": "この team build を書き込む保存チーム。1..20、ローテーションと同じ番号です。"
+  "team_build_slot_description": "この team build を書き込む保存チーム。1..20、ローテーションと同じ番号です。",
+  "global_build_description": "編成の体系と12人の出撃順を共通設定に保存します。保存済みを使う場合は既存の編成を変更しません。編集内容は次の鏡ダンジョンタスク開始前に検証・保存されます。",
+  "global_build_edit": "編成設定",
+  "global_build_saved": "保存済み編成を使う",
+  "global_build_edit_now": "この編成を編集して保存"
 }
