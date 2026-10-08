@@ -1094,6 +1094,13 @@ class MirrorRunner:
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
+        if self.store is not None and not settings.observe_only:
+            active=self.store.data.get('active') or {}
+            if active.get('phase')=='entry_pending' and page in ('STAR_GRACES','INITIAL_GIFTS','THEME_PACKS','MAP'):
+                self.store.entry_observed(self.run_id,page,frame_file(directory))
+            if active.get('phase')=='entry_pending' and page=='DUNGEON_TEAM':
+                stopped=self._record(page,record,frame,candidates,None,'entry_confirmation_pending_no_retry')
+                return self._result(page,None,False,stopped,done=True)
         if settings.stop_page and page==settings.stop_page:
             stopped=self._record(page,record,frame,candidates,None,'stop_page_reached')
             return self._result(page,None,False,stopped,done=True)
@@ -1545,6 +1552,10 @@ class MirrorRunner:
                 time.sleep(settings.interval)
                 return self._result(page, plan.get('target'), False, None, waiting=True)
             return self._result(page, plan.get('target'), False, entry['stopped'], done=True)
+        if plan.get('reason')=='dungeon_team_confirm_brings_the_chosen_team_in' and self.store is not None:
+            self.store.entry_intent(self.run_id,team['selected'],frame_file(directory))
+        if plan.get('reason')=='the_level_warning_proceeds_with_the_rotation_team' and self.store is not None:
+            self.store.entry_warning_intent(self.run_id,frame_file(directory))
         if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:
             card=plan['detail']['card']
             transaction.intent(card,board['costs'][card-1],available,frame_file(directory))

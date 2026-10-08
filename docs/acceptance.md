@@ -1,5 +1,28 @@
 # Acceptance evidence
 
+## October8 actual saved rotation and next entry
+
+After the real scoped team2 Hard5 payout/HOME receipt, saved rotation5 selected
+team7. Actual190556 Team7 touch once and selected-headerTEAMS#7 .996528,
+190636 loadoutConfirm once,191203 level-warningConfirm once and191246 independent
+STAR_GRACES zero-input observation prove the next entry. New scope4734bfe68803421c8d261dccbc9120be
+is entered with no floors/victory/reward, no new star/module consumption.
+`build/rotation-reentry-real-verification-20261008.json` preserves PNG hashes and
+input targets/timing plus the previous receipt. This does not prove the new run's
+Hard mode or additional clears.
+
+The old loadout reconcile mistakenly abandoned each empty preparing scope across
+bounded windows. Original a235/81e records remain in history; explicit original
+input/hash/Team7/current-warning verification adopted the already-sent confirmation
+into4734 without another touch. New preparing/pending/entered phases preserve
+scope, persist both confirmation intents before input and reject retry/discard
+of unknown pending.679Python and30focused passed; replay remains offline evidence.
+
+Actual same PID57260 GUI eventually rendered native main/global settings, including
+the GitHub update selector. Real launcher check cached a non-semver latest tag
+maalimbus; corrected status is unsupported_release_tag. A newer public download,
+installation and visible version restart remain unaccepted.
+
 ## October8 actual Hard floor3 clear, three complete receipts
 
 094350 bounded120step task terminal14:03:57UTC/121inputs afterturnsubmission,

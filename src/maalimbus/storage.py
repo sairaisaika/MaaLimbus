@@ -173,10 +173,47 @@ class RunStore:
         if self.data['active'] is None:
             data = copy.deepcopy(self.data)
             data['active'] = dict(id=uuid.uuid4().hex, team=self.team_slot,
-                                      floors=[], victory=False, reward=False, events={})
+                                      floors=[], victory=False, reward=False, events={}, phase='preparing')
             write_json(self.path, data)
             self.data = data
         return self.data['active']['id']
+
+    def entry_intent(self, run_id, team, evidence):
+        active = self.data.get('active')
+        if (not active or active['id'] != run_id or active['team'] != team or
+                active.get('phase') != 'preparing' or active.get('entry')):
+            raise ValueError('Entry confirmation already sent or scope unknown')
+        path = Path(evidence)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        data = copy.deepcopy(self.data)
+        data['active'].update(phase='entry_pending', entry=dict(team=team,
+            before=str(path.resolve()), before_sha256=digest, confirm_sent=True))
+        write_json(self.path, data)
+        self.data = data
+
+    def entry_observed(self, run_id, page, evidence):
+        active = self.data.get('active')
+        if (not active or active['id'] != run_id or active.get('phase') != 'entry_pending' or
+                not active.get('entry', {}).get('confirm_sent') or
+                page not in ('STAR_GRACES','INITIAL_GIFTS','THEME_PACKS','MAP')):
+            raise ValueError('Independent entry successor required')
+        path = Path(evidence)
+        data = copy.deepcopy(self.data)
+        data['active']['phase'] = 'entered'
+        data['active']['entry'].update(successor_page=page, successor=str(path.resolve()),
+                                      successor_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        write_json(self.path, data)
+        self.data = data
+
+    def entry_warning_intent(self, run_id, evidence):
+        active=self.data.get('active') or {}
+        if (active.get('id')!=run_id or active.get('phase')!='entry_pending' or
+                not active.get('entry',{}).get('confirm_sent') or active['entry'].get('warning_sent')):
+            raise ValueError('Level-warning confirmation pending or scope unknown')
+        path=Path(evidence);data=copy.deepcopy(self.data)
+        data['active']['entry'].update(warning_sent=True,warning_before=str(path.resolve()),
+            warning_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        write_json(self.path,data);self.data=data
 
     def abandon(self, *, note=None):
         """Drop the active run and leave the rotation where it stands.

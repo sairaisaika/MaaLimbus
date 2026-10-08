@@ -172,6 +172,14 @@ def reconcile(store, *, page, proof=None, note=None, on_event=None):
     active = (store.data or {}).get('active')
     if active is None:
         return None
+    if active.get('phase') == 'preparing' and not any((active.get('floors'), active.get('events'),
+                                                     active.get('victory'), active.get('reward'))):
+        return None
+    if active.get('phase') == 'entry_pending':
+        raise ValueError('Entry confirmation pending; do not discard or retry')
+    if not active.get('phase') and not any((active.get('floors'),active.get('events'),
+                                          active.get('victory'),active.get('reward'))):
+        raise ValueError('Empty legacy entry scope requires evidence migration')
     if active.get('victory') and active.get('reward') and proof is not None:
         # The run finished and its reward was already granted; the only thing missing is
         # the walk back to the entry, and a window that starts after the game drew the next
