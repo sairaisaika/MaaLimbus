@@ -1081,6 +1081,18 @@ class MirrorRunner:
         directory = self.directory
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
+        # The map floor numeral blinks. A missing digit is not a failed drag:
+        # reread the current page within the existing bounded settle budget.
+        if page=='MAP' and self.theme_transaction is not None and self.theme_transaction.data and self.theme_transaction.data.get('pending'):
+            for attempt in range(max(1,settings.rounds)-1):
+                texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+                header=map_header(texts,record.get('size') or (1920,1080))
+                if not header or header.floor is not None:break
+                self.note('map_floor_read_retry',attempt=attempt+1,input_sent=False)
+                time.sleep(settings.interval)
+                record=self._observe()
+                page=resolve_scene(self.registry,directory,record)
+                if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
         if settings.stop_page and page==settings.stop_page:
             stopped=self._record(page,record,frame,candidates,None,'stop_page_reached')
