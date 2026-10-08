@@ -1,5 +1,21 @@
 # Acceptance evidence
 
+## October8 actual Hard floor2 clear and floor3 successor
+
+091754 terminal13:26UTC/62inputs stopped before the four-card gift page. Current
+trial costs include wrapped offense+HP, defense+HP and decimal damage modifiers.
+Fresh093745 comma-loss OCR stopped with zero inputs; four native retained-frame
+replay cases and31focused tests verified complete parsing/refusals. 528full tests
+passed. Actual093859 selected Blood,Sweat,andTears andTomorrow'sFortune once each,
+counter0/2→1/2→2/2. 093925 Select and two named GET acknowledgements produced full
+Tomorrow'sFortune frame0002/Blood,Sweat,andTears frame0003, then actualTHEME_PACKS
+frame0004/SELECTFLOOR3/Refresh/PackSearch. Old planner omitted this known successor
+and stopped; allowance fixed without re-input. Explicit scope/receipt/title/PNG
+hash/successor verification recordsfloor2, ledger[1,2],
+`build/floor-two-real-verification-20261008.json`. Fresh readonly also confirmed
+floor3. No modules/lunacy/conversion/refill or final payout. Floors3–5/rotation/
+reentry and full goal remain open.
+
 ## October8 actual Lightning Rod acquisition within floor2
 
 Prior084911 bounded task terminal12:58UTC after34inputs stopped before the single

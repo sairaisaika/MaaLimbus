@@ -26,6 +26,12 @@ Saved block wins; allow/keyword preferences offset modest trial risk only. Curre
 survival-first weights are level30, offense90, defense10, damage reduction3, HP1,
 preference40 and owned60. They are explicit heuristics, not game formulas or a
 universal optimal strategy. Generic keywordless gifts receive no invented synergy.
+Compound trials consume every complete clause in displayed row order, including
+wrapped numbers and decimal percentages. Commas may be omitted by OCR between
+otherwise complete clauses; unknown fragments are never skipped. One level cost
+plus the sum of all effects is charged; Damage Dealt uses conservative weight20
+per percentage point. Missing/duplicate/wrong-column components refuse. Exact
+Acquire E.G.O Gif truncation preserves its column anchor, not gift identity.
 
 Persist one pick before input; require exactly+1 counter and unchanged offer set.
 Persist Select before input; require the exact selected gift's actual GET. Each

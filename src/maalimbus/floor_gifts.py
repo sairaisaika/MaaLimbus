@@ -16,13 +16,15 @@ class Trial:
     level: int
     kind: str
     amount: int
+    components: tuple = ()
 
     @property
     def penalty(self):
         # Survival-first heuristic: offense can change clashes; defense/HP mainly
         # lengthen fights. These weights are policy, not game formulas.
-        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0}
-        return self.level * 30 + self.amount * weights[self.kind]
+        weights = {'offense': 90, 'defense': 10, 'damage_reduction': 3, 'hp': 1, 'none': 0, 'damage_dealt': 20}
+        effects=self.components or ((self.kind,self.amount),)
+        return self.level * 30 + sum(amount*weights[kind] for kind,amount in effects)
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,7 @@ class Offer:
     def identity(self):
         value = dict(title=self.title, canonical=self.canonical,
                      trial=asdict(self.trial), owned=self.owned)
+        if not self.trial.components:value['trial'].pop('components')
         if self.selection_source != 'counter':
             value['selection_source'] = self.selection_source
         return value
@@ -45,8 +48,38 @@ class Offer:
 
 GRAMMAR = ((r'Defense Level\s*\+\s*(\d+)', 'defense'),
            (r'Offense Level\s*\+\s*(\d+)', 'offense'),
-           (r'Damage Taken\s*[-−]\s*(\d+)\s*%', 'damage_reduction'),
-           (r'Max HP\s*\+\s*(\d+)\s*%', 'hp'))
+           (r'Damage Taken\s*[-−]\s*(\d+(?:\.\d+)?)\s*%', 'damage_reduction'),
+           (r'Max HP\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'hp'),
+           (r'Damage Dealt\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'damage_dealt'))
+
+
+def parse_trial(level, records):
+    if len({r.box for r in records})!=len(records):
+        raise ValueError('floor_gift_enemy_trial_not_unique')
+    # Complete wrapped text, ordered by row then horizontal position. Each comma
+    # separates an independently supported effect; no unknown fragment is dropped.
+    rows=[]
+    for record in sorted(records,key=lambda r:(r.box[1]+r.box[3]/2,r.box[0])):
+        cy=record.box[1]+record.box[3]/2
+        if rows and abs(cy-rows[-1][0])<=12:rows[-1][1].append(record)
+        else:rows.append((cy,[record]))
+    text=' '.join(' '.join(r.text.strip() for r in sorted(row,key=lambda r:r.box[0])) for _,row in rows)
+    effects=[]
+    remaining=text.strip()
+    while remaining:
+        matches=[(kind,float(m[1]),m.end()) for pattern,kind in GRAMMAR
+                 if (m:=re.match(pattern+r'(?=\s|,|$)',remaining,re.I))]
+        if len(matches)!=1 or not 0<matches[0][1]<=100:
+            raise ValueError('floor_gift_enemy_trial_unknown')
+        kind,amount,end=matches[0];effects.append((kind,amount))
+        remaining=remaining[end:].strip()
+        if remaining.startswith(','):
+            remaining=remaining[1:].strip()
+            if not remaining:raise ValueError('floor_gift_enemy_trial_unknown')
+    if not 0<level<=30 or not 1<=len(effects)<=2 or len({kind for kind,_ in effects})!=len(effects):
+        raise ValueError('floor_gift_enemy_trial_unknown')
+    if len(effects)==1:return Trial(level,*effects[0])
+    return Trial(level,'compound',0,tuple(effects))
 
 
 def observe(records, size, catalog, *, image=None, select_box=None):
@@ -73,17 +106,13 @@ def observe(records, size, catalog, *, image=None, select_box=None):
         trials = find(records, r'^Mounting Trials$', (left,.57,right,.62),size,.9)
         levels = find(records, r'^\+\s*\d+$', (left,.62,right,.67),size,.85)
         effects = find(records, r'.+', (left,.68,right,.74),size,.9)
-        if len(trials)!=1 or len(levels)!=1 or len(effects)!=1:
+        if len(trials)!=1 or len(levels)!=1 or not effects:
             raise ValueError('floor_gift_enemy_trial_not_unique')
         level = int(re.findall(r'\d+', levels[0].text)[0])
-        matches = [(kind, int(m[1])) for pattern,kind in GRAMMAR
-                   if (m:=re.fullmatch(pattern,effects[0].text.strip(),re.I))]
-        if len(matches)!=1 or not 0 < level <= 30 or not 0 < matches[0][1] <= 100:
-            raise ValueError('floor_gift_enemy_trial_unknown')
-        kind, amount = matches[0]
+        trial=parse_trial(level,effects)
         owned = bool(find(records,r'^Owned$',(left,.13,right,.25),size,.9))
         offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),
-                            tuple(box),Trial(level,kind,amount),owned))
+                            tuple(box),trial,owned))
     if len({normalized(o.title) for o in offers})!=len(offers):
         raise ValueError('floor_gift_duplicate_identity')
     if not 0 <= state['chosen'] <= state['required'] <= len(offers):

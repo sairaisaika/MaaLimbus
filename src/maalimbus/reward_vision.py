@@ -24,7 +24,7 @@ import re
 COUNTER = re.compile(r'(\d{1,2})\s*/\s*(\d{1,2})')
 
 #: the plate every offered floor gift card hangs at its own top-right corner.
-PLATE = re.compile(r'^Acq\S{2,4}re E\.?G\.?O Gift$', re.IGNORECASE)
+PLATE = re.compile(r'^Acq\S{2,4}re E\.?G\.?O Gift?$', re.IGNORECASE)
 
 #: how far the plate's centre sits to the right of the card's own content, in pixels.
 #: Measured at 1920 wide on both live floor-gift layouts: the four-card round
