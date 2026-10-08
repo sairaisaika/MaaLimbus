@@ -1,3 +1,11 @@
+## October8 versioned update candidate
+
+Candidate5151009 has719manifest files, frozen Agent/Runner/launcher and pinned project/MXU/Maa source archives.703Python passed56.42s with one Windows symlink skip. Versioned232181675-byte ZIP andSHA256SUMS uploaded to a v0.1.1 draft; GitHub asset digest agrees with local SHA887f594e1824f91f0524e88cdf3cd3058fed0d00e309ab5d227d977f44afaadc. It is not a published stable update.
+
+Production offline staging accepted the exact candidate. Real isolated installation from the existing desktop v0.1.0 files to v0.1.1 passed installed-Agent root/self-test and sentinel preservation; injected post-swap failure restored the validated installation. Desktop files were not replaced. Official isolated GUI bootstrap34480 exited and child18516 remained HIGH12288; limited-query process identity and native window title establish the exact app/version. Read-only native screenshot shows its welcome page. Main interaction, desktop new-version restart and public Release download are not accepted by that observation. No helper bypassed UAC or sent GUI/game input. The source Mirror ledger hash remains unchanged.
+
+Evidence: build/versioned-candidate-real-verification.json, build/update-stage-verification.json, build/update-install-verification.json and evidence/runtime/native-deployment-ui/versioned-candidate-installed-ui. Dependency distribution audit and full unfinished task/locale/game scope remain open.
+
 # Acceptance evidence
 
 ## October8 six native task entries

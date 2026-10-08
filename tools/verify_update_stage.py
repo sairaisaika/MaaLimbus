@@ -19,13 +19,14 @@ def main():
     archive=Path(retained['archive'])
     assert file_digest(archive)==retained['sha256']
     # Stable release metadata here is deliberately derived, not published GitHub proof.
-    name='MaaLimbus-win-x64.zip'
+    version=retained.get('version') or json.loads((Path(retained['app'])/'interface.json').read_text(encoding='utf-8'))['version']
+    name=f'MaaLimbus-win-x64-{version}.zip'
     sums=(retained['sha256']+'  '+name+'\n').encode()
-    metadata={'tag_name':'v0.1.0','assets':[
+    metadata={'tag_name':version,'assets':[
         {'name':name,'size':archive.stat().st_size,'digest':'sha256:'+retained['sha256'],
-         'browser_download_url':'https://github.com/sairaisaika/MaaLimbus/releases/download/v0.1.0/'+name},
+         'browser_download_url':f'https://github.com/sairaisaika/MaaLimbus/releases/download/{version}/'+name},
         {'name':'SHA256SUMS','size':len(sums),'digest':'sha256:'+hashlib.sha256(sums).hexdigest(),
-         'browser_download_url':'https://github.com/sairaisaika/MaaLimbus/releases/download/v0.1.0/SHA256SUMS'}]}
+         'browser_download_url':f'https://github.com/sairaisaika/MaaLimbus/releases/download/{version}/SHA256SUMS'}]}
     def transport(url,path,size,deadline,proxy):
         assert proxy is None
         if url.endswith('/SHA256SUMS'):
