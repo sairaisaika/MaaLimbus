@@ -200,7 +200,17 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     No enemy trial/cost is omitted to obtain this variant. The selected state
     needs Select plus every card's outline agreement, not a guessed counter.
     """
-    if any(re.search(r'Mounting|Trials|Enemy Level|Defense Level|Damage Taken|Max HP|Lunacy|Modules?|Purchase|Cost',r.text,re.I) for r in records):
+    # Only two complete known description clauses are exempt. A payment/trial
+    # elsewhere (including inside a card) still vetoes this free layout.
+    descriptions = set()
+    for title, clause, region in (
+        ('Trial Plan Guide', 'Shop Skill Replacement Cost', (.18,.40,.39,.51)),
+        ('First-aid Kit', 'HP heals 25% of Max HP.', (.60,.40,.81,.51)),
+    ):
+        if len(find(records,'^'+re.escape(title)+'$',(region[0],.245,region[2],.30),size,.9))==1:
+            descriptions.update(r.box for r in find(records,'^'+re.escape(clause)+'$',region,size,.9))
+    if any(re.search(r'Mounting|Trials|Enemy Level|Defense Level|Damage Taken|Max HP|Lunacy|Modules?|Purchase|Cost',r.text,re.I)
+           and r.box not in descriptions for r in records):
         raise ValueError('three_free_gift_trial_or_cost_present')
     select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
     refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
@@ -230,6 +240,12 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
         damage=find(records,r'^Skills with 1 Atk Weight deal$',(bounds[index],.40,bounds[index+1],.49),size,.9)
         amount=find(records,r'^\+15% damage\.$',(bounds[index],.43,bounds[index+1],.49),size,.9)
         benefit=15 if len(damage)==len(amount)==1 else 0
+        if title=='First-aid Kit':
+            healing = ('Tu(?:rn|m) Start: one ally under 50%', re.escape('HP heals 25% of Max HP.'),
+                       re.escape('(Once per Encounter; does not'), re.escape('activate if the ally is dead)'))
+            if all(len(find(records,'^'+line+'$',
+                            (bounds[index],.40,bounds[index+1],.55),size,.9))==1 for line in healing):
+                benefit=25  # Bounded survival preference, not predicted healing.
         offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),tuple(box),
                             Trial(0,'none',0),False,'three_free_select_button',benefit))
     mean=button_mean(image,select_box);chosen=sum(states)
