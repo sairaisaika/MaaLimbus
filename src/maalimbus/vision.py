@@ -61,9 +61,17 @@ def classify(records, locale, size):
     # and 'Confirm' [1638,831,164,48] 1.0, while the drop-show page
     # (evidence/runtime/battle-step-20261006-013320/frame-0001.json) has neither word.
     # It must not be waited out like the show: its Confirm is the only way forward.
+    # The small print under the badge is not reliable enough to be required: live
+    # evidence/runtime/window-20261007-201340/frame-0220.json (run-continue-19, stalled as
+    # UNKNOWN and waited out for all forty rounds) reads the same screen as 'Victory'
+    # [1486,146,276,100] 1.0 and 'Confirm' [1638,831,164,48] 1.0 but 'EX-GLEAR'
+    # [1334,162,180,86] 0.86 -- the C read as a G -- so the Confirm in the corner is
+    # accepted in its place: no other page draws 'Victory' there.
     if (find(records, locale.get('victory_banner', r'(?!)'), (.75, .06, .95, .30), size, .85)
-            and find(records, locale.get('victory_clear', r'(?!)'), (.66, .12, .82, .26),
-                     size, .85)):
+            and (find(records, locale.get('victory_clear', r'(?!)'), (.66, .12, .82, .26),
+                      size, .85)
+                 or find(records, locale.get('gift_confirm', r'(?!)'), (.78, .70, .96, .86),
+                         size, .85))):
         return 'BATTLE_VICTORY'
     # A wipe raises the stage dialog that decides whether the run continues: live
     # evidence/runtime/window-20261007-044408/frame-0001.json reads 'FloorIn Progress'

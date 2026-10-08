@@ -1,5 +1,41 @@
 # Acceptance evidence
 
+## 2026-10-07 the stage-clear result panel is read even when its badge is misread
+
+- **What stalled.** `run-continue-19` (job `pwsh-465`, dir
+  `evidence/runtime/window-20261007-201340`) beat floor 5's boss and stalled at step 24 with
+  `page_unreadable_after_waiting` — forty `window_unknown_wait` rounds on a screen whose only
+  way forward is a button. Frames `.../frame-0218..0220.json` (00:30:03–00:30:17) are that
+  screen: `Most Valued Employee` / `Damage Contributed 23%` and the boss portrait with its
+  dialogue on the left, `Victory [1486,146,276,100] 1.0`, `EX-GLEAR [1334,162,180,86] 0.86`,
+  `LV.91` / `EXP +0` / `3992/5178`, twelve Lv.60 cards and `Confirm [1638,831,164,48] 1.0`
+  on the right (`build/live-stall-19.png`).
+- **Why.** The `BATTLE_VICTORY` rule demanded both `Victory` and `EX-CLEAR`, and this frame's
+  small print was read as `EX-GLEAR` — the C taken for a G — so the page fell through to
+  `UNKNOWN` and was treated as an animation to wait out. That screen does not clear itself:
+  its Confirm is the only forward input, exactly like the layout already pinned in
+  `evidence/runtime/window-20261007-015542/frame-0130.json`.
+- **What the script does now** (commit `battle_victory` badge rule). `src/maalimbus/vision.py`
+  accepts `Victory` in the top-right band together with either the badge's `EX-CLEAR` or the
+  `Confirm` in the bottom-right band (`.78,.70,.96,.86`), with the live frame and the misread
+  named in the comment. `assets/resource/base/anchors.json` lists frame-0220 as further
+  evidence for the `battle_victory` page; its `battle_victory.confirm_button` geometry
+  `[1638,831,164,48]` is identical on both frames. Plan, anchor and loop-guard exemption
+  already existed (`src/maalimbus/window.py:262-272`, reason
+  `victory_confirm_clears_the_result_and_carries_the_rewards`, listed in
+  `tools/window_step.py:97`), so only the reading changed.
+- **Tests.** `tests/test_vision.py` pins frame-0220 in
+  `test_the_result_page_is_read_when_the_badge_letters_are_misread` (the frame carries
+  `Victory`, `EX-GLEAR` and `Confirm`, and it classifies as `BATTLE_VICTORY`; without the
+  banner's own word the rule must not claim the page), and the older
+  `test_the_victory_result_with_confirm_is_its_own_page` now removes **both** `EX-CLEAR` and
+  `Confirm` before asserting the page is not claimed. 428 passed;
+  `tools/verify_anchors.py` reports 45 page(s), 0 broken.
+- **Not claimed.** Only two frames prove the Confirm geometry (frame-0130 and frame-0220);
+  the badge's small print has not been sampled at other resolutions or in the Japanese
+  locale, and no run has yet been driven from this panel all the way to the next floor
+  under the new rule.
+
 ## 2026-10-07 the wiped run is waited into its dialog, retried on a budget, and filed
 
 - **What stalled.** `run-continue-18` (job `pwsh-447`, dir

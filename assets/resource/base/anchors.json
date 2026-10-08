@@ -523,7 +523,8 @@
       "title": "战斗胜利结算页（Victory / EX-CLEAR / Confirm；不会自己消失）",
       "why": "这是与掉落演出页（battle_result）不同的另一种胜利画面：右上是 Victory 与 EX-CLEAR，右下是 Confirm，左边是 Most Valued Employee/Damage Contributed 与一句台词。2026-10-07 实机上它不会像演出动画那样自己走掉——驱动把它当动画等了 30 轮后停机（build/window-run100.json），所以它必须有自己的页名与「点 Confirm」的计划。",
       "evidence": [
-        "evidence/runtime/window-20261007-015542/frame-0130.json"
+        "evidence/runtime/window-20261007-015542/frame-0130.json",
+        "evidence/runtime/window-20261007-201340/frame-0220.json"
       ],
       "identity": [
         {

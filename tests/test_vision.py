@@ -487,9 +487,35 @@ def test_the_victory_result_with_confirm_is_its_own_page():
     # The drop show carries neither word, so this rule never claims it; that page is
     # named by its own anchors (`Gain Corpus Ingredient` / `TOTAL`).
     assert classify(tokens, words, tuple(show['size'])) != 'BATTLE_VICTORY'
-    # Only one of the two words is not enough: the pair is the page.
-    half = [t for t in records if t.text.strip() != 'EX-CLEAR']
+    # The 'Victory' word alone is not enough: the badge print or the Confirm below it is
+    # the page, and frame-0130 has both.
+    half = [t for t in records if t.text.strip() not in ('EX-CLEAR', 'Confirm')]
     assert classify(half, words, tuple(frame['size'])) != 'BATTLE_VICTORY'
+
+
+def test_the_result_page_is_read_when_the_badge_letters_are_misread():
+    """Live evidence/runtime/window-20261007-201340/frame-0220.json (run 118, floor 5).
+
+    The stage-clear screen after the fifth floor's boss: 'Victory' [1486,146,276,100] 1.0
+    over the team list, 'Confirm' [1638,831,164,48] 1.0 in the corner, and the badge's
+    small print read as 'EX-GLEAR' [1334,162,180,86] 0.86 -- the C taken for a G. The
+    driver named the page UNKNOWN and waited all forty rounds on a screen whose only way
+    forward is that Confirm, so the badge no longer has to be read: the Confirm is
+    accepted in its place, and nothing else draws 'Victory' in that corner.
+    """
+    root = Path(__file__).resolve().parents[1]
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    frame = json.loads((root / 'evidence/runtime/window-20261007-201340/frame-0220.json')
+                       .read_text())
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
+    assert any(t.text.strip() == 'Victory' for t in records)
+    assert any(t.text.strip() == 'EX-GLEAR' for t in records)
+    assert any(t.text.strip() == 'Confirm' for t in records)
+    assert classify(records, words, tuple(frame['size'])) == 'BATTLE_VICTORY'
+    # Without the banner's own word the page is not claimed: the story shows the same
+    # Confirm on other screens.
+    without_banner = [t for t in records if t.text.strip() != 'Victory']
+    assert classify(without_banner, words, tuple(frame['size'])) != 'BATTLE_VICTORY'
 
 
 def test_the_wiped_stage_dialog_is_its_own_page():
