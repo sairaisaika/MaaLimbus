@@ -1,5 +1,10 @@
 # Acceptance evidence
 
+## October8 Hard floor1 map and failed inherited deployment order
+
+Actual Hard theme page041437 and successor042100 ExploringFloor1/To beCrushed prove Hard entry and selected theme, not a clear. Current042218 BATTLE_HUD after WinRate, no START: pre-battle inherited Ryoshu/Meursault/Gregor/YiSang as positions1–4. Added remainingcards and12/12 is therefore NOT the requested saved order. Offline durable clear/count/sequence repair added; real reordered-team validation remains open. No current run combat victory, floorclear, finalclaim, or rotation/reentry acceptance.
+
+
 ## October8 team2 gifts and actual Hard mode
 
 Employee Card and Portable Battery Socket selected under Charge with separate0/2→1/2→2/2 and row highlight proof, and each exact E.G.O Gift GET receipt plus next-page proof. Optional search refused once with no purchase. Actual Normal041201 switched once; fresh041437 provesHard via .92 glyph recognition despite low-confidence fullOCR. Current state is Hard floor1 pack selection, not a completed floor or run. No reward or rotation accepted. Full Python480passed before final added switch regression.

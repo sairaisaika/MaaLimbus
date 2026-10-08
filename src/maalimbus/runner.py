@@ -991,6 +991,12 @@ class MirrorRunner:
         from .initial_transaction import InitialTransaction
         self.initial_transaction=(InitialTransaction(self.store.path.parent/'user-initial-transaction.json')
                                   if self.store is not None else None)
+        from .deployment_transaction import DeploymentTransaction
+        self.deployment_transaction=(DeploymentTransaction(self.store.path.parent/'user-deployment-transaction.json')
+                                     if self.store is not None else None)
+        from .theme_transaction import ThemeTransaction
+        self.theme_transaction=(ThemeTransaction(self.store.path.parent/'user-theme-transaction.json')
+                                if self.store is not None else None)
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1059,6 +1065,23 @@ class MirrorRunner:
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
         frame, candidates = candidates_of(directory, record)
+        if page in ('BATTLE_HUD','DEPLOYMENT') and self.deployment_transaction is not None:
+            d=self.deployment_transaction.data
+            if d and d.get('submit_pending') and d['scope']==self.run_id:
+                from .storage import write_json
+                d.update(submitted=True,submit_pending=False,battle_proof=str(frame_file(directory)))
+                write_json(self.deployment_transaction.path,d)
+        if page in ('RUN_REWARD_DIALOG','RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'):
+            # These controls can commit module costs. A victory flag is not a
+            # spending authorization; retain the cost screen for budget review.
+            from .storage import read_json
+            policy_path=(self.store.path.parent if self.store is not None else ROOT/'config')/'user-mirror-settings.json'
+            policy=read_json(policy_path) if policy_path.exists() else {}
+            maximum=policy.get('max_reward_modules')
+            reason=('reward_module_budget_pending' if policy.get('module_budget_pending',True)
+                    or type(maximum) is not int or maximum<=0 else 'reward_module_cost_not_proven')
+            stopped=self._record(page,record,frame,candidates,None,reason)
+            return self._result(page,None,False,stopped,done=True)
         choice_index = 0
         if page == 'EVENT_CHOICE':
             options = choice_options(record.get('ocr'), record.get('size'))
@@ -1067,6 +1090,15 @@ class MirrorRunner:
                                             gift_hints(record.get('ocr'),
                                                        record.get('size')))
         if page == 'MAP':
+            if self.theme_transaction is not None and self.theme_transaction.data.get('pending'):
+                from .theme_vision import ThemeCatalog
+                texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+                try:
+                    self.theme_transaction.observe(self.run_id,map_header(texts,record.get('size') or (1920,1080)),
+                                                   ThemeCatalog(ROOT/'assets/resource/base'),frame_file(directory))
+                except ValueError as error:
+                    stopped=self._record(page,record,frame,candidates,None,str(error))
+                    return self._result(page,None,False,stopped,done=True)
             # A node the run has already sent a click to is not offered again on the
             # same floor: live run build/window-run76.json clicked one spot eight times,
             # each time opening the same gift tray over the map and confirming it away.
@@ -1131,6 +1163,15 @@ class MirrorRunner:
                 saved = next((t for t in profiles.load() if t.slot == slot), None)
                 if saved is not None and saved.deployment:
                     team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
+        if page=='PRE_BATTLE_TEAM' and team is not None and team.get('order'):
+            if self.deployment_transaction is None or not team.get('participants'):
+                stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
+                return self._result(page,None,False,stopped,done=True)
+            try:
+                team.update(self.deployment_transaction.prepare(self.run_id,team['order'],tuple(team['participants'])))
+            except ValueError as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
         if page == 'DUNGEON_TEAM':
             from .team_vision import selected_saved_team
             # A click is intent; the fresh TEAMS header proves which slot is selected.
@@ -1279,6 +1320,7 @@ class MirrorRunner:
         check = check_of(directory, record, page=page)
         arrows = arrows_of(directory)
         difficulty = None
+        theme_choice=None
         if page == 'THEME_PACKS':
             from .theme_vision import ThemeCatalog, theme_page
             image, _ = latest_frame(directory)
@@ -1299,6 +1341,28 @@ class MirrorRunner:
                 if len(header)==1 and len(mode_boxes)==1 and not (progress.get('scope')==self.run_id and progress.get('hard')):
                     x,y,w,h=mode_boxes[0]
                     plan_controls['theme_packs.enable_hard']=[x+110,y+13,40,24]
+            if difficulty=='hard':
+                from .theme_vision import pack_candidates,recommend_pack
+                from .storage import ProfileStore
+                from .vision import find
+                if self.theme_transaction is None or self.theme_transaction.data.get('pending'):
+                    stopped=self._record(page,record,frame,candidates,None,'theme_transaction_missing_or_pending')
+                    return self._result(page,None,False,stopped,done=True)
+                profiles=ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
+                profile=next((p for p in profiles if p.slot==self.store.team_slot),None)
+                cat=ThemeCatalog(ROOT/'assets/resource/base')
+                choices=pack_candidates(image,texts,cat)
+                headers=find(texts,r'^SELECT\s*FLOOR\s*[1-5]\s*THEME\s*PACK$',(.38,.13,.63,.20),(image.shape[1],image.shape[0]),.85)
+                theme_choice,ranking=recommend_pack(choices,profile) if profile else (None,[])
+                if not theme_choice or len(headers)!=1:
+                    stopped=self._record(page,record,frame,candidates,None,'theme_candidates_profile_or_floor_not_proven')
+                    return self._result(page,None,False,stopped,done=True)
+                import re
+                theme_choice['floor']=int(re.search(r'[1-5]',headers[0].text).group())
+                x,y,w,h=theme_choice['box'];scale=image.shape[1]/1280
+                plan_controls['theme_packs.pack_01']=[int(x+w/2-20),int(y+70*scale-12),40,24]
+                plan_controls['theme_packs.pull_to']=[int(x+w/2-20),int(image.shape[0]*.925-12),40,24]
+                self.note('theme_pack_recommendation',chosen=theme_choice,ranking=ranking,required='hard')
             self.journal.record('difficulty_gate', difficulty=difficulty,
                                 frame=frame, required='hard', verified_clear=False)
         plan = plan_step(page, controls=plan_controls, arrows=arrows,
@@ -1355,6 +1419,11 @@ class MirrorRunner:
             from .storage import write_json
             path=self.store.path.parent/'user-difficulty-transaction.json'
             write_json(path,dict(scope=self.run_id,pending=dict(before='normal',requested='hard',proof=str(frame_file(directory)))))
+        if plan.get('reason')=='the_floor_theme_pack_is_pulled_down_to_be_taken':
+            self.theme_transaction.intent(self.run_id,theme_choice['floor'],theme_choice['name'],frame_file(directory))
+        if page=='PRE_BATTLE_TEAM' and plan.get('reason') in ('clear_inherited_participant_order_before_saved_deployment','team_card_joins_the_next_unpicked_identity'):
+            kind='clear' if plan['reason'].startswith('clear_inherited') else 'card'
+            self.deployment_transaction.intent(kind,tuple(team['participants']),(plan.get('detail') or {}).get('card_index'))
         point = None
         delay = random.randint(350, 750)
         if plan['action'] == NODE:
@@ -1459,6 +1528,24 @@ class MirrorRunner:
             if mode=='hard':
                 write_json(path,dict(scope=self.run_id,pending=None,hard=True,proof=str(frame_file(directory))))
             else:entry.update(passed=False,reason='hard_switch_successor_not_proven',stopped='unverified_hard_switch')
+        if plan.get('reason')=='the_floor_theme_pack_is_pulled_down_to_be_taken':
+            from .theme_vision import ThemeCatalog
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+            try:
+                self.theme_transaction.observe(self.run_id,map_header(texts,settled.get('size') or (1920,1080)),
+                                               ThemeCatalog(ROOT/'assets/resource/base'),frame_file(directory))
+            except ValueError as error:
+                entry.update(passed=False,reason=str(error),stopped='unverified_theme_drag')
+        if page=='PRE_BATTLE_TEAM' and plan.get('reason') in ('clear_inherited_participant_order_before_saved_deployment','team_card_joins_the_next_unpicked_identity'):
+            try:
+                post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                self.deployment_transaction.observe(participants(post_records,settled.get('size') or (1920,1080)))
+            except ValueError as error:entry.update(passed=False,reason=str(error),stopped='unverified_deployment_input')
+        if plan.get('reason')=='battle_button_submits_the_team' and entry['passed'] and self.deployment_transaction is not None:
+            from .storage import write_json
+            self.deployment_transaction.data['submitted']=settled_page in ('BATTLE_HUD','DEPLOYMENT')
+            self.deployment_transaction.data['submit_pending']=settled_page not in ('BATTLE_HUD','DEPLOYMENT')
+            write_json(self.deployment_transaction.path,self.deployment_transaction.data)
         if self.store is not None and entry['passed']:
             # Every completed step is offered to the ledger; only the page that proves
             # an event (a floor's map, the run summary, the reward modal's Confirm, the

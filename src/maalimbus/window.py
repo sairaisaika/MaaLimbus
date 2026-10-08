@@ -782,6 +782,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         states = list((team or {}).get('states') or [])
         picked, capacity = (list((team or {}).get('participants') or []) + [None, None])[:2]
         full = bool(picked) and bool(capacity) and picked >= capacity
+        if (team or {}).get('reset_required'):
+            box=controls.get('pre_battle_team.clear_selection')
+            if box is None:return _refuse(page,'deployment_clear_selection_not_anchored')
+            return _plan(page,CLICK,target=box,expect=(ANY,),advance=True,
+                         reason='clear_inherited_participant_order_before_saved_deployment')
+        if full and (team or {}).get('order') and not (team or {}).get('order_verified'):
+            return _refuse(page,'saved_deployment_sequence_not_proven')
         if not full:
             order = (team or {}).get('order') or list(range(1, len(states) + 1))
             if (len(order) != len(states) or set(order) != set(range(1, len(states) + 1))):

@@ -193,3 +193,15 @@ def test_the_runner_reaches_for_neither_the_framework_nor_the_agent():
             imports.add(node.module.split('.')[0])
     assert 'maa' not in imports
     assert 'recognition' not in imports
+
+
+@pytest.mark.parametrize('page',['RUN_REWARD_DIALOG','RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'])
+def test_paid_reward_controls_stop_with_missing_module_budget(tmp_path,monkeypatch,page):
+    import maalimbus.runner as module
+    runner,device=window(tmp_path,[CLAIM_FRAME],{'rounds':1})
+    monkeypatch.setattr(module,'ROOT',tmp_path)
+    monkeypatch.setattr(module,'resolve_scene',lambda *args:page)
+    result=runner.step()
+    assert result['stopped']=='reward_module_budget_pending'
+    assert result['done'] and not result['input_sent']
+    assert device.clicks==[] and device.swipes==[]
