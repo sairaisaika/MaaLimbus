@@ -197,6 +197,14 @@ def earned_its_payout(store, *, settled_now=False):
     if store is None:
         return False
     data = store.data or {}
+    active = data.get('active') or {}
+    if active.get('victory'):
+        # The claim asking the question is this run's own payout: the ledger already holds
+        # its five verified floors and its final victory, so the bonus was earned even
+        # though the run has not been filed yet. Live run-continue-20 sat exactly there --
+        # the window that filed the victory had stopped, and the next one was started after
+        # it, so this is the only record the new window can read.
+        return True
     receipts = data.get('receipts') or []
     if not receipts:
         return False

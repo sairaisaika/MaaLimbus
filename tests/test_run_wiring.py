@@ -235,6 +235,11 @@ def test_only_a_run_that_earned_its_payout_may_spend_a_weekly_bonus(tmp_path):
         settle(store, **MAP, floor=floor + 1, proof=frame(tmp_path, 'f%d.png' % floor))
     proof = frame(tmp_path, 'summary.png')
     settle(store, page='RUN_CLAIM', proof=proof)
+    # The claim's question is this run's own payout: its five floors and its final victory
+    # are in the ledger already, even though nothing has filed the run yet. Live
+    # run-continue-20 was left in exactly that state -- the window that settled the victory
+    # stopped, and the next window has only the active run to read.
+    assert earned_its_payout(store) is True
     settle(store, page='RUN_CLAIM', proof=proof)
     settle(store, page='RUN_REWARD_CONFIRM', reason=REWARD_CONFIRM_REASON, proof=proof)
     settle(store, page='DUNGEON_TEAM', reason=ENTRY_CONFIRM_REASON, proof=proof)
