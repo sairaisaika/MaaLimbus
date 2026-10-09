@@ -1061,3 +1061,17 @@ those live purchases; the current desktop and draft package precede this feature
 ### Team7 star continuation and interactive UI work
 - Current4734/team7 real native purchases2,4,5,7 used the existing explicit cap100:116→106→86→56→16. Enter and cost0/unchecked-conversion confirmation once each; subsequent INITIAL_GIFTS first-arrival stopped without gift input. Read-only hash/touch/scope/unchanged-ledger audit is build/star-entry-resume-real-verification.json. This is entry progression, not a new dungeon clear.
 - Twelve-card click ordering, clear and save were observed in a browser preview of the actual new React component; Team2 order3,4,9,1,7,2,12,5,8,10,11,6 and HongLu last. Independent software update/device settings have source integration. Native compile/package hash/source validation, installed visual render, persistence after restart and manual GitHub-check E2E remain separate acceptance requirements.
+
+## October9 latest candidate and isolated updater
+
+Clean eaef7b8 produced a 233192565-byte v0.1.1 archive with 722 manifest files,
+modified MXU source proof and pinned Maa/MXU source companions. Staged Agent
+self-test and native Runner help passed. Runtime, source and retained license
+bytes for the two native projects match; this is not a complete dependency audit.
+Actual archive staging through retained offline transport, isolated filesystem
+installation/Agent-root validation, private-sentinel preservation and injected
+post-swap rollback passed. The desktop and game were not changed. The candidate
+and desktop both remain v0.1.1; newer public-release download/install/GUI restart
+has not been accepted. Evidence: build/latest-candidate-real-verification.json,
+build/native-source-license-actual-verification.json, build/update-stage-verification.json
+and build/update-install-verification.json.

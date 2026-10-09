@@ -10,6 +10,22 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 current Windows candidate rebuilt from clean eaef7b8 with modified
+  MXU proof, pinned upstream sources and all latest task settings. Actual build
+  terminal exit0/staged Agent self-test/native Runner help passed. ZIP233192565
+  bytes/722manifest files/SHA256ccd99b98891be262c2dd83cded3dd1352d78f89a2d95bd772760e7792388042e;
+  build/windows-package-c8cd87104e8c473ea88dc36f687faf6f/release-assets.
+  Runtime/source/retained MXU and Maa license bytes match independently in
+  native-source-license-actual-verification.json; complete distribution audit
+  remains open. Project source companion matches actual latest runner/options/PI.
+  Production updater staged actual ZIP through offline retained transport; isolated
+  installed Agent-root verification/private sentinel and injected failure rollback
+  passed. build/latest-candidate-real-verification.json, update-stage-verification.json
+  and update-install-verification.json. No desktop replacement, GUI or game input.
+  Candidate stillv0.1.1, same as desktop; not a newer-version updater acceptance,
+  not publicly published or uploaded to replace the old draft. Need a newer
+  version and remaining distribution/GUI checks before public update E2E.
+  Team7Hard5 unpaid budget question remains unanswered, resources unchanged.
 - October9 Mirror battle auto-assignment task setting now routes saved/win_rate/
   damage/observe through an independent inert node into actual Runner settings,
   CLI and page planner. Defaults retain Win Rate; Damage requires its own proven
