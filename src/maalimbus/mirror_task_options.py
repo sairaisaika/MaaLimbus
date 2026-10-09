@@ -6,7 +6,11 @@ def collect(get_node):
     keyword = get_node('MirrorInitialKeyword')['attach']['keyword']
     search = get_node('MirrorGiftSearch')['attach']['mode']
     bounds = get_node('MirrorRunBounds')['attach']['steps']
+    battle = get_node('MirrorBattleAssignment')['attach']['mode']
     result = {}
+    if battle not in ('saved','win_rate','damage','observe'):
+        raise ValueError('Unknown battle assignment mode')
+    if battle!='saved':result['battle_assignment']=battle
     if keyword != 'saved':
         if keyword not in {k.lower() for k in KEYWORDS}:
             raise ValueError('Unknown initial gift system')

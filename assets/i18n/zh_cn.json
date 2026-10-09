@@ -129,5 +129,11 @@
   "mirror_preference_weight": "优先主题包权重",
   "mirror_preference_remove_allow": "移除优先藏品",
   "mirror_preference_remove_block": "移除屏蔽藏品",
-  "mirror_preference_remove_pack": "移除主题包偏好"
+  "mirror_preference_remove_pack": "移除主题包偏好",
+  "mirror_battle_assignment": "战斗自动配卡",
+  "mirror_battle_assignment_description": "使用游戏的胜率或伤害自动配卡按钮。仅观察会停止且不输入；不是逐技能编辑。",
+  "mirror_battle_saved": "跟随启动设置",
+  "mirror_battle_win_rate": "胜率配卡",
+  "mirror_battle_damage": "伤害配卡",
+  "mirror_battle_observe": "仅观察（停止）"
 }

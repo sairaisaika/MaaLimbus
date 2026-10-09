@@ -26,11 +26,11 @@ def main():
     # Independent overrides must not erase or replace each other.
     assert resource.get_node_data('ExperienceTask')['action']['param']['custom_action_param']['task']=='experience'
     assert collect(resource.get_node_data)=={}
-    for option,case in [('mirror_initial_keyword','poise'),('mirror_gift_search','refuse'),('mirror_run_bounds','120')]:
+    for option,case in [('mirror_initial_keyword','poise'),('mirror_gift_search','refuse'),('mirror_run_bounds','120'),('mirror_battle_assignment','damage')]:
         selected=next(c for c in pi['option'][option]['cases'] if c['name']==case)
         assert resource.override_pipeline(selected['pipeline_override'])
     task_settings=collect(resource.get_node_data)
-    assert task_settings==dict(gift_keyword='poise',gift_search='refuse',steps=120)
+    assert task_settings==dict(gift_keyword='poise',gift_search='refuse',steps=120,battle_assignment='damage')
     assert resource.get_node_data('MirrorStarSource')['attach']['source']=='saved'
     proof=dict(passed=True,routes=routes,experience_team=7,thread_team=2,mirror_task_settings=task_settings,
                device_controller=False,input_sent=False,gui_dispatch_verified=False,

@@ -110,7 +110,8 @@ def _refuse(page, reason):
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
-              search=None, check=None, defeat=None, bonus=None, difficulty=None):
+              search=None, check=None, defeat=None, bonus=None, difficulty=None,
+              battle_assignment='win_rate'):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -122,7 +123,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
                       initial=initial, search=search, check=check, defeat=defeat,
-                      bonus=bonus, difficulty=difficulty)
+                      bonus=bonus, difficulty=difficulty,battle_assignment=battle_assignment)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -137,7 +138,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
-               search=None, check=None, defeat=None, bonus=None, difficulty=None):
+               search=None, check=None, defeat=None, bonus=None, difficulty=None,
+               battle_assignment='win_rate'):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -871,6 +873,10 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='the_skill_detail_popup_is_dismissed_off_the_board')
     if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
+        if battle_assignment not in ('win_rate','damage','observe'):
+            return _refuse(page,'unknown_battle_assignment_mode')
+        if battle_assignment=='observe':
+            return _refuse(page,'battle_assignment_observe_only')
         # BATTLE_PLANNING is the same battle screen in its skill-planning sub-state
         # (agent/recognition.py:198 names it when the WAVE/TURN captions are not read
         # on that frame), so the forward input is unchanged: assign, then submit.
@@ -879,11 +885,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
                                  'UNKNOWN'),
                          reason='start_button_submits_the_assigned_turn')
-        if auto_assign and auto_assign.get('win_rate'):
-            return _plan(page, CLICK, target=auto_assign['win_rate'],
+        if auto_assign and auto_assign.get(battle_assignment):
+            return _plan(page, CLICK, target=auto_assign[battle_assignment],
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
                                  'UNKNOWN'),
-                         reason='win_rate_is_the_proven_auto_assign_control')
+                         reason=battle_assignment+'_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
     return _refuse(page, 'page_is_observe_only')
 

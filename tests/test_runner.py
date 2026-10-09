@@ -65,6 +65,14 @@ def window(tmp_path, frames, settings):
     return runner, device
 
 
+def test_observe_battle_preference_reaches_runner_and_sends_no_input(tmp_path):
+    frame=ROOT/'evidence/runtime/battle-auto-assign-20261006-011029/frame-0001.json'
+    instance,device=window(tmp_path,[frame],dict(rounds=1,interval=0,battle_assignment='observe'))
+    result=instance.step()
+    assert result['reason']=='battle_assignment_observe_only'
+    assert not device.clicks and not device.swipes
+
+
 def test_one_step_reads_the_archived_page_and_sends_its_planned_click(tmp_path):
     runner, device = window(tmp_path, [CLAIM_FRAME, CLAIM_SUCCESSOR], {'rounds': 1})
     result = runner.step()

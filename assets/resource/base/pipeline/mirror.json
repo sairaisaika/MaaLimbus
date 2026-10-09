@@ -2095,5 +2095,6 @@
   "MirrorPreferenceWeight": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"weight": 75}, "next": []},
   "MirrorPreferenceRemoveAllow": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
   "MirrorPreferenceRemoveBlock": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
-  "MirrorPreferenceRemovePack": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []}
+  "MirrorPreferenceRemovePack": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
+  "MirrorBattleAssignment": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"mode": "saved"}, "next": []}
 }

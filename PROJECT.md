@@ -10,6 +10,21 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 Mirror battle auto-assignment task setting now routes saved/win_rate/
+  damage/observe through an independent inert node into actual Runner settings,
+  CLI and page planner. Defaults retain Win Rate; Damage requires its own proven
+  button, never falls back to Win Rate. Observe refuses battle START and assignment.
+  START still submits an already assigned turn in the two automatic modes, no
+  victory inferred. Existing OCR thresholds and input/successor gates retained.
+ 85focused plus retained-frame fake Runner observe/no-input test passed. Actual
+  native six-task resource parsing preserves other options with damage selection.
+  Team7 retained093211/frame0001 proves independent WinRate/Damage caption boxes;
+  three plans/missingDamage rejection in mirror-battle-retained-frame-verification.json,
+  zero device input. Full regression initially exposed three old six-option fixtures;
+  corrected fixtures and final790Python passed/1permission skip.
+  Source-only after desktop2c12793 installation; new setting GUI/liveDamage remain
+  unverified. Individual skill-order editor remains open. No paid input/Release;
+  Team7Hard5 unpaid budget question still unanswered.
 - October9 latest desktop installation completed from clean2c12793:
   build/local-app-20261009153206 and local-app-reward-preferences-install.txt.
   Staged and actual installed Agent-root self-tests passed.18private files retain

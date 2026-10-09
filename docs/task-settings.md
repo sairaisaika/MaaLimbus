@@ -136,3 +136,12 @@ runtime behavior. New/add and removal of the same entry in one batch refuse;
 unknown identity or active-build change refuses before any profile write. Native
 resource parsing and isolated persistence are verified; installed GUI interaction
 and restart persistence remain open.
+
+Mirror battle auto-assignment offers follow-launch, Win Rate, Damage and observe
+(stop) as a task option. Defaults select Win Rate. Damage uses its independently
+recognized button; missing Damage refuses without fallback. Observe sends no
+battle input even with START visible. Automatic modes submit a currently assigned
+turn when START is proven. This is the game's auto-assignment preference; it does
+not implement an individual skill-order editor or infer a battle victory. Native
+resource parsing and retained-frame plans are verified; live Damage execution
+and installed GUI rendering remain open.

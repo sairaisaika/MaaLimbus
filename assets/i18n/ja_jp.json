@@ -129,5 +129,11 @@
   "mirror_preference_weight": "優先テーマの重み",
   "mirror_preference_remove_allow": "優先ギフトを削除",
   "mirror_preference_remove_block": "除外ギフトを削除",
-  "mirror_preference_remove_pack": "テーマの好みを削除"
+  "mirror_preference_remove_pack": "テーマの好みを削除",
+  "mirror_battle_assignment": "戦闘の自動配置",
+  "mirror_battle_assignment_description": "ゲームの勝率またはダメージ配置を使用。観察のみは入力せず停止。個別スキルの編集ではありません。",
+  "mirror_battle_saved": "起動設定に従う",
+  "mirror_battle_win_rate": "勝率配置",
+  "mirror_battle_damage": "ダメージ配置",
+  "mirror_battle_observe": "観察のみ（停止）"
 }

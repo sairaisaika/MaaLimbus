@@ -5,6 +5,7 @@ is a page that the live tools have already met, plus the refusals that keep an
 unproven page from receiving a guessed coordinate.
 """
 import json
+import pytest
 import sys
 from pathlib import Path
 
@@ -299,6 +300,20 @@ def test_the_skill_detail_popup_is_dismissed_off_the_board():
     blind = plan_step('BATTLE_TIP', controls={})
     assert blind['action'] == RECORD
     assert blind['reason'] == 'battle_tip_dismiss_not_anchored'
+
+
+@pytest.mark.parametrize('page',['BATTLE_HUD','BATTLE_PLANNING'])
+def test_damage_mode_requires_its_own_proven_button_and_observe_never_submits(page):
+    targets={'win_rate':[1198,796,48,41],'damage':[1200,875,60,40]}
+    plan=plan_step(page,auto_assign=targets,battle_assignment='damage')
+    assert plan['target']==targets['damage']
+    missing=plan_step(page,auto_assign={'win_rate':targets['win_rate']},battle_assignment='damage')
+    assert missing['action']=='record'
+    for mode in ('observe','unknown'):
+        stopped=plan_step(page,start_box=[1000,800,100,80],auto_assign=targets,battle_assignment=mode)
+        assert stopped['action']=='record' and not stopped.get('target')
+    start=plan_step(page,start_box=[1000,800,100,80],auto_assign=targets,battle_assignment='damage')
+    assert start['reason']=='start_button_submits_the_assigned_turn'
 
 
 def test_battle_prefers_start_and_falls_back_to_win_rate():

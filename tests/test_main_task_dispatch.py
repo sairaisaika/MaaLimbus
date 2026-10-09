@@ -67,13 +67,14 @@ def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_pat
         if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='poise'))
         if name=='MirrorGiftSearch':return dict(attach=dict(mode='refuse'))
         if name=='MirrorRunBounds':return dict(attach=dict(steps='saved'))
+        if name=='MirrorBattleAssignment':return dict(attach=dict(mode='damage'))
         return dict(action=dict(type='Custom',param=dict(custom_action_param=dict(steps=120,run_store='config/user-run-ledger.json',stop_page='STAR_GRACES'))))
     context=SimpleNamespace(get_node_data=node)
     action=recognition.MainTaskAction(SimpleNamespace(callback_failure=None,journal=None))
     args=SimpleNamespace(custom_action_param=json.dumps(dict(task='mirror',directory=str(tmp_path))),node_name='MirrorTask')
     assert action.run(context,args)
     assert seen==[dict(steps=120,run_store='config/user-run-ledger.json',stop_page='STAR_GRACES',
-                       gift_keyword='poise',gift_search='refuse')]
+                       gift_keyword='poise',gift_search='refuse',battle_assignment='damage')]
 
 
 def test_windows_open_task_requires_actual_existing_game_and_does_not_launch(tmp_path,monkeypatch):

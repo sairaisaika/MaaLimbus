@@ -149,7 +149,7 @@ def _defaults():
         'steps': 1, 'rounds': 3, 'unknown_rounds': 30, 'battle_rounds': 8,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
-        'gift_search': 'refuse', 'loop_guard': 3, 'claim_tries': 6,
+        'gift_search': 'refuse', 'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
         'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
         'graces': '1,3,5,6,8', 'map_points': '', 'flow': None, 'flow_timeout': None,
@@ -1531,6 +1531,7 @@ class MirrorRunner:
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
                          auto_assign=record.get('auto_assign_buttons'),
+                         battle_assignment=settings.battle_assignment,
                          candidates=candidates, candidate_index=choice_index,
                          team=team, reward=reward, gift=gift, cards=cards,
                          graces=graces, initial=initial, check=check, defeat=defeat,
@@ -1549,6 +1550,7 @@ class MirrorRunner:
                  'frame': frame, 'observation': record, 'plan': plan, 'team': team,
                  'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                  'initial': initial, 'search': {'mode': settings.gift_search},
+                 'battle_assignment':settings.battle_assignment,
                  'check': check, 'defeat': defeat,
                  'bonus': {'spend': state['run_settled_itself']},
                  'arrows': arrows, 'candidates': candidates}
@@ -2196,6 +2198,8 @@ def build_parser(defaults=None):
                         help='the E.G.O gift keyword the rotation wants')
     parser.add_argument('--gift-plan', default=defaults['gift_plan'],
                         help='gift plan file naming the keyword\'s wanted gifts')
+    parser.add_argument('--battle-assignment',choices=('win_rate','damage','observe'),
+                        default=defaults['battle_assignment'],help='Proven battle auto-assignment control or stop without battle input')
     parser.add_argument('--gift-search', choices=('refuse', 'select'),
                         default=defaults['gift_search'],
                         help='what to do on the gift-search page')

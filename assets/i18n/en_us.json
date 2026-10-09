@@ -129,5 +129,11 @@
   "mirror_preference_weight": "Preferred theme weight",
   "mirror_preference_remove_allow": "Remove priority gift",
   "mirror_preference_remove_block": "Remove blocked gift",
-  "mirror_preference_remove_pack": "Remove theme preference"
+  "mirror_preference_remove_pack": "Remove theme preference",
+  "mirror_battle_assignment": "Battle auto-assignment",
+  "mirror_battle_assignment_description": "Choose the proven game auto-assignment button. Start submits an assigned turn. Observe stops without battle inputs; this does not edit individual skills.",
+  "mirror_battle_saved": "Follow launch settings",
+  "mirror_battle_win_rate": "Win Rate",
+  "mirror_battle_damage": "Damage",
+  "mirror_battle_observe": "Observe only (stop)"
 }

@@ -1223,7 +1223,7 @@ def loop_parameters(params):
     if launch_path.exists():
         saved_launch = read_json(launch_path)
         chosen.update({key: saved_launch[key] for key in
-                       ('graces','grace_budget','gift_keyword','gift_search') if key in saved_launch})
+                       ('graces','grace_budget','gift_keyword','gift_search','battle_assignment') if key in saved_launch})
     chosen.update(loop_environment())
     chosen.update({key: value for key, value in params.items() if key in known})
     ignored = sorted(set(params) - known - set(LOOP_EXTRA_PARAMS))
