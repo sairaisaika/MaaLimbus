@@ -44,3 +44,35 @@ def test_active_team_edit_rejects_but_idempotent_saved_preferences_are_accepted(
 def test_disabled_editor_does_not_resolve_inactive_child_options():
     assert collect(lambda name: {'attach':{'enabled':False}} if name=='MirrorPreferenceEdit' else
                    pytest.fail('inactive child was read')) is None
+
+
+def test_remove_only_named_entries_preserves_unrelated_metadata(tmp_path):
+    store,edit=fixture(tmp_path)
+    apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})
+    before=store.load()
+    edit.update(allow='saved',block='saved',preferred='saved',avoided='saved',
+        remove_allow='Battery',remove_block='Risk',remove_pack='Factory')
+    revised=apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})
+    assert revised.allow=={'Existing'} and not revised.block
+    assert dict(revised.pack_weights)=={'Bus':75}
+    assert revised.deployment==before[0].deployment and revised.graces==before[0].graces
+    assert store.load()[1]==before[1]
+    assert apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})==revised
+
+
+@pytest.mark.parametrize('change',[dict(remove_allow='Unknown'),dict(remove_allow='Battery'),
+    dict(remove_block='Risk'),dict(remove_pack='Factory')])
+def test_invalid_or_conflicting_removal_is_atomic(tmp_path,change):
+    store,edit=fixture(tmp_path);before=store.path.read_bytes();edit.update(change)
+    with pytest.raises(ValueError):apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})
+    assert store.path.read_bytes()==before
+
+
+def test_active_team_preference_removal_cannot_change_running_strategy(tmp_path):
+    store,edit=fixture(tmp_path)
+    apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})
+    write_json(tmp_path/'user-run-ledger.json',dict(version=1,active=dict(team=2,id='current')))
+    before=store.path.read_bytes()
+    edit.update(allow='saved',block='saved',preferred='saved',avoided='saved',remove_allow='Battery')
+    with pytest.raises(ValueError,match='active'):apply(tmp_path,edit,gifts={'Battery','Risk'},packs={'Bus','Factory'})
+    assert store.path.read_bytes()==before

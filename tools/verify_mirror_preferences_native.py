@@ -47,8 +47,22 @@ def main():
         except ValueError:pass
         else:raise AssertionError('active team edit accepted')
         assert store.path.read_bytes()==original
+        # Independent inert nodes retain simultaneous removal choices; no task
+        # controller is constructed and only isolated profiles are changed.
+        (directory/'user-run-ledger.json').unlink()
+        for option in ('allow','block','pack','avoid_pack'):
+            choice('mirror_preference_'+option,'saved')
+        removals=[('mirror_preference_remove_allow','Golden Urn'),
+            ('mirror_preference_remove_block','Blue Zippo Lighter'),
+            ('mirror_preference_remove_pack','Sinking Deluge')]
+        for option,case in removals:choice(option,case)
+        removed=apply(directory,collect(resource.get_node_data),gifts=gifts,packs=packs)
+        assert not removed.allow and not removed.block
+        assert dict(removed.pack_weights)=={'Emotional Judgment':0}
+        assert store.load()[1]==before[1]
     proof=dict(passed=True,choices=choices,resolved=edit,isolated_profiles=True,
         active_team_edit_rejected=True,other_metadata_preserved=True,
+        removal_choices=removals,independent_removal_nodes_verified=True,
         device_controller=False,input_sent=False,installed_gui_verified=False)
     (ROOT/'build/mirror-preferences-native-verification.json').write_text(json.dumps(proof,indent=2),encoding='utf8')
     print(json.dumps(proof))

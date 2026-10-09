@@ -12,7 +12,10 @@ def collect(get_node):
         block=get_node('MirrorPreferenceBlock')['attach']['name'],
         preferred=get_node('MirrorPreferencePack')['attach']['name'],
         avoided=get_node('MirrorPreferenceAvoidPack')['attach']['name'],
-        weight=get_node('MirrorPreferenceWeight')['attach']['weight'])
+        weight=get_node('MirrorPreferenceWeight')['attach']['weight'],
+        remove_allow=get_node('MirrorPreferenceRemoveAllow')['attach']['name'],
+        remove_block=get_node('MirrorPreferenceRemoveBlock')['attach']['name'],
+        remove_pack=get_node('MirrorPreferenceRemovePack')['attach']['name'])
 
 
 def apply(directory, edit, *, gifts, packs):
@@ -22,6 +25,14 @@ def apply(directory, edit, *, gifts, packs):
     for key,catalog in [('allow',gifts),('block',gifts),('preferred',packs),('avoided',packs)]:
         if edit[key]!='saved' and edit[key] not in catalog:
             raise ValueError('Unknown preference catalog identity')
+    removals={key:edit.get(key,'saved') for key in ('remove_allow','remove_block','remove_pack')}
+    for key,catalog in [('remove_allow',gifts),('remove_block',gifts),('remove_pack',packs)]:
+        if removals[key]!='saved' and removals[key] not in catalog:
+            raise ValueError('Unknown preference removal identity')
+    for key,additions in [('remove_allow',('allow',)),('remove_block',('block',)),
+                          ('remove_pack',('preferred','avoided'))]:
+        if removals[key]!='saved' and any(edit[a]==removals[key] for a in additions):
+            raise ValueError('Cannot add and remove the same preference')
     weight=edit['weight']
     if type(weight) is not int or not 1<=weight<=100:raise ValueError('Theme weight must be 1..100')
     if edit['preferred']!='saved' and edit['preferred']==edit['avoided']:
@@ -35,6 +46,9 @@ def apply(directory, edit, *, gifts, packs):
     if edit['block']!='saved':block.add(edit['block'])
     if edit['preferred']!='saved':weights[edit['preferred']]=weight
     if edit['avoided']!='saved':weights[edit['avoided']]=0
+    if removals['remove_allow']!='saved':allow.discard(removals['remove_allow'])
+    if removals['remove_block']!='saved':block.discard(removals['remove_block'])
+    if removals['remove_pack']!='saved':weights.pop(removals['remove_pack'],None)
     # Blocks always win in the existing runtime ranking. Do not delete prior
     # lists or change formation/system/starlight metadata as a side effect.
     revised=replace(team,allow=frozenset(allow),block=frozenset(block),pack_weights=tuple(weights.items()))

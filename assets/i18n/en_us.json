@@ -118,7 +118,7 @@
   "mirror_gift_search_description": "Only refusing search is supported; this setting never authorizes payment.",
   "mirror_run_bounds_description": "Bounded steps per launch, not dungeon runs. Reaching the limit preserves state and stops.",
   "mirror_preferences": "Build gift and theme preferences",
-  "mirror_preferences_description": "Follow saved build systems. Edits add preferences when the Mirror task starts, preserving lists, systems and order. Active-build changes stop. Blocks win.",
+  "mirror_preferences_description": "Edits add or remove only the selected preferences when the Mirror task starts. Systems, order and other entries are preserved. Active-build changes stop; blocks win.",
   "mirror_preferences_keep": "Keep saved preferences",
   "mirror_preferences_edit": "Edit saved build preferences",
   "mirror_preference_slot": "Saved build to edit",
@@ -126,5 +126,8 @@
   "mirror_preference_block": "Add blocked gift",
   "mirror_preference_pack": "Add preferred theme pack",
   "mirror_preference_avoid_pack": "Add blocked theme pack",
-  "mirror_preference_weight": "Preferred theme weight"
+  "mirror_preference_weight": "Preferred theme weight",
+  "mirror_preference_remove_allow": "Remove priority gift",
+  "mirror_preference_remove_block": "Remove blocked gift",
+  "mirror_preference_remove_pack": "Remove theme preference"
 }

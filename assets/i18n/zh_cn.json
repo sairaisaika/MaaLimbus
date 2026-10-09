@@ -118,7 +118,7 @@
   "mirror_gift_search_description": "只支持不搜索；此设置不授权支付搜索费用。",
   "mirror_run_bounds_description": "每次启动的有界步数，不代表镜牢次数。达到上限会保留状态停止。",
   "mirror_preferences": "队伍藏品与主题包偏好",
-  "mirror_preferences_description": "跟随保存的编队体系。编辑时为所选编队新增偏好，启动镜牢任务时保存；已有列表、体系和顺序保留。正在使用的编队有改动会停止，屏蔽优先。",
+  "mirror_preferences_description": "启动镜牢任务时保存所选偏好的新增或删除；其他条目、体系和顺序保留。正在使用的队伍不可改动，屏蔽优先。",
   "mirror_preferences_keep": "保留已有偏好",
   "mirror_preferences_edit": "编辑保存的队伍偏好",
   "mirror_preference_slot": "要编辑的保存队伍",
@@ -126,5 +126,8 @@
   "mirror_preference_block": "新增屏蔽藏品",
   "mirror_preference_pack": "新增优先主题包",
   "mirror_preference_avoid_pack": "新增屏蔽主题包",
-  "mirror_preference_weight": "优先主题包权重"
+  "mirror_preference_weight": "优先主题包权重",
+  "mirror_preference_remove_allow": "移除优先藏品",
+  "mirror_preference_remove_block": "移除屏蔽藏品",
+  "mirror_preference_remove_pack": "移除主题包偏好"
 }

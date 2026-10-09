@@ -10,6 +10,18 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 Mirror preference removal: task editor adds independent priority-gift,
+  blocked-gift and theme-rule removal controls (default keep). Known selected
+  entries are removed in the same validated atomic profile save as additions;
+  simultaneous add/remove of the same rule refuses. Active-team changes refuse,
+  other entries, systems, deployment, stars and other teams remain preserved.
+  Actual native Resource independently resolved all three controls and isolated
+  add/remove persistence passed with zero controller/input.19 focused tests and
+  native six-task parsing passed. Final783Python passed56.12s/1Windows symlink
+  permission skip (build/mirror-preference-removal-full-tests.txt). Source-only:
+  installed GUI rendering/save/restart
+  not accepted, desktop remains67c71d6; no install or Release. Current Team7
+  completed Hard5 remains at unpaid5modules/weekly0, budget answer still pending.
 - October9 paid-reward offline continuation: current five-module/zero-weekly
   offer now prepares under an explicit matching scope and maximum; old six/one
   remains supported. Obscured Net Amount is not required as a wallet balance.

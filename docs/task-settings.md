@@ -128,3 +128,11 @@ catalog names and malformed active ledgers reject without writing. This first
 editor adds entries and adjusts named theme weights; removal/list management and
 battle-card editing remain open. Native parsing and isolated profile persistence
 are verified; installed rendering/restart and actual gameplay preferences are not.
+
+Mirror saved-build preferences support explicit removal of a selected priority
+gift, blocked gift or theme rule. Default keep changes nothing. A theme removal
+removes its saved weight (including zero/block), restoring the existing neutral
+runtime behavior. New/add and removal of the same entry in one batch refuse;
+unknown identity or active-build change refuses before any profile write. Native
+resource parsing and isolated persistence are verified; installed GUI interaction
+and restart persistence remain open.
