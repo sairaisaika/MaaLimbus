@@ -108,5 +108,13 @@
   "mirror_star_card_6": "6 — 基础星光",
   "mirror_star_card_7": "7 — 基础星光",
   "mirror_star_card_8": "8 — 基础星光",
-  "mirror_star_card_9": "9 — 基础星光"
+  "mirror_star_card_9": "9 — 基础星光",
+  "mirror_initial_keyword": "初始藏品体系",
+  "mirror_keep_launch": "跟随已有启动设置",
+  "mirror_search_refuse": "不搜索（零消费）",
+  "mirror_gift_search": "藏品搜索",
+  "mirror_run_bounds": "本次运行步数上限",
+  "mirror_initial_keyword_description": "仅指定初始藏品组；楼层藏品仍按所选编队保存的体系和偏好选择。",
+  "mirror_gift_search_description": "只支持不搜索；此设置不授权支付搜索费用。",
+  "mirror_run_bounds_description": "每次启动的有界步数，不代表镜牢次数。达到上限会保留状态停止。"
 }

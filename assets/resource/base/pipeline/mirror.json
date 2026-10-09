@@ -2082,5 +2082,8 @@
   "MirrorTeamStar6": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]},
   "MirrorTeamStar7": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]},
   "MirrorTeamStar8": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]},
-  "MirrorTeamStar9": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]}
+  "MirrorTeamStar9": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]},
+  "MirrorInitialKeyword": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"keyword": "saved"}, "next": []},
+  "MirrorGiftSearch": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"mode": "saved"}, "next": []},
+  "MirrorRunBounds": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"steps": "saved"}, "next": []}
 }

@@ -790,3 +790,21 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   mismatched privileges. Full hard dungeon and desktop packaging remain unverified.
 - 2026-10-01: Recovered empty repository and running Windows game. Pinned/read MaaFramework
   cc5fef6 and LALC 431b432; inspected four user reference frames. Native design and evidence gates started.
+## Continuation: October9 Mirror task options
+
+- Installed modified GUI PID22484 now has actual top-level handle10360354 and
+  title MaaLimbus v0.1.1 at the exact dist path. The previous consent/no-window
+  observation is stale. Kept the same process; no restart/replacement/input.
+  Window identity alone does not accept native settings rendering or persistence.
+- Mirror task adds initial gift system, gift-search refusal and per-launch step
+  bounds, each on independent inert native nodes, validated and merged into
+  MirrorLoop parameters. Saved defaults retain launch settings; no new paid
+  search or resource authorization.21 focused tests and actual native six-task
+  resource/independent three-option parsing passed with zero controller/input.
+  Final740Python79.39s/1Windows symlink permission skip passed after updating old
+  two-option-only fixtures; build/mirror-task-options-full-tests-final.txt and
+  build/mirror-task-options-verification.json retain the results and source hashes.
+  These changes are source-only while installed GUI remains d0d5352. Battle,
+  theme/gift editors and actual installed interaction/restart remain open.
+- Current Team7 INITIAL_GIFTS and scope4734 remain unchanged, with no live runner.
+  No repeated star/entry/Confirm or other game input. FGO untouched and deferred.

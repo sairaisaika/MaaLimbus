@@ -101,3 +101,16 @@ Only basic stars are supported: no Enhance or leftover conversion. The task
 budget defaults to zero. Source/native isolated persistence checks are complete;
 GUI rendering, installed editor restart and real automatic purchases remain
 unverified. The existing desktop and v0.1.1 draft do not contain this change.
+## Mirror task window options (October9)
+
+The Mirror task now exposes initial-gift system, gift-search refusal and bounded
+steps alongside saved/single/rotation teams and starlight settings. Each option
+uses a separate inert native node so MXU shallow overrides preserve the other
+choices. The Agent validates and merges all three into the actual MirrorLoop
+parameters before constructing a runner. Defaults retain existing launch values;
+an explicit initial system affects the initial tray only. Floor gifts continue
+using the selected saved team's systems, allow/block lists and trial scoring.
+Search refusal never authorizes a paid search. Steps are a per-launch bound, not
+a dungeon repeat count. These additions are source/native-parser verified, not
+yet installed or visually accepted. Battle-card and theme/gift preference editors
+remain unfinished; this addition does not mark them complete.

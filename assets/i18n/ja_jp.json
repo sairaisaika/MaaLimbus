@@ -108,5 +108,13 @@
   "mirror_star_card_6": "6 — 基本星明かり",
   "mirror_star_card_7": "7 — 基本星明かり",
   "mirror_star_card_8": "8 — 基本星明かり",
-  "mirror_star_card_9": "9 — 基本星明かり"
+  "mirror_star_card_9": "9 — 基本星明かり",
+  "mirror_initial_keyword": "初期ギフトの系統",
+  "mirror_keep_launch": "既存の起動設定を使用",
+  "mirror_search_refuse": "探索しない（消費なし）",
+  "mirror_gift_search": "ギフト探索",
+  "mirror_run_bounds": "起動ごとのステップ上限",
+  "mirror_initial_keyword_description": "初期ギフトのみ指定。階層ギフトは保存された編成の系統と好みを使用します。",
+  "mirror_gift_search_description": "探索拒否のみ対応。この設定は支払いを許可しません。",
+  "mirror_run_bounds_description": "鏡ダンジョンの周回数ではありません。上限に達すると状態を保存して停止します。"
 }

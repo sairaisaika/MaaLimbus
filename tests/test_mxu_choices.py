@@ -15,6 +15,8 @@ def task(mode):
              'mirror_single_team':{'type':'select','caseName':'7'},
              'mirror_queue_count':{'type':'select','caseName':'5'}}
     options.update({f'mirror_queue_{i}':{'type':'select','caseName':str(i)} for i in range(1,21)})
+    options.update({name:{'type':'select','caseName':'saved'} for name in
+                    ('mirror_initial_keyword','mirror_gift_search','mirror_run_bounds')})
     return {'taskName':'mirror_loop','optionValues':options}
 
 

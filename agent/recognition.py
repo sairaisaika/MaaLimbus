@@ -1446,7 +1446,10 @@ class MainTaskAction(CustomAction):
                     source,star_task,star_edit=collect(context.get_node_data)
                     apply(data_directory(ROOT),source,star_task,star_edit)
                     node=context.get_node_data('MirrorLoop')
-                    selected=SimpleNamespace(custom_action_param=json.dumps(node['action']['param']['custom_action_param']),node_name='MirrorLoop')
+                    from maalimbus.mirror_task_options import collect as collect_task_options
+                    loop_params=dict(node['action']['param']['custom_action_param'])
+                    loop_params.update(collect_task_options(context.get_node_data))
+                    selected=SimpleNamespace(custom_action_param=json.dumps(loop_params),node_name='MirrorLoop')
                     return MirrorLoopAction(self.recognition).run(context,selected)
                 observer=runner.MaaObserver(AgentTasker(context),directory)
                 record=runner.observe(observer,time.monotonic()+30)

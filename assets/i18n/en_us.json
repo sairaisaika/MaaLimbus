@@ -108,5 +108,13 @@
   "mirror_star_card_6": "6 — base grace",
   "mirror_star_card_7": "7 — base grace",
   "mirror_star_card_8": "8 — base grace",
-  "mirror_star_card_9": "9 — base grace"
+  "mirror_star_card_9": "9 — base grace",
+  "mirror_initial_keyword": "Initial gift system",
+  "mirror_keep_launch": "Keep existing launch settings",
+  "mirror_search_refuse": "Refuse search (no spending)",
+  "mirror_gift_search": "Gift search",
+  "mirror_run_bounds": "Steps per task window",
+  "mirror_initial_keyword_description": "Selects the initial gift group. Floor gifts still use the saved build systems and preferences.",
+  "mirror_gift_search_description": "Only refusing search is supported; this setting never authorizes payment.",
+  "mirror_run_bounds_description": "Bounded steps per launch, not dungeon runs. Reaching the limit preserves state and stops."
 }
