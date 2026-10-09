@@ -10,6 +10,15 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 07:34local actual43468 terminal53inputs at EVENT_CHOICE/frame0134,
+  no_event_choice_observed; not floor4clear. Refuse/Accept texts were complete
+  but excluded by the eight-character row filter. Added short-label extraction
+  plus independent exact garden dialogue/question/Choices/two-control gate,
+  all .9. This exact offer uses bounded Refuse, no inferred healing/gift value;
+  unsupported Accept/Refuse questions STOP.79focused and3actual native retained
+  positive/missing-question/missing-control cases passed zero device input.
+  Existing factory Yes/No policy remains separately gated. No duplicate theme
+  Swipe or completed gift inputs, ledger[1,2,3]; full regression in progress.
 - October9 07:11local City supplement/sourcefdeb723 pushed;756Python passed
   55.19s/1permissionskip,16focused and3native retained cases passed. Actual
   City/SmokingGunpowder picked once each0→1→2, Selectonce and two complete named

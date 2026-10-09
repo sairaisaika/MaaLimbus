@@ -63,7 +63,7 @@ def choice_options(records, size, *, band=OPTION_BAND, min_length=8):
     for item in records or []:
         text = _text(item)
         box = _box(item)
-        binary=bool(re.fullmatch(r'(?:Yes|No)[.!]?',text,re.I))
+        binary=bool(re.fullmatch(r'(?:Yes|No|Accept|Refuse)[.!]?',text,re.I))
         if ((len(text) < min_length and not binary) or HINT_PATTERN.match(text)
                 or re.fullmatch(r'Press the button to (?:proceed|stop)\.',text,re.I)):
             continue
@@ -72,6 +72,28 @@ def choice_options(records, size, *, band=OPTION_BAND, min_length=8):
         rows.append((box[1], box, text))
     rows.sort(key=lambda row: (row[0], row[1][0]))
     return [(box, text) for _, box, text in rows]
+
+
+def garden_refusal_choice(records,size,options):
+    """Bounded refusal of the independently identified garden offer.
+
+    No healing/reward benefit is inferred from the portrait or this dialogue.
+    Other Accept/Refuse questions remain unsupported rather than using row zero.
+    """
+    short=[i for i,(_,text) in enumerate(options)
+           if re.fullmatch(r'(?:Accept|Refuse)[.!]?',text,re.I)]
+    if not short:return None
+    from .vision import Text,find
+    texts=[r if isinstance(r,Text) else Text(_text(r),_box(r),r.get('score',0)) for r in records or []]
+    def unique(pattern,band):return len(find(texts,pattern,band,size,.9))==1
+    if (len(options)!=2 or len(short)!=2
+            or not unique(r'^Choices$',(.53,.13,.66,.22))
+            or not unique(r'^Refuse\.$',OPTION_BAND)
+            or not unique(r'^Accept\.$',OPTION_BAND)
+            or not unique(r'^"Our only wish is that our garden will bloom full of flowers\."$',(.04,.56,.49,.65))
+            or not unique(r'^"Now, what will you do\?"$',(.04,.63,.49,.71))):
+        raise ValueError('Accept/Refuse garden event identity is not independently proven')
+    return next(i for i,(_,text) in enumerate(options) if text=='Refuse.')
 
 
 def cyborg_city_choice(records,size,options):

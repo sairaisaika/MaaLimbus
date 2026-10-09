@@ -1145,9 +1145,10 @@ class MirrorRunner:
             choice_index = preferred_choice(options,
                                             gift_hints(record.get('ocr'),
                                                        record.get('size')))
-            from .event_vision import cyborg_city_choice
+            from .event_vision import cyborg_city_choice,garden_refusal_choice
             try:
                 city_choice=cyborg_city_choice(record.get('ocr'),record.get('size'),options)
+                garden_choice=garden_refusal_choice(record.get('ocr'),record.get('size'),options)
             except ValueError as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
@@ -1155,6 +1156,11 @@ class MirrorRunner:
                 choice_index=city_choice
                 self.note('cyborg_city_choice',answer='No',source='current exact city question and Yes/No labels',
                           strategy='three No answers disable the factory; each page is freshly identified')
+            if garden_choice is not None:
+                choice_index=garden_choice
+                self.note('garden_refusal_choice',answer='Refuse',
+                          source='current exact garden dialogue and two high-confidence controls',
+                          strategy='bounded refusal; no inferred gift/healing benefit')
         if page == 'MAP':
             if self.theme_transaction is not None and self.theme_transaction.data.get('pending'):
                 from .theme_vision import ThemeCatalog

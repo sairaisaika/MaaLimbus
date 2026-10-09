@@ -1,5 +1,13 @@
 # Native design and requirement ledger
 
+## Short event choices
+
+Accept/Refuse labels are extracted without lowering text confidence. They are
+usable only for the exact garden dialogue, independently anchored Choices,
+complete question and two unique high-confidence controls. That event selects
+Refuse as a bounded policy, with no inferred reward or healing benefit; other
+Accept/Refuse events stop. Missing dialogue/control and low confidence refuse.
+
 ## Independently observed gift titles
 
 `gift-observed-catalog.json` supplements the pinned upstream catalog without
