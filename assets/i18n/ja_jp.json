@@ -81,7 +81,7 @@
   "main_thread": "紐採光",
   "main_thread_description": "保存チームを使用。ステージと消費の認識は開発中で、現在は画面を保存して停止します。",
   "main_rewards": "報酬を受け取る",
-  "main_rewards_description": "メール・デイリー報酬の認識は開発中です。現在は画面を保存して停止します。鏡報酬は鏡タスク内で処理。",
+  "main_rewards_description": "現在クリア済みの鏡ダンジョン報酬を、今回のモジュール予算内で受け取ります。メール・デイリー任務の受け取りは未対応です。",
   "main_stamina": "エンケファリン変換",
   "main_stamina_description": "予算内の変換認識は開発中です。現在は画面を保存して停止し、消費しません。",
   "lux_saved_team": "保存チーム",
@@ -135,5 +135,11 @@
   "mirror_battle_saved": "起動設定に従う",
   "mirror_battle_win_rate": "勝率配置",
   "mirror_battle_damage": "ダメージ配置",
-  "mirror_battle_observe": "観察のみ（停止）"
+  "mirror_battle_observe": "観察のみ（停止）",
+  "reward_module_budget": "鏡ダンジョン報酬のモジュール予算",
+  "reward_module_budget_description": "開始時に現在のクリア済み周回へ適用します。既存予算を保持するのが初期設定です。上限内でのみ受け取り、週次ボーナス・狂気・交換は変更しません。",
+  "reward_budget_saved": "既存予算を保持",
+  "reward_budget_0": "モジュールを消費しない",
+  "reward_budget_5": "今回最大5モジュール",
+  "reward_budget_6": "今回最大6モジュール"
 }

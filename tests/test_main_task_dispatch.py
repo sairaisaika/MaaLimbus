@@ -98,7 +98,8 @@ def test_reward_entry_dispatches_bounded_executor_and_preserves_failure(tmp_path
         seen.append(directory)
         return dict(passed=False,reason='Current claim scope/budget is not authorized',input_sent=False)
     monkeypatch.setattr(task,'execute',execute)
-    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace()))
+    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace()),
+                            get_node_data=lambda name:dict(attach=dict(maximum='saved')))
     action=recognition.MainTaskAction(SimpleNamespace(callback_failure=None,journal=None))
     args=SimpleNamespace(custom_action_param=json.dumps(dict(task='rewards',directory=str(tmp_path))),node_name='RewardsTask')
     assert not action.run(context,args) and seen==[tmp_path]

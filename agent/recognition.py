@@ -1462,6 +1462,8 @@ class MainTaskAction(CustomAction):
                     return MirrorLoopAction(self.recognition).run(context,selected)
                 observer=runner.MaaObserver(AgentTasker(context),directory)
                 if task=='rewards':
+                    from maalimbus.reward_task_budget import apply as apply_reward_budget
+                    apply_reward_budget(data_directory(ROOT),context.get_node_data('RewardModuleBudget')['attach']['maximum'])
                     from maalimbus.reward_task import execute
                     device=runner.local_device(context.tasker.controller,tasker=AgentTasker(context),
                                                deadline=time.monotonic()+90)

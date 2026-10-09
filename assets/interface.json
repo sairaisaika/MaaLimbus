@@ -149,6 +149,7 @@
       "label": "$main_rewards",
       "entry": "RewardsTask",
       "description": "$main_rewards_description",
+      "option": ["reward_module_budget"],
       "default_check": false
     },
     {
@@ -160,6 +161,7 @@
     }
   ],
   "option": {
+    "reward_module_budget": {"type": "select", "label": "$reward_module_budget", "description": "$reward_module_budget_description", "default_case": "saved", "cases": [{"name": "saved", "label": "$reward_budget_saved", "pipeline_override": {"RewardModuleBudget": {"attach": {"maximum": "saved"}}}}, {"name": "0", "label": "$reward_budget_0", "pipeline_override": {"RewardModuleBudget": {"attach": {"maximum": 0}}}}, {"name": "5", "label": "$reward_budget_5", "pipeline_override": {"RewardModuleBudget": {"attach": {"maximum": 5}}}}, {"name": "6", "label": "$reward_budget_6", "pipeline_override": {"RewardModuleBudget": {"attach": {"maximum": 6}}}}]},
     "software_auto_update": {"type":"select","label":"$software_auto_update","description":"$software_auto_update_description","default_case":"enabled","cases":[{"name":"enabled","label":"$software_update_enabled"},{"name":"disabled","label":"$software_update_disabled"}]},
     "team_slot": {
       "type": "select",

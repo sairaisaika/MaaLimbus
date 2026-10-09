@@ -81,7 +81,7 @@
   "main_thread": "自动纺锤本",
   "main_thread_description": "引用已保存队伍。关卡与消耗识别尚在开发，当前保存现场后停止。",
   "main_rewards": "领取奖励",
-  "main_rewards_description": "邮件与每日奖励识别尚在开发，当前保存现场后停止。镜牢本轮领奖由镜牢任务处理。",
+  "main_rewards_description": "领取当前已通关镜牢的奖励，需要本轮模块预算。邮件与每日任务领取尚未支持。",
   "main_stamina": "体力兑换",
   "main_stamina_description": "预算内体力兑换识别尚在开发，当前保存现场后停止，不消费。",
   "lux_saved_team": "使用已保存队伍",
@@ -135,5 +135,11 @@
   "mirror_battle_saved": "跟随启动设置",
   "mirror_battle_win_rate": "胜率配卡",
   "mirror_battle_damage": "伤害配卡",
-  "mirror_battle_observe": "仅观察（停止）"
+  "mirror_battle_observe": "仅观察（停止）",
+  "reward_module_budget": "镜牢领奖模块预算",
+  "reward_module_budget_description": "启动此任务时绑定当前已通关轮次。默认保留现有预算；仅在费用不超过上限时领取，不改变每周加成、狂气或体力兑换。",
+  "reward_budget_saved": "保留现有预算",
+  "reward_budget_0": "禁止消费模块",
+  "reward_budget_5": "本轮最多 5 模块",
+  "reward_budget_6": "本轮最多 6 模块"
 }

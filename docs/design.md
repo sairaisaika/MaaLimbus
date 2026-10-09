@@ -385,3 +385,12 @@ and HOME before run-store reward/return bookkeeping. A saved bookkeeping HOME
 plus exact archived event hashes permits recovery after a final transaction-write
 failure, with no second rotation or input. Missing state fails without starting a
 run. This implements the Mirror payout portion; mail/daily execution remains open.
+
+
+### Explicit rewards-task budget
+A separate inert RewardModuleBudget node carries the native setting so MXU shallow
+option overrides cannot replace the rewards entry action. Saved default is a
+no-read/no-write operation. Explicit0/5/6 caps validate the current verified unpaid
+five-floor scope and reject unresolved or already-sent claim transactions before
+an atomic policy update. Only the module cap/scope/pending fields change; no
+weekly toggle, refill, conversion, transaction or ledger is modified by this edit.

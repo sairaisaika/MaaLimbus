@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 native rewards task gains explicit saved/0/5/6 module budget choices.
+  Saved default does not read/write policy; explicit choice binds only the current
+  verified unpaid five-floor run. Unresolved/already-sent claims, unknown caps,
+  incomplete old transactions or unverified runs reject before policy writes.
+  Only module cap/scope/pending change; weekly/Lunacy/refill/conversion and prior
+  receipt/ledger stay intact. EN/JA/ZH task descriptions reflect Mirror payout
+  support and unfinished mail/daily collection.26focused and836fullPython61.22s
+  /1Windows symlink permission skip passed. Actual Maa Resource four cases and
+  isolated current Team7 application passed, four actual private hashes unchanged,
+  zero controller/input: build/reward-task-budget-native-verification.json.
+  Real Team7 paid5 budget remains unanswered/unmodified; no game inputs or new
+  payout. Native GUI interaction/restart and other task/JP/shop/NN/update/Release
+  requirements remain open. FGO untouched and deferred.
 - October9 rewards native MainTask now dispatches bounded Mirror payout execution
   through current-scope budget/native cost and durable input-intent gates. Full
   four-input receipt audit plus independent HOME is required before reward/return

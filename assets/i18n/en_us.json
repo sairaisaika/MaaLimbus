@@ -81,7 +81,7 @@
   "main_thread": "Thread Luxcavation",
   "main_thread_description": "Uses a saved team. Stage and cost recognition are under development; currently captures evidence and stops.",
   "main_rewards": "Collect rewards",
-  "main_rewards_description": "Mail and daily reward recognition are under development; currently captures evidence and stops. Mirror rewards stay in the Mirror task.",
+  "main_rewards_description": "Claim rewards for the current cleared Mirror run with its module budget. Mail and daily mission collection are not yet supported.",
   "main_stamina": "Convert Enkephalin",
   "main_stamina_description": "Budgeted conversion recognition is under development; currently captures evidence and stops without spending.",
   "lux_saved_team": "Saved team",
@@ -135,5 +135,11 @@
   "mirror_battle_saved": "Follow launch settings",
   "mirror_battle_win_rate": "Win Rate",
   "mirror_battle_damage": "Damage",
-  "mirror_battle_observe": "Observe only (stop)"
+  "mirror_battle_observe": "Observe only (stop)",
+  "reward_module_budget": "Mirror payout module budget",
+  "reward_module_budget_description": "Binds to the current cleared run when this task starts. Preserve the saved budget by default; claim only within the cap. Weekly bonuses, Lunacy and conversion stay unchanged.",
+  "reward_budget_saved": "Preserve saved budget",
+  "reward_budget_0": "Do not spend modules",
+  "reward_budget_5": "Up to 5 modules this run",
+  "reward_budget_6": "Up to 6 modules this run"
 }

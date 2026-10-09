@@ -165,3 +165,14 @@ or the successor read fails. Mail/daily collection, experience/thread farming an
 stamina conversion are still unfinished. Retained evidence and isolated state
 verify this execution wiring; live current Team7 payout and native GUI dispatch
 are not accepted, and no current paid input is authorized by those tests.
+
+
+The rewards task includes a module budget choice: keep saved (default), no
+spending, or a cap of5/6 modules. An explicit choice binds only to the verified,
+unpaid active run when this task starts. It preserves weekly settings, Lunacy,
+refill/conversion limits and the previous receipt transaction. Missing/incomplete
+runs, unresolved transactions and already-sent claims reject edits before writing.
+This task setting is separate from software update and device connection settings.
+It does not itself press Claim or authorize a paid Gift Search. Native resource
+parsing and isolated persistence are verified; installed GUI interaction remains
+an independent acceptance requirement.

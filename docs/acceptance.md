@@ -1154,3 +1154,16 @@ remain unchanged. Mail/daily, experience/thread and stamina tasks remain open.
 
 Final823Python tests passed in56.74s with one Windows symlink permission skip;
 22focused tests passed. These checks do not prove a new paid receipt or GUI E2E.
+
+
+## October9 rewards-task budget native verification
+Actual Maa Resource parsing confirms saved/0/5/6 choices and an unchanged rewards
+entry plus independent Mirror settings. Isolated copies of the actual Team7
+ledger bind explicit caps to the current scope while retaining other policy data;
+four real private file hashes remain unchanged and no controller/input is created.
+Evidence: build/reward-task-budget-native-verification.json. Missing/incomplete
+runs, pending/sent claims, invalid caps and incomplete old transactions reject
+without altering the policy. This does not approve the unanswered real paid5
+request or prove installed GUI interaction.
+
+836fullPython tests passed in61.22s with one Windows permission skip;26focused passed.
