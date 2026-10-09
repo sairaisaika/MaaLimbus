@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 07:40local garden fix full758passed/1permissionskip57.17s. Fresh
+  actual59116 stopped zero input because OCR changed a closing quote to an
+  apostrophe; complete words now tolerate only surrounding quote punctuation.
+  Final80focused and3native positive/negative cases passed; original fresh
+  quote-variant frame also passed offline. Actual51548 Refuse once reached
+  EVENT_RESULT, build/team-seven-garden-refuse-quote-fixed-live.json,1input;
+  no healing/gift/floorclear claimed. Generic legacy plan reason says reward
+  row, but the garden_refusal_choice journal note records actual bounded refusal.
+  Fresh bounded120step report build/team-seven-floor-four-after-garden-live.json
+  continues from result; tool25782. Verify actualCIM/result before new control.
+  Active only observe, no repeat Refuse/themeSwipe/oldGET or desktop replacement.
+  Ledger[1,2,3], new modules0pending/lunacyrefillconversion0; source fix not
+  installed desktop67c71d6. Full software/remaining floors/payout goal open.
 - October9 07:34local actual43468 terminal53inputs at EVENT_CHOICE/frame0134,
   no_event_choice_observed; not floor4clear. Refuse/Accept texts were complete
   but excluded by the eight-character row filter. Added short-label extraction

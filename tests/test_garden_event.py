@@ -20,3 +20,11 @@ def test_actual_garden_refusal_is_bound_to_story_and_controls():
 def test_reversed_options_still_choose_refuse_by_label():
     d=json.loads(FRAME.read_text());options=choice_options(d['ocr'],d['size'])
     assert garden_refusal_choice(d['ocr'],d['size'],options[::-1])==1
+
+
+def test_ocr_quote_variation_keeps_complete_words_required():
+    d=json.loads(FRAME.read_text())
+    altered=[dict(t,text=t['text'].replace('flowers."',"flowers.'")) for t in d['ocr']]
+    assert garden_refusal_choice(altered,d['size'],choice_options(altered,d['size']))==0
+    altered=[dict(t,text=t['text'].replace('full of flowers.', 'full of')) for t in altered]
+    with pytest.raises(ValueError):garden_refusal_choice(altered,d['size'],choice_options(altered,d['size']))

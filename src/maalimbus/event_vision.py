@@ -90,8 +90,8 @@ def garden_refusal_choice(records,size,options):
             or not unique(r'^Choices$',(.53,.13,.66,.22))
             or not unique(r'^Refuse\.$',OPTION_BAND)
             or not unique(r'^Accept\.$',OPTION_BAND)
-            or not unique(r'^"Our only wish is that our garden will bloom full of flowers\."$',(.04,.56,.49,.65))
-            or not unique(r'^"Now, what will you do\?"$',(.04,.63,.49,.71))):
+            or not unique(r'''^["']?Our only wish is that our garden will bloom full of flowers\.["']?$''',(.04,.56,.49,.65))
+            or not unique(r'''^["']?Now, what will you do\?["']?$''',(.04,.63,.49,.71))):
         raise ValueError('Accept/Refuse garden event identity is not independently proven')
     return next(i for i,(_,text) in enumerate(options) if text=='Refuse.')
 
