@@ -12,6 +12,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
+sys.path.insert(0, str(ROOT/'tools'))
+from frozen_notices import collect as collect_frozen_notices
 from maalimbus.archives import extract_checked
 from maalimbus.release_package import export_assets
 from maalimbus.mxu_distribution import validate_artifact
@@ -134,6 +136,7 @@ def main():
         shutil.copytree(ROOT/name, app/name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     for name in ('README.md', 'README_en.md', 'LICENSE'):
         shutil.copyfile(ROOT/name, app/name)
+    frozen_notices = collect_frozen_notices(app/'THIRD_PARTY_NOTICES/Python-runtime')
     shutil.copyfile(stage/'mxu/LICENSE', app/'THIRD_PARTY_NOTICES/MXU-AGPL-3.0.txt')
     for entry, name, target in [('agent/main.py', 'MaaLimbusAgent', 'agent'),
                                 ('tools/run_native.py', 'MaaLimbusRunner', 'runner'),
@@ -174,6 +177,7 @@ def main():
             'mxu_modified':custom_proof is not None, 'maa_modified':False,
             'mxu_source_sha256':custom_proof['source_sha256'] if custom_proof else None,
             'corresponding_source_licenses':source_licenses,
+            'python_distribution_notices':frozen_notices,
             'pending':pending}
     if args.verified_dungeon_clear:
         # The claim is only as good as the record it points at, so hash that record.

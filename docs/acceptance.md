@@ -1086,3 +1086,14 @@ in build/v012-candidate-real-verification.json. This verifies the newer-version
 startup/cache/stage/install path, not public GitHub delivery or native GUI restart.
 The desktop and game were unchanged; public release, GUI persistence/restart and
 complete dependency/artwork distribution audit remain open.
+
+## October9 frozen runtime notice gap
+
+The actual v0.1.2 archive inventory exposed omitted Python/NumPy/OpenCV and
+other frozen Python distribution license bundles. The builder now collects
+required build-environment metadata notice bytes with versions and SHA256s;
+missing, empty and unsafe paths reject before materialization. Actual collection
+of Python plus eight distributions passed byte-hash verification in
+build/python-runtime-notices-real-verification.json. This source fix has not
+yet been rebuilt into the candidate or desktop. Complete binary provenance,
+native transitive notices/source and artwork rights remain unaccepted.

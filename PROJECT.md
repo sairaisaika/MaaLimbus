@@ -10,6 +10,16 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 distribution inventory found frozen Python component notices missing
+  from the actual v0.1.2 candidate. Builder now retains build Python3.13.1 and
+  eight installed distribution license bundles with exact versions/member hashes.
+  Actual isolated collection copied17 original notice files and verified hashes:
+  build/python-runtime-notices-real-verification.json. Missing/empty/unsafe metadata
+  cases and package gates passed17focused; full799Python56.25s/1Windows symlink
+  permission skip passed. This is build-environment notice proof,
+  not full frozen binary-origin/native dependency/artwork audit. Existing candidate
+  c729294 and desktop were not modified; a future clean rebuild must include the
+  new generated Python-runtime bundle. No GUI/controller/game input or budgets changed.
 - October9 actual v0.1.2 candidate from clean c729294 built with exit0,
   Agent-root self-test/native Runner help and corresponding-source license gate.
   ZIP SHA256 cc1fce440d1d39055a1adbda833a03669a3895e77b12765591a665c1df09df64,

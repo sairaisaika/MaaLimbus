@@ -1,5 +1,14 @@
 # Native design and requirement ledger
 
+## Frozen Python notice retention
+
+The Windows builder retains installed wheel metadata license bundles and the
+build interpreter's Python license with versions and SHA256 provenance. Required
+components include NumPy/OpenCV and frozen runtime dependencies observed in the
+actual candidate. Missing, empty or unsafe metadata notice paths fail before
+materialization. This notice collection is scoped to build-environment bytes;
+complete frozen/native binary provenance and artwork rights remain separate gates.
+
 ## Scoped final reward budget and five-module offer
 
 Runner reports budget pending when the saved reward authorization belongs to a

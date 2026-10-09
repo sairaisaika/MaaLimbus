@@ -16,11 +16,12 @@ terms; the root's `or-later` designation does not extend third-party permissions
   its pinned source archive in `sources/MaaFramework-v5.12.2-source.zip`.
   Its LICENSE matches the retained notice. This does not claim the separate
   native dependency source/notices audit is complete.
-- MXU 2.7.1, `9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3`: unmodified
-  Windows desktop executable; [original AGPL notice](MXU-AGPL-3.0.txt).
+- MXU 2.7.1, `9fa8cc51e8ff8cd89d99f3ea55fe3a7a82e6ede3`: base for the
+  project-modified Windows desktop executable; [original AGPL notice](MXU-AGPL-3.0.txt).
   The cached corresponding source archive accompanies the local development
   package in `sources/MXU-v2.7.1-source.zip`; package metadata identifies its hash.
-  Desktop UI acceptance remains pending.
+  Modified candidates additionally carry `MXU-MaaLimbus-source.zip` and the
+  complete upstream/overlay/build proof. Desktop UI acceptance remains pending.
 - LixAssistantLimbusCompany `431b432e22f0b0da08b95d7c478fa213be20b3e8`:
   AGPL-3.0, audited saved-team, gift, dungeon and deployment semantics.
   Native policies do not import its input/recognition runtime.
@@ -45,3 +46,14 @@ screenshots or private configuration are part of this distribution.
 This source inventory does not establish that the unfinished Windows package
 meets all distribution requirements. See the
 [README/license reference comparison](../docs/readme-license-reference.md).
+# Frozen Python runtime notices
+
+The Windows builder copies the build interpreter's Python license and installed
+wheel metadata license bundles for NumPy, opencv-python, psutil, pywin32, PyYAML,
+maafw, pyreadline3 and PyInstaller into `Python-runtime/`. It records component
+versions, original wheel members and byte hashes in `provenance.json` and
+build-info. Missing or empty notices fail before those files are materialized.
+
+This retains original notices; it does not prove every frozen binary's origin or
+complete the native transitive dependency and artwork redistribution audit.
+Earlier candidates lack this generated bundle and must be rebuilt to include it.
