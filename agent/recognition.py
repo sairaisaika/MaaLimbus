@@ -1461,6 +1461,13 @@ class MainTaskAction(CustomAction):
                     selected=SimpleNamespace(custom_action_param=json.dumps(loop_params),node_name='MirrorLoop')
                     return MirrorLoopAction(self.recognition).run(context,selected)
                 observer=runner.MaaObserver(AgentTasker(context),directory)
+                if task=='rewards':
+                    from maalimbus.reward_task import execute
+                    device=runner.local_device(context.tasker.controller,tasker=AgentTasker(context),
+                                               deadline=time.monotonic()+90)
+                    result=execute(data_directory(ROOT),directory,observer,device,journal)
+                    write_loop_result(directory,result)
+                    return bool(result.get('passed'))
                 record=runner.observe(observer,time.monotonic()+30)
                 result=dict(passed=False,reason='task_page_policy_not_implemented',task=task,
                             observation=record,input_sent=False,verified_clear=False)

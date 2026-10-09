@@ -374,3 +374,14 @@ between runtime, corresponding source and retained notice. Missing, duplicate or
 changed members refuse before extraction/freezing. Build metadata carries member
 paths and notice hashes. This binds these two source companions; it is not a
 complete transitive dependency or artwork distribution audit.
+
+
+### Bounded native rewards task
+The rewards MainTask uses the existing controller lease and privilege preflight,
+then a bounded executor for the verified active Mirror run. Native OCR and the
+current scoped budget gate each durable input intent. Scene-change success does
+not credit rewards: the independent receipt audit binds all four input reports
+and HOME before run-store reward/return bookkeeping. A saved bookkeeping HOME
+plus exact archived event hashes permits recovery after a final transaction-write
+failure, with no second rotation or input. Missing state fails without starting a
+run. This implements the Mirror payout portion; mail/daily execution remains open.

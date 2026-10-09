@@ -145,3 +145,23 @@ turn when START is proven. This is the game's auto-assignment preference; it doe
 not implement an individual skill-order editor or infer a battle victory. Native
 resource parsing and retained-frame plans are verified; live Damage execution
 and installed GUI rendering remain open.
+
+
+## Rewards task execution (October9)
+
+The native rewards entry now dispatches a bounded Mirror payout executor instead
+of the capture-only placeholder. It requires an already verified five-floor run,
+its explicit current-scope module budget and freshly proven cost/weekly offer.
+Each claim, confirmation, reward receipt and pass receipt gets a durable intent
+before one input. Unknown pages, repeated intents and unsettled successors stop;
+this task never starts a run, changes weekly bonuses or gives up the dungeon.
+
+Payout bookkeeping requires all four scoped input reports, their PNG hashes,
+actual receipt numbers and independent HOME evidence to pass the receipt audit.
+Only then are reward/return recorded and the saved queue advanced. An interrupted
+transaction write after rotation can recover from the exact archived event hashes
+without another rotation or input. Device attempts remain reported even if input
+or the successor read fails. Mail/daily collection, experience/thread farming and
+stamina conversion are still unfinished. Retained evidence and isolated state
+verify this execution wiring; live current Team7 payout and native GUI dispatch
+are not accepted, and no current paid input is authorized by those tests.

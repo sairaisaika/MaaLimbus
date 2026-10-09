@@ -10,6 +10,22 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 rewards native MainTask now dispatches bounded Mirror payout execution
+  through current-scope budget/native cost and durable input-intent gates. Full
+  four-input receipt audit plus independent HOME is required before reward/return
+  bookkeeping and queue rotation. Post-rotation transaction-write failure recovers
+  only against exact archived event hashes; no repeated rotation or input. Missing
+  runs and foreign budgets stop, and device attempts remain reported on failure.
+ 22focused tests and823fullPython56.74s/1Windows symlink permission skip passed.
+  Actual native six-task resource parsing and retained-current-budget refusal plus
+  old actual receipt-chain completion in isolated state passed with zero device
+  input and four actual private configuration hashes unchanged:
+  build/reward-task-offline-real-verification.json. This is source-only; native
+  GUI Start/restart, live Team7 paid5 receipt and mail/daily execution remain open.
+  Current Team7 Hard5 victory/unpaid5weekly0 and unanswered budget remain unchanged;
+  no controller/GUI launch, installation, game input or Release this turn. Desktop
+  remains2c12793/v0.1.1 and candidate172a0d7/v0.1.2. Other task/shop/JP/NN/update
+  and distribution requirements remain unfinished; FGO untouched and deferred.
 - October9 generic reward receipt audit replaces fixed250/Pass81 assumptions
   with unique actual numeric captions matching transaction values. Each offour
   input reports must bind scope/count/PNGhash/exactOCRcontrol/touch350–750ms;

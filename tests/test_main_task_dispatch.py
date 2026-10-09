@@ -86,3 +86,20 @@ def test_windows_open_task_requires_actual_existing_game_and_does_not_launch(tmp
     args=SimpleNamespace(custom_action_param=json.dumps(dict(task='open_game',directory=str(tmp_path))),node_name='OpenGameTask')
     assert action.run(context,args) and checked
     assert read_json(tmp_path/'agent-result.json')==dict(passed=True,reason='existing_windows_game_verified',input_sent=False)
+
+
+def test_reward_entry_dispatches_bounded_executor_and_preserves_failure(tmp_path,monkeypatch):
+    import maalimbus.reward_task as task
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:True)
+    device=object();seen=[]
+    monkeypatch.setattr(recognition.runner,'local_device',lambda *a,**k:device)
+    def execute(config,directory,observer,received,journal):
+        assert received is device
+        seen.append(directory)
+        return dict(passed=False,reason='Current claim scope/budget is not authorized',input_sent=False)
+    monkeypatch.setattr(task,'execute',execute)
+    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace()))
+    action=recognition.MainTaskAction(SimpleNamespace(callback_failure=None,journal=None))
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task='rewards',directory=str(tmp_path))),node_name='RewardsTask')
+    assert not action.run(context,args) and seen==[tmp_path]
+    assert not read_json(tmp_path/'agent-result.json')['input_sent']

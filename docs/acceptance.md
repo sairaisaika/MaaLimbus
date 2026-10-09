@@ -1140,3 +1140,17 @@ Evidence: build/native-notices-candidate-real-verification.json. The17 Python
 notices remain included. Full806 tests passed with one Windows permission skip.
 The candidate is unpublished and does not prove native GUI restart, public
 GitHub delivery or complete transitive source/static dependency/artwork audit.
+
+
+## October9 native rewards executor verification
+The source native rewards entry dispatches bounded Mirror payout execution.
+Focused tests cover foreign-budget zero-input refusal, missing/incomplete runs,
+caption dispatch, device interruption and actual retained receipt-chain completion
+in isolated state, including post-rotation transaction-write recovery with ledger
+bytes unchanged. Actual native six-task resources parse; GUI Start dispatch and
+current Team7 paid5 payout remain unverified. Evidence:
+build/reward-task-offline-real-verification.json. Four real private config hashes
+remain unchanged. Mail/daily, experience/thread and stamina tasks remain open.
+
+Final823Python tests passed in56.74s with one Windows symlink permission skip;
+22focused tests passed. These checks do not prove a new paid receipt or GUI E2E.
