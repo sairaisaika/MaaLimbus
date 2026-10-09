@@ -1,5 +1,17 @@
 # Native design and requirement ledger
 
+## Generic final receipt audit
+
+Read-only receipt audit binds each scoped claim/confirm/receipt/pass input report
+to the corresponding retained PNG hash and exact recognized control. Input count,
+sampled touch bounds and350–750ms timing remain required. Currency/cost/weekly
+claim and the matching full confirmation question are independently checked.
+Receipt amount and Pass level come from actual unique high-confidence captions,
+matching the transaction values rather than fixed250/81 expectations. Independent
+HOME labels and hash prove return. The audit never changes ledger, rotation,
+transaction or resource budgets and never verifies an unseen balance delta.
+Native task execution, new offer receipts and mail/daily policies remain separate.
+
 ## MaaDeps binary and notice binding
 
 The pinned MaaFramework source selects MaaDeps v2.12.2. Windows builds require

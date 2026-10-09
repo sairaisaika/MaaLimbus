@@ -8,6 +8,17 @@ Evidence: build/versioned-candidate-real-verification.json, build/update-stage-v
 
 # Acceptance evidence
 
+## October9 generic receipt chain audit
+
+The new read-only audit rechecked the actual previous scoped paid6/weekly1 payout
+from retained claim/confirm/receipt/pass input reports and five PNG-bound frames,
+including independent HOME. Scope/count/frame/control/touch/intent/numeric
+negatives refuse. Actual amounts come from receipt captions, without fixed250/81
+rules. build/generic-reward-receipt-chain-real-verification.json proves only that
+retained completed run. CurrentTeam7 paid5/weekly0 receipt remains unseen and
+unauthorized; this audit sends no input and changes no transaction/ledger. Four
+daily/lux/stamina task execution policies are still unfinished.
+
 ## October8 six native task entries
 
 Installed50b9ae2 passed staged/installed Agent checks with17private files retained. Actual sameGUI14460 rendered six task choices and Mirror saved/single/rotation modes. Five own-window frames are hashed in `build/six-task-gui-real-verification.json`; task was disabled and saved-mode restored with autorunFalse. No game connection or GUI Start dispatch was performed. Actual native OpenGameTask PID20860 separately verified existing MuMu foreground without restart/input and preserved STAR_GRACES/active4734 ledgerhash. Cold launch and the four unfinished daily/lux/conversion flows remain unaccepted.692Python passed; new conditional queue UI is source-verified, not yet installed at this checkpoint.

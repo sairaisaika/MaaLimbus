@@ -10,6 +10,17 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 generic reward receipt audit replaces fixed250/Pass81 assumptions
+  with unique actual numeric captions matching transaction values. Each offour
+  input reports must bind scope/count/PNGhash/exactOCRcontrol/touch350–750ms;
+  actual modulecost/weekly and full matching question plus independentHOME are
+  required. No ledger/transaction/rotation writes.9focused positive/negative
+  checks,815fullPython57.43s/1Windows symlink permission skip and actual retained
+  oldTeam2 chain audit passed:
+  build/generic-reward-receipt-chain-real-verification.json. This is read-only
+  foundation for task execution, not a completed rewards/mail/daily task or a new
+  Team7 receipt. Current5module budget still unanswered; no device inputs,
+  private state changes, GUI launch, desktop replacement or Release.
 - October9 clean172a0d7 candidate rebuilt with native notice gate: terminalexit0,
   Agent-root self-test and Runnerhelp passed. Full806Python65.20s/1Windows symlink
   permission skip and24focused passed before building. Actual ZIP827manifestfiles,
