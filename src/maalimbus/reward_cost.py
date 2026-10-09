@@ -50,7 +50,7 @@ def observe_native(context,image,records):
             results=[dict(score=r.score) for r in results]))
     for purpose,roi,expected in (
         ('cost_digit_a',(1448,793,28,45),r'^[1-9]\d?$'),
-        ('cost_digit_b',(1440,790,40,50),r'^[1-9]\d?$'),
+        ('cost_digit_b',(1444,790,36,50),r'^[1-9]\d?$'),
         ('weekly_count',(650,340,88,72),r'^[0-3]/3$')):
         detail=context.run_recognition_direct(JRecognitionType.OCR,
             JOCR(roi=roi,only_rec=True,expected=[expected],threshold=.9),image)

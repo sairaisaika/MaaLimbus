@@ -207,6 +207,19 @@ def test_paid_reward_controls_stop_with_missing_module_budget(tmp_path,monkeypat
     assert device.clicks==[] and device.swipes==[]
 
 
+def test_old_scoped_reward_budget_is_reported_as_pending(tmp_path,monkeypatch):
+    import maalimbus.runner as module
+    from maalimbus.storage import write_json
+    runner,device=window(tmp_path,[CLAIM_FRAME],{'rounds':1})
+    monkeypatch.setattr(module,'ROOT',tmp_path)
+    monkeypatch.setattr(module,'resolve_scene',lambda *args:'RUN_REWARD_DIALOG')
+    write_json(tmp_path/'config/user-mirror-settings.json',dict(
+        max_reward_modules=6,module_budget_pending=False,reward_budget_scope='old-run'))
+    result=runner.step()
+    assert result['stopped']=='reward_module_budget_pending'
+    assert not result['input_sent'] and device.clicks==[]
+
+
 def test_battle_submission_intent_survives_device_failure(tmp_path,monkeypatch):
     from maalimbus.storage import ProfileStore,SINNERS
     from maalimbus.policies import Team

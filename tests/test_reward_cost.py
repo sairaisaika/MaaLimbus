@@ -32,6 +32,16 @@ def test_disagreement_or_invalid_digit_never_implies_cost(text):
     rows=readings();rows[3]['results'][0]['text']=text
     assert combine_evidence(rows) is None
 
+
+def test_five_module_zero_weekly_offer_still_requires_matching_digits_and_sign():
+    rows=readings()
+    rows[2]['results'][0]['text']=rows[3]['results'][0]['text']='5'
+    rows[4]['results'][0]['text']='0/3'
+    assert combine_evidence(rows)==dict(currency='enkephalin_modules',cost=5,weekly=0)
+    assert combine_evidence([r for r in rows if r['purpose']!='deduction']) is None
+    rows[2]['results'][0]['text']='6'
+    assert combine_evidence(rows) is None
+
 @pytest.mark.parametrize('title',['Exploration Reward','Floor 5','To Window','Claim','Weekly','Bonuses'])
 def test_missing_independent_page_anchor_refuses(title):
     data=json.loads(FRAME.read_text());records=[Text(t['text'],tuple(t['box']),t['score'])

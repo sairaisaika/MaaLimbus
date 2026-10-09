@@ -1135,6 +1135,7 @@ class MirrorRunner:
             policy=read_json(policy_path) if policy_path.exists() else {}
             maximum=policy.get('max_reward_modules')
             reason=('reward_module_budget_pending' if policy.get('module_budget_pending',True)
+                    or policy.get('reward_budget_scope')!=self.run_id
                     or type(maximum) is not int or maximum<=0 else 'reward_module_cost_not_proven')
             stopped=self._record(page,record,frame,candidates,None,reason)
             return self._result(page,None,False,stopped,done=True)

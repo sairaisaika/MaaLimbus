@@ -1,5 +1,17 @@
 # Native design and requirement ledger
 
+## Scoped final reward budget and five-module offer
+
+Runner reports budget pending when the saved reward authorization belongs to a
+different run, regardless of its numeric cap. This does not alter that policy or
+authorize another claim. Native fee evidence retains independent module-icon
+and deduction-sign templates at .95, two digit crops agreeing at .9, and weekly
+count at .9. The second digit crop is (1444,790,36,50): the previous wider crop
+included a minus sign and read -5 at .890937 on the current offer, so it correctly
+refused. No threshold was reduced. Real five-module/weekly0 and previous
+six-module/weekly1 retained frames and missing icon/sign/digit/title negatives
+must pass together before treating the current offer as proven.
+
 ## Short event choices
 
 Accept/Refuse labels are extracted without lowering text confidence. They are

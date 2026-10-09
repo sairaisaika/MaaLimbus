@@ -10,6 +10,25 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 10:08local actual47324 terminal69inputs at reward cost gate, final
+  battle victory→complete summary→RUN_REWARD_DIALOG. Independent fullsummary
+  frame0311 and modal0312/0313 PNGhashes verified by
+  tools/verify_team_seven_floor_five.py, build/team-seven-floor-five-real-verification.json;
+  scope4734/team7 ledgerfloors[1,2,3,4,5]/victoryTrue/rewardFalse. Actual five
+  floors cleared, final rewards not received. Current offer5modules/weekly0/3
+  allOFF, quotedStarlight142/BPXP30/projection50/EXP100 are not receipts.
+  Prior six-module authorization in user-mirror-settings remains scoped to
+  oldd7c149...; current scope not authorized. User async question asks this
+  round5modules or retainpage, no answer yet; no paid input/toggle/GiveUp/ToWindow.
+  Runner now correctly reports budgetpending for foreignscope. Current native
+  cost Bcrop originally -5 .890937 refused; signed-crop experiment abandoned.
+  Narrow Bcrop1444,790,36,50 proves5 .994387 while independentA5 .9982,
+  currency/sign1.0 and weekly0 .999095; thresholds unchanged. Six cases each
+  current5/old6 positive/negative native passed zero input,29focused passed.
+  Full761Python passed56.94s/1permissionskip. Desktop67c71d6 unchanged/noGUI/controller;
+  paid action/receipt logic still needs current five-module offer support and
+  explicit new scoped budget before live claim. Original completed paid6
+  transaction and oldreceipt remain untouched; full software scope stays open.
 - October9 08:35local actual28824 terminal120inputs at selected reward1/1;
   bounded window ended normally, not a timeout restart. Fresh30532 confirmed
   that already-picked reward once, reached four trial gifts0/2 and stopped
