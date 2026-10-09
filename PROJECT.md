@@ -10,6 +10,22 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 08:35local actual28824 terminal120inputs at selected reward1/1;
+  bounded window ended normally, not a timeout restart. Fresh30532 confirmed
+  that already-picked reward once, reached four trial gifts0/2 and stopped
+  before gift input. Existing complete title/compound-trial parser ranked
+  Metronome220 and ThornyRopeCuffs290 under savedTeam7 heuristic; each selected
+  once0→1→2. Selectonce/twofullnamedGETackonce reached SELECTFLOOR5.
+  verify_team_seven_floor_four.py hashes bothreceiptPNGs and exactfloor5/scope4734,
+  build/team-seven-floor-four-real-verification.json; ledgerfloors[1,2,3,4].
+  No repeat reward pick/gift input. TyrannicalPride floor5 dragged once; early
+  map missingproof STOP retained pending. Freshreadonly independently proves
+  MAPfloor5/TyrannicalPride zero input; latest bounded120step report
+  build/team-seven-floor-five-after-theme-live.json/tool66369 continues and
+  resolves pending without repeatSwipe. Check actualprocess/result before next
+  controller; active only observe/no distreplacement/timeoutrestart. Floor5
+  and finalpayout still unverified; newmodulebudget0pending, no resource spending.
+  Desktop67c71d6/source fix not installed; full software/UI/remaining scope open.
 - October9 07:40local garden fix full758passed/1permissionskip57.17s. Fresh
   actual59116 stopped zero input because OCR changed a closing quote to an
   apostrophe; complete words now tolerate only surrounding quote punctuation.
