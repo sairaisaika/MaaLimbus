@@ -10,6 +10,22 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 latest desktop installation completed from clean2c12793:
+  build/local-app-20261009153206 and local-app-reward-preferences-install.txt.
+  Staged and actual installed Agent-root self-tests passed.18private files retain
+  exact backup hashes (MaaLimbus.backup-180ebf347364451586e9d1a19df1967a).
+  Updated verifier accepts explicit log/source/work paths; actual installed PI
+  and Mirror pipeline equal source; frozen Analysis contains no MaaFgoHelper.
+  build/reward-preferences-installed-verification.json. Actual installed native
+  Resource resolved all three independent removal controls, no controller/input
+  and unchanged private hashes: installed-preference-removal-native-verification.json.
+  No GUI launch/render/save/restart acceptance, no paid game input or Release.
+  Team7 remains unpaid with current5module budget unanswered; no resource policy
+  changes. New City/garden/cost/scopedreward/removal source is now installed.
+  Installed frozen launcher check-only made an actual GitHub check: public tag
+  maalimbus remains unsupported semver, no download/install. Immediate retry
+  uses cached requestedFalse deadline; updater cache/result files alone update.
+  This does not accept newer public-version installation/restart.
 - October9 Mirror preference removal: task editor adds independent priority-gift,
   blocked-gift and theme-rule removal controls (default keep). Known selected
   entries are removed in the same validated atomic profile save as additions;
