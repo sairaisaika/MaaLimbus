@@ -10,6 +10,22 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 06:08local actual66504 terminal33inputs at MAPframe0102,
+  map_click_opened_no_panel after bounded candidates; not floor3clear. Retained
+  VainPride offered icon(1087,409) only survives bright component threshold, was
+  omitted by ring-only bright fallback. Added bright compact icon candidates
+  behind path/rings, with wide dense icons before small badges, still requiring
+  an actual NODE_PANEL successor. Initial ordering regression was corrected;
+  59map/route/progress tests passed. Idle full751passed/1permissionskip56.36s,
+  followed by final priority adjustment and59focusedpassed9.82s. The earlier
+  two canonical-lock tests separately passed idle(2passed0.37s). No gameplay stop
+  was forced for testing. Fresh readonly showsfloor3/VainPride; actual bounded
+  node-resume one rejected candidate then bright icon opened NODE_PANEL.
+  build/team-seven-bright-node-resume-live.json proves actual forward input,
+  not floorclear. Current bounded120step PID66592,parent43576/python.exe,
+  tool45509/report build/team-seven-floor-three-after-node-live.json continuing;
+  check process/terminal before next controller. Ledger still[1,2]; no resource
+  spending or desktop replacement; all software and full-goal gaps remain.
 - October9 05:38local actual10396 terminal55inputs at floor-end four-card0/2.
   CrownOfRoses and CurriculumVitae each picked once0→1→2; Selectonce and two
   fullnamedGET acknowledgements reached SELECTFLOOR3. verify_team_seven_floor_two.py

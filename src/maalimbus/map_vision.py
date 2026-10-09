@@ -976,8 +976,26 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # (1080,428) opened that node's panel, so the icon is the step. Live
     # 040938/frame-0001: the offered gate there is a paler hexagon, and the leftmost
     # node's icon was the only other thing the reader could name.
+    bright_icons=lit_components(image, min_value=LIT_RING_MIN_VALUE)
+    # A wide, dense icon is stronger evidence than small reward/buff badges.
+    # Keep path/ring precedence while ensuring it fits the bounded candidates.
+    for item in bright_icons:
+        if max(item['box'][2:])>=60 and item['fill']>=.5:
+            point=item['point']
+            if not corroborated or (point[0]-corroborated[0])**2+(point[1]-corroborated[1])**2>90*90:
+                add(point,'bright_lit_icon',CLICK_SIDE)
     for point in icons:
         add(point, 'lit_icon', CLICK_SIDE)
+    # Vain Pride frame20261009-053703/0102 retains the offered icon at
+    # (1087,409) only at the brighter threshold. Preserve existing path/ring/
+    # icon precedence, then offer these before inferred badge/lattice points.
+    for item in bright_icons:
+        point=item['point']
+        if point in bright_rings:
+            continue
+        if corroborated and (point[0]-corroborated[0])**2+(point[1]-corroborated[1])**2 <= 90*90:
+            continue
+        add(point, 'bright_lit_icon', CLICK_SIDE)
     # The badge nodes are read off the frame, so they outrank a guessed lattice step:
     # live run build/window-run35 clicked four lattice points around the player while
     # the one real node (center 1095,429) sat 48 px from the third guess and was

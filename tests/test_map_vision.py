@@ -183,7 +183,7 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
                                 'node_away_from_player', 'badge_mark', 'lit_node',
-                                'lit_ring', 'lit_icon', 'cyan_node', 'path_node')
+                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node')
                for item in clicks)
 
 
@@ -221,7 +221,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'path_node', 'lit_ring')
+                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring')
                for item in clicks)
 
 
@@ -247,7 +247,7 @@ def test_the_offered_question_node_outranks_the_lifted_badge_boxes():
                if item['kind'] == 'node_away_from_player') >= 2
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'path_node', 'lit_ring')
+                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring')
                for item in clicks)
 
 
@@ -1015,6 +1015,19 @@ def test_the_cyan_path_is_walked_even_when_the_player_is_read_mid_fade():
     assert first['kind'] == 'path_node', clicks[:3]
     point = first['point']
     assert abs(point[0] - 1054) <= 40 and abs(point[1] - 124) <= 40, point
+
+
+def test_bright_offered_icon_remains_a_candidate_when_ring_merges():
+    from pathlib import Path
+    cv2 = pytest.importorskip('cv2')
+    from maalimbus.map_vision import map_clicks
+    path=Path(__file__).resolve().parents[1]/'evidence/runtime/window-20261009-053703/frame-0102.png'
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    clicks=map_clicks(cv2.imread(str(path)))
+    offered=[(i,c) for i,c in enumerate(clicks) if abs(c['point'][0]-1087)<20 and abs(c['point'][1]-409)<20]
+    assert offered and offered[0][0]<8
+    assert offered[0][1]['kind']=='bright_lit_icon'
 
 
 def test_the_offered_ring_is_named_first_on_a_floor_painted_the_same_gold():
