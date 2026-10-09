@@ -10,6 +10,18 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 02:08local actual30736 terminal103inputs at four-cardGIFT_PICK0/2,
+  zero gift inputs. Fresh020501 picked BrokenRevolver then BloodSweatandTears
+  onceeach0/2→1/2→2/2, matching savedTeam7 Rupture preference and fully parsed
+  visible trials (bounded heuristic, not universal optimal). Subsequent Select
+  once/two fullnamedGET ackonce each reached THEME_PACKS/SELECTFLOOR2.
+  verify_team_seven_floor_one.py checks current4734/team7, both receipt PNGhashes,
+  fulltitles/completedtransaction and exactfloor2 successor before recording
+  ledgerfloors[1]. build/team-seven-floor-one-real-verification.json. No pending
+  gift input remains; do not repeat these picks/Select/GET. Floor2 bounded120step
+  continuation report build/team-seven-floor-two-progress-live.json started;
+  check actual process/result before any next controller. No new paid resources,
+  desktop replacement or FGO input. Newrun final payout remains unverified.
 - Team7 initial tray now progressed: saved formation_keywordsRupture and priority
   1,2,3 justified one Rupture group opening, then BarbedLasso once0→1. Native OCR
   split FluorescentLamp into same-baseline words after that selection; fixed only
