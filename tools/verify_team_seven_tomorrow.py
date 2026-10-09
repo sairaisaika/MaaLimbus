@@ -10,11 +10,11 @@ from maalimbus.initial_gifts import receipt_name
 from maalimbus.vision import Text
 
 
-def main():
+def verify(title, output_name):
     tx = json.loads((ROOT / 'config/user-floor-gift-transaction.json').read_text())
     candidates = [tx] + tx.get('history', [])
     matches = [t for t in candidates if t['scope'] == '4734bfe68803421c8d261dccbc9120be'
-               and t['selected'] == ["Tomorrow's Fortune"] and t['completed']]
+               and t['selected'] == [title] and t['completed']]
     assert len(matches) == 1
     tx = matches[0]
     assert tx['pending'] is None and len(tx['receipts']) == 1
@@ -24,12 +24,12 @@ def main():
     sha = hashlib.sha256(path.with_suffix('.png').read_bytes()).hexdigest()
     assert sha == data['image_sha256'] and data['scene'] == 'GIFT_GET'
     records = [Text(t['text'], tuple(t['box']), t['score']) for t in data['ocr']]
-    assert receipt_name(records, data['size']) == entry['title'] == "Tomorrow's Fortune"
+    assert receipt_name(records, data['size']) == entry['title'] == title
     successor = Path(entry['successor'])
     after = json.loads(successor.read_text())
     assert hashlib.sha256(successor.with_suffix('.png').read_bytes()).hexdigest() == after['image_sha256']
     assert after['scene'] == 'MAP'
-    output = ROOT / 'build/team-seven-tomorrow-real-verification.json'
+    output = ROOT / 'build' / output_name
     output.write_text(json.dumps(dict(scope=tx['scope'], title=entry['title'],
         receipt=str(path), png_sha256=sha, successor=str(successor),
         device_input=False, floor_clear=False), indent=2) + '\n')
@@ -37,4 +37,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    verify("Tomorrow's Fortune", 'team-seven-tomorrow-real-verification.json')

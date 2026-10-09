@@ -10,6 +10,14 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 06:35local actual66592 terminal28inputs at centered freePerversion,
+  firstarrival zero gift input. Freshknownsinglefree identity/controls/outlines
+  allowed pickonce, Selectonce/fullnamedGETackonce to MAP. completedTrue/
+  pendingNone; shared read-only receipt/hash audit passed for both thisPerversion
+  and earlierTomorrow, build/team-seven-perversion-real-verification.json.
+  Not floor3clear; ledger[1,2]. ActualCIM finds no GUI or controller now, so safe
+  local installation of newer settings/Agent can proceed with private backups
+  and actualinstalledAgent selftest. Do not replay completed gift inputs.
 - October9 06:08local actual66504 terminal33inputs at MAPframe0102,
   map_click_opened_no_panel after bounded candidates; not floor3clear. Retained
   VainPride offered icon(1087,409) only survives bright component threshold, was
