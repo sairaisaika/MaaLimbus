@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 sys.path.insert(0, str(ROOT/'tools'))
 from frozen_notices import collect as collect_frozen_notices
+from native_dependency_notices import collect as collect_native_notices
 from maalimbus.archives import extract_checked
 from maalimbus.release_package import export_assets
 from maalimbus.mxu_distribution import validate_artifact
@@ -103,6 +104,10 @@ def main():
     for key in ARCHIVES:
         parser.add_argument('--'+key.replace('_', '-'), type=Path, required=True)
     parser.add_argument('--mxu-client',type=Path,help='project-owned MXU artifact directory')
+    parser.add_argument('--maadeps-runtime',type=Path,
+                        default=ROOT/'build/MaaDeps-v2.12.2-x64-windows-runtime.tar.xz')
+    parser.add_argument('--maadeps-devel',type=Path,
+                        default=ROOT/'build/MaaDeps-v2.12.2-x64-windows-devel.tar.xz')
     parser.add_argument('--verified-dungeon-clear', action='store_true',
                         help='the live acceptance run cleared five floors, claimed the '
                              'rewards and re-entered; only pass it with that evidence')
@@ -137,6 +142,8 @@ def main():
     for name in ('README.md', 'README_en.md', 'LICENSE'):
         shutil.copyfile(ROOT/name, app/name)
     frozen_notices = collect_frozen_notices(app/'THIRD_PARTY_NOTICES/Python-runtime')
+    native_notices = collect_native_notices(args.maadeps_runtime,args.maadeps_devel,
+        app/'maafw',app/'THIRD_PARTY_NOTICES/MaaDeps-v2.12.2')
     shutil.copyfile(stage/'mxu/LICENSE', app/'THIRD_PARTY_NOTICES/MXU-AGPL-3.0.txt')
     for entry, name, target in [('agent/main.py', 'MaaLimbusAgent', 'agent'),
                                 ('tools/run_native.py', 'MaaLimbusRunner', 'runner'),
@@ -178,6 +185,7 @@ def main():
             'mxu_source_sha256':custom_proof['source_sha256'] if custom_proof else None,
             'corresponding_source_licenses':source_licenses,
             'python_distribution_notices':frozen_notices,
+            'native_dependency_notices':native_notices,
             'pending':pending}
     if args.verified_dungeon_clear:
         # The claim is only as good as the record it points at, so hash that record.

@@ -1109,3 +1109,13 @@ No desktop replacement, native GUI restart or public release is claimed. The
 MaaDepsv2.12.2 runtime asset matches five actual non-Maa DLLs byte-for-byte;
 development copyright inventory is retained for future package integration.
 This leaves complete native/static dependency and artwork audit open.
+
+## October9 native dependency notice gate
+
+The actual fixed MaaDeps runtime/development archives passed the builder gate
+against five current candidate DLLs, retaining86 original copyright files with
+member and byte-hash provenance.24focused tests also verify missing/changed/empty/
+duplicate evidence rejection before notice output.
+Evidence: build/native-notices-builder-real-verification.json. Source integration
+is not yet candidate integration, and complete dependency corresponding sources,
+static dependencies and artwork rights remain separate unfinished requirements.

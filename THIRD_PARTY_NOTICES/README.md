@@ -48,6 +48,19 @@ meets all distribution requirements. See the
 [README/license reference comparison](../docs/readme-license-reference.md).
 # Frozen Python runtime notices
 
+## Native dependency notices
+
+New Windows builds require the retained MaaDeps v2.12.2 Windows runtime and
+development archives. The fixed MaaFramework source selects that dependency
+version. Both archive SHA256 values and five distributed non-Maa DLL byte
+identities must match before original development `share/*/copyright` files are
+copied into `MaaDeps-v2.12.2/`. Build-info and provenance bind their exact hashes.
+Missing, duplicate or empty required notices refuse the build.
+
+This covers retained notice bytes and five DLL identities. It does not supply
+every transitive dependency's corresponding source or establish artwork rights;
+those remain distinct release requirements.
+
 The Windows builder copies the build interpreter's Python license and installed
 wheel metadata license bundles for NumPy, opencv-python, psutil, pywin32, PyYAML,
 maafw, pyreadline3 and PyInstaller into `Python-runtime/`. It records component

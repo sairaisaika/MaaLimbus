@@ -1,5 +1,15 @@
 # Native design and requirement ledger
 
+## MaaDeps binary and notice binding
+
+The pinned MaaFramework source selects MaaDeps v2.12.2. Windows builds require
+retained runtime and development archives with fixed digests. Five native DLLs
+must match the runtime bytes; the development archive must contain unique,
+nonempty copyright files for their components. All dependency copyright records
+are copied only after complete validation, with original members and hashes.
+Missing/changed/duplicate evidence refuses. This gate does not claim complete
+transitive corresponding source, static dependency or artwork distribution audit.
+
 ## Frozen Python notice retention
 
 The Windows builder retains installed wheel metadata license bundles and the
