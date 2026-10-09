@@ -1,5 +1,14 @@
 # Native design and requirement ledger
 
+## Independently observed gift titles
+
+`gift-observed-catalog.json` supplements the pinned upstream catalog without
+changing its provenance. Each supplemental entry records the actual full-title
+frame SHA256, has no imported icon or inferred keywords, and requires exact
+normalized text identity. Partial/changed names refuse. For You Who Love the City
+has no healing preference bonus because its visible description is truncated;
+its complete numeric Mounting Trials still determine the existing heuristic.
+
 ## Mode crop, settled packs and regular encounter HUD
 
 For a MAP with missing floor digit, high-confidence header labels may be either

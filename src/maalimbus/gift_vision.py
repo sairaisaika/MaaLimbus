@@ -31,6 +31,20 @@ class GiftCatalog:
         self.entries = {g['name']:g for g in data['gifts']}
         if len(self.entries) != len(data['gifts']):
             raise ValueError('Duplicate gift identity')
+        # Independently observed titles do not inherit LALC assets or keywords.
+        # Require exact normalized text; a partial title cannot establish them.
+        self.observed_names = set()
+        observed = self.root/'gift-observed-catalog.json'
+        if observed.exists():
+            extra = json.loads(observed.read_text(encoding='utf-8'))
+            if extra.get('version') != 1:
+                raise ValueError('Unsupported observed gift catalog')
+            for entry in extra['gifts']:
+                if (entry['name'] in self.entries or entry['keywords'] or entry['icons']
+                        or not re.fullmatch(r'[a-f0-9]{64}', entry['evidence_sha256'])):
+                    raise ValueError('Invalid observed gift provenance')
+                self.entries[entry['name']] = entry
+                self.observed_names.add(entry['name'])
         self.icons = []
         for entry in self.entries.values():
             for icon in entry['icons']:
@@ -45,7 +59,8 @@ class GiftCatalog:
     def text_identity(self, text):
         target = normalized(text)
         scores = sorted([(difflib.SequenceMatcher(None,target,normalized(name)).ratio(),name)
-                         for name in self.entries],reverse=True)
+                         for name in self.entries
+                         if name not in self.observed_names or target == normalized(name)],reverse=True)
         if not scores or scores[0][0] < .93:
             return None
         if len(scores)>1 and scores[0][0]-scores[1][0]<.04:

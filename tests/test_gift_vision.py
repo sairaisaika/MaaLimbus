@@ -31,7 +31,7 @@ def records():
 
 
 def test_catalog_hashes_names_keywords_and_fuzzy_ambiguity(catalog):
-    assert len(catalog.entries)==332
+    assert len(catalog.entries)==333
     assert catalog.entries['Bloody Mist']['keywords']==['Bleed']
     assert catalog.text_identity('BloodyMist')=='Bloody Mist'
     assert catalog.text_identity('unidentified reward title') is None

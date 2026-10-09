@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "gifts": [
+    {
+      "name": "For You Who Love the City",
+      "keywords": [],
+      "icons": [],
+      "source": "Independent full-title observation in the English game; no artwork or effect data imported",
+      "evidence": "evidence/runtime/window-20261009-063605/frame-0285.png",
+      "evidence_sha256": "83ddf622259fdcdcb121cd9bd91c2984d83d10afe7d0b178b8120a32fb7f5621"
+    }
+  ]
+}

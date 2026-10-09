@@ -10,6 +10,15 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 actual36328 terminal102inputs at four trial gifts0/2, no gift input.
+  Local catalog lacked For You Who Love the City. Independent observed-title
+  supplement binds actualframe0285 SHA83ddf622... without pretending upstream
+  provenance, artwork, keywords or complete healing text. Exact title only;
+  truncated/changed titles and missing trial numbers refuse. Native retained
+  positive and two image-negative cases passed zero device input;16focused
+  passed. Current heuristic selects City then SmokingGunpowder (97.5/177.5),
+  no invented healing bonus. Floor3 remains unverified until actual receipts
+  and exact next-floor successor; previous floor1–2 receipts are not replayed.
 - October9 06:39local localfreeze build/local-app-20261009103412 terminalexit0;
   modifiedMXU proof reused valid, installedsource67c71d6 clean, staged/actualAgent
   selftestTrue,18privatefiles preserved in backup-e062c25efd8a498e90254c87515d0e92.
