@@ -10,6 +10,20 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 07:11local City supplement/sourcefdeb723 pushed;756Python passed
+  55.19s/1permissionskip,16focused and3native retained cases passed. Actual
+  City/SmokingGunpowder picked once each0→1→2, Selectonce and two complete named
+  GET acknowledgements reached SELECTFLOOR4. verify_team_seven_floor_three.py
+  binds scope4734/team7/receiptPNGhashes/exactfloor4; ledgerfloors[1,2,3],
+  build/team-seven-floor-three-real-verification.json. No repeat gift inputs.
+  Line2 floor4 dragged once; early unproven map STOP kept pending. Freshreadonly
+  independently proves ExploringFloor4/Line2 at high confidence with zero input.
+  Latest bounded120step PID43468,parent45500/python.exe/tool94394, report
+  build/team-seven-floor-four-after-theme-live.json continues; startup resolved
+  theme pending without anotherSwipe. Active only observe; no concurrent
+  controller, timeoutrestart or desktop replacement. Floor4/finalpayout remain
+  unverified. No new module/lunacy/refill/conversion spending; desktop67c71d6
+  still lacks City supplement, real GUIinteraction and all software gaps open.
 - October9 actual36328 terminal102inputs at four trial gifts0/2, no gift input.
   Local catalog lacked For You Who Love the City. Independent observed-title
   supplement binds actualframe0285 SHA83ddf622... without pretending upstream
