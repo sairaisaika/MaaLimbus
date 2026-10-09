@@ -10,6 +10,18 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 actual v0.1.2 candidate from clean c729294 built with exit0,
+  Agent-root self-test/native Runner help and corresponding-source license gate.
+  ZIP SHA256 cc1fce440d1d39055a1adbda833a03669a3895e77b12765591a665c1df09df64,
+  722 manifest files. Actual startup_update with retained offline release/asset
+  transports discovered v0.1.2 over v0.1.1, staged and installed the real archive,
+  verified the installed Agent and preserved private sentinel. A second check
+  used cache/requestedFalse with no repeated installation. Independent isolated
+  installation and injected post-swap rollback passed. Evidence:
+  build/v012-candidate-real-verification.json and startup-candidate-real-verification.json.
+  This candidate is unpublished; public GitHub download and native GUI restart
+  remain unverified. Desktop stays source2c12793/v0.1.1; no game input or budget
+  changes. Team7 Hard5 reward remains pending explicit current5-module approval.
 - October9 version advanced to v0.1.2 in project metadata and native PI for a
   newer candidate than desktopv0.1.1. Builder now binds exact runtime/source/notice
   license bytes after pinned ZIP hashes, rejects missing/duplicate/changed members

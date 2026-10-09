@@ -1075,3 +1075,14 @@ and desktop both remain v0.1.1; newer public-release download/install/GUI restar
 has not been accepted. Evidence: build/latest-candidate-real-verification.json,
 build/native-source-license-actual-verification.json, build/update-stage-verification.json
 and build/update-install-verification.json.
+
+## October9 newer candidate startup update
+
+The actual startup updater installed candidate v0.1.2 over an isolated copy of
+v0.1.1 using retained offline metadata and real archive bytes. Installed Agent
+verification, private sentinel preservation, cached current-version recheck and
+independent injected-failure rollback passed. Archive/source bindings are recorded
+in build/v012-candidate-real-verification.json. This verifies the newer-version
+startup/cache/stage/install path, not public GitHub delivery or native GUI restart.
+The desktop and game were unchanged; public release, GUI persistence/restart and
+complete dependency/artwork distribution audit remain open.
