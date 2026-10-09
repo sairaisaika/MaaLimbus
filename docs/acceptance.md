@@ -1167,3 +1167,12 @@ without altering the policy. This does not approve the unanswered real paid5
 request or prove installed GUI interaction.
 
 836fullPython tests passed in61.22s with one Windows permission skip;26focused passed.
+
+
+The cleanb3cb668 local development app was frozen and safely installed with18
+private file hashes preserved, stage/actual installed Agent-root self-tests passed.
+Installed PI/pipeline match source, frozen Analysis contains both rewards modules
+and no FGO modules; actual installed native Resource parses all four budget
+choices without private writes. Evidence: build/reward-task-budget-installed-
+verification.json and build/installed-reward-task-budget-native-verification.json.
+No GUI launch or game input occurred. Native GUI interaction/restart remains open.

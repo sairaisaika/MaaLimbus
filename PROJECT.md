@@ -10,6 +10,21 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 safe local app update completed: build/local-app-20261009210545
+  terminalexit0, dist clean sourceb3cb668/v0.1.2 with valid modifiedMXU proof.
+  Stage and actual installed Agent-root self-tests passed;18private files retain
+  exact backup hashes (MaaLimbus.backup-e4d29b134d8046c5b84aab80c7c3d929).
+  Actual installed PI/pipeline equal source; frozen Analysis includes reward_task
+  and reward_task_budget and no FGO modules. Installed native Resource parses all
+  saved/0/5/6 choices without changing the rewards action or private hashes.
+  Evidence: build/reward-task-budget-installed-verification.json and
+  build/installed-reward-task-budget-native-verification.json;
+  log build/local-app-reward-task-budget-install.txt. No GUI/controller launch,
+  game input, new payout or Release. Native GUI rendering/interaction/restart
+  remains unaccepted. Desktop now includes bounded rewards execution and budget
+  choices, superseding the earlier2c12793/v0.1.1 snapshot. Published/newer updater
+  delivery and full distribution gate remain open; release candidate stays172a0d7.
+  Current Team7 unpaid5weekly0 and unanswered budget/private source state unchanged.
 - October9 native rewards task gains explicit saved/0/5/6 module budget choices.
   Saved default does not read/write policy; explicit choice binds only the current
   verified unpaid five-floor run. Unresolved/already-sent claims, unknown caps,
