@@ -335,3 +335,11 @@ amount comes from one positive numeric OCR result in its strict title/button
 layout at .9. Hidden summary figures never substitute for wallet balances.
 Current Team7 confirmation/receipt still require fresh evidence and approval;
 unit fixtures and offline preparation do not authorize paid input.
+
+### Native corresponding-source build gate
+Windows candidate builds validate pinned runtime/source archive hashes first,
+then require exactly one expected license member per archive and identical bytes
+between runtime, corresponding source and retained notice. Missing, duplicate or
+changed members refuse before extraction/freezing. Build metadata carries member
+paths and notice hashes. This binds these two source companions; it is not a
+complete transitive dependency or artwork distribution audit.

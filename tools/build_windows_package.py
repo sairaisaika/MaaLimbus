@@ -26,6 +26,30 @@ ARCHIVES = {
                    'https://github.com/MaaXYZ/MaaFramework/tree/f625a60edeccd4549f9a71c0f74628d827ade8fb'),
 }
 
+SOURCE_LICENSES = {
+    'mxu': ('LICENSE','MXU-2.7.1/LICENSE','MXU-AGPL-3.0.txt'),
+    'maa': ('LICENSE.md','MaaFramework-f625a60edeccd4549f9a71c0f74628d827ade8fb/LICENSE.md',
+            'MaaFramework-LGPL-3.0.md'),
+}
+
+
+def verify_corresponding_licenses(inputs):
+    """Bind pinned runtime and source notice bytes before extraction/freezing."""
+    results={}
+    for key,(runtime_member,source_member,notice) in SOURCE_LICENSES.items():
+        members=[]
+        for path,member in [(inputs[key],runtime_member),(inputs[key+'_source'],source_member)]:
+            with zipfile.ZipFile(path) as archive:
+                if archive.namelist().count(member)!=1:
+                    raise ValueError('Missing or duplicate corresponding license: '+member)
+                members.append(archive.read(member))
+        retained=(ROOT/'THIRD_PARTY_NOTICES'/notice).read_bytes()
+        if not members[0] or members[0]!=members[1] or members[0]!=retained:
+            raise ValueError('Runtime/source/notice bytes differ: '+key)
+        results[key]=dict(runtime_member=runtime_member,source_member=source_member,
+            notice=notice,sha256=hashlib.sha256(retained).hexdigest(),exact_bytes_match=True)
+    return results
+
 
 def digest(path):
     with Path(path).open('rb') as file:
@@ -91,6 +115,7 @@ def main():
     inputs = {key: getattr(args, key).resolve() for key in ARCHIVES}
     for key, path in inputs.items():
         verify(path, ARCHIVES[key][0])
+    source_licenses=verify_corresponding_licenses(inputs)
     custom_source,custom_proof=(validate_artifact(args.mxu_client/'mxu.exe',args.mxu_client/'build-proof.json',ROOT)
                                 if args.mxu_client else (None,None))
     stage = ROOT/'build'/('windows-package-'+uuid.uuid4().hex)
@@ -148,6 +173,7 @@ def main():
             'inputs':{k:{'sha256':digest(path),'source':ARCHIVES[k][1]} for k,path in inputs.items()},
             'mxu_modified':custom_proof is not None, 'maa_modified':False,
             'mxu_source_sha256':custom_proof['source_sha256'] if custom_proof else None,
+            'corresponding_source_licenses':source_licenses,
             'pending':pending}
     if args.verified_dungeon_clear:
         # The claim is only as good as the record it points at, so hash that record.

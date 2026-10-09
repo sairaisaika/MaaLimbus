@@ -10,6 +10,15 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 version advanced to v0.1.2 in project metadata and native PI for a
+  newer candidate than desktopv0.1.1. Builder now binds exact runtime/source/notice
+  license bytes after pinned ZIP hashes, rejects missing/duplicate/changed members
+  before extraction/freezing, and records provenance in build-info.20focused
+  package/export tests and native six-task parsing passed.795fullPython56.66s/
+  1Windows symlink permission skip passed; actual cached pinned archive gate passed in
+  build/v012-pinned-source-license-verification.json. This does not complete the
+  separate transitive dependency/artwork audit or public GUI update acceptance.
+  No game inputs, resource budgets or actual reward transaction changed.
 - October9 current Windows candidate rebuilt from clean eaef7b8 with modified
   MXU proof, pinned upstream sources and all latest task settings. Actual build
   terminal exit0/staged Agent self-test/native Runner help passed. ZIP233192565
