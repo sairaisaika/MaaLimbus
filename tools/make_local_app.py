@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from maalimbus.update_install import plain_path,plain_tree,closed_app,self_test,private_hashes,PRIVATE,metadata
 from maalimbus.controller_lease import ControllerLease
+from maalimbus.mxu_distribution import validate_artifact
 
 # The MXU release this app is assembled from; a renamed copy must match. MXU
 # v2.5.1 was pinned first, but it never raised its window on this machine (the
@@ -110,9 +111,11 @@ def main():
     parser.add_argument('--skip-agent', action='store_true',
                         help='reuse the frozen agent already in --out instead of freezing again')
     parser.add_argument('--skip-self-test', action='store_true')
+    parser.add_argument('--mxu-proof',type=Path,help='verified modified MXU build proof with corresponding source')
     args = parser.parse_args()
 
-    if digest(args.mxu_exe).upper() != MXU_SHA256:
+    mxu_source,mxu_proof=(validate_artifact(args.mxu_exe,args.mxu_proof,ROOT) if args.mxu_proof else (None,None))
+    if mxu_proof is None and digest(args.mxu_exe).upper() != MXU_SHA256:
         raise ValueError(f'Unreviewed MXU executable: {args.mxu_exe}')
     if not (args.maafw/'MaaFramework.dll').is_file():
         raise ValueError(f'Missing MaaFramework runtime: {args.maafw}')
@@ -126,6 +129,10 @@ def main():
     staged.mkdir(parents=True)
 
     shutil.copyfile(args.mxu_exe, staged/'MaaLimbus.exe')
+    if mxu_source:
+        (staged/'sources').mkdir()
+        shutil.copyfile(mxu_source,staged/'sources/MXU-MaaLimbus-source.zip')
+        shutil.copyfile(args.mxu_proof,staged/'sources/MXU-build-proof.json')
     shutil.copytree(args.maafw, staged/'maafw')
     for name in ('assets', 'docs', 'THIRD_PARTY_NOTICES'):
         shutil.copytree(ROOT/name, staged/name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
@@ -147,6 +154,8 @@ def main():
             'source_dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True)),
             'built_at': datetime.now(timezone.utc).isoformat(),
             'mxu_sha256': digest(staged/'MaaLimbus.exe'),
+            'mxu_modified':mxu_proof is not None,
+            'mxu_source_sha256':mxu_proof['source_sha256'] if mxu_proof else None,
             'pending': ['MXU UI validation', 'live input postcondition', 'full five-floor loop']}
     if not args.skip_self_test:
         result = subprocess.run([str(staged/'agent/MaaLimbusAgent.exe'), '--self-test'],

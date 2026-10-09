@@ -12,6 +12,14 @@ from maalimbus.policies import Team
 from maalimbus.task_preferences import TaskPreferences
 
 
+@pytest.fixture(autouse=True)
+def isolate_fake_dispatch_controller_lease(tmp_path,monkeypatch):
+    # These fake-controller unit tests must not compete with a real live runner.
+    # Production lock identity/exclusion is covered in test_controller_lease.py.
+    import maalimbus.controller_lease as leases
+    monkeypatch.setattr(leases,'lease_path',lambda path:tmp_path/'unit-dispatch.lock')
+
+
 def test_six_main_tasks_reference_saved_builds_and_no_diagnostic_entry():
     pi=json.loads((ROOT/'assets/interface.json').read_text(encoding='utf-8'))
     assert [t['name'] for t in pi['task']]==['open_game','mirror_loop','experience','thread','rewards','stamina']

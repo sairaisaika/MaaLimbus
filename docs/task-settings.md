@@ -1,5 +1,23 @@
 # Tasks and saved builds
 
+## Interactive native client
+
+The project-owned pinned-MXU overlay renders saved builds as a twelve-sinner
+formation grid. Click order sets deployment badges; click again removes a sinner,
+clear resets the draft, and arrows move an existing choice. Save requires twelve
+distinct known sinners and persists all order/name/system UI values together.
+Other build preferences remain unchanged. Backend application still validates
+the whole edited batch before the Mirror task; active-run team edits reject.
+Failed persistence restores the previous UI values. Browser preview is UI evidence,
+not installed native restart or game deployment proof.
+
+Software updates have their own settings section with current version, automatic
+startup updates, explicit GitHub check and retry status. Manual checking uses the
+same persistent rate-limit/cache state and never installs, restarts or drives the
+game. Device connections have a separate section using MXU's existing native
+discovery/connection component. Modified client builds retain the complete pinned
+upstream and project-patched corresponding sources and reject stale artifacts.
+
 The requested main task list is: open game, Mirror Dungeon, experience
 luxcavation, thread luxcavation, collect rewards, and stamina conversion.
 Battle assignment, theme packs and deployment are preferences within Mirror

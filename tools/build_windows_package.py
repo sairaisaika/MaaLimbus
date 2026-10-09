@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from maalimbus.archives import extract_checked
 from maalimbus.release_package import export_assets
+from maalimbus.mxu_distribution import validate_artifact
 ARCHIVES = {
     'mxu': ('825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724',
             'https://github.com/MistEO/MXU/releases/download/v2.7.1/MXU-win-x86_64-v2.7.1.zip'),
@@ -39,7 +40,7 @@ def verify(path, expected):
 def copy_public_sources(output):
     # Explicit public roots: never copy build/config/evidence or a previous install.
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-        for name in ('src', 'agent', 'tools', 'tests', 'docs', 'assets', 'THIRD_PARTY_NOTICES'):
+        for name in ('src', 'agent', 'tools', 'tests', 'docs', 'assets', 'desktop', 'THIRD_PARTY_NOTICES'):
             for path in sorted((ROOT/name).rglob('*')):
                 if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
                     archive.write(path, path.relative_to(ROOT).as_posix())
@@ -75,6 +76,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ARCHIVES:
         parser.add_argument('--'+key.replace('_', '-'), type=Path, required=True)
+    parser.add_argument('--mxu-client',type=Path,help='project-owned MXU artifact directory')
     parser.add_argument('--verified-dungeon-clear', action='store_true',
                         help='the live acceptance run cleared five floors, claimed the '
                              'rewards and re-entered; only pass it with that evidence')
@@ -89,6 +91,8 @@ def main():
     inputs = {key: getattr(args, key).resolve() for key in ARCHIVES}
     for key, path in inputs.items():
         verify(path, ARCHIVES[key][0])
+    custom_source,custom_proof=(validate_artifact(args.mxu_client/'mxu.exe',args.mxu_client/'build-proof.json',ROOT)
+                                if args.mxu_client else (None,None))
     stage = ROOT/'build'/('windows-package-'+uuid.uuid4().hex)
     stage.mkdir(parents=True)
     for key in ('mxu', 'maa'):
@@ -99,7 +103,7 @@ def main():
             raise ValueError(f'Runtime license differs from retained notice: {notice}')
     app = stage/'MaaLimbus-win-x64'
     app.mkdir()
-    shutil.copyfile(stage/'mxu/mxu.exe', app/'MaaLimbus.exe')
+    shutil.copyfile(args.mxu_client/'mxu.exe' if custom_proof else stage/'mxu/mxu.exe', app/'MaaLimbus.exe')
     shutil.copytree(stage/'maa/bin', app/'maafw')
     for name in ('assets', 'docs', 'THIRD_PARTY_NOTICES'):
         shutil.copytree(ROOT/name, app/name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
@@ -121,6 +125,9 @@ def main():
     (app/'interface.json').write_text(json.dumps(interface, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (app/'sources').mkdir()
     shutil.copyfile(inputs['mxu_source'], app/'sources/MXU-v2.7.1-source.zip')
+    if custom_source:
+        shutil.copyfile(custom_source,app/'sources/MXU-MaaLimbus-source.zip')
+        shutil.copyfile(args.mxu_client/'build-proof.json',app/'sources/MXU-build-proof.json')
     shutil.copyfile(inputs['maa_source'], app/'sources/MaaFramework-v5.12.2-source.zip')
     copy_public_sources(app/'sources/MaaLimbus-source.zip')
     result = subprocess.run([str(app/'agent/MaaLimbusAgent.exe'), '--self-test'],
@@ -139,7 +146,8 @@ def main():
             'source_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
             'built_at':datetime.now(timezone.utc).isoformat(), 'self_test':self_test,
             'inputs':{k:{'sha256':digest(path),'source':ARCHIVES[k][1]} for k,path in inputs.items()},
-            'mxu_modified':False, 'maa_modified':False,
+            'mxu_modified':custom_proof is not None, 'maa_modified':False,
+            'mxu_source_sha256':custom_proof['source_sha256'] if custom_proof else None,
             'pending':pending}
     if args.verified_dungeon_clear:
         # The claim is only as good as the record it points at, so hash that record.

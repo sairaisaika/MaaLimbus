@@ -1057,3 +1057,7 @@ Acceptance still requires installed GUI render/restart, two actual rotated teams
 resolving distinct rules, current visible prices/balance, once-only purchases and
 successor balances within caps. Neither module tests nor native replay prove
 those live purchases; the current desktop and draft package precede this feature.
+
+### Team7 star continuation and interactive UI work
+- Current4734/team7 real native purchases2,4,5,7 used the existing explicit cap100:116→106→86→56→16. Enter and cost0/unchecked-conversion confirmation once each; subsequent INITIAL_GIFTS first-arrival stopped without gift input. Read-only hash/touch/scope/unchanged-ledger audit is build/star-entry-resume-real-verification.json. This is entry progression, not a new dungeon clear.
+- Twelve-card click ordering, clear and save were observed in a browser preview of the actual new React component; Team2 order3,4,9,1,7,2,12,5,8,10,11,6 and HongLu last. Independent software update/device settings have source integration. Native compile/package hash/source validation, installed visual render, persistence after restart and manual GitHub-check E2E remain separate acceptance requirements.

@@ -9,6 +9,23 @@ from .update_install import metadata
 from .update_stage import stage_release, StageError
 
 
+def check_project_update(app, *, client_factory=ReleaseClient):
+    """Explicit software-settings check: cache/limits, never stage or install."""
+    current=metadata(app)['version']
+    check=client_factory(app/'config/user-update-state.json').check()
+    release=check.get('release') or {};tag=release.get('tag_name','')
+    valid=bool(re.fullmatch(r'v?\d+\.\d+\.\d+',tag))
+    newer=valid and tuple(map(int,tag.lstrip('v').split('.')))>tuple(map(int,current.lstrip('v').split('.')))
+    status=check['status']
+    if status in ('available','cached'):
+        status='update_available' if newer else 'current' if valid else 'unsupported_release_tag'
+    result=dict(current_version=current,available_version=tag or None,status=status,
+        retry_at=check.get('retry_at'),requested=check['requested'],newer_available=newer,
+        installed=False,downloaded=False,game_input_sent=False)
+    write_json(app/'config/user-update-check-result.json',result)
+    return result
+
+
 def update_enabled(app):
     path = app/'config/mxu-MaaLimbus.json'
     if not path.exists():

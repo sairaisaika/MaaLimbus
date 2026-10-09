@@ -11,7 +11,7 @@ import uuid
 if not getattr(sys, 'frozen', False):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'src'))
 from maalimbus.controller_lease import ControllerLease
-from maalimbus.startup_update import startup_update
+from maalimbus.startup_update import startup_update, check_project_update
 from maalimbus.update_install import closed_app, install_staged, plain_path, plain_tree, metadata
 
 
@@ -19,8 +19,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', type=Path)
     parser.add_argument('--parent', type=int)
+    parser.add_argument('--check-only', action='store_true')
     args = parser.parse_args()
     executable = plain_path(sys.executable)
+    if args.check_only:
+        if args.app is None and not getattr(sys,'frozen',False):
+            parser.error('Source check requires --app')
+        app=plain_path(args.app or executable.parents[1])
+        check_project_update(app)
+        return
     if args.app is None:
         if not getattr(sys, 'frozen', False):
             parser.error('Source launcher requires --app')

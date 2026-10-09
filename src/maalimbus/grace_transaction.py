@@ -23,6 +23,32 @@ class GraceTransaction:
             raise ValueError('Grace balance changed outside verified purchases')
         return d
 
+    def adopt_unspent_entry_settings(self,scope,requested,budget,available,proof):
+        """Explicitly repair a zero-budget entry stub before any purchase.
+
+        The caller must bind a current STAR frame and an explicit saved setting.
+        This cannot reconfigure a purchase, sealed auto plan or unknown pending.
+        """
+        d=self.data
+        if (not d or d['scope']!=scope or d['budget']!=0 or d['selected'] or
+                d['spent']!=0 or d['pending'] is not None or d['available'] is not None or
+                'auto_priority' in d or 'entry_settings_adopted' in d):
+            raise ValueError('Only an untouched zero-budget entry stub can be adopted')
+        if (type(budget) is not int or not 0<=budget<=1000000 or
+                type(available) is not int or available<0 or
+                not isinstance(requested,list) or len(set(requested))!=len(requested) or
+                any(type(n) is not int or not 1<=n<=10 for n in requested)):
+            raise ValueError('Explicit entry star choices/budget/current balance required')
+        if (not isinstance(proof,dict) or proof.get('page')!='STAR_GRACES' or
+                proof.get('scope')!=scope or any(not isinstance(proof.get(k),str) or
+                len(proof[k])!=64 for k in ('frame_sha256','configuration_sha256'))):
+            raise ValueError('Bound current frame and saved configuration required')
+        d['entry_settings_adopted']=dict(previous_requested=list(d['requested']),
+            previous_budget=d['budget'],proof=proof)
+        d.update(requested=list(requested),budget=budget,available=available)
+        write_json(self.path,d)
+        return d
+
     def seal_auto(self,scope,priorities,budget,available,costs,proof):
         """Freeze one affordable plan before input; resumes never re-budget it."""
         d=self.data

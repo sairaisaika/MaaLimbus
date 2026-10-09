@@ -9,6 +9,18 @@ from maalimbus.controller_lease import lease_path
 from maalimbus.update_install import closed_app
 
 
+@pytest.mark.parametrize('status,tag,expected', [('available','v0.2.0','update_available'),
+    ('cached','v0.1.0','current'),('available','maalimbus','unsupported_release_tag'),
+    ('rate_limited','v0.2.0','rate_limited'),('network_error','', 'network_error')])
+def test_settings_check_never_downloads_installs_or_starts_game(tmp_path,status,tag,expected):
+    from maalimbus.startup_update import check_project_update
+    app=app_fixture(tmp_path)
+    result=check_project_update(app,client_factory=client(status,tag))
+    assert result['status']==expected and result['current_version']=='v0.1.0'
+    assert not result['installed'] and not result['downloaded'] and not result['game_input_sent']
+    assert json.loads((app/'config/user-update-check-result.json').read_text())==result
+
+
 def app_fixture(tmp_path):
     app = tmp_path/'app'
     write_json(app/'interface.json', dict(name='MaaLimbus', interface_version=2,
