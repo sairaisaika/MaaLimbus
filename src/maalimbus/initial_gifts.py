@@ -31,8 +31,16 @@ def row_target(records,size,ordinal):
     if ordinal not in (1,2,3):return None
     top=(322+160*(ordinal-1))/1080
     titles=find(records,r'.+',(.675,top+.015,.92,top+.046),size,.85)
-    if len(titles)!=1:return None
-    return inset_box(titles[0].box),titles[0].text
+    if not titles:return None
+    # Maa can split a blue title into adjacent words after another row is
+    # selected. Only fragments on the same measured baseline inside this row's
+    # existing title band may join; body text and a second line still refuse.
+    centers=[t.box[1]+t.box[3]/2 for t in titles]
+    if max(centers)-min(centers)>12*size[1]/1080:return None
+    titles.sort(key=lambda t:t.box[0])
+    x=min(t.box[0] for t in titles);y=min(t.box[1] for t in titles)
+    right=max(t.box[0]+t.box[2] for t in titles);bottom=max(t.box[1]+t.box[3] for t in titles)
+    return inset_box((x,y,right-x,bottom-y)),' '.join(t.text.strip() for t in titles)
 
 
 def selected_rows(image):

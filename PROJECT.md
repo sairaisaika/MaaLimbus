@@ -10,8 +10,33 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- Team7 initial tray now progressed: saved formation_keywordsRupture and priority
+  1,2,3 justified one Rupture group opening, then BarbedLasso once0→1. Native OCR
+  split FluorescentLamp into same-baseline words after that selection; fixed only
+  the existing title-band fragment join, second-line/low-confidence full-name
+  negatives and two actual retained layouts pass. FluorescentLamp once1→2.
+  Selectonce and two namedGET ackonce each; last successor was transientUNKNOWN,
+  preserved pending, freshzero-inputGIFT_SEARCH exact headers/0of3 proved next
+  page. verify_team_seven_initial_receipts.py checks scope/threeinputtargets/
+  touchdelays/PNGhashes/twofullreceipts before completing already-sent ack, no
+  repeat. build/team-seven-initial-receipts-real-verification.json. SearchRefuse
+  once→GIFT_SEARCH_FORGO, Confirmonce→transitionUNKNOWN. Do not repeat either;
+  read actual fresh successor next. No paidSearch/module/refill/conversion input.
+  Final750Python74.91s/1symlink skip passed,7initialfocused passed. Fullscript
+  tests prove no gameplay completion; current floors[] unchanged.
+- Mirror preference editor now owns per-saved-team additive gift allow/block and
+  preferred/blocked theme selection with explicit weight.332gift/95theme catalog
+  identities populate native dropdowns. Independent inert nodes collect all
+  choices; whole-edit validation precedes a single atomic profile save. Preserve
+  roster/system/star and existing preferences; changed active-team preferences
+  STOP, identical reapplication is allowed.23focused and actual Maa resource
+  seven-choice/isolated two-profile/active-rejection verification passed with no
+  controller or device input; build/mirror-preferences-native-verification.json.
+  Source only, not installed UI/render/persistence acceptance. Final748Python
+  passed83.54s/1Windows symlink permission skip; recorded in
+  build/mirror-preferences-full-tests.txt. Battle-card editor still open.
 - Final modified MXU artifact native build terminalexit0. ExecutableSHA5f0541fdcfce8ff63937e74a5aa2f1d3162817719c1d0d184fc7b3bfa9c5aa39 and complete corresponding sourceZIP SHA c9837cfe5b80fbcc9c13a1633306db17b0e3c2acadabf0788475d4f64d43e8d4 validated. Local assembly installed clean d0d5352 exit0/stage+actualAgent selftestTrue, preserved18privatefiles/backuppath, build/local-app-interactive-install.txt and interactive-client-installed-verification.json. Frozen installed launcher check-only genuinely returns currentv0.1.1/publictagmaalimbus unsupported/cached requestedFalse, noinstall/download/input; ISO retry timestamp corrected and18focusedpassed. No public Release or installed settings interaction claim.
-- Actual GUI startup PID22484 exactdist/MaaLimbus.exe observed alive/no top-level handle; standard consent.exe62128 also present. Tasks disabled/autoRunOnLaunchFalse independently verified. Do not restart/replace while startup is active, and never approve/bypass UAC. User must approve a MaaLimbus standard permission window if shown; installed native render/save/restart/manual-check click acceptance remains open.
+- Same actual GUI PID22484 exactdist/MaaLimbus.exe now has top-level handle10360354/titleMaaLimbus v0.1.1; previous no-window/consent observation is stale. Tasks disabled/autoRunOnLaunchFalse independently verified. Kept this process, no restart/replacement; installed native settings render/save/restart/manual-check click acceptance remains open. Standard UAC remains user-only.
 - MaaLimbus is prioritized. FGO source, configuration, ledger and release remain in their own repository; no FGO app/game work in this continuation. User withdrew quota checks.
 - Actual Team7 STAR stall was an untouched current-scope zero-budget entry stub, with no active controller. Explicit existing user-launch choices2,4,5,7/cap100 were adopted once, with original state/config/frame hashes and backup; unknown or spent transactions reject adoption. Real native inputs bought each once,116→106→86→56→16, Enter once, then confirmation once with conversion unchecked/cost0. INITIAL_GIFTS first-arrival STOP is deliberate, with zero gift input. build/star-entry-resume-real-verification.json checks six touches,350–750ms, PNG hashes and unchanged ledger860b8fbd...; current scope4734/team7, no new floor clear. Do not rerun adoption or star inputs.
 - Project-owned MXU overlay replaces twelve-dropdown formation with a twelve-card click-order editor, clear/reorder/save and name/system fields; bulk global validation still applies before Mirror, preserving other build metadata and rejecting active-team edits. Browser preview demonstrated exact Team2 order/HongLu last and save result; it is not installed native persistence evidence.

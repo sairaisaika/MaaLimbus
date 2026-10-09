@@ -2085,5 +2085,12 @@
   "MirrorTeamStar9": {"recognition":"DirectHit","action":"DoNothing","attach":{"selected":false},"next":[]},
   "MirrorInitialKeyword": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"keyword": "saved"}, "next": []},
   "MirrorGiftSearch": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"mode": "saved"}, "next": []},
-  "MirrorRunBounds": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"steps": "saved"}, "next": []}
+  "MirrorRunBounds": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"steps": "saved"}, "next": []},
+  "MirrorPreferenceEdit": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"enabled": false}, "next": []},
+  "MirrorPreferenceSlot": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"slot": 1}, "next": []},
+  "MirrorPreferenceAllow": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
+  "MirrorPreferenceBlock": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
+  "MirrorPreferencePack": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
+  "MirrorPreferenceAvoidPack": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"name": "saved"}, "next": []},
+  "MirrorPreferenceWeight": {"recognition": "DirectHit", "action": "DoNothing", "attach": {"weight": 75}, "next": []}
 }

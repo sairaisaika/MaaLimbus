@@ -1442,6 +1442,12 @@ class MainTaskAction(CustomAction):
                     raise ValueError('Actual controller identity failed')
                 if task=='mirror':
                     if not GlobalSettingsAction(self.recognition).run(context,argv):return False
+                    from maalimbus.mirror_preferences import collect as collect_preferences, apply as apply_preferences
+                    preference_edit=collect_preferences(context.get_node_data)
+                    if preference_edit is not None:
+                        apply_preferences(data_directory(ROOT),preference_edit,
+                            gifts=self.recognition.gift_catalog().entries,
+                            packs=self.recognition.theme_catalog().names)
                     from maalimbus.mirror_starlight import collect,apply
                     source,star_task,star_edit=collect(context.get_node_data)
                     apply(data_directory(ROOT),source,star_task,star_edit)

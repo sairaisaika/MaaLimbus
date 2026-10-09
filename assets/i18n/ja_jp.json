@@ -116,5 +116,15 @@
   "mirror_run_bounds": "起動ごとのステップ上限",
   "mirror_initial_keyword_description": "初期ギフトのみ指定。階層ギフトは保存された編成の系統と好みを使用します。",
   "mirror_gift_search_description": "探索拒否のみ対応。この設定は支払いを許可しません。",
-  "mirror_run_bounds_description": "鏡ダンジョンの周回数ではありません。上限に達すると状態を保存して停止します。"
+  "mirror_run_bounds_description": "鏡ダンジョンの周回数ではありません。上限に達すると状態を保存して停止します。",
+  "mirror_preferences": "編成のギフト・テーマ好み",
+  "mirror_preferences_description": "保存された編成の系統を使用。編集は鏡タスク開始時に好みを追加し、既存リスト・系統・順序を保持。使用中の編成変更は停止。除外を優先。",
+  "mirror_preferences_keep": "既存の好みを維持",
+  "mirror_preferences_edit": "編成の好みを編集",
+  "mirror_preference_slot": "編集する保存編成",
+  "mirror_preference_allow": "優先ギフトを追加",
+  "mirror_preference_block": "除外ギフトを追加",
+  "mirror_preference_pack": "優先テーマを追加",
+  "mirror_preference_avoid_pack": "除外テーマを追加",
+  "mirror_preference_weight": "優先テーマの重み"
 }

@@ -114,3 +114,17 @@ Search refusal never authorizes a paid search. Steps are a per-launch bound, not
 a dungeon repeat count. These additions are source/native-parser verified, not
 yet installed or visually accepted. Battle-card and theme/gift preference editors
 remain unfinished; this addition does not mark them complete.
+## Mirror build preference editor (October9)
+
+Mirror settings contain a saved-build preference editor, disabled by default.
+Choose a saved team and add a catalog gift to allow/block lists or a catalog theme
+to preferred/blocked weights. A preferred theme has an explicit weight25/50/75/100;
+a blocked theme has weight0. Separate inert nodes preserve all choices through
+MXU option patching. The whole edit validates before one atomic ProfileStore save
+when the Mirror task starts. Existing lists, systems, deployment and star settings
+remain intact; blocks retain precedence. Changed preferences for the active run's
+team stop before gameplay, while identical reapplication is idempotent. Unknown
+catalog names and malformed active ledgers reject without writing. This first
+editor adds entries and adjusts named theme weights; removal/list management and
+battle-card editing remain open. Native parsing and isolated profile persistence
+are verified; installed rendering/restart and actual gameplay preferences are not.

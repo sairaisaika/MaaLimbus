@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "开局初始 E.G.O Gift 的取法：按队伍属性（关键词）给一份优先礼物名单，托盘里从上往下第一个出现的名字会被选中；没写到的属性用 default。玩家口径：现在带的是流血队，名单里先给 Wound Clerid，其次 Little and To-be-Naughty Plushie。其它属性的名单等玩家给出后再补，未给出时 default 兜底。",
+  "note": "初始藏品按明确体系的完整可见标题和优先名单选择。Bleed、Charge 保留既有规则；Rupture 绑定实际 Team7 的 formation_keywords 与初始优先顺序1,2,3和现场前两标题。不是普适最优攻略。原生事务调用使用空 fallback，未配置或不可见的标题停止。",
   "default": [
     "Wound Clerid",
     "Little and To-be-Naughty Plushie"
@@ -10,6 +10,10 @@
       "Wound Clerid",
       "Little and To-be-Naughty Plushie"
     ],
+    "rupture": [
+      "Barbed Lasso",
+      "Fluorescent Lamp"
+    ],
     "charge": [
       "Employee Card",
       "Portable Battery Socket"
@@ -17,6 +21,7 @@
   },
   "sources": [
     "https://limbuscompany.wiki.gg/wiki/Hidden_Boss",
-    "Actual window-20261008-040706 right-tray names and effects"
+    "Actual window-20261008-040706 right-tray names and effects",
+    "Actual window-20261009-010820/frame-0002 right-tray full Barbed Lasso and Fluorescent Lamp; saved Team7 formation Rupture and initial priorities 1,2,3. Current first two, not universal optimality."
   ]
 }

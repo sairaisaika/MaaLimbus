@@ -61,6 +61,7 @@ def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_pat
         seen.append(json.loads(args.custom_action_param));return True
     monkeypatch.setattr(recognition.MirrorLoopAction,'run',run)
     def node(name):
+        if name=='MirrorPreferenceEdit':return dict(attach=dict(enabled=False))
         if name=='MirrorStarSource':return dict(attach=dict(source='saved'))
         if name=='MirrorTeamStarEdit':return dict(attach=dict(edit=False))
         if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='poise'))
