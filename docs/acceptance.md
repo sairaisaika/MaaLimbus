@@ -1097,3 +1097,15 @@ of Python plus eight distributions passed byte-hash verification in
 build/python-runtime-notices-real-verification.json. This source fix has not
 yet been rebuilt into the candidate or desktop. Complete binary provenance,
 native transitive notices/source and artwork rights remain unaccepted.
+
+## October9 rebuilt notice-bearing candidate
+
+Clean352a1c7 rebuilt the v0.1.2 ZIP with 740 manifest entries, including all17
+generated Python notices checked against recorded hashes in the actual archive.
+Actual offline startup installed this exact archive over isolatedv0.1.1, preserved
+private sentinel, verified the installed Agent and cached the current-version
+recheck. build/v012-notices-candidate-real-verification.json binds those results.
+No desktop replacement, native GUI restart or public release is claimed. The
+MaaDepsv2.12.2 runtime asset matches five actual non-Maa DLLs byte-for-byte;
+development copyright inventory is retained for future package integration.
+This leaves complete native/static dependency and artwork audit open.

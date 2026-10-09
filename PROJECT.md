@@ -10,6 +10,20 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 clean352a1c7 rebuilt v0.1.2 candidate with17 generated original Python
+  notices: terminalexit0, Agent-root self-test/Runnerhelp passed. Actual ZIP740
+  manifest files/SHAa813bcbca431bf9d791e1b1124bb741f5eec679f3b086288ce32f3fd0a33a6e6;
+  build/windows-package-bfda0b4bb71b42e69b7590871bbf0a78/release-assets.
+  Every generated notice in the ZIP matched its recorded hash. Real offline startup
+  v0.1.1→v0.1.2 staging/install/private sentinel/Agent-root self-test/cache recheck
+  passed for this exact rebuilt archive: v012-notices-candidate-real-verification.json.
+  Public release/GUI restart remain unverified, desktop unchanged2c12793/v0.1.1.
+  Further audit traced pinned Maa source to MaaDepsv2.12.2; downloaded runtime and
+  development archives match GitHub asset digests. All five non-Maa runtime DLLs
+  match retained dependency runtime bytes: native-dependency-binary-verification.json.
+  Original development copyright notices retained under build/maadeps-notice-audit,
+  still not package-integrated, not complete native/static dependency/artwork audit.
+  No GUI/controller/game inputs, no paid claim or current budget authorization.
 - October9 distribution inventory found frozen Python component notices missing
   from the actual v0.1.2 candidate. Builder now retains build Python3.13.1 and
   eight installed distribution license bundles with exact versions/member hashes.
