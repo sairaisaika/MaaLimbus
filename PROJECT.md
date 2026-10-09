@@ -10,6 +10,21 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 paid-reward offline continuation: current five-module/zero-weekly
+  offer now prepares under an explicit matching scope and maximum; old six/one
+  remains supported. Obscured Net Amount is not required as a wallet balance.
+  Completed prior transaction can roll into preserved history only with completed
+  payout/home receipt-chain metadata; pending, same or previously recorded scope
+  rejects. New validation failures leave old state byte-identical. Receipt amount
+  is the unique positive high-confidence number in the exact acquired-reward
+  layout, never fixed250; acknowledgements still do not credit payout.
+  tools/verify_reward_rollover_offline.py passed against retained native current
+  offer with isolated policy/state and exact old transaction preservation. Real
+  policy/transaction/ledger hashes unchanged, zero device inputs. Actual current
+  receipt/confirmation layout and payout remain unverified; budget question still
+  unanswered. Final777Python passed55.70s/1Windows symlink permission skip;
+  build/reward-rollover-full-tests-final.txt. No install, GUI launch or Release;
+  desktop remains67c71d6.
 - October9 10:08local actual47324 terminal69inputs at reward cost gate, final
   battle victory→complete summary→RUN_REWARD_DIALOG. Independent fullsummary
   frame0311 and modal0312/0313 PNGhashes verified by

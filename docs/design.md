@@ -323,3 +323,15 @@ input, reuses it across windows, and rejects changed scope/prices or pending
 inputs. This does not authorize Enhance, conversion, seasonal semantic guessing,
 or unknown-page input. Missing saved-team budgets reject rather than inherit an
 unlimited amount. Native controls are task children, not global setting sections.
+
+### Paid transaction continuation
+A new explicit scoped budget can reserve a retained supported English offer
+(5 modules/zero weekly or 6 modules/one weekly). Prior completed transaction
+metadata, receipt-chain hashes and home successor are retained in history in the
+same atomic write; unknown pending, same scope and prior history scope refuse.
+Validation finishes before replacing prior data. This preserves existing audit
+results; it does not independently recognize a new payout. Acquired receipt
+amount comes from one positive numeric OCR result in its strict title/button
+layout at .9. Hidden summary figures never substitute for wallet balances.
+Current Team7 confirmation/receipt still require fresh evidence and approval;
+unit fixtures and offline preparation do not authorize paid input.

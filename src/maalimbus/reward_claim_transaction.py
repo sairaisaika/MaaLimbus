@@ -5,6 +5,8 @@ on the reward page remain explicitly unknown rather than guessed from summaries.
 Unknown pending intents cannot be
 retried, replaced, or treated as a payout, even with a larger later budget.
 """
+import copy
+import re
 from .storage import read_json,write_json
 
 
@@ -14,8 +16,25 @@ class RewardClaimTransaction:
         self.data=read_json(path) if path.exists() else None
 
     def reserve(self,scope,policy,offer,balances,proof):
+        history=[]
         if self.data is not None:
-            raise ValueError('reward_claim_existing_transaction_requires_reconciliation')
+            old=self.data
+            chain=old.get('receipt_chain')
+            history=old.get('history',[])
+            if (old.get('scope')==scope or old.get('completed') is not True
+                or old.get('reward_received') is not True or old.get('pending') is not None
+                or not all(old.get(k) for k in ('claim_sent','confirm_sent','receipt_ack_sent',
+                    'claim_proof','confirm_proof','receipt_proof','home_return_proof'))
+                or not isinstance(chain,list) or len(chain)<2
+                or any(not isinstance(p,dict) or not p.get('frame') or
+                    not re.fullmatch(r'[0-9a-f]{64}',str(p.get('png_sha256',''))) for p in chain)
+                or old['home_return_proof']!=chain[-1]['frame']
+                or not isinstance(history,list)
+                or any(not isinstance(p,dict) or p.get('scope')==scope for p in history)):
+                raise ValueError('reward_claim_existing_transaction_requires_reconciliation')
+            archived=copy.deepcopy(old)
+            archived.pop('history',None)
+            history=copy.deepcopy(history)+[archived]
         maximum=policy.get('max_reward_modules')
         if (policy.get('module_budget_pending',True) or type(maximum) is not int
             or maximum<=0 or policy.get('reward_budget_scope')!=scope):
@@ -33,11 +52,13 @@ class RewardClaimTransaction:
             or (not hidden_stars and (type(balances.get('starlight')) is not int or balances['starlight']<0))):
             raise ValueError('reward_claim_before_balances_missing')
         if not scope or not proof:raise ValueError('reward_claim_proof_missing')
-        self.data=dict(scope=scope,maximum_modules=maximum,reserved_modules=cost,
+        data=dict(scope=scope,maximum_modules=maximum,reserved_modules=cost,
             offer=dict(offer),before_balances=dict(balances),proof=str(proof),
             claim_sent=False,confirm_sent=False,completed=False,pending='reserved',
             reward_received=False)
-        write_json(self.path,self.data)
+        if history:data['history']=history
+        write_json(self.path,data)
+        self.data=data
         return self.data
 
     def claim_intent(self,scope,offer,proof):

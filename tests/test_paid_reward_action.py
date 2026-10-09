@@ -23,7 +23,7 @@ def test_real_cost_scoped_intent_never_invents_balance_or_payout(tmp_path):
     with pytest.raises(ValueError):prepare('claim',record,tmp_path,'run','retry')
 
 
-@pytest.mark.parametrize('fault',['cost','weekly','currency','scene','layout','stars','button','scope'])
+@pytest.mark.parametrize('fault',['cost','weekly','currency','scene','layout','button','scope'])
 def test_changed_or_missing_paid_offer_stops_before_intent(tmp_path,fault):
     r=fixture(tmp_path)
     if fault=='cost':r['reward_cost']['cost']=18
@@ -31,14 +31,15 @@ def test_changed_or_missing_paid_offer_stops_before_intent(tmp_path,fault):
     if fault=='currency':r['reward_cost']['currency']='lunacy'
     if fault=='scene':r['scene']='UNKNOWN'
     if fault=='layout':r['size']=[1280,720]
-    if fault=='stars':r['ocr'].pop(0)
     if fault=='button':r['ocr'].pop()
     with pytest.raises(ValueError):prepare('claim',r,tmp_path,'other' if fault=='scope' else 'run','frame')
     assert not (tmp_path/'user-reward-claim-transaction.json').exists()
 
 
 def test_exact_confirmation_only_once_and_does_not_credit(tmp_path):
-    prepare('claim',fixture(tmp_path),tmp_path,'run','before')
+    record=fixture(tmp_path)
+    record['reward_cost'].update(cost=5,weekly=0)
+    prepare('claim',record,tmp_path,'run','before')
     r=dict(scene='RUN_REWARD_CONFIRM',size=[1920,1080],ocr=[
         dict(text='Claim the rewards?',box=[800,486,320,40],score=1),
         dict(text='Cancel',box=[704,720,140,40],score=1),
@@ -94,3 +95,57 @@ def test_pass_receipt_independent_full_title_level_and_xp(tmp_path):
     with pytest.raises(ValueError):prepare('pass',bad,tmp_path,'run','missingxp')
     assert prepare('pass',r,tmp_path,'run','pass')==[882,680,164,48]
     with pytest.raises(ValueError):prepare('pass',r,tmp_path,'run','repeat')
+
+
+def test_five_module_zero_weekly_offer_needs_current_budget(tmp_path):
+    r=fixture(tmp_path);r['reward_cost'].update(cost=5,weekly=0)
+    write_json(tmp_path/'user-mirror-settings.json',dict(max_reward_modules=4,
+        module_budget_pending=False,reward_budget_scope='run'))
+    with pytest.raises(ValueError):prepare('claim',r,tmp_path,'run','overbudget')
+    assert not (tmp_path/'user-reward-claim-transaction.json').exists()
+    write_json(tmp_path/'user-mirror-settings.json',dict(max_reward_modules=5,
+        module_budget_pending=False,reward_budget_scope='run'))
+    prepare('claim',r,tmp_path,'run','fresh')
+    assert read_json(tmp_path/'user-reward-claim-transaction.json')['reserved_modules']==5
+
+
+@pytest.mark.parametrize('amount',['100','250','999'])
+def test_receipt_records_observed_amount_without_crediting_payout(tmp_path,amount):
+    prepare('claim',fixture(tmp_path),tmp_path,'run','before')
+    path=tmp_path/'user-reward-claim-transaction.json';tx=read_json(path)
+    tx.update(confirm_sent=True,pending='confirm');write_json(path,tx)
+    r=dict(scene='RUN_CLAIM',size=[1920,1080],ocr=[
+        dict(text='Rewards Acquired',box=[800,353,318,40],score=1),
+        dict(text=amount,box=[948,534,66,51],score=1),
+        dict(text='Confirm',box=[876,682,170,48],score=1)])
+    prepare('receipt',r,tmp_path,'run','actual')
+    assert read_json(path)['receipt_visible_amount']==int(amount)
+    assert not read_json(path)['reward_received']
+
+
+def test_boolean_weekly_is_not_a_native_integer_offer(tmp_path):
+    r=fixture(tmp_path);r['reward_cost'].update(cost=5,weekly=False)
+    with pytest.raises(ValueError):prepare('claim',r,tmp_path,'run','wrong')
+    assert not (tmp_path/'user-reward-claim-transaction.json').exists()
+
+
+def test_obscured_summary_number_is_not_a_claim_or_wallet_requirement(tmp_path):
+    r=fixture(tmp_path);r['ocr'].pop(0)
+    prepare('claim',r,tmp_path,'run','frame')
+    assert read_json(tmp_path/'user-reward-claim-transaction.json')['before_balances']['starlight'] is None
+
+
+@pytest.mark.parametrize('fault',['duplicate','zero','low_score'])
+def test_ambiguous_receipt_amount_preserves_pending_confirmation(tmp_path,fault):
+    prepare('claim',fixture(tmp_path),tmp_path,'run','before')
+    path=tmp_path/'user-reward-claim-transaction.json';tx=read_json(path)
+    tx.update(confirm_sent=True,pending='confirm');write_json(path,tx);before=path.read_bytes()
+    r=dict(scene='RUN_CLAIM',size=[1920,1080],ocr=[
+        dict(text='Rewards Acquired',box=[800,353,318,40],score=1),
+        dict(text='100',box=[948,534,66,51],score=1),
+        dict(text='Confirm',box=[876,682,170,48],score=1)])
+    if fault=='duplicate':r['ocr'].append(dict(text='200',box=[955,540,60,40],score=1))
+    if fault=='zero':r['ocr'][1]['text']='0'
+    if fault=='low_score':r['ocr'][1]['score']=.89
+    with pytest.raises(ValueError):prepare('receipt',r,tmp_path,'run','wrong')
+    assert path.read_bytes()==before

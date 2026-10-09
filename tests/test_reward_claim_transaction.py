@@ -1,4 +1,6 @@
 import pytest
+import copy
+from maalimbus.storage import write_json,read_json
 from maalimbus.reward_claim_transaction import RewardClaimTransaction
 from maalimbus.run_wiring import ledger_event,REWARD_CONFIRM_REASON,BONUS_CONFIRM_REASON
 
@@ -47,3 +49,42 @@ def test_click_success_and_confirmation_cannot_unlock_rotation(page,reason):
 def test_unproven_before_balance_cannot_reserve(tmp_path,balances):
     tx=RewardClaimTransaction(tmp_path/'tx.json')
     with pytest.raises(ValueError):tx.reserve('run',POLICY,OFFER,balances,'before')
+
+
+def completed_transaction():
+    return dict(scope='old',completed=True,reward_received=True,pending=None,
+        claim_sent=True,confirm_sent=True,receipt_ack_sent=True,
+        claim_proof='claim',confirm_proof='confirm',receipt_proof='receipt',
+        home_return_proof='home',receipt_chain=[
+            dict(frame='receipt',png_sha256='a'*64),dict(frame='home',png_sha256='b'*64)])
+
+
+def test_completed_prior_scope_is_preserved_in_atomic_new_reservation(tmp_path):
+    path=tmp_path/'tx.json';old=completed_transaction();write_json(path,old)
+    tx=RewardClaimTransaction(path)
+    tx.reserve('run',POLICY,dict(OFFER,cost=5,weekly=0),BALANCES,'new')
+    assert read_json(path)['history']==[old]
+    assert tx.data['scope']=='run' and tx.data['reserved_modules']==5
+    assert not tx.data['reward_received'] and tx.data['pending']=='reserved'
+    with pytest.raises(ValueError):tx.reserve('run',POLICY,OFFER,BALANCES,'repeat')
+
+
+@pytest.mark.parametrize('fault',['pending','same_scope','receipt','home','hash','history'])
+def test_unreconciled_or_reused_scope_never_archives_or_changes_file(tmp_path,fault):
+    old=completed_transaction()
+    if fault=='pending':old['pending']='confirm'
+    if fault=='same_scope':old['scope']='run'
+    if fault=='receipt':old.pop('receipt_proof')
+    if fault=='home':old['home_return_proof']='unseen'
+    if fault=='hash':old['receipt_chain'][0]['png_sha256']='invalid'
+    if fault=='history':old['history']=[dict(scope='run')]
+    path=tmp_path/'tx.json';write_json(path,old);before=path.read_bytes()
+    with pytest.raises(ValueError):RewardClaimTransaction(path).reserve('run',POLICY,OFFER,BALANCES,'new')
+    assert path.read_bytes()==before
+
+
+def test_invalid_new_budget_does_not_archive_completed_transaction(tmp_path):
+    path=tmp_path/'tx.json';write_json(path,completed_transaction());before=path.read_bytes()
+    tx=RewardClaimTransaction(path);old=copy.deepcopy(tx.data)
+    with pytest.raises(ValueError):tx.reserve('run',dict(POLICY,max_reward_modules=4),OFFER,BALANCES,'new')
+    assert tx.data==old and path.read_bytes()==before
