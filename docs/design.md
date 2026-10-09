@@ -2,6 +2,13 @@
 
 ## Mode crop, settled packs and regular encounter HUD
 
+For a MAP with missing floor digit, high-confidence header labels may be either
+one exact `Exploring Floor` OCR record or separate exact `Exploring` and `Floor`
+records. Mixed or duplicate labels refuse. The known pack header remains required;
+native narrow digit and full caption must both pass .9 and agree on the same
+floor. No pending theme value supplies that digit. Retained floor3 and floor5
+frames and missing-digit/missing-Floor negatives verify both segmentation forms.
+
 Independent floor-selection header, Refresh and Pack Search gate a native narrow
 HARD recognizer at the existing .9 threshold. Decorations are outside that crop;
 opposing mode evidence still vetoes. This does not prove pack identity. Settled

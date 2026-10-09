@@ -162,7 +162,9 @@ class LimbusRecognition(CustomRecognition):
             header=map_header(records,size)
             labels=find(records,r'^Exploring$',(.02,.10,.14,.17),size,.9)
             floors=find(records,r'^Floor$',(.12,.10,.20,.17),size,.9)
-            if header and header.floor is None and len(labels)==len(floors)==1:
+            joined=find(records,r'^Exploring Floor$',(.02,.10,.20,.17),size,.9)
+            label_gate=(len(labels)==len(floors)==1 and not joined) or (len(joined)==1 and not labels and not floors)
+            if header and header.floor is None and label_gate:
                 w,h=size
                 readings=[]
                 for source_roi,expected in (((362,125,48,52),r'^[1-5]$'),
@@ -176,7 +178,8 @@ class LimbusRecognition(CustomRecognition):
                         results=[dict(text=r.text,score=r.score) for r in found]))
                 digit,caption=readings[0][1],readings[1][1]
                 if len(digit)==len(caption)==1 and caption[0].text.strip().endswith(' '+digit[0].text.strip()):
-                    records=[t for t in records if t is not labels[0] and t is not floors[0]]
+                    label_records=labels+floors+joined
+                    records=[t for t in records if all(t is not label for label in label_records)]
                     records.append(Text(caption[0].text,readings[1][0],min(digit[0].score,caption[0].score)))
         if scene in ('UNKNOWN','BATTLE_HUD') and len(find(records,r'^TURN$',(.0,.06,.06,.13),size,.9))==1 and auto_assign_buttons(records,size) is not None:
             w,h=size;roi=(round(68*w/1920),round(90*h/1080),round(82*w/1920),round(40*h/1080))

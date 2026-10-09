@@ -10,6 +10,26 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 05:38local actual10396 terminal55inputs at floor-end four-card0/2.
+  CrownOfRoses and CurriculumVitae each picked once0→1→2; Selectonce and two
+  fullnamedGET acknowledgements reached SELECTFLOOR3. verify_team_seven_floor_two.py
+  binds scope/team7/previousfloor1/twoPNGhashes/fulltitles/exactfloor3; ledger[1,2],
+  build/team-seven-floor-two-real-verification.json. No repeat gift inputs.
+  VainPride theme dragged once; early stalefloor2 then realfloor3 map stopped
+  because wholeOCR combined ExploringFloor and omitted3. Narrow fallback now
+  accepts one exact high-confidence joinedlabel OR the existing two separate
+  labels, still requires packheader plus independent digit and fullcaption crops
+  agreeing at .9. Six realnative replay cases (oldfloor5/currentfloor3 and
+  missingdigit/missingFloor negatives) passed zero input. Freshreadonly independently
+  proves MAPfloor3/VainPride, build/team-seven-floor-three-header-fixed-readonly.json.
+  Latest bounded120step PID66504,parent62028/C:/Python313/python.exe/tool39384,
+  report build/team-seven-floor-three-header-fixed-live.json; no repeatedSwipe.
+  Check current process/result before another controller. Desktop remains old
+  d0d5352 while GUI alive; no replacement/resource/FGO input. Full Python result
+  retained in build/floor-three-header-full-tests.txt:749passed/1symlinkskip,
+  one Windows installation-lock test could not acquire the canonical lock already
+  held by actualrunner66504. This is not an all-green full suite; recheck that
+  lock test after the real controller exits, never stop gameplay just for a test.
 - October9 05:05local actual33496 terminal61inputs at centered free
   Tomorrow'sFortune GIFT_PICK/frame0177, no gift input. Current fresh single-free
   title/Acquire/Refuse/Select/outline gates allowed one pick, then Selectonce and

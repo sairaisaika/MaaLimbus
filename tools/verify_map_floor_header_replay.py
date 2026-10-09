@@ -10,9 +10,15 @@ from maalimbus.vision import Text
 
 def main():
     Library.open(ROOT/'dist/MaaLimbus/maafw',agent_server=False)
-    original=cv2.imread(str(ROOT/'evidence/runtime/window-20261008-124955/frame-0001.png'))
     catalog=GiftCatalog(ROOT/'assets/resource/base');results=[]
-    for case in ('actual','missing_digit','missing_floor'):
+    for source, expected, case in (
+        ('window-20261008-124955',5,'actual'),
+        ('window-20261008-124955',5,'missing_digit'),
+        ('window-20261008-124955',5,'missing_floor'),
+        ('window-20261009-053445',3,'actual'),
+        ('window-20261009-053445',3,'missing_digit'),
+        ('window-20261009-053445',3,'missing_floor')):
+        original=cv2.imread(str(ROOT/f'evidence/runtime/{source}/frame-0001.png'))
         image=original.copy()
         if case=='missing_digit':image[125:177,362:410]=0
         if case=='missing_floor':image[125:178,238:362]=0
@@ -28,9 +34,9 @@ def main():
         from maalimbus.map_vision import map_header
         header=map_header(records,(1920,1080))
         error=None;ranking=None
-        if case=='actual':assert header and header.floor==5
+        if case=='actual':assert header and header.floor==expected
         else:assert not header or header.floor is None
-        results.append(dict(case=case,error=error,ranking=ranking,device_input=False,evidence=str(journal.directory)))
+        results.append(dict(source=source,expected_floor=expected,case=case,error=error,ranking=ranking,device_input=False,evidence=str(journal.directory)))
     output=ROOT/'build/map-floor-header-replay.json'
     output.write_text(json.dumps(dict(passed=True,cases=results),indent=2)+'\n');print(output)
 
