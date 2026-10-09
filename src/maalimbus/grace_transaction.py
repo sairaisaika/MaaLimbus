@@ -23,9 +23,30 @@ class GraceTransaction:
             raise ValueError('Grace balance changed outside verified purchases')
         return d
 
+    def seal_auto(self,scope,priorities,budget,available,costs,proof):
+        """Freeze one affordable plan before input; resumes never re-budget it."""
+        d=self.data
+        if not d or d['scope']!=scope or d['budget']!=budget or d['pending']:
+            raise ValueError('Automatic star scope/budget/pending mismatch')
+        if 'auto_priority' in d:
+            if d['auto_priority']!=list(priorities):raise ValueError('Automatic star priorities changed')
+            if costs is not None and any(costs[n-1]!=d['auto_costs'][str(n)] for n in priorities):
+                raise ValueError('Automatic star costs changed')
+            return list(d['requested'])
+        if costs is None or d['selected'] or d['requested']!=list(priorities):
+            raise ValueError('Current auto costs required before selecting stars')
+        from .mirror_starlight import affordable
+        chosen=affordable(priorities,budget,available,costs)
+        d.update(auto_priority=list(priorities),auto_costs={str(n):costs[n-1] for n in priorities},
+                 requested=chosen,available=available,auto_plan_proof=str(proof))
+        write_json(self.path,d)
+        return chosen
+
     def intent(self,card,cost,available,proof):
         d=self.data
-        if d['pending'] or card in d['selected'] or cost<=0 or cost>available or d['spent']+cost>d['budget']:
+        if (d['pending'] or card not in d['requested'] or card in d['selected'] or cost<=0
+                or cost>available or d['spent']+cost>d['budget']
+                or ('auto_costs' in d and d['auto_costs'].get(str(card))!=cost)):
             raise ValueError('Grace purchase is not authorized by this transaction')
         d['pending']=dict(card=card,cost=cost,before=available,proof=str(proof))
         write_json(self.path,d)

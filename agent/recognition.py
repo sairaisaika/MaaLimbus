@@ -1442,6 +1442,9 @@ class MainTaskAction(CustomAction):
                     raise ValueError('Actual controller identity failed')
                 if task=='mirror':
                     if not GlobalSettingsAction(self.recognition).run(context,argv):return False
+                    from maalimbus.mirror_starlight import collect,apply
+                    source,star_task,star_edit=collect(context.get_node_data)
+                    apply(data_directory(ROOT),source,star_task,star_edit)
                     node=context.get_node_data('MirrorLoop')
                     selected=SimpleNamespace(custom_action_param=json.dumps(node['action']['param']['custom_action_param']),node_name='MirrorLoop')
                     return MirrorLoopAction(self.recognition).run(context,selected)

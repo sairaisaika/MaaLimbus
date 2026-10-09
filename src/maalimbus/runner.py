@@ -150,7 +150,7 @@ def _defaults():
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
         'gift_search': 'refuse', 'loop_guard': 3, 'claim_tries': 6,
-        'observe_only': False, 'stop_page': None, 'grace_budget': 60,
+        'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
         'graces': '1,3,5,6,8', 'map_points': '', 'flow': None, 'flow_timeout': None,
         'after_flow': False, 'swipe': None, 'click_box': None, 'label': 'one_shot_click',
@@ -978,6 +978,12 @@ class MirrorRunner:
         self.directory = Path(directory) if directory is not None else Path(os.getcwd())
         self.directory.mkdir(parents=True, exist_ok=True)
         self.journal = journal
+        if self.store is not None and (self.store.path.parent/'user-mirror-starlight.json').is_file():
+            from .mirror_starlight import resolve
+            star=resolve(self.store.path.parent,self.store.team_slot)
+            if star is not None:
+                self.settings=Settings({**self.settings.as_dict(),**{k:star[k] for k in ('graces','grace_budget','grace_auto')}})
+                if journal is not None:journal.record('mirror_star_rule_resolved',**star,enhance=False,conversion=False)
         self.flow = flow
         self.log = log
         self.roots = roots if roots is not None else _roots()
@@ -1412,6 +1418,17 @@ class MirrorRunner:
             try:
                 records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
                 available=available_starlight(records,record.get('size') or (1920,1080))
+                if settings.grace_auto:
+                    priorities=[int(n) for n in settings.graces.split(',') if n]
+                    costs=None
+                    if page=='STAR_GRACES':
+                        from .grace_vision import observed_board
+                        image,_=latest_frame(directory)
+                        board=observed_board(image,records,priorities) if image is not None else None
+                        if board is None:raise ValueError('Automatic star candidate costs not proven')
+                        costs=board['costs']
+                    state['grace_wanted']=transaction.seal_auto(self.run_id,priorities,
+                        settings.grace_budget,available,costs,frame_file(directory))
                 d=transaction.validate(self.run_id,state['grace_wanted'],settings.grace_budget,available)
                 state['grace_bought']=set(d['selected'])
             except ValueError as error:

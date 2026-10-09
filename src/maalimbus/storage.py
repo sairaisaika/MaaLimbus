@@ -58,7 +58,8 @@ def team_from_json(value):
     return Team(slot, keywords, name, frozenset(value.get('allow', ())),
                 frozenset(value.get('block', ())), deployment,
                 tuple(tuple(p) for p in value.get('pack_weights', ())), formation_keywords,
-                tuple(value.get('graces',())),tuple(value.get('initial_gifts',())),value.get('auto_team',False))
+                tuple(value.get('graces',())),tuple(value.get('initial_gifts',())),value.get('auto_team',False),
+                value.get('grace_budget'))
 
 
 class ProfileStore:

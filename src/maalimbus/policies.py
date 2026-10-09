@@ -25,8 +25,11 @@ class Team:
     graces: tuple[str, ...] = ()
     initial_gifts: tuple[int, ...] = ()
     auto_team: bool = False
+    grace_budget: int | None = None
 
     def __post_init__(self):
+        if self.grace_budget is not None and (type(self.grace_budget) is not int or not 0<=self.grace_budget<=1000000):
+            raise ValueError('Team starlight budget must be an explicit nonnegative integer')
         if not 1 <= self.slot <= 20:
             raise ValueError('Saved team slot must be 1..20')
         if len(self.deployment) != len(set(self.deployment)):

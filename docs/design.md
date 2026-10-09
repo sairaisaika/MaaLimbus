@@ -277,3 +277,13 @@ at .9. The current visible floor/HARD/encounter count, reward title and both
 forward controls must also agree. Provenance includes source/template hashes and
 all native scores/ROIs. This supplies only an observed cost; it never authorizes
 input, infers balances or grants a payout. Changed/JP layouts remain unknown.
+
+### Mirror starlight source contract
+Mirror task settings own follow-team/follow-task/auto star selection and explicit
+caps. Saved builds retain their own zero-based choices/cap independently of task
+choices. Runner resolves the actual ledger team before initializing purchase
+state. Auto seals a visible-cost, available-balance-limited subset durably before
+input, reuses it across windows, and rejects changed scope/prices or pending
+inputs. This does not authorize Enhance, conversion, seasonal semantic guessing,
+or unknown-page input. Missing saved-team budgets reject rather than inherit an
+unlimited amount. Native controls are task children, not global setting sections.

@@ -52,7 +52,11 @@ def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_pat
     def run(self,context,args):
         seen.append(json.loads(args.custom_action_param));return True
     monkeypatch.setattr(recognition.MirrorLoopAction,'run',run)
-    context=SimpleNamespace(get_node_data=lambda name:dict(action=dict(type='Custom',param=dict(custom_action_param=dict(steps=120,run_store='config/user-run-ledger.json',stop_page='STAR_GRACES')))))
+    def node(name):
+        if name=='MirrorStarSource':return dict(attach=dict(source='saved'))
+        if name=='MirrorTeamStarEdit':return dict(attach=dict(edit=False))
+        return dict(action=dict(type='Custom',param=dict(custom_action_param=dict(steps=120,run_store='config/user-run-ledger.json',stop_page='STAR_GRACES'))))
+    context=SimpleNamespace(get_node_data=node)
     action=recognition.MainTaskAction(SimpleNamespace(callback_failure=None,journal=None))
     args=SimpleNamespace(custom_action_param=json.dumps(dict(task='mirror',directory=str(tmp_path))),node_name='MirrorTask')
     assert action.run(context,args)

@@ -63,3 +63,23 @@ Local development installations now have an explicit private `config/user-data-r
 Six main task entries now route through a shared native task action and controller lease. Mirror delegates to the same runner after global settings apply; diagnostic team/theme/deployment/card entries are no longer main tasks. Luxcavation team selectors independently reference saved builds and preserve the active Mirror ledger. Android open-game uses a durable once-only native launch intent, independently confirmed foreground, and leaves an already running game intact. Windows validates the existing connected game. Actual OpenGameTask observed MuMu already foreground, with a retained STAR_GRACES screenshot and unchanged active ledger; cold launch is not yet accepted. Experience/thread stage and cost policies, mail/daily collection and conversion remain under development: those routes currently capture evidence and return failure without input. Their presence is not functional task completion. Native resource parsing/option overrides passed without a controller; the six-entry GUI render/restart is still pending.
 
 Actual installed native GUI now visibly lists the six task choices and Mirror saved/single/rotation modes. The QA card is disabled, mode restored to saved, and autorun remains off. Source rotation-count options now activate only positions1..N, instead of exposing twenty fields when N is five. Source native parsing and16focused checks passed; the new conditional display is awaiting installation/visual verification.
+
+Mirror starlight rules are task-local native MXU options. Keep-current is the
+safe default. Follow-team loads the saved build's Lix zero-based 0..9 choices
+and explicit starlight cap whenever that team runs; follow-task uses this task's
+choices/cap for all referenced teams. The Mirror section includes an explicit
+saved-team star editor, preserving that build's name, systems, deployment and
+other preferences. Applying an edit to the active run's team rejects before input.
+Old imported builds without a cap must receive one before follow-team can spend.
+
+Automatic selection uses the current saved team's priorities, or the task list
+when that build has none, and the smaller applicable task/team cap. It reads the
+current visible prices and available balance, freezes one affordable priority
+subset before purchase, and persists the scope and intents. It does not infer
+seasonal buff strength or use a static price table as purchase authority. Changed
+prices, unknown balance and unverified pending inputs stop; restarting does not
+re-budget or repeat them. This is a bounded heuristic, not a learned optimum.
+Only basic stars are supported: no Enhance or leftover conversion. The task
+budget defaults to zero. Source/native isolated persistence checks are complete;
+GUI rendering, installed editor restart and real automatic purchases remain
+unverified. The existing desktop and v0.1.1 draft do not contain this change.

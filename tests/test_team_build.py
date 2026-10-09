@@ -112,7 +112,7 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
     assert all(nodes[f'Global_global_team_{i}']['attach']['global_build']['edit'] is False
                for i in range(1,21))
     assert 'team_keywords' not in tasks['mirror_loop']['option']
-    assert tasks['mirror_loop']['option']==['mirror_team_mode']
+    assert tasks['mirror_loop']['option']==['mirror_team_mode','mirror_star_source']
     assert 'TeamBuildSave' not in tasks['mirror_loop'].get('pipeline_override', {})
 
 

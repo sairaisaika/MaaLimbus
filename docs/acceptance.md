@@ -1048,3 +1048,12 @@ from a task returning success, a manifest loading, or a process staying alive.
 - User explicitly requested continuing the current claim; scoped6modules authorized, existing weekly1 left unchanged.172241 Claim once,172338 confirmation once; full fresh exact weekly question before input. Acquired250 receipt172353 and stable PassLevel81 receipt172543 are actual frames, not offered values. Receipt andpass acknowledgements each once, then actual172705 HOME with Window/Sinners/Drive/Inventory independent labels.
 - verify_final_reward_receipt.py checks PNGhashes/scope and all four actual touches/randombounds, reconciles completed transaction and saved queue exactly once. build/final-reward-real-verification-20261008.json: payout_receivedTrue, home_returnTrue, nextsavedteam7/rotation5. Actual next team selection and reentry remain unverified. Beforemodule/starlight balances hidden; earlier841 OCR was corrected explicitly because Net Amount is computed/partially obscured, not a wallet. Modulebalance delta remains unverified rather than invented.
 - TaskPreferences model now references global builds for single/rotating Mirror teams and separate default experience/thread teams. Seven tests prove five-team cycling, live profile reloading after editing one build, invalid references preserve old settings. New six-task native UI and MXU global panels remain pending; this model is not UI acceptance. User withdrew Codex quota checks; continue development without checking account quotas.
+
+### Mirror starlight settings acceptance
+Source supports task-local native follow-team/follow-task/auto rules, explicit
+per-build editing and caps, with real native resource patch/isolated persistence
+verification in build/mirror-starlight-native-verification.json (no controller).
+Acceptance still requires installed GUI render/restart, two actual rotated teams
+resolving distinct rules, current visible prices/balance, once-only purchases and
+successor balances within caps. Neither module tests nor native replay prove
+those live purchases; the current desktop and draft package precede this feature.

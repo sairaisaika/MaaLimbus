@@ -11,6 +11,7 @@ from verify_mxu_deployment_replay import resolve_choices
 
 def task(mode):
     options={'mirror_team_mode':{'type':'select','caseName':mode},
+             'mirror_star_source':{'type':'select','caseName':'saved'},
              'mirror_single_team':{'type':'select','caseName':'7'},
              'mirror_queue_count':{'type':'select','caseName':'5'}}
     options.update({f'mirror_queue_{i}':{'type':'select','caseName':str(i)} for i in range(1,21)})
