@@ -20,8 +20,12 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   page. verify_team_seven_initial_receipts.py checks scope/threeinputtargets/
   touchdelays/PNGhashes/twofullreceipts before completing already-sent ack, no
   repeat. build/team-seven-initial-receipts-real-verification.json. SearchRefuse
-  once→GIFT_SEARCH_FORGO, Confirmonce→transitionUNKNOWN. Do not repeat either;
-  read actual fresh successor next. No paidSearch/module/refill/conversion input.
+  once→GIFT_SEARCH_FORGO, Confirmonce→transitionUNKNOWN; fresh zero-input report
+  team-seven-after-search-current-readonly independently shows THEME_PACKS.
+  Do not repeat either. No paidSearch/module/refill/conversion input.
+  Bounded120step runner PID30736/parent24284/C:/Python313/python.exe started from
+  that page; report build/team-seven-after-search-progress-live.json, tool71745.
+  Check its actual terminal/result before any next controller; alive is not clear.
   Final750Python74.91s/1symlink skip passed,7initialfocused passed. Fullscript
   tests prove no gameplay completion; current floors[] unchanged.
 - Mirror preference editor now owns per-saved-team additive gift allow/block and
