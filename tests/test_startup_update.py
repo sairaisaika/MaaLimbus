@@ -28,6 +28,16 @@ def app_fixture(tmp_path):
     return app
 
 
+def test_manual_check_serializes_iso_retry_time_for_native_ui(tmp_path):
+    from maalimbus.startup_update import check_project_update
+    class Client:
+        def __init__(self,path):pass
+        def check(self):return dict(status='rate_limited',requested=False,retry_at='2026-10-09T05:21:18+00:00')
+    result=check_project_update(app_fixture(tmp_path),client_factory=Client)
+    assert result['retry_at']==1791523278
+    assert result['status']=='rate_limited' and result['installed'] is False
+
+
 def client(status='available', tag='v0.2.0'):
     class Client:
         def __init__(self, path): pass

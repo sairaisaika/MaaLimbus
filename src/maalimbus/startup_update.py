@@ -1,6 +1,7 @@
 """Software startup update check; no game controller or game input."""
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 from .releases import ReleaseClient
@@ -19,8 +20,10 @@ def check_project_update(app, *, client_factory=ReleaseClient):
     status=check['status']
     if status in ('available','cached'):
         status='update_available' if newer else 'current' if valid else 'unsupported_release_tag'
+    retry_at=check.get('retry_at')
+    if isinstance(retry_at,str):retry_at=datetime.fromisoformat(retry_at).timestamp()
     result=dict(current_version=current,available_version=tag or None,status=status,
-        retry_at=check.get('retry_at'),requested=check['requested'],newer_available=newer,
+        retry_at=retry_at,requested=check['requested'],newer_available=newer,
         installed=False,downloaded=False,game_input_sent=False)
     write_json(app/'config/user-update-check-result.json',result)
     return result
