@@ -1119,3 +1119,13 @@ duplicate evidence rejection before notice output.
 Evidence: build/native-notices-builder-real-verification.json. Source integration
 is not yet candidate integration, and complete dependency corresponding sources,
 static dependencies and artwork rights remain separate unfinished requirements.
+
+## October9 candidate with native notices
+
+Clean172a0d7 built the actual v0.1.2 archive with827 manifest entries. All86
+MaaDeps copyright files and five DLL identities match build-info byte hashes
+in the exported ZIP; packaged Agent self-test and Runner help passed.
+Evidence: build/native-notices-candidate-real-verification.json. The17 Python
+notices remain included. Full806 tests passed with one Windows permission skip.
+The candidate is unpublished and does not prove native GUI restart, public
+GitHub delivery or complete transitive source/static dependency/artwork audit.

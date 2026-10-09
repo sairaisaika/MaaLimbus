@@ -10,6 +10,17 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October9 clean172a0d7 candidate rebuilt with native notice gate: terminalexit0,
+  Agent-root self-test and Runnerhelp passed. Full806Python65.20s/1Windows symlink
+  permission skip and24focused passed before building. Actual ZIP827manifestfiles,
+  233443237bytes/SHA85646f5efbaae3d1f0d98f3a40aacece587c1968ad00e2a4903851c8fe5008ac,
+  build/windows-package-7fa769def4f242fbac564fa5fe37a00b/release-assets.
+  Exact archive production offline stage and startupv0.1.1→v0.1.2 install/
+  private sentinel/Agent-root self-test/cachecurrent check also passed.
+  Actual ZIP86 MaaDeps notice hashes andfiveDLL hashes match build-info;
+  build/native-notices-candidate-real-verification.json.17Python notices retained.
+  Not published, no desktop replacement/GUI/game input. Complete transitive
+  source/static dependencies/artwork and native GUI/restart remain open.
 - October9 MaaDeps notice retention is now a Windows build gate. Fixed runtime
   and development archive hashes, five actual DLL byte identities and unique
   nonempty required component copyright files validate before output. All86
