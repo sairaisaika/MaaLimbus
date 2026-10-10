@@ -10,6 +10,30 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 same native GUI PID58496/window2165444 was switched to English and
+  Japanese, capturing six task labels, Mirror options and Japanese independent
+  software-update/device settings. UI language restored to zh-CN, tasks disabled,
+  autorunFalse, no connection/Start/game action. tools/verify_native_locale_evidence.py
+  audits native executable/window identities, labels, screenshot digests and four
+  unchanged private game-state hashes: build/native-locale-real-verification.json.
+  This is UI localization evidence, not Japanese game recognition/execution.
+  Captures are original JPEG bytes; prior mistaken .png extensions were corrected
+  to .jpg without changing bytes and the earlier settings hash manifest regenerated.
+- Fresh actual read-only ADB foreground check now shows FGO on the saved MuMu
+  address, not Limbus: build/main-task-foreground-readonly-verification.json.
+  No controller, start-app or game input; FGO left alone. Team7 scope4734 retained
+  Hard5/victoryTrue/rewardFalse evidence and budgets remain unchanged, but the old
+  reward dialog was not freshly reverified. Do not treat the old offer as current
+  screen evidence, launch/restart game tasks or replay prior inputs.
+- MainTask now persists a bounded zero-input agent-result for expected controller
+  identity rejection and busy lease instead of poisoning Agent callback state.
+  Wrong identity still stops before observer, settings/budget or game input; a
+  later explicit start can recheck the identity. All six refusal routes, busy
+  lease and reuse checks passed.32focused and862fullPython66.52s/1Windows symlink
+  permission skip passed, log build/main-task-preflight-refusal-full-tests.txt;
+  actual native six-task resource parsing passed without device input. Source-only
+  fix, desktop remains2a684f6/v0.1.2 and active GUI is not replaced. Stage/farming,
+  mail/daily/stamina/shop/skill-order/NN/game JP/public updater/Release remain open.
 - October10 actual installed native GUI v0.1.2 rendered in PID14156/window262340
   after the initial standard UAC wait. Computer Use captured six main tasks,
   expanded Mirror settings, independent software-update/device sections and the
@@ -18,11 +42,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   Actual native GitHub check returned unsupported_release_tag for maalimbus.
   No Start/connect/game input; tasks remain disabled/autorunFalse and four actual
   game-state hashes unchanged. Evidence: build/native-settings-real-verification.json
-  and build/native-settings-20261010/*.png. Normal close exited PID14156; one normal
+  and build/native-settings-20261010/*.jpg. Normal close exited PID14156; one normal
   relaunch created PID58496, initially waiting for standard consent60280. The
   same process then exposed window2165444; actual reopened Team2 editor renders
   all twelve saved positions matching the prior order, independently captured in
-  team2-after-restart.json/PNG. Native Team2 visual persistence after normal
+  team2-after-restart.json/JPEG. Native Team2 visual persistence after normal
   restart is verified. Keep the app; do not relaunch/replace active processes. Desktop
   remains2a684f6/v0.1.2; unpaid current5 budget remains unanswered and unchanged.
 - October10 Lux reconciliation now checks fresh successor PNG identity before

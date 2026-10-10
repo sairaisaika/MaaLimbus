@@ -104,3 +104,40 @@ def test_reward_entry_dispatches_bounded_executor_and_preserves_failure(tmp_path
     args=SimpleNamespace(custom_action_param=json.dumps(dict(task='rewards',directory=str(tmp_path))),node_name='RewardsTask')
     assert not action.run(context,args) and seen==[tmp_path]
     assert not read_json(tmp_path/'agent-result.json')['input_sent']
+
+
+@pytest.mark.parametrize('task',['open_game','experience','thread','rewards','stamina','mirror'])
+def test_expected_identity_refusal_has_result_and_does_not_poison_agent(tmp_path,monkeypatch,task):
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:False)
+    owner=SimpleNamespace(callback_failure=None,journal=None)
+    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace(info={'type':'win32'})))
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task=task,directory=str(tmp_path))),node_name='MainTask')
+    assert not recognition.MainTaskAction(owner).run(context,args)
+    result=read_json(tmp_path/'agent-result.json')
+    assert result['task']==task and not result['input_sent'] and not result['verified_clear']
+    assert 'identity failed' in result['reason'] and owner.callback_failure is None
+    assert not list(tmp_path.glob('user-*.json'))
+
+
+def test_busy_controller_has_durable_zero_input_result(tmp_path,monkeypatch):
+    def busy(*args):raise PermissionError('canonical controller owned elsewhere')
+    monkeypatch.setattr(recognition.ControllerLease,'acquire',busy)
+    owner=SimpleNamespace(callback_failure=None,journal=None)
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task='rewards',directory=str(tmp_path))),node_name='RewardsTask')
+    assert not recognition.MainTaskAction(owner).run(SimpleNamespace(),args)
+    result=read_json(tmp_path/'agent-result.json')
+    assert result['reason']=='another_controller_owns_game' and not result['input_sent']
+    assert owner.callback_failure is None
+
+
+def test_manual_next_start_can_recheck_identity_after_expected_refusal(tmp_path,monkeypatch):
+    owner=SimpleNamespace(callback_failure=None,journal=None)
+    action=recognition.MainTaskAction(owner)
+    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace(info={'type':'win32'})))
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task='open_game',directory=str(tmp_path))),node_name='OpenGameTask')
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:False)
+    assert not action.run(context,args)
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:True)
+    assert action.run(context,args)
+    result=read_json(tmp_path/'agent-result.json')
+    assert result['passed'] and not result['input_sent'] and owner.callback_failure is None

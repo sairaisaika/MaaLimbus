@@ -1,3 +1,19 @@
+## October10 native locale and refusal verification
+
+Actual native English/Japanese task labels, Mirror options and Japanese update/
+device sections are retained with executable/window identity and original JPEG
+hashes in build/native-locale-real-verification.json. Chinese UI restored, tasks
+disabled/autorunFalse and four real game-state hashes unchanged. This does not
+prove Japanese game recognition or GUI task execution. Fresh read-only MuMu
+foreground is FGO, so current Limbus reward-screen identity is unverified; no game
+launch or input occurred. Evidence: main-task-foreground-readonly-verification.json.
+
+862fullPython tests passed in66.52s/1Windows permission skip, including all six
+expected identity refusals, busy lease and later explicit identity recheck.
+Expected refusals now persist a zero-input task result without poisoning the
+Agent callback state. Native six-task Resource parsing passed without input.
+These source changes are not installed in the active GUI.
+
 ## October10 Lux successor reconciliation checks
 
 Actual installed v0.1.2 native GUI renders the six main tasks, expanded Mirror
@@ -5,7 +21,7 @@ settings, independent update/device sections and imported Team2 twelve-card
 order. Actual click remove/re-add and Save succeeded; persisted config retains
 the same order with HongLu12. Native manual check returned the unsupported
 maalimbus release-tag status. Evidence: build/native-settings-real-verification.json
-and native-settings-20261010 screenshot/hash manifest. No task/game input.
+and native-settings-20261010 original JPEG/hash manifest. No task/game input.
 Normal relaunch exposed a distinct native window; reopened Team2 renders every
 saved position correctly, including HongLu12. Restart visual persistence is
 verified for that order. GUI task dispatch and public update installation remain

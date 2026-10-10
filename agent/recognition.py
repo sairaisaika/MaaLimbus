@@ -1430,19 +1430,27 @@ class MainTaskAction(CustomAction):
         directory=loop_directory(params)
         journal=Journal(directory)
         self.recognition.journal=journal
-        lease=ControllerLease.acquire(ROOT/'build/controller.lock')
+        def reject(reason):
+            result=dict(passed=False,reason=reason,task=task,input_sent=False,verified_clear=False)
+            journal.record('main_task_stopped',**result)
+            write_loop_result(directory,result)
+            return False
+        try:
+            lease=ControllerLease.acquire(ROOT/'build/controller.lock')
+        except OSError:
+            return reject('another_controller_owns_game')
         try:
             if task=='open_game':
                 if context.tasker.controller.info.get('type')=='win32':
                     if not InputPreflight(self.recognition).run(context,argv):
-                        raise ValueError('Actual Windows game identity failed')
+                        return reject('Actual Windows game identity failed')
                     result=dict(passed=True,reason='existing_windows_game_verified',input_sent=False)
                 else:
                     from maalimbus.game_launch import open_game
                     result=open_game(context.tasker.controller,data_directory(ROOT),journal)
             else:
                 if not InputPreflight(self.recognition).run(context,argv):
-                    raise ValueError('Actual controller identity failed')
+                    return reject('Actual controller identity failed')
                 if task=='mirror':
                     if not GlobalSettingsAction(self.recognition).run(context,argv):return False
                     from maalimbus.mirror_preferences import collect as collect_preferences, apply as apply_preferences

@@ -1,5 +1,14 @@
 # Native design and requirement ledger
 
+## Expected main-task refusal reports
+
+Controller identity rejection and an already-owned controller lease are bounded
+zero-input task failures. Persist agent-result and journal the refusal before
+returning False; do not mark these expected conditions as Agent callback faults.
+No observation, resource setting or gameplay branch follows failed identity.
+A later explicitly requested start rechecks identity normally. Unexpected callback
+exceptions retain the existing fatal handling rather than being silently retried.
+
 ## Lux successor evidence before reconciliation
 
 Pending HOME-to-Drive navigation validates the retained original JSON/PNG hashes,
