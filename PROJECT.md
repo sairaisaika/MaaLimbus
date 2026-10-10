@@ -19,9 +19,11 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   No Start/connect/game input; tasks remain disabled/autorunFalse and four actual
   game-state hashes unchanged. Evidence: build/native-settings-real-verification.json
   and build/native-settings-20261010/*.png. Normal close exited PID14156; one normal
-  relaunch created PID58496 and standard consent60280, with no targetable window
-  yet. Keep that process; do not relaunch/replace or bypass UAC. Restart visual
-  verification is still open; persisted bytes alone do not prove it. Desktop
+  relaunch created PID58496, initially waiting for standard consent60280. The
+  same process then exposed window2165444; actual reopened Team2 editor renders
+  all twelve saved positions matching the prior order, independently captured in
+  team2-after-restart.json/PNG. Native Team2 visual persistence after normal
+  restart is verified. Keep the app; do not relaunch/replace active processes. Desktop
   remains2a684f6/v0.1.2; unpaid current5 budget remains unanswered and unchanged.
 - October10 Lux reconciliation now checks fresh successor PNG identity before
   clearing pending and retains both successor digests. Missing/altered successor

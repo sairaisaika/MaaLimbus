@@ -6,8 +6,10 @@ order. Actual click remove/re-add and Save succeeded; persisted config retains
 the same order with HongLu12. Native manual check returned the unsupported
 maalimbus release-tag status. Evidence: build/native-settings-real-verification.json
 and native-settings-20261010 screenshot/hash manifest. No task/game input.
-Normal relaunch is currently pending standard UAC; restart visual persistence,
-GUI task dispatch and public update installation are not verified.
+Normal relaunch exposed a distinct native window; reopened Team2 renders every
+saved position correctly, including HongLu12. Restart visual persistence is
+verified for that order. GUI task dispatch and public update installation remain
+unverified; this does not prove live task execution or all settings editors.
 
 24 focused tests and854fullPython tests passed in64.83s with one Windows
 symlink permission skip. Altered/missing successor PNGs retain pending bytes
