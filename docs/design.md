@@ -403,3 +403,9 @@ captions at.9 and independent HOME controls. The task persists task/team/frame
 and expected successor before one bounded Maa touch. Unknown stage successors
 retain pending state and refuse re-entry; no stage, budget, farming or clear is
 inferred from a changed screen. Japanese live navigation remains unverified.
+
+Known HOME-to-Drive successors may continue in the same bounded Lux invocation.
+Each input persists separate PNG/JSON hashes and report identity before touch.
+Reconciliation checks original evidence bytes before clearing the known pending
+navigation; the fresh Drive page and next preflight must independently match.
+The invocation never exceeds two menu inputs and does not infer a Lux stage.

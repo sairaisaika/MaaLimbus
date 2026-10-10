@@ -188,3 +188,10 @@ intent may advance only on an independently proven Drive menu; the Lux stage pag
 has no accepted recognizer yet and remains stopped without repeated input.
 This is menu execution, not stage selection, farming, resource spending or a
 verified clear. Current Team7 is unpaid, so real navigation remains blocked.
+
+The Lux navigator now continues from a proven Drive successor within the same
+invocation, with at most two menu inputs. HOME and Drive inputs keep separate
+reports instead of overwriting each other. Before each input the transaction
+binds the native PNG and observation JSON byte hashes; pending reconciliation
+refuses missing or altered original evidence. Unknown stage pages still stop,
+and no stage/resource/farming action is enabled by this continuation.

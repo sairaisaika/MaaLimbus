@@ -1188,3 +1188,9 @@ build/lux-navigation-retained-verification.json. Actual Lux stage selection,
 farming, cost/receipt verification, JP navigation and GUI dispatch remain open.
 
 17focused and847fullPython62.22s/1Windows symlink permission skip passed. New Lux navigation remains source-only.
+
+Retained-frame simulated execution now verifies two menu inputs in one invocation,
+two distinct reports and durable PNG/JSON bindings. Changed pending proof refuses
+without transaction mutation or input. This simulation is not live Lux navigation.
+
+19focused and849fullPython62.09s/1Windows symlink permission skip passed.

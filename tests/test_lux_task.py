@@ -63,3 +63,41 @@ def test_malformed_ledger_blocks_navigation(tmp_path,ledger):
     write_json(tmp_path/'user-run-ledger.json',ledger)
     result=execute(tmp_path,tmp_path,SimpleNamespace(),SimpleNamespace(),SimpleNamespace(),'thread',SimpleNamespace(slot=2))
     assert not result['input_sent'] and 'Invalid Mirror' in result['reason']
+
+
+def test_known_drive_successor_continues_in_same_task_and_retains_both_reports(tmp_path,monkeypatch):
+    import maalimbus.lux_task as task
+    pages=[retained('0001'),retained('0002'),dict(scene='UNKNOWN')]
+    cursor=[0];attempts=[]
+    monkeypatch.setattr(task.runner,'observe',lambda *a:pages[cursor[0]])
+    monkeypatch.setattr(task.runner,'frame_file',lambda *a:ROOT/f'evidence/runtime/window-20261008-190502/frame-000{cursor[0]+1}.json')
+    def one_shot(device,observer,box,**kwargs):
+        current=pages[cursor[0]]
+        actual=kwargs['preflight'](current)
+        device.click(actual[0],actual[1])
+        cursor[0]+=1
+        return dict(settled=pages[cursor[0]],observation=current,passed=True)
+    monkeypatch.setattr(task.runner,'one_shot_click',one_shot)
+    result=execute(tmp_path,tmp_path,SimpleNamespace(),SimpleNamespace(click=lambda *a:attempts.append(a)),
+                   SimpleNamespace(record=lambda *a,**k:None),'experience',SimpleNamespace(slot=7))
+    assert not result['passed'] and result['input_sent'] and len(attempts)==2
+    state=read_json(tmp_path/'user-lux-task-transaction.json')
+    assert state['pending'] and state['expected_successor'] is None
+    assert not state['prior']['pending'] and state['prior']['expected_successor']=='DRIVE'
+    for scene in ('home','drive'):
+        assert read_json(tmp_path/f'lux-menu-{scene}-input.json')['clicks_sent']==1
+    assert len(state['before_png_sha256'])==64 and len(state['prior']['before_png_sha256'])==64
+
+
+def test_changed_pending_input_proof_does_not_reconcile_or_click(tmp_path,monkeypatch):
+    import maalimbus.lux_task as task
+    path=tmp_path/'user-lux-task-transaction.json'
+    write_json(path,dict(task='thread',team=2,pending=True,expected_successor='DRIVE',
+        before=str(ROOT/'evidence/runtime/window-20261008-190502/frame-0001.json'),
+        before_json_sha256='changed',before_png_sha256='changed'))
+    before=path.read_bytes()
+    monkeypatch.setattr(task.runner,'observe',lambda *a:retained('0002'))
+    result=execute(tmp_path,tmp_path,SimpleNamespace(),SimpleNamespace(),
+                   SimpleNamespace(record=lambda *a,**k:None),'thread',SimpleNamespace(slot=2))
+    assert not result['input_sent'] and 'binding differs' in result['reason']
+    assert path.read_bytes()==before
