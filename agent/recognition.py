@@ -1478,20 +1478,21 @@ class MainTaskAction(CustomAction):
                     result=execute(data_directory(ROOT),directory,observer,device,journal)
                     write_loop_result(directory,result)
                     return bool(result.get('passed'))
-                record=runner.observe(observer,time.monotonic()+30)
-                result=dict(passed=False,reason='task_page_policy_not_implemented',task=task,
-                            observation=record,input_sent=False,verified_clear=False)
                 if task in ('experience','thread'):
-                    preference=TaskPreferences(data_directory(ROOT))
-                    if not preference.path.exists():preference.set_lux_defaults()
-                    choice=context.get_node_data('Lux'+task.title()+'Team')['attach']['slot']
-                    if choice is not None:preference.set_lux_defaults(**{task+'_team':choice})
-                    build=preference.build_for(task)
-                    from maalimbus.lux_task import execute as execute_lux
+                    from maalimbus.lux_task import prepare, execute as execute_lux
+                    try:
+                        choice=context.get_node_data('Lux'+task.title()+'Team')['attach']['slot']
+                        build=prepare(data_directory(ROOT),task,choice)
+                    except (ValueError,KeyError,OSError) as error:
+                        return reject(str(error))
                     device=runner.local_device(context.tasker.controller,tasker=AgentTasker(context),
                                                deadline=time.monotonic()+45)
                     result=execute_lux(data_directory(ROOT),directory,observer,device,journal,task,build)
                     result['saved_team']=dict(slot=build.slot,keywords=sorted(build.keywords),deployment=list(build.deployment))
+                else:
+                    record=runner.observe(observer,time.monotonic()+30)
+                    result=dict(passed=False,reason='task_page_policy_not_implemented',task=task,
+                                observation=record,input_sent=False,verified_clear=False)
                 journal.record('main_task_stopped',**result)
             write_loop_result(directory,result)
             return bool(result.get('passed'))

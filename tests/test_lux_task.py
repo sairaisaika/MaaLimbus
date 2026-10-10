@@ -2,7 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from copy import deepcopy
 import pytest
-from maalimbus.lux_task import target,execute
+from maalimbus.lux_task import target,execute,prepare
 from maalimbus.storage import read_json,write_json
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -133,3 +133,59 @@ def test_invalid_lux_transaction_stops_before_observation(tmp_path,value):
         SimpleNamespace(record=lambda *a,**k:None),'thread',SimpleNamespace(slot=2))
     assert not result['input_sent'] and not result['passed']
     assert path.read_bytes()==before
+
+
+def preference_fixture(directory):
+    from maalimbus.storage import ProfileStore
+    from maalimbus.policies import Team
+    from maalimbus.task_preferences import TaskPreferences
+    ProfileStore(directory/'user-team-profiles.json').save([Team(2,frozenset({'Charge'})),Team(7,frozenset({'Poise'}))])
+    p=TaskPreferences(directory)
+    p.set_lux_defaults(experience_team=7,thread_team=2)
+    return p
+
+
+@pytest.mark.parametrize('existing',[False,True])
+def test_prepare_active_run_never_creates_or_rewrites_preferences(tmp_path,existing):
+    if existing:preference_fixture(tmp_path)
+    write_json(tmp_path/'user-run-ledger.json',dict(active={'id':'unpaid'}))
+    before={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+    with pytest.raises(ValueError,match='active_mirror'):prepare(tmp_path,'experience',2)
+    assert before=={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+
+
+@pytest.mark.parametrize('intent',[dict(task='experience',team=7,pending=True),
+    dict(task='thread',team=2,pending=True),[],None])
+def test_prepare_conflicting_or_invalid_intent_preserves_all_private_bytes(tmp_path,intent):
+    preference_fixture(tmp_path)
+    write_json(tmp_path/'user-lux-task-transaction.json',intent)
+    before={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+    with pytest.raises(ValueError):prepare(tmp_path,'experience',2)
+    assert before=={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+
+
+def test_prepare_same_pending_team_keeps_preferences_and_intent_without_save(tmp_path,monkeypatch):
+    from maalimbus.task_preferences import TaskPreferences
+    preference_fixture(tmp_path)
+    write_json(tmp_path/'user-lux-task-transaction.json',dict(task='experience',team=7,pending=True))
+    before={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+    monkeypatch.setattr(TaskPreferences,'save',lambda *a:pytest.fail('Idempotent launch must not save'))
+    assert prepare(tmp_path,'experience').slot==7
+    assert before=={p.name:p.read_bytes() for p in tmp_path.iterdir()}
+
+
+def test_prepare_idle_choice_preserves_other_task_queue_profiles_and_receipts(tmp_path):
+    p=preference_fixture(tmp_path)
+    write_json(tmp_path/'user-run-ledger.json',dict(active=None,team_slots=[2,7],receipts=[{'id':'old'}]))
+    before={n:(tmp_path/n).read_bytes() for n in ('user-run-ledger.json','user-team-profiles.json')}
+    old=p.load()
+    assert prepare(tmp_path,'experience',2).slot==2
+    expected=deepcopy(old);expected['luxcavation']['experience_team']=2
+    assert p.load()==expected
+    assert all((tmp_path/n).read_bytes()==b for n,b in before.items())
+
+
+@pytest.mark.parametrize('choice',[True,'2',0,21])
+def test_prepare_invalid_choice_does_not_materialize_preferences(tmp_path,choice):
+    with pytest.raises(ValueError,match='choice'):prepare(tmp_path,'thread',choice)
+    assert not list(tmp_path.iterdir())

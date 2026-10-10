@@ -53,6 +53,28 @@ def test_unimplemented_task_captures_evidence_and_returns_failure_without_input(
     assert not result['verified_clear'] and result['observation']['scene']=='STAR_GRACES'
 
 
+@pytest.mark.parametrize('task',['experience','thread'])
+@pytest.mark.parametrize('choice',[None,2])
+def test_active_lux_dispatch_stops_before_preference_write_observation_or_device(tmp_path,monkeypatch,task,choice):
+    from maalimbus.storage import write_json
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *a:True)
+    monkeypatch.setattr(recognition,'data_directory',lambda *a:tmp_path)
+    monkeypatch.setattr(recognition.runner,'observe',lambda *a:pytest.fail('Blocked task observed game'))
+    monkeypatch.setattr(recognition.runner,'local_device',lambda *a,**k:pytest.fail('Blocked task created device'))
+    path=tmp_path/'user-run-ledger.json'
+    write_json(path,dict(active={'id':'actual-unpaid-run'}))
+    before=path.read_bytes()
+    owner=SimpleNamespace(callback_failure=None,journal=None)
+    context=SimpleNamespace(tasker=SimpleNamespace(controller=SimpleNamespace()),
+        get_node_data=lambda name:dict(attach=dict(slot=choice)))
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task=task,directory=str(tmp_path))),node_name='LuxTask')
+    assert not recognition.MainTaskAction(owner).run(context,args)
+    result=read_json(tmp_path/'agent-result.json')
+    assert result['reason']=='active_mirror_run_blocks_lux_navigation' and not result['input_sent']
+    assert owner.callback_failure is None and path.read_bytes()==before
+    assert not (tmp_path/'user-task-settings.json').exists()
+
+
 def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_path,monkeypatch):
     monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:True)
     monkeypatch.setattr(recognition.GlobalSettingsAction,'run',lambda *args:True)

@@ -1,3 +1,16 @@
+## October10 Lux preparation exclusion
+
+Both native Lux MainTask routes refuse an active Mirror run before deriving or
+saving task defaults, observing pages or creating a device. Conflicting task/team
+intent and malformed transaction preserve private bytes; idempotent same-team
+preparation avoids a settings rewrite.57focused and878fullPython65.58s/1Windows
+symlink permission skip passed, build/lux-preparation-full-tests.txt. Actual
+current Team7 saved/explicit2 preparation refusal preserves four private hashes
+and absence of the two task/transaction files, with no controller/input:
+build/lux-navigation-retained-verification.json. Actual native six-task parsing
+also passed. These source changes are not installed; Lux stage/farm/receipt and
+GUI dispatch remain unverified. Fresh read-only foreground remains FGO, left alone.
+
 ## October10 native locale and refusal verification
 
 Actual native English/Japanese task labels, Mirror options and Japanese update/

@@ -1,5 +1,16 @@
 # Native design and requirement ledger
 
+## Lux preparation before settings writes
+
+The experience/thread MainTask checks Mirror exclusion before deriving or saving
+task defaults, capturing a page or creating an input device. It resolves the
+chosen saved build and checks any existing Lux task/team intent before saving.
+Conflicting or malformed intent preserves both settings and transaction bytes.
+An unchanged choice does not rewrite settings. The executor independently checks
+Mirror exclusion again; this preparation does not resolve pending navigation,
+select stages or authorize resource consumption. Expected preparation refusals
+persist zero-input results without latching Agent callback failure.
+
 ## Expected main-task refusal reports
 
 Controller identity rejection and an already-owned controller lease are bounded

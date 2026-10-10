@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 Lux MainTask preparation now checks active Mirror exclusion before
+  creating task defaults, saving a team choice, observing pages or creating an
+  input device. Existing conflicting/malformed Lux intent also refuses before
+  settings writes; the same team choice leaves existing bytes intact.57focused
+  and878fullPython65.58s/1Windows symlink permission skip passed, log
+  build/lux-preparation-full-tests.txt. Actual retained menu/native six-task
+  parsing and current Team7 saved/explicit2 refusal for both Lux tasks passed
+  with four real private hashes unchanged and the two absent task/transaction
+  files still absent: build/lux-navigation-retained-verification.json. This is
+  source-only, desktop2a684f6/v0.1.2 and same GUI58496 remain untouched. Fresh
+  read-only MuMu check03:04UTC still shows FGO; no game launch/input or controller.
+  Team7 Hard5/unpaid and unanswered budget stay unchanged. Stage/farm/receipts,
+  mail/daily/stamina/shop/skill-order/JP/NN/public update and Release remain open.
 - October10 same native GUI PID58496/window2165444 was switched to English and
   Japanese, capturing six task labels, Mirror options and Japanese independent
   software-update/device settings. UI language restored to zh-CN, tasks disabled,

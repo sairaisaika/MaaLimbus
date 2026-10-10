@@ -5,6 +5,41 @@ import hashlib
 from . import runner
 from .storage import read_json,write_json
 from .vision import Text,find
+from .task_preferences import TaskPreferences
+
+
+def check_run(config):
+    ledger=Path(config)/'user-run-ledger.json'
+    if ledger.exists():
+        data=read_json(ledger)
+        if not isinstance(data,dict) or 'active' not in data:
+            raise ValueError('Invalid Mirror run ledger blocks Lux navigation')
+        if data['active'] is not None:
+            raise ValueError('active_mirror_run_blocks_lux_navigation')
+
+
+def prepare(config,task,choice=None):
+    """Validate exclusion and existing intent before saving a selected build."""
+    if task not in ('experience','thread'):raise ValueError('Unknown Lux task')
+    config=Path(config)
+    check_run(config)
+    if choice is not None and (type(choice) is not int or not 1<=choice<=20):
+        raise ValueError('Invalid Lux saved-team choice')
+    preferences=TaskPreferences(config)
+    value=preferences.lux_defaults()
+    slot=value['luxcavation'][task+'_team'] if choice is None else choice
+    value['luxcavation'][task+'_team']=slot
+    preferences.validate(value)
+    path=config/'user-lux-task-transaction.json'
+    state=read_json(path) if path.exists() else {}
+    if not isinstance(state,dict):
+        raise ValueError('Invalid Lux navigation transaction; preserve state')
+    if state and (state.get('task')!=task or type(state.get('team')) is not int or state['team']!=slot):
+        raise ValueError('Existing Lux intent belongs to another task/team')
+    build=next(p for p in preferences.profiles.load() if p.slot==slot)
+    if not preferences.path.exists() or preferences.load()!=value:
+        preferences.save(value)
+    return build
 
 
 def target(record):
@@ -30,14 +65,8 @@ def target(record):
 def execute(config,directory,observer,device,journal,task,build):
     config,directory=Path(config),Path(directory)
     if task not in ('experience','thread'):raise ValueError('Unknown Lux task')
-    ledger=config/'user-run-ledger.json'
     try:
-        if ledger.exists():
-            data=read_json(ledger)
-            if not isinstance(data,dict) or 'active' not in data:
-                raise ValueError('Invalid Mirror run ledger blocks Lux navigation')
-            if data['active'] is not None:
-                return dict(passed=False,reason='active_mirror_run_blocks_lux_navigation',input_sent=False,task=task)
+        check_run(config)
     except (ValueError,OSError) as error:
         return dict(passed=False,reason=str(error),input_sent=False,task=task)
     path=config/'user-lux-task-transaction.json'
