@@ -41,9 +41,11 @@ def execute(config,directory,observer,device,journal,task,build):
     except (ValueError,OSError) as error:
         return dict(passed=False,reason=str(error),input_sent=False,task=task)
     path=config/'user-lux-task-transaction.json'
-    state=read_json(path) if path.exists() else {}
     sent=False;deadline=time.monotonic()+45
     try:
+        state=read_json(path) if path.exists() else {}
+        if not isinstance(state,dict):
+            raise ValueError('Invalid Lux navigation transaction; preserve state')
         if state and (state.get('task')!=task or state.get('team')!=build.slot):
             raise ValueError('Existing Lux intent belongs to another task/team')
         for _ in range(2):
@@ -57,8 +59,12 @@ def execute(config,directory,observer,device,journal,task,build):
                     raise ValueError('Previous Lux input frame binding differs')
                 target(record)  # A scene label alone does not reconcile the intent.
                 successor_frame=runner.frame_file(directory)
+                successor_png_hash=hashlib.sha256(successor_frame.with_suffix('.png').read_bytes()).hexdigest()
+                if successor_png_hash!=record.get('image_sha256'):
+                    raise ValueError('Fresh Lux successor frame hash differs')
                 state.update(pending=False,successor_proof=str(successor_frame),
-                    successor_json_sha256=hashlib.sha256(successor_frame.read_bytes()).hexdigest())
+                    successor_json_sha256=hashlib.sha256(successor_frame.read_bytes()).hexdigest(),
+                    successor_png_sha256=successor_png_hash)
                 write_json(path,state)
             box,successor=target(record)
             if state and not state.get('pending') and record.get('scene')!='DRIVE':

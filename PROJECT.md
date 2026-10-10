@@ -10,6 +10,29 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 actual installed native GUI v0.1.2 rendered in PID14156/window262340
+  after the initial standard UAC wait. Computer Use captured six main tasks,
+  expanded Mirror settings, independent software-update/device sections and the
+  imported Team2 twelve-card order. Actual HongLu remove/re-add restored position12;
+  Save displayed success and persisted the same complete order/name/Charge+Tremor.
+  Actual native GitHub check returned unsupported_release_tag for maalimbus.
+  No Start/connect/game input; tasks remain disabled/autorunFalse and four actual
+  game-state hashes unchanged. Evidence: build/native-settings-real-verification.json
+  and build/native-settings-20261010/*.png. Normal close exited PID14156; one normal
+  relaunch created PID58496 and standard consent60280, with no targetable window
+  yet. Keep that process; do not relaunch/replace or bypass UAC. Restart visual
+  verification is still open; persisted bytes alone do not prove it. Desktop
+  remains2a684f6/v0.1.2; unpaid current5 budget remains unanswered and unchanged.
+- October10 Lux reconciliation now checks fresh successor PNG identity before
+  clearing pending and retains both successor digests. Missing/altered successor
+  image preserves exact pending bytes without input. Invalid transaction JSON or
+  non-object state stops through the executor result path before observing.
+  24focused and854fullPython64.83s/1Windows symlink permission skip passed;
+  actual retained menu/current-Mirror exclusion and native six-task parsing passed
+  with no controller/game input. Log build/lux-successor-proof-full-tests.txt.
+  Source fix is not installed; active GUI/UAC instance is not replaced. Lux
+  stage/farming/receipt, remaining tasks, JP/NN/shop/skill-order/public updater and
+  Release requirements remain open. FGO untouched and deferred.
 - October10 clean2a684f6 local app update completed: actual freeze
   build/local-app-20261010013503 terminalexit0, distv0.1.2/modifiedMXU proof valid.
   Stage and actual installed Agent-root self-tests passed;18private file hashes

@@ -101,3 +101,35 @@ def test_changed_pending_input_proof_does_not_reconcile_or_click(tmp_path,monkey
                    SimpleNamespace(record=lambda *a,**k:None),'thread',SimpleNamespace(slot=2))
     assert not result['input_sent'] and 'binding differs' in result['reason']
     assert path.read_bytes()==before
+
+
+@pytest.mark.parametrize('fault',['changed','missing'])
+def test_successor_png_failure_preserves_pending_bytes(tmp_path,monkeypatch,fault):
+    import hashlib
+    import maalimbus.lux_task as task
+    original=ROOT/'evidence/runtime/window-20261008-190502/frame-0001.json'
+    successor=tmp_path/'frame-0002.json'
+    write_json(successor,retained('0002'))
+    if fault=='changed':successor.with_suffix('.png').write_bytes(b'altered image')
+    path=tmp_path/'user-lux-task-transaction.json'
+    write_json(path,dict(task='thread',team=2,pending=True,expected_successor='DRIVE',
+        before=str(original),before_json_sha256=hashlib.sha256(original.read_bytes()).hexdigest(),
+        before_png_sha256=hashlib.sha256(original.with_suffix('.png').read_bytes()).hexdigest()))
+    before=path.read_bytes()
+    monkeypatch.setattr(task.runner,'observe',lambda *a:retained('0002'))
+    monkeypatch.setattr(task.runner,'frame_file',lambda *a:successor)
+    result=execute(tmp_path,tmp_path,SimpleNamespace(),SimpleNamespace(),
+        SimpleNamespace(record=lambda *a,**k:None),'thread',SimpleNamespace(slot=2))
+    assert not result['input_sent'] and not result['passed']
+    assert path.read_bytes()==before
+
+
+@pytest.mark.parametrize('value',['{broken', '[]', 'null'])
+def test_invalid_lux_transaction_stops_before_observation(tmp_path,value):
+    path=tmp_path/'user-lux-task-transaction.json'
+    path.write_text(value,encoding='utf-8')
+    before=path.read_bytes()
+    result=execute(tmp_path,tmp_path,SimpleNamespace(),SimpleNamespace(),
+        SimpleNamespace(record=lambda *a,**k:None),'thread',SimpleNamespace(slot=2))
+    assert not result['input_sent'] and not result['passed']
+    assert path.read_bytes()==before

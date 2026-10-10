@@ -1,5 +1,14 @@
 # Native design and requirement ledger
 
+## Lux successor evidence before reconciliation
+
+Pending HOME-to-Drive navigation validates the retained original JSON/PNG hashes,
+the fresh independent Drive controls and the fresh successor PNG hash before
+writing pending=False. The successor retains both JSON and PNG digests. Missing
+or altered successor images preserve the original transaction bytes and stop
+without another input. Malformed/non-object transaction files also produce a
+bounded zero-input failure instead of escaping the executor's result handling.
+
 ## Generic final receipt audit
 
 Read-only receipt audit binds each scoped claim/confirm/receipt/pass input report

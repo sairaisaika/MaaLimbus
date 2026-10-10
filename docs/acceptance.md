@@ -1,3 +1,21 @@
+## October10 Lux successor reconciliation checks
+
+Actual installed v0.1.2 native GUI renders the six main tasks, expanded Mirror
+settings, independent update/device sections and imported Team2 twelve-card
+order. Actual click remove/re-add and Save succeeded; persisted config retains
+the same order with HongLu12. Native manual check returned the unsupported
+maalimbus release-tag status. Evidence: build/native-settings-real-verification.json
+and native-settings-20261010 screenshot/hash manifest. No task/game input.
+Normal relaunch is currently pending standard UAC; restart visual persistence,
+GUI task dispatch and public update installation are not verified.
+
+24 focused tests and854fullPython tests passed in64.83s with one Windows
+symlink permission skip. Altered/missing successor PNGs retain pending bytes
+and send no input; malformed/non-object transaction files stop before observation.
+Actual native six-task resources and retained menu/current active Mirror exclusion
+passed without controller inputs. This source change is not yet installed and
+does not prove live Lux stage selection, farming, spending or receipts.
+
 ## October8 versioned update candidate
 
 Candidate5151009 has719manifest files, frozen Agent/Runner/launcher and pinned project/MXU/Maa source archives.703Python passed56.42s with one Windows symlink skip. Versioned232181675-byte ZIP andSHA256SUMS uploaded to a v0.1.1 draft; GitHub asset digest agrees with local SHA887f594e1824f91f0524e88cdf3cd3058fed0d00e309ab5d227d977f44afaadc. It is not a published stable update.
