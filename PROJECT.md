@@ -10,6 +10,27 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 clean c12960b was rebuilt as an isolated v0.1.2 Windows candidate:
+  actual freeze/Agent-root self-test/Runner help terminalexit0, latest package
+  build/windows-package-f76fd5f7fa2a40bc9a9299c8b324327e/release-assets,
+  ZIP233535948bytes/827files/SHA9b968cb94eaf119a5903571f99dfd49ad7c17679a66aa72f621a3a597aaf1c11.
+  Actual ZIP86native/17Python notices and5DLL digests match build provenance;
+  eight exact public source files include Rewards/budget/receipt and latest Lux/
+  MainTask preparation. Actual packaged native six routes and saved/0/5/6 budget
+  nodes parse; frozen Analysis includes Rewards/Lux and no FGO module:
+  build/latest-reward-lux-candidate-real-verification.json. Production offline
+  stage and isolated same-version install using the older172a0d7 public package
+  baseline passed installed Agent self-test, sentinel preservation and actual
+  post-swap injected-failure rollback: latest-reward-lux-install-real-verification.json.
+  Initial attempt to copy the running desktop failed on a locked WebView cache
+  before installation. Its incomplete temporary copy is marked failed and retained
+  after automatic approval rejected cleanup; not used as evidence. Verification
+  instead copied only the hash-bound public package manifest, excluding runtime
+  cache and private state. Desktop2a684f6/v0.1.2/private hashes and same GUI58496
+  remain unchanged; no game input/Release/public download/newer-version GUI update.
+  Full corresponding-source/static-dependency/artwork distribution audit and all
+  unfinished tasks/JP/NN/shop/skill-order remain open.878Python/1permission skip
+  previously passed; this turn changes only records, not runtime implementation.
 - October10 Lux MainTask preparation now checks active Mirror exclusion before
   creating task defaults, saving a team choice, observing pages or creating an
   input device. Existing conflicting/malformed Lux intent also refuses before

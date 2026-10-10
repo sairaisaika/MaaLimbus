@@ -1,3 +1,20 @@
+## October10 latest Rewards/Lux candidate
+
+Clean c12960b actual Windows candidate contains the latest bounded Rewards/budget
+and Lux preparation/source fixes. Its827-file233535948-byte v0.1.2 ZIP hash is
+9b968cb94eaf119a5903571f99dfd49ad7c17679a66aa72f621a3a597aaf1c11.
+86native notices,17Python notices,five bound DLLs,eight exact project sources,
+actual packaged native routes/budget choices and frozen module inclusion passed:
+build/latest-reward-lux-candidate-real-verification.json. Offline production
+staging and actual isolated install/Agent root/sentinel retention followed by
+injected post-swap failure rollback passed:
+build/latest-reward-lux-install-real-verification.json. Both baseline and result
+are v0.1.2; this does not prove newer-version startup or public delivery. No GUI
+restart, desktop replacement or game input. Initial active-desktop copy failed
+on a WebView cache lock before installation; its marked failed directory is
+retained and excluded from acceptance. The successful baseline uses hash-bound
+public package files. Distribution source/static/artwork audit remains open.
+
 ## October10 Lux preparation exclusion
 
 Both native Lux MainTask routes refuse an active Mirror run before deriving or
