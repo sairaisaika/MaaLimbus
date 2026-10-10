@@ -1479,6 +1479,10 @@ class MainTaskAction(CustomAction):
                     choice=context.get_node_data('Lux'+task.title()+'Team')['attach']['slot']
                     if choice is not None:preference.set_lux_defaults(**{task+'_team':choice})
                     build=preference.build_for(task)
+                    from maalimbus.lux_task import execute as execute_lux
+                    device=runner.local_device(context.tasker.controller,tasker=AgentTasker(context),
+                                               deadline=time.monotonic()+45)
+                    result=execute_lux(data_directory(ROOT),directory,observer,device,journal,task,build)
                     result['saved_team']=dict(slot=build.slot,keywords=sorted(build.keywords),deployment=list(build.deployment))
                 journal.record('main_task_stopped',**result)
             write_loop_result(directory,result)

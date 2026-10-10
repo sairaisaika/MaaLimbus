@@ -394,3 +394,12 @@ no-read/no-write operation. Explicit0/5/6 caps validate the current verified unp
 five-floor scope and reject unresolved or already-sent claim transactions before
 an atomic policy update. Only the module cap/scope/pending fields change; no
 weekly toggle, refill, conversion, transaction or ledger is modified by this edit.
+
+
+### Lux task navigation exclusion and intent
+Experience/thread tasks must not leave or replace an active Mirror run. Invalid
+ledgers also refuse. Menu targets require1920x1080, unique exact native English
+captions at.9 and independent HOME controls. The task persists task/team/frame
+and expected successor before one bounded Maa touch. Unknown stage successors
+retain pending state and refuse re-entry; no stage, budget, farming or clear is
+inferred from a changed screen. Japanese live navigation remains unverified.

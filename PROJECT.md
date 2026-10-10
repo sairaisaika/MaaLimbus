@@ -10,6 +10,21 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 experience/thread native MainTask now dispatches bounded Lux menu
+  navigation using its saved team. Active Mirror runs and malformed ledgers block
+  before navigation. Actual retained1920x1080 HOME/Drive frames identify unique
+  Drive/Luxcavation controls at.9; task/team/frame intent is durable before one
+  random bounded touch. Pending HOME-to-Drive reconciles only on a proven Drive
+  menu; unknown Lux stage successor remains pending and refuses repeated input.
+ 17focused and847fullPython62.22s/1Windows symlink permission skip passed; actual
+  native six-task resources and retained PNGhash/menu plans/current Team7 exclusion
+  passed, four actual private hashes unchanged, zero controller/device input:
+  build/lux-navigation-retained-verification.json. Stage selection/farming/cost/
+  receipt/JP/GUI dispatch remain unfinished. This addition is source-only; desktop
+  stillclean b3cb668/v0.1.2 and prior install evidence remains accurate. No GUI,
+  game controller, resource consumption, new payout, build or Release this turn.
+  Current Team7 unpaid5weekly0 and unanswered budget unchanged; no old input replay.
+  Full scope remains open and FGO untouched/deferred.
 - October9 safe local app update completed: build/local-app-20261009210545
   terminalexit0, dist clean sourceb3cb668/v0.1.2 with valid modifiedMXU proof.
   Stage and actual installed Agent-root self-tests passed;18private files retain

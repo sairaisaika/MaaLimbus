@@ -176,3 +176,15 @@ This task setting is separate from software update and device connection setting
 It does not itself press Claim or authorize a paid Gift Search. Native resource
 parsing and isolated persistence are verified; installed GUI interaction remains
 an independent acceptance requirement.
+
+
+## Luxcavation menu execution
+Experience/thread entries now dispatch bounded menu navigation for their saved
+team. An unfinished Mirror run or invalid ledger blocks navigation before input.
+The retained native HOME controls and unique Luxcavation caption identify Drive
+and Lux menu buttons. Each one-shot navigation records its task/team/frame intent
+before input; device interruption retains pending state. A pending HOME-to-Drive
+intent may advance only on an independently proven Drive menu; the Lux stage page
+has no accepted recognizer yet and remains stopped without repeated input.
+This is menu execution, not stage selection, farming, resource spending or a
+verified clear. Current Team7 is unpaid, so real navigation remains blocked.

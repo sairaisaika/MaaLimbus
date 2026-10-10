@@ -1176,3 +1176,15 @@ and no FGO modules; actual installed native Resource parses all four budget
 choices without private writes. Evidence: build/reward-task-budget-installed-
 verification.json and build/installed-reward-task-budget-native-verification.json.
 No GUI launch or game input occurred. Native GUI interaction/restart remains open.
+
+
+## Luxcavation menu execution verification
+Two retained actual HOME/Drive PNG hashes bind the navigation button plans.
+Current Team7 unpaid-run exclusion for both experience/thread tasks sends no input
+and preserves all four private configuration hashes. Missing/low/duplicate/menu
+captions, invalid ledgers and unresolved navigation refuse; device interruption
+is tested after durable intent persistence. Evidence:
+build/lux-navigation-retained-verification.json. Actual Lux stage selection,
+farming, cost/receipt verification, JP navigation and GUI dispatch remain open.
+
+17focused and847fullPython62.22s/1Windows symlink permission skip passed. New Lux navigation remains source-only.
