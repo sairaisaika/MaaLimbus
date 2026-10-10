@@ -1194,3 +1194,13 @@ two distinct reports and durable PNG/JSON bindings. Changed pending proof refuse
 without transaction mutation or input. This simulation is not live Lux navigation.
 
 19focused and849fullPython62.09s/1Windows symlink permission skip passed.
+
+
+Clean2a684f6 was safely installed in the v0.1.2 development app after an actual
+successful freeze, with18private hashes preserved and installed Agent-root
+self-test passed. Installed PI/pipeline match source; frozen Analysis includes
+Lux execution and no FGO module, actual native routes/default budget parse.
+Evidence: build/lux-navigation-installed-verification.json and
+build/installed-lux-navigation-native-verification.json. Native GUI interaction,
+restart, actual Lux menu navigation/stage/farming and public updates remain open.
+No game/controller input, private budget change, payout or Release occurred.

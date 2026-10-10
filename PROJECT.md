@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October10 clean2a684f6 local app update completed: actual freeze
+  build/local-app-20261010013503 terminalexit0, distv0.1.2/modifiedMXU proof valid.
+  Stage and actual installed Agent-root self-tests passed;18private file hashes
+  match backup-5034a5d0558b4df2a37e971979766260. Actual installed PI/pipeline equal
+  source, frozen Analysis includes maalimbus.lux_task and no FGO modules. Installed
+  native experience/thread/rewards routes and default saved reward-budget node
+  passed with unchanged private state: build/lux-navigation-installed-verification.json
+  and build/installed-lux-navigation-native-verification.json;
+  log build/local-app-lux-navigation-install.txt. No GUI/controller/game input,
+  new payout or Release. Four actual source private hashes still match the earlier
+  budget proof. Desktop now includes Lux menu execution but not proven stage/farm/
+  GUI interaction/restart. Team7 unpaid5weekly0 budget remains unanswered. Candidate
+  stays172a0d7, and all remaining scope stays open; FGO untouched/deferred.
 - October10 Lux navigator now continues through independently proven Drive in
   the same invocation (maximum two menu inputs). Each input retains a distinct
   HOME/Drive report and durable original PNG/JSON byte hashes; changed/missing
