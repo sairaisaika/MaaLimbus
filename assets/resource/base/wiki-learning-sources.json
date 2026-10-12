@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "retrieved_on": "2026-10-11",
+  "retrieval_method": "public_search_index",
+  "raw_api_status": 403,
+  "revision": null,
+  "policy_ready": false,
+  "sources": [
+    {"url": "https://limbuscompany.huijiwiki.com/wiki/罪人", "purpose": "sinner names; no image boxes"},
+    {"url": "https://limbuscompany.huijiwiki.com/wiki/世界观/边狱公司", "purpose": "canonical game sinner numbers"},
+    {"url": "https://limbuscompany.huijiwiki.com/wiki/Data:Personalities.json", "purpose": "future revision-bound identity facts; raw API blocked"},
+    {"url": "https://limbuscompany.huijiwiki.com/wiki/名与蛛之镜", "purpose": "season-specific mirror reference; not universal cost rules"}
+  ],
+  "sinners_zh": ["李箱", "浮士德", "堂吉诃德", "良秀", "默尔索", "鸿璐", "希斯克利夫", "以实玛利", "罗佳", "辛克莱", "奥提斯", "格里高尔"],
+  "game_numbers": [1,2,3,4,5,6,7,8,9,11,12,13]
+}

@@ -1,5 +1,18 @@
 # Native learning in Mirror Dungeon
 
+The implementation roadmap is [neural-learning-plan.md](neural-learning-plan.md).
+`tools/sinner_learning.py` creates hash-bound box proposals, reviewed episode-split
+YOLO datasets, disabled native detection nodes and read-only completion reports.
+`tools/train_sinner_detector.py` follows the official YOLO11/ONNX recipe, checks
+actual exported images/labels against reviewed evidence and requires a local
+checkpoint. Training libraries are optional offline dependencies, not Agent
+runtime imports. The native observer records optional neural shadow results;
+default `neural-learning.json` is off and its proposals authorize no input.
+The twelve disabled nodes never appear in a main task's next chain. Native ONNX
+protocol replay uses a synthetic constant model only; it is not a trained model.
+There are currently no accepted real sinner-card box labels. MuMu collection and
+held-out native/model evaluation remain required before any production detector.
+
 MaaFramework supports ONNX `NeuralNetworkClassify` for fixed page regions and
 `NeuralNetworkDetect` for object boxes. The runtime remains Maa Pipeline + Agent;
 learning does not create another device controller. See the official

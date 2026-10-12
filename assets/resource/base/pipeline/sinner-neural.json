@@ -1,0 +1,386 @@
+{
+  "SinnerDetect01": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          0
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect02": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          1
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect03": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          2
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect04": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          3
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect05": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          4
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect06": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          5
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect07": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          6
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect08": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          7
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect09": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          8
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect10": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          9
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect11": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          10
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  },
+  "SinnerDetect12": {
+    "enabled": false,
+    "recognition": {
+      "type": "NeuralNetworkDetect",
+      "param": {
+        "model": "sinners.onnx",
+        "labels": [
+          "yi_sang",
+          "faust",
+          "don_quixote",
+          "ryoshu",
+          "meursault",
+          "hong_lu",
+          "heathcliff",
+          "ishmael",
+          "rodion",
+          "sinclair",
+          "outis",
+          "gregor"
+        ],
+        "expected": [
+          11
+        ],
+        "threshold": 0.9,
+        "order_by": "Score",
+        "index": 0
+      }
+    },
+    "action": {
+      "type": "DoNothing"
+    }
+  }
+}

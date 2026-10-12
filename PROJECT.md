@@ -10,6 +10,29 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October11 user requested Maa-native neural self-label learning, twelve sinner
+  boxes and Mirror assessment, with MuMu notification before real-device work.
+  Roadmap: docs/neural-learning-plan.md. Offline stage1 implemented:12canonical
+  classes/game-number mapping, finite image-bounded proposals, explicit complete
+  review/hash binding, episode-separated train/validation/test, YOLO export and
+  actual exported-byte validation, offline YOLO11/ONNX recipe, default-off native
+  Agent shadow plus12disabled DoNothing NeuralNetworkDetect nodes. No input node
+  uses them. Raw Wiki JSON returned403; provenance explicitly records public
+  search-index sinner names/numbers and unimported data, not a current cost rule.
+  Actual Maa ONNX replay passed correct/wrong/all-class expectations and exact
+  box with a synthetic constant model, not trained sinner recognition:
+  build/sinner-neural-native-protocol-verification.json. Native six-task resources
+  still parse.20focused/894fullPython68.46s/1Windows symlink skip passed,
+  build/sinner-learning-full-tests-final.txt. Read-only retained Team7 assessment
+  is progression90/100 (Hard5/victory, no payout), HP/time/causal-gift quality
+  unknown, censored/strategy-training-ineligible: build/team-seven-neural-assessment.json.
+  Reviewed sinner dataset currently0samples/training_readyFalse/modelFalse;
+  no training, production model, device/game input, installation or Release.
+  Fresh read-only MuMu foreground is Lawnchair launcher, not Limbus; private
+  game hashes unchanged. Next stage requires user opening Limbus and preserving
+  current page for read-only EN/JP/card-boundary/identity/occlusion sampling.
+  Do not leave an unpaid page, claim or consume resources. Existing full scope
+  remains open; new neural source is not part of installed/candidate packages.
 - October10 clean c12960b was rebuilt as an isolated v0.1.2 Windows candidate:
   actual freeze/Agent-root self-test/Runner help terminalexit0, latest package
   build/windows-package-f76fd5f7fa2a40bc9a9299c8b324327e/release-assets,

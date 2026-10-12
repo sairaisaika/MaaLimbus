@@ -1,3 +1,20 @@
+## October11 neural learning offline foundation
+
+docs/neural-learning-plan.md defines Maa-native inference and separate offline
+training/label review. Twelve disabled native detection nodes, default-off
+shadow observer and read-only dataset/scoring tools implemented.20focused and
+894fullPython68.46s/1Windows permission skip passed. Actual Maa native ONNX
+protocol replay verifies expected-class filtering/all-class selection and xywh
+coordinates with a synthetic fixture only; no real sinner accuracy is claimed.
+Proof: build/sinner-neural-native-protocol-verification.json. Actual six-task
+Resource parsing remains valid. Dataset has0reviewed real boxes and readiness
+false, model untrained/production disabled. Team7 retained native summary/PNG
+bindings score progression90/100, with payout/HP/time/causal benefit unverified:
+build/team-seven-neural-assessment.json. All game state remains unchanged.
+Wiki raw request403 is recorded separately from indexed background metadata.
+MuMu sampling, actual training, held-out/native accuracy, real-device shadow
+and production/action integration remain required. No installation or Release.
+
 ## October10 latest Rewards/Lux candidate
 
 Clean c12960b actual Windows candidate contains the latest bounded Rewards/budget

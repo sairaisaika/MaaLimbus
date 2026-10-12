@@ -12,6 +12,7 @@ license = "AGPL-3.0-or-later"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pyinstaller>=6"]
+learning = ["ultralytics>=8.3,<9", "onnx>=1.16,<2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

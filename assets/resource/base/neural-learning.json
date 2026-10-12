@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "mode": "off",
+  "model_sha256": null,
+  "model_trained": false,
+  "production_enabled": false,
+  "input_authorized": false,
+  "note": "Enable read-only shadow only with a reviewed sinner ONNX artifact. Never auto-promote predictions."
+}

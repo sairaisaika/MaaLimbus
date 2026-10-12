@@ -315,8 +315,16 @@ class LimbusRecognition(CustomRecognition):
                     local.append(dict(purpose='grace_cost',roi=list(roi),only_rec=True,results=found))
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
+        from maalimbus.neural_shadow import observe as observe_neural_shadow
+        try:
+            neural_sinners=observe_neural_shadow(context,image,ROOT/'assets/resource/base')
+        except (ValueError,OSError,RuntimeError,KeyError) as error:
+            # Optional shadow cannot change recognition, intents or device input.
+            neural_sinners=dict(status='unavailable',error_type=type(error).__name__,
+                                input_authorized=False,training_eligible=False)
         name = self.journal.frame(image, records, scene,local_ocr=local,
-            reward_cost=reward_cost,reward_cost_provenance=reward_cost_provenance)
+            reward_cost=reward_cost,reward_cost_provenance=reward_cost_provenance,
+            neural_sinners=neural_sinners)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
         return records, scene, name
