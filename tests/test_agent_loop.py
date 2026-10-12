@@ -278,7 +278,7 @@ def test_the_loop_drives_a_run_and_reports_it(tmp_path):
 def test_a_battle_page_also_runs_the_battle_pipeline(tmp_path):
     ran = run_loop(tmp_path, {'steps': 1, 'interval': 0.0, 'run_store': ''},
                    frames=(BATTLE_FRAME, BATTLE_FRAME))
-    assert ran.returned is True
+    assert ran.returned is bool(read_result(ran.directory).get('passed'))
     assert ran.context.entries == ['WindowMapObserve', 'WindowBattleObserve']
     assert runner.events(ran.directory, 'battle_observed')
     assert runner.events(ran.directory, 'mirror_loop_stopped')
@@ -300,7 +300,7 @@ def test_a_broken_controller_is_journalled_and_returns_false(tmp_path):
 def test_a_run_out_of_budget_stops_bounded(tmp_path):
     ran = run_loop(tmp_path, {'steps': 1, 'interval': 0.0, 'budget': 0.5, 'run_store': ''},
                    controller=HangingController())
-    assert ran.returned is True
+    assert ran.returned is False
     stopped, = runner.events(ran.directory, 'mirror_loop_stopped')
     assert stopped['reason'] == 'loop_deadline_exceeded'
     assert read_result(ran.directory)['reason'] == 'loop_deadline_exceeded'

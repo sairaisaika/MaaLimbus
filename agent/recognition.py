@@ -347,6 +347,10 @@ class LimbusRecognition(CustomRecognition):
                                 records.append(Text(result.text,tuple(roi),result.score))
                                 found.append(dict(text=result.text,score=result.score,box=list(roi)))
                     local.append(dict(purpose='grace_cost',roi=list(roi),only_rec=True,results=found))
+        if scene=='GIFT_PICK':
+            from maalimbus.floor_trial_vision import repair_levels
+            records, trial_local=repair_levels(context.run_recognition_direct,image,records)
+            local.extend(trial_local)
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
         from maalimbus.overlay_dismissal import recognize as recognize_overlay
@@ -1333,6 +1337,9 @@ def write_loop_result(directory, result):
     path = Path(directory) / 'agent-result.json'
     path.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str),
                     encoding='utf-8')
+    print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
+          ': '+str(result.get('reason') or result.get('error') or '原因未记录')+
+          '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path),flush=True)
     return path
 
 
@@ -1498,7 +1505,7 @@ class MirrorLoopAction(CustomAction):
                        steps=len(result.get('steps') or []),
                        clicks_sent=result.get('clicks_sent', 0),
                        passed=result.get('passed'), directory=str(directory))
-        return True
+        return bool(result.get('passed'))
 
 
 class MainTaskAction(CustomAction):

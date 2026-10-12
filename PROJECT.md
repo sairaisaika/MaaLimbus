@@ -1482,3 +1482,20 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   clear_hit_count API exclusively for WindowMapObserve/WindowBattleObserve before
   each read, preserving input hit counters/transactions.35 focused tests passed.
   Pending selection must resolve from a fresh counter, never be clicked again.
+
+## Continuation: October12 native successor and shop transactions
+
+- Installed MainTask now exposes later fresh observation rather than reusing the
+  old screenshot. The current Oracle selection is visible at1/2; pending retained,
+  no repeated input. Its selected +1 badge full-screen confidence.779889 failed
+  the original.85 gate. Two independent native narrow crops read +1 at.997535 and
+  .999325, masked badge negative reads none; floor-trial-level-native-verification
+  binds PNG92bbc6... and records zero device input.31 relevant cases passed.
+- Loop callback now returns its actual bounded verdict; errors preserve attempted
+  input counts and steps and print reason plus evidence path. Logs explicitly
+  distinguish unverified dungeon completion.
+- New shop transactions persist scope/visit/PNG+JSON-bound purchase/confirm/refresh
+  intents. Generic Confirm cannot authorize payment. Exact coin delta and complete
+  successor shelf are required before booked purchase. Pending/restart/UNKNOWN
+  cannot reset refresh budget.50 shop integration cases passed; actual question,
+  currency/receipt and later visits remain to be tested.

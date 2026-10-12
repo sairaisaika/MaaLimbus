@@ -236,3 +236,34 @@ def purchase_confirm_target(records, size=None, require_offers=True):
     if len(confirm) != 1 or len(cancel) != 1:
         return None
     return list(confirm[0].box)
+
+
+def matching_purchase_question(records, name, price, size=None, threshold=.9):
+    """Return a Confirm only for a complete question naming the reserved offer.
+
+    The older ``purchase_confirm_target`` is a scene detector, not authorization.
+    This reader requires a full named/quoted purchase sentence including its
+    integer price. Standalone title/price text may belong to the shelf behind a
+    modal, so a generic question must never borrow those tokens. These
+    conservative English schemas need retained live verification before use;
+    an unfamiliar purchase layout remains pending rather than using generic Confirm.
+    """
+    from .vision import find
+
+    if not isinstance(name, str) or not name.strip() or type(price) is not int or price <= 0:
+        return None
+    size = size or REFERENCE
+    target = purchase_confirm_target(records, size, require_offers=False)
+    if target is None:
+        return None
+    content = find(records, r'.+', (.25, .26, .75, .58), size, threshold)
+    normalized = lambda text: re.sub(r'\s+', ' ', text).strip().casefold()
+    title = normalized(name)
+    named = re.compile(
+        r'^(?:would you like to purchase|purchase) ["\']?' + re.escape(title)
+        + r'["\']? for ' + str(price) + r'(?: (?:cost|currency))?\?$', re.I)
+    questions = [row for row in content if re.match(
+        r'^(?:would you like to purchase|purchase)\b', normalized(row.text))]
+    if len(questions) == 1 and named.fullmatch(normalized(questions[0].text)):
+        return target
+    return None

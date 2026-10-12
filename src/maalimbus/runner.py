@@ -1163,6 +1163,9 @@ class MirrorRunner:
         self.floor_gift_transaction=(FloorGiftTransaction(self.store.path.parent/'user-floor-gift-transaction.json')
                                      if self.store is not None else None)
         self.floor_gift_catalog=None
+        from .shop_transaction import ShopTransaction
+        self.shop_transaction=(ShopTransaction(self.store.path.parent/f'user-shop-{self.run_id}.json')
+                               if self.store is not None and self.run_id else None)
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1454,18 +1457,46 @@ class MirrorRunner:
         else:
             state['defeat_row_sent'] = False
         shop = None
-        if page not in ('SHOP', 'SHOP_PURCHASE'):
-            # A shop visit's own budget: leaving the page ends the visit, so the
-            # refreshes a visit is allowed start over on the next shop.  The shop's
-            # own purchase question counts as the same visit: leaving the shelf is
-            # what ends it.
-            state['shop_refreshes'] = 0
-        else:
+        shop_tx=self.shop_transaction
+        if shop_tx is not None and shop_tx.data and shop_tx.data.get('pending') and page not in ('SHOP','SHOP_PURCHASE'):
+            stopped=self._record(page,record,frame,candidates,None,'shop_receipt_successor_not_proven')
+            return self._result(page,None,False,stopped,done=True)
+        if page=='MAP' and shop_tx is not None and shop_tx.data:
+            visit=shop_tx.data['current_visit']
+            if not shop_tx.data['visits'][visit].get('closed'):
+                shop_tx.close_visit(self.run_id,visit,frame_file(directory))
+        if page in ('SHOP', 'SHOP_PURCHASE'):
+            try:
+                if shop_tx is None:
+                    raise ValueError('shop_transaction_scope_missing')
+                d=shop_tx.data
+                if d and d.get('pending') and page=='SHOP':
+                    reconcile=(shop_tx.reconcile_purchase if d['pending']['kind']=='purchase' else shop_tx.reconcile_refresh)
+                    reconcile(self.run_id,d['current_visit'],frame_file(directory))
+                d=shop_tx.data
+                if page=='SHOP':
+                    visit=(d['current_visit'] if d and not d['visits'][d['current_visit']].get('closed')
+                           else str(len(d['visits'])+1 if d else 1))
+                    shop_tx.begin_visit(self.run_id,visit,frame_file(directory))
+                else:
+                    if not d or not d.get('pending') or d['pending']['kind']!='purchase' or d['pending']['stage']!='card_intent':
+                        raise ValueError('shop_purchase_question_has_no_unsent_matching_intent')
+                    visit=d['current_visit']
+                state['shop_refreshes']=shop_tx.refreshes_used(self.run_id,visit)
+                state['shop_bought']=list(shop_tx.data['bought'])
+            except (ValueError,OSError) as error:
+                stopped=self._record(page,record,frame,candidates,None,str(error))
+                return self._result(page,None,False,stopped,done=True)
             shop = shop_state(record, wanted_gifts(state['gift_plan'],
                                                    settings.gift_keyword, fallback=()),
                               bought=[entry['name'] for entry in state['shop_bought']],
                               refreshes_used=state['shop_refreshes'],
                               refresh_limit=settings.shop_refreshes)
+            if page=='SHOP_PURCHASE' and shop:
+                from .shop_vision import matching_purchase_question
+                pending=shop_tx.data['pending']
+                texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
+                shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'])
             self.note('shop_offers', currency=shop['currency'] if shop else None,
                       reason=shop['reason'] if shop else 'shop_page_not_read',
                       buy=shop['buy'] if shop else None,
@@ -1859,6 +1890,19 @@ class MirrorRunner:
             kind='clear' if plan['reason'].startswith('clear_inherited') else 'card'
             self.deployment_transaction.intent(kind,tuple(team['participants']),(plan.get('detail') or {}).get('card_index'))
         point = None
+        if page in ('SHOP','SHOP_PURCHASE') and plan.get('reason') in (
+                'buying_the_gift_the_gift_plan_asked_for',
+                'refreshing_the_shelf_for_the_gift_the_plan_wants',
+                'confirming_the_purchase_the_shop_asked_about'):
+            visit=shop_tx.data['current_visit']
+            if plan['reason']=='buying_the_gift_the_gift_plan_asked_for':
+                target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory))
+            elif plan['reason']=='refreshing_the_shelf_for_the_gift_the_plan_wants':
+                target=shop_tx.reserve_refresh(self.run_id,visit,plan['detail']['cost'],shop['currency'],settings.shop_refreshes,frame_file(directory))
+            else:
+                target=shop_tx.reserve_confirm(self.run_id,visit,frame_file(directory))
+            if list(target)!=list(plan['target']):
+                raise ValueError('Shop transaction target differs from planned current control')
         if plan.get('reason')=='confirm_pending_deployment_reset_once':
             self.deployment_transaction.confirm_clear(self.run_id)
         if plan.get('reason')=='battle_button_submits_the_team' and self.deployment_transaction is not None:
@@ -1901,11 +1945,10 @@ class MirrorRunner:
             # again after a refresh brings the same name back.
             bought = dict((plan.get('detail') or {}), step=state['step'],
                           frame=frame_file(directory).name, point=None if point is None else list(point))
-            state['shop_bought'].append(bought)
             self.note('shop_purchase_sent', gift=bought.get('name'), price=bought.get('price'),
-                      currency=bought.get('currency'), point=bought['point'])
+                      currency=bought.get('currency'), point=bought['point'],receipt_verified=False)
         elif plan.get('reason') == 'refreshing_the_shelf_for_the_gift_the_plan_wants':
-            state['shop_refreshes'] += 1
+            state['shop_refreshes']=shop_tx.refreshes_used(self.run_id,shop_tx.data['current_visit'])
             self.note('shop_shelf_refreshed', cost=(plan.get('detail') or {}).get('cost'),
                       refreshes_used=state['shop_refreshes'])
         elif plan.get('reason') == 'confirming_the_purchase_the_shop_asked_about':

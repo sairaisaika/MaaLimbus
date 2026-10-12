@@ -709,7 +709,7 @@ def shop_window(tmp_path, record):
     scope = store.start()
     image = archived(SHOP_FRAME)
     device = FakeDevice([image, image, image])
-    observer = FrameObserver(tmp_path, [record, record, record])
+    observer = FrameObserver(tmp_path, [dict(record,image=image)]*3)
     notes = Notes()
     runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
@@ -793,18 +793,19 @@ def test_the_purchase_question_offers_only_the_confirm_it_printed():
     assert bare['reason'] == 'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read'
 
 
-def test_a_bought_gift_is_booked_when_the_click_goes_out(tmp_path):
-    """The purchase is recorded before its answer arrives, so it cannot be paid twice."""
+def test_a_purchase_attempt_is_reserved_without_claiming_it_was_bought(tmp_path):
+    """A click reserves its intent; only a separately proven receipt books a purchase."""
     runner, device, notes = shop_window(tmp_path, shop_page())
     runner.state['gift_plan'] = {'teams': {'bleed': ['Prejudice']}, 'default': []}
     runner.run(steps=1, interval=0.0, round_limit=1)
     sent = [details for event, details in notes.events if event == 'shop_purchase_sent']
     assert len(sent) == 1
     assert sent[0]['gift'] == 'Prejudice' and sent[0]['price'] == 152
-    booked = runner.state['shop_bought']
-    assert [(row['name'], row['price'], row['currency'], row['step']) for row in booked] \
-        == [('Prejudice', 152, 1008, 0)]
-    assert booked[0]['frame'].endswith('.json')
+    assert runner.state['shop_bought']==[]
+    pending=runner.shop_transaction.data['pending']
+    assert (pending['name'],pending['price'],pending['coins'])==('Prejudice',152,1008)
+    assert pending['before']['path'].endswith('.json')
+    assert not sent[0]['receipt_verified']
     page_notes = [details for event, details in notes.events if event == 'shop_offers']
     assert page_notes and page_notes[0]['buy']['name'] == 'Prejudice'
 
