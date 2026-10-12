@@ -1748,3 +1748,18 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   Related purchase/shelf/transaction/floor-receipt tests: 83 passed in 7.96 s.
 - Actual fresh Purchase -> GET -> shelf receipt and GUI Start continuation remain
   required. Offline replay is not a completed purchase or whole-run acceptance.
+
+- Installed `be0c3f4` with 2212 private-file hashes preserved, then used the
+  actual GUI Start. `pi-20261012-173651` sent Purchase once and GET Confirm once,
+  returning to SHOP at 2563 coins. It stopped at a second reader defect: purchased
+  cards stay on the shelf and move columns, with Purchased above their art.
+  The old transaction instead required the offer to disappear.
+- Native narrow OCR now reads that badge twice above each full name/price pair.
+  Only the exact reserved gift's unique high-confidence badge, exact coin delta,
+  unchanged other items and retained confirmation chain can book it. The marked
+  card remains in the complete shelf for refresh auditing but is never a new buy.
+  `build/actual-purchased-shelf-replay/verification.json` replays the native Agent
+  against the actual frame, books only an isolated transaction copy, rejects a
+  masked badge, and leaves real pending bytes unchanged. 120 focused tests pass.
+  The real transaction still needs fresh GUI continuation to finish bookkeeping;
+  no Purchase or GET may be replayed.

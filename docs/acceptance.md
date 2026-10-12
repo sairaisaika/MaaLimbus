@@ -1579,3 +1579,10 @@ Changed title/price and masked balance refuse; isolated pending confirmation is
 reserved once and duplicate refused. Authoritative transaction unchanged; zero
 device input. 83 related tests passed. This does not yet prove the live Purchase,
 GET acknowledgement, shelf receipt, GUI continuation, or whole five-floor run.
+
+`pi-20261012-173651` now proves actual GUI Start, one Purchase, one GET Confirm
+and SHOP with 2563 coins. Bookkeeping stopped because the card remained with a
+Purchased badge. The retained real shelf replay verifies that native badge with
+two independent .9 crops and exact reserved title/price, with a masked-badge
+negative. 120 focused tests passed. The marked card is not offered for rebuy;
+actual pending remains until fresh continuation, without repeated paid input.

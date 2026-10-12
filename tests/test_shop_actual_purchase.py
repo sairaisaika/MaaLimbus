@@ -34,3 +34,24 @@ def test_purchase_confirmation_accepts_the_native_get_notice_as_successor():
     from maalimbus.window import plan_step
     p=plan_step('SHOP_PURCHASE',shop={'confirm':[1092,706,128,34]})
     assert 'GIFT_GET' in p['expect']
+
+
+@pytest.mark.parametrize('badge', ['correct','missing','wrong_column','low','duplicate'])
+def test_only_the_own_unique_purchased_badge_can_settle_retained_card(tmp_path,badge):
+    from test_shop_transaction import setup,reserve,frame,shelf,question,row
+    tx,before=setup(tmp_path);reserve(tx,before)
+    tx.reserve_confirm('scope','floor1:shop1',frame(tmp_path,'dialog',question(),'SHOP_PURCHASE'))
+    records=shelf(coins=80)
+    mark=row('Purchased',(870,320,120,40))
+    if badge=='wrong_column':mark['box'][0]+=230
+    if badge=='low':mark['score']=.899
+    if badge!='missing':records.append(mark)
+    if badge=='duplicate':records.append(dict(mark))
+    after=frame(tmp_path,'after',records);original=tx.path.read_bytes()
+    if badge=='correct':
+        assert tx.reconcile_purchase('scope','floor1:shop1',after)
+        assert tx.data['pending'] is None
+        assert tx.data['bought'][-1]['shelf_evidence']=='own_purchased_badge'
+    else:
+        with pytest.raises(ValueError):tx.reconcile_purchase('scope','floor1:shop1',after)
+        assert tx.path.read_bytes()==original

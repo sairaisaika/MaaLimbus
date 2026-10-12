@@ -83,7 +83,8 @@ def _coins(texts, size):
 
 def _shelf(texts, size):
     found = offers(shelf_tokens(texts), size)
-    return [dict(name=o.name, price=o.price, click=list(o.click)) for o in found]
+    return [dict(name=o.name, price=o.price, click=list(o.click),
+                 **({'purchased':True} if o.purchased else {})) for o in found]
 
 
 def _baseline(pending):
@@ -368,20 +369,31 @@ class ShopTransaction:
         shelf = _shelf(texts, size)
         if coins != pending['coins'] - pending['price'] or not shelf:
             raise ValueError('Exact shop purchase currency delta not proven')
-        if any(_key(o['name']) == _key(pending['name']) for o in shelf):
-            raise ValueError('Purchased offer disappearance not proven')
+        bought=[o for o in shelf if _key(o['name'])==_key(pending['name'])]
+        if bought:
+            # Actual native shop retains and reorders the card, with Purchased
+            # above its art. The badge must belong to this exact full title/price.
+            baseline=_baseline(pending) or pending['shelf']
+            prior=[o for o in baseline if _key(o['name'])==_key(pending['name'])]
+            if (len(bought)!=1 or not bought[0].get('purchased')
+                    or bought[0]['price']!=pending['price']
+                    or len(prior)!=1 or prior[0].get('purchased')
+                    or pending['stage'] not in ('confirm_intent','overlay_intent')):
+                raise ValueError('Purchased offer disappearance or own Purchased badge not proven')
         # All other slots must be retained; a sparse OCR read cannot masquerade
         # as the disappearance of the chosen card.  The baseline is re-read rather
         # than trusted from bytes an older reader wrote.
         remaining = sorted((_key(o['name']), o['price']) for o in (_baseline(pending) or pending['shelf'])
                            if _key(o['name']) != _key(pending['name']))
-        actual = sorted((_key(o['name']), o['price']) for o in shelf)
+        actual = sorted((_key(o['name']), o['price']) for o in shelf
+                        if _key(o['name'])!=_key(pending['name']))
         if actual != remaining:
             raise ValueError('Independent complete successor shelf not proven')
         data = copy.deepcopy(self.data)
         data['bought'].append(dict(name=pending['name'], price=pending['price'],
                                    visit=visit, before=pending['before'],
                                    question=pending.get('question'), successor=proof,
+                                   shelf_evidence='own_purchased_badge' if bought else 'removed_offer',
                                    overlay_acknowledgement=pending.get('overlay_acknowledgement')))
         data['pending'] = None
         self._save(data)

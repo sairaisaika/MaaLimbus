@@ -4,6 +4,28 @@ from maa.pipeline import JRecognitionType,JOCR
 from .vision import Text,find
 
 
+def repair_purchased_badges(native,image,records):
+    """Purchased is drawn above retained art; full-page OCR can omit it."""
+    from .shop_vision import offers,shelf_tokens
+    size=(image.shape[1],image.shape[0]);sx,sy=size[0]/1920,size[1]/1080
+    result=list(records);proof=[]
+    for offer in offers(shelf_tokens(records),size):
+        if offer.purchased:continue
+        x,y,w,h=offer.price_box;px=x+w/2;py=y+h/2
+        crops=((round(px-70*sx),round(py-153*sy),round(140*sx),round(42*sy)),
+               (round(px-74*sx),round(py-157*sy),round(148*sx),round(50*sy)))
+        readings=[]
+        for roi in crops:
+            d=native(JRecognitionType.OCR,JOCR(roi=roi,only_rec=True,expected=[r'^Purchased$'],threshold=.9),image)
+            found=d.filtered_results if d is not None and d.hit else []
+            readings.append(found)
+            proof.append(dict(purpose='shop_purchased_badge',name=offer.name,roi=list(roi),threshold=.9,
+                results=[dict(text=r.text,score=r.score) for r in found]))
+        if all(len(r)==1 and r[0].text.strip()=='Purchased' and r[0].score>=.9 for r in readings):
+            result.append(Text('Purchased',crops[0],min(r[0].score for r in readings)))
+    return result,proof
+
+
 def repair_purchase_balances(native,image,records):
     """Actual Purchase E.G.O Gifts balance pair; two independent reads each."""
     from .shop_vision import native_purchase_dialog

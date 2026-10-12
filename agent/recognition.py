@@ -352,8 +352,10 @@ class LimbusRecognition(CustomRecognition):
             records, trial_local=repair_levels(context.run_recognition_direct,image,records)
             local.extend(trial_local)
         if scene=='SHOP':
-            from maalimbus.shop_native import repair_refresh_cost
+            from maalimbus.shop_native import repair_refresh_cost,repair_purchased_badges
             records,shop_local=repair_refresh_cost(context.run_recognition_direct,image,records)
+            local.extend(shop_local)
+            records,shop_local=repair_purchased_badges(context.run_recognition_direct,image,records)
             local.extend(shop_local)
         if scene=='SHOP_PURCHASE':
             from maalimbus.shop_native import repair_purchase_balances

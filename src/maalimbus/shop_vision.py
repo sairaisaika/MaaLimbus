@@ -81,6 +81,7 @@ class Offer:
     price: int | None
     price_box: tuple | None
     click: tuple | None
+    purchased: bool = False
 
 
 @dataclass(frozen=True)
@@ -190,8 +191,15 @@ def offers(records, size=None):
     for _, line in lines:
         for price, box, name, name_box in sorted(line, key=lambda row: _center(row[1])[0]):
             ordered.append((name, name_box, price, box))
+    badges=[r for r in records if r.score>=.9 and r.text.strip()=='Purchased'
+            and _inside(r.box,PANEL_X,PANEL_Y,sx,sy)]
+    def purchased(box):
+        px,py=_center(box)
+        matches=[r for r in badges if abs(_center(r.box)[0]-px)<=COLUMN_TOLERANCE*sx
+                 and 100*sy<=py-_center(r.box)[1]<=170*sy]
+        return len(matches)==1
     return [Offer(index=index, name=name, name_box=name_box, price=price,
-                  price_box=box, click=click_box(box, size))
+                  price_box=box, click=click_box(box, size),purchased=purchased(box))
             for index, (name, name_box, price, box) in enumerate(ordered, start=1)]
 
 
@@ -240,7 +248,7 @@ def wanted_offers(found, names, bought=()):
     ranked = []
     for offer in found:
         key = offer.name.strip().lower()
-        if key in order and key not in spent:
+        if key in order and key not in spent and not offer.purchased:
             ranked.append((order.index(key), offer))
     ranked.sort(key=lambda row: (row[0], row[1].index))
     return [offer for _, offer in ranked]
