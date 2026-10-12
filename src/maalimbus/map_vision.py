@@ -825,6 +825,31 @@ def chevron_target(player, marker, pitch=LATTICE_PITCH):
     return (player[0], player[1] + (pitch[1] if dy > 0 else -pitch[1]))
 
 
+def neutral_node_outlines(image):
+    """Compact bright neutral outlines; proposed controls, never node identities.
+
+    A free-gift cube can be white instead of gold. Its own local border survives
+    the coloured map background; the successor panel still decides whether it
+    was an available node. Header/roster regions are outside this search band.
+    """
+    import cv2,numpy as np
+    h,w=image.shape[:2];scale=w/1920
+    pixels=image.astype(np.int16)
+    mask=((pixels.min(axis=2)>=75)&(pixels.max(axis=2)-pixels.min(axis=2)<=30)).astype(np.uint8)*255
+    mask[:round(h*.18)]=0;mask[round(h*.80):]=0
+    mask[:,:round(w*.025)]=0;mask[:,round(w*.90):]=0
+    kernel=np.ones((max(1,round(9*scale)),)*2,np.uint8)
+    mask=cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
+    n,labels,stats,centres=cv2.connectedComponentsWithStats(mask,8)
+    points=[]
+    for i in range(1,n):
+        x,y,bw,bh,area=map(int,stats[i])
+        if (45*scale<=bw<=170*scale and 40*scale<=bh<=165*scale
+                and .5<=bw/bh<=2.2 and area>=160*scale*scale):
+            points.append((x+bw//2,y+bh//2))
+    return points
+
+
 def map_clicks(image, *, template=None, node_side=190, player=None):
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
@@ -961,6 +986,8 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
                     + (point[1] - corroborated[1]) ** 2 > 90 * 90]
     for point in bright_rings:
         add(point, 'lit_ring', CLICK_SIDE)
+    for point in neutral_node_outlines(image):
+        add(point,'neutral_outline_candidate',CLICK_SIDE)
     # The ring is the only reading that survives a floor which draws the offer in
     # another hue -- floor 3 draws it orange, where ``highlighted_nodes`` and the
     # chevrons read nothing at all (build/window-run78.json), so these come next.

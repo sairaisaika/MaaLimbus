@@ -1,8 +1,8 @@
 import json, shutil
 from pathlib import Path
-from types import SimpleNamespace
 import pytest
 from maalimbus.runner import MirrorRunner, FakeDevice, FrameObserver
+from maalimbus.theme_transaction import ThemeTransaction
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'evidence/runtime/window-20261008-123839/frame-0001.json'
@@ -19,10 +19,12 @@ def test_blinking_floor_retries_readonly_with_bounded_rounds(tmp_path,visible):
         p=tmp_path/f'source-{i}.json';p.write_text(json.dumps(data))
         shutil.copyfile(SOURCE.with_suffix('.png'),p.with_suffix('.png'));paths.append(str(p))
     device=FakeDevice()
-    runner=MirrorRunner(device,settings={'rounds':3,'interval':0,'stop_page':'MAP'},
+    runner=MirrorRunner(device,settings={'rounds':3,'unknown_rounds':3,'interval':0,'stop_page':'MAP'},
         directory=tmp_path/'output',observer=FrameObserver(tmp_path/'output',paths))
-    runner.theme_transaction=SimpleNamespace(data={'pending':{'floor':5}})
+    runner.run_id='retained-retry'
+    runner.theme_transaction=ThemeTransaction(tmp_path/'theme.json')
+    runner.theme_transaction.intent(runner.run_id,5,'Sinking Deluge','retained-before.json')
     runner.step()
     assert len(list((tmp_path/'output').glob('frame-*.json')))==(2 if visible else 3)
     assert device.clicks==[] and device.swipes==[] and device.keys==[]
-    assert runner.theme_transaction.data['pending']=={'floor':5}
+    assert runner.theme_transaction.data['pending']['floor']==5

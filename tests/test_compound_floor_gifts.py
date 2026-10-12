@@ -47,6 +47,20 @@ def test_unknown_component_and_wrong_column_never_discarded():
     offers,_=observe(changed,(1920,1080),catalog)
     carried={o.title for o in offers if o.unpriced}
     assert carried and not (carried & {r['title'] for r in rank(offers,team,[])})
+
+
+def test_authorized_exploration_retains_unknown_effect_and_never_prices_it():
+    from dataclasses import replace
+    from maalimbus.floor_gifts import exploration_rank,Trial
+    records,catalog=fixture();offers,_=observe(records,(1920,1080),catalog)
+    unknown=[replace(o,trial=Trial(1,'unpriced',0),unpriced='Defense Skill Final Power +1') for o in offers]
+    team=Team(2,frozenset({'Charge','Tremor'}))
+    assert rank(unknown,team,[])==[]
+    rows=exploration_rank(unknown,team,[])
+    assert rows and all(r['trial'] is None and r['uncertainty_penalty']==1000 for r in rows)
+    assert all(not r['learned_applied'] for r in rows)
+    paid=[replace(o,unpriced='Purchase 5 Enkephalin Modules') for o in unknown]
+    assert exploration_rank(paid,team,[])==[]
     wrong=[Text(r.text,(1068,754,222,36),r.score) if r.text=='Damage Dealt +7.5%' else r for r in records]
     offers,_=observe(wrong,(1920,1080),catalog)
     carried={o.title for o in offers if o.unpriced}

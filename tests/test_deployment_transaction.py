@@ -4,7 +4,7 @@ from maalimbus.deployment_transaction import DeploymentTransaction
 def test_inherited_four_participants_are_cleared_before_saved_order(tmp_path):
     p=tmp_path/'deployment.json';order=[3,4,9,1,7,2,12,5,8,10,11,6]
     t=DeploymentTransaction(p)
-    assert t.prepare('run',order,(4,12))['reset_required']
+    assert t.prepare('run',order,(4,12),[1,2,3,4]+[None]*8)['reset_required']
     t.intent('clear',(4,12))
     with pytest.raises(ValueError):DeploymentTransaction(p).prepare('run',order,(4,12))
     with pytest.raises(ValueError):t.observe((4,12))
@@ -51,15 +51,18 @@ def test_a_page_that_prints_the_saved_order_is_submitted_without_clearing(tmp_pa
     assert state['assignment']==printed(ORDER)
 
 
-def test_another_encounters_order_and_an_unread_page_are_still_cleared(tmp_path):
+def test_wrong_order_is_changed_but_unread_digits_are_reread(tmp_path):
     t=DeploymentTransaction(tmp_path/'deployment.json')
     assert t.prepare('run',ORDER,(12,12),printed(list(reversed(ORDER))))['reset_required'] is True
-    assert t.prepare('run',ORDER,(12,12),[None]*12)['reset_required'] is True
-    assert t.prepare('run',ORDER,(12,12))['reset_required'] is True
+    for digits in ([None]*12,None):
+        uncertain=t.prepare('run',ORDER,(12,12),digits)
+        assert not uncertain['reset_required'] and uncertain['order_uncertain']
+        assert not uncertain['order_verified']
     assert t.prepare('run',ORDER,(12,12),printed(ORDER))['reset_required'] is False
     # A half-read page proves only the part it printed, positions 1..picked.
     half=[None]*12
     for position,card in enumerate(ORDER[:4],start=1):half[card-1]=position
     assert t.prepare('run',ORDER,(4,12),half)['reset_required'] is False
     broken=list(half);broken[ORDER[2]-1]=None
-    assert t.prepare('run',ORDER,(4,12),broken)['reset_required'] is True
+    uncertain=t.prepare('run',ORDER,(4,12),broken)
+    assert not uncertain['reset_required'] and uncertain['order_uncertain']

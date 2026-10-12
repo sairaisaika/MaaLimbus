@@ -101,7 +101,10 @@ def main():
         wait_job(controller.post_connection(), timeout=15)
         controller.set_screenshot_target_long_side(1920)
         resource, agent = Resource(), AgentClient()
-        agent.set_timeout(5000)
+        # One custom MainTask contains the full bounded loop. Its reverse calls
+        # can pause for a battle animation; a 5s IPC liveness timeout falsely
+        # disconnects that running action. The independent task deadline remains.
+        agent.set_timeout(int((args.seconds+30)*1000))
         assert agent.bind(resource)
         environment = {**os.environ, 'PI_RESOURCE': json.dumps({'name': 'en'}),
                        'PI_CONTROLLER': json.dumps(device),
@@ -151,7 +154,10 @@ def main():
             finally:
                 if tasker is not None and tasker.running:
                     wait_job(tasker.post_stop(), timeout=8)
-                agent.disconnect()
+                try:
+                    agent.disconnect()
+                except OSError as error:
+                    result['disconnect_error']=str(error)
                 try:
                     child.wait(timeout=10)
                 except subprocess.TimeoutExpired:
@@ -159,7 +165,7 @@ def main():
                     child.wait(timeout=5)
         events = [json.loads(line) for line in (directory / 'events.jsonl').read_text(encoding='utf-8').splitlines()]
         result['event_names'] = [event['event'] for event in events]
-        result['clicks_sent'] = sum(1 for event in events if event['event'] == 'window_intent')
+        result['clicks_sent'] = sum(1 for event in events if event['event'] in ('window_intent','unknown_exploration_intent'))
         result['mirror_loop_started'] = any(event['event'] == 'mirror_loop_start' for event in events)
         answer = directory / 'agent-result.json'
         if answer.is_file():

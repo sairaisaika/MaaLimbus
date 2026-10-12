@@ -1,4 +1,4 @@
-"""Do not inherit a previous encounter's participant order."""
+"""Reuse the visible saved order; change only a proven different order."""
 from .storage import read_json,write_json
 class DeploymentTransaction:
     def __init__(self,path):self.path=path;self.data=read_json(path) if path.exists() else None
@@ -17,9 +17,13 @@ class DeploymentTransaction:
         if d['sequence'] and count[0]!=len(d['sequence']):raise ValueError('Participant count diverged from verified deployment')
         from .team_vision import carries_saved_order
         inherited=carries_saved_order(numbers,order,count)
-        return dict(reset_required=not d['sequence'] and count[0]>0 and not inherited,
+        expected={card:position for position,card in enumerate(order[:count[0]],1)}
+        contradicted=bool(numbers and any(value is not None and expected.get(card)!=value
+                            for card,value in enumerate(numbers,1)))
+        uncertain=not d['sequence'] and count[0]>0 and not inherited and not contradicted
+        return dict(reset_required=not d['sequence'] and count[0]>0 and not inherited and contradicted,
                     order_verified=(d['sequence']==list(order)[:count[1]] and count[0]==count[1]) or inherited,
-                    inherited_order=inherited,assignment=numbers)
+                    inherited_order=inherited,assignment=numbers,order_uncertain=uncertain)
     def intent(self,kind,count,card=None):
         d=self.data
         if d['pending']:raise ValueError('Deployment input already pending')

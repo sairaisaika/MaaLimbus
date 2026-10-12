@@ -703,6 +703,10 @@ def header_chrome(record):
     boxes = [list(header.exploring_text.box)]
     if header.pack_text is not None:
         boxes.append(list(header.pack_text.box))
+    # Caption digits blink and OCR may split Exploring/Floor. Reserve the
+    # visible header panel even when the last glyph's OCR box disappears.
+    width,height=record.get('size') or (1920,1080)
+    boxes.append([round(width*.02),round(height*.105),round(width*.28),round(height*.105)])
     return boxes
 
 
@@ -1166,6 +1170,10 @@ class MirrorRunner:
         from .shop_transaction import ShopTransaction
         self.shop_transaction=(ShopTransaction(self.store.path.parent/f'user-shop-{self.run_id}.json')
                                if self.store is not None and self.run_id else None)
+        from .unknown_exploration import Exploration
+        self.exploration=(Exploration(self.store.path.parent/f'user-exploration-{self.run_id}.json',
+            self.store.path.parent.parent/'build/learning-review/transitions',self.run_id)
+            if self.store is not None and self.run_id else None)
 
     # -- small services the observer/flow may use --------------------------
     @property
@@ -1250,6 +1258,9 @@ class MirrorRunner:
         directory = self.directory
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
+        if self.exploration is not None and self.exploration.data.get('pending') is not None:
+            outcome=self.exploration.finish(frame_file(directory),page)
+            self.note('unknown_exploration_reconciled',**outcome,input_sent=False)
         # The map floor numeral blinks. A missing digit is not a failed drag:
         # reread the current page within the existing bounded settle budget.
         if page=='MAP' and self.theme_transaction is not None and self.theme_transaction.data and self.theme_transaction.data.get('pending'):
@@ -1362,15 +1373,19 @@ class MirrorRunner:
             candidates = state['map_progress'].remaining(candidates)
         sha = record.get('image_sha256')
         if not settings.observe_only and page in WAIT_PAGES:
+            if page=='UNKNOWN':
+                recovered=self._explore_unknown(record,frame,candidates)
+                if recovered is not None:return recovered
             state['unknown_seen'] += 1
-            if state['unknown_seen'] > settings.unknown_rounds:
+            turn_waiting=time.monotonic()<state.get('turn_wait_until',0)
+            if state['unknown_seen'] > settings.unknown_rounds and not turn_waiting:
                 stopped = self._record(page, record, frame, candidates, None,
                                        'page_unreadable_after_waiting')
                 return self._result(page, None, False, stopped)
             # Loading screens, turn animations and the battle result clear themselves;
             # they are not a refusal, so wait them out instead of stopping the window.
             self.note('window_unknown_wait', page=page, round=state['unknown_seen'],
-                      interval_s=settings.interval)
+                      interval_s=settings.interval,submitted_turn_wait=turn_waiting)
             time.sleep(settings.interval)
             return self._result(page, None, False, None, waiting=True)
         state['unknown_seen'] = 0
@@ -1431,6 +1446,11 @@ class MirrorRunner:
                         self.deployment_transaction.observe(tuple(team['participants']))
                 team.update(self.deployment_transaction.prepare(self.run_id,team['order'],
                                                                  tuple(team['participants']),team.get('numbers')))
+                if team.get('order_uncertain'):
+                    retry=self._unread_deployment_retry(state,page,'deployment_order_digits_incomplete')
+                    if retry is not None:return retry
+                    stopped=self._record(page,record,frame,candidates,None,'deployment_order_digits_incomplete_after_retries')
+                    return self._result(page,None,False,stopped,done=True)
             except ValueError as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
@@ -1490,8 +1510,18 @@ class MirrorRunner:
             except (ValueError,OSError) as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
-            shop = shop_state(record, wanted_gifts(state['gift_plan'],
-                                                   settings.gift_keyword, fallback=()),
+            names=wanted_gifts(state['gift_plan'],settings.gift_keyword,fallback=())
+            if self.store is not None:
+                from .storage import ProfileStore
+                from .gift_plan import shop_wanted
+                from .gift_vision import GiftCatalog
+                profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
+                              if p.slot==self.store.team_slot),None)
+                if profile is None:raise ValueError('Current saved shop team absent')
+                names=shop_wanted(profile,GiftCatalog(ROOT/'assets/resource/base'))
+                self.note('shop_saved_team_plan',team=profile.slot,keywords=sorted(profile.keywords),
+                          wanted=names,blocked=sorted(profile.block),input_sent=False)
+            shop = shop_state(record, names,
                               bought=[entry['name'] for entry in state['shop_bought']],
                               refreshes_used=state['shop_refreshes'],
                               refresh_limit=settings.shop_refreshes)
@@ -1538,6 +1568,16 @@ class MirrorRunner:
                               if p.slot==self.store.team_slot),None)
                 if profile is None:raise ValueError('floor_gift_saved_team_missing')
                 ranking=floor_gifts.rank(floor_offers,profile,d['selected'])
+                for offer in floor_offers:
+                    if offer.unpriced:
+                        from .unknown_exploration import queue_trial
+                        proposal=queue_trial(frame_file(directory),offer,self.run_id,
+                            self.store.path.parent.parent/'build/learning-review')
+                        self.note('unclassified_trial_review_queued',**proposal,title=offer.title,input_sent=False)
+                if not ranking and gift['chosen']<gift['required']:
+                    ranking=floor_gifts.exploration_rank(floor_offers,profile,d['selected'])
+                    self.note('floor_gift_bounded_exploration_ranking',ranking=ranking,
+                        reason='player_authorized_unknown_game_choices',learned_applied=False)
                 gift['ranking']=ranking
                 owned_single=(len(floor_offers)==1 and floor_offers[0].owned
                     and floor_offers[0].selection_source=='single_free_select_button'
@@ -1968,6 +2008,11 @@ class MirrorRunner:
             # because a click that did open something was never remembered.
             state['map_progress'].note_click(plan['target'])
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)
+        if plan.get('reason')=='start_button_submits_the_assigned_turn':
+            # All twelve sinners can animate for longer than the ordinary page
+            # read budget. Wait at most two minutes after the submitted turn;
+            # this does not send another START or manufacture a HUD identity.
+            state['turn_wait_until']=time.monotonic()+120
         time.sleep(delay / 1000)
         settled, settled_page = None, None
         before_sha = record.get('image_sha256')
@@ -2318,6 +2363,48 @@ class MirrorRunner:
         return self.summary()
 
     # -- records -----------------------------------------------------------
+    def _explore_unknown(self,record,frame,candidates):
+        """Try independently read navigation controls, never unresolved payments."""
+        explorer=self.exploration
+        if explorer is None:return None
+        active=self.store.data.get('active') or {}
+        transactions=(self.grace_transaction,self.initial_transaction,
+                      self.deployment_transaction,self.theme_transaction,
+                      self.floor_gift_transaction,self.shop_transaction)
+        if active.get('victory') or active.get('phase')=='entry_pending' or any(
+                tx and any((tx.data or {}).get(k) for k in ('pending','receipt_pending','submit_pending'))
+                for tx in transactions):
+            self.note('unknown_exploration_waits_for_existing_transaction',input_sent=False)
+            return None
+        candidate=explorer.choose(record)
+        if candidate is None:return None
+        box=candidate['box'];x,y,w,h=box
+        point=(random.randint(x+w//4,x+max(w//4,w*3//4-1)),
+               random.randint(y+h//4,y+max(h//4,h*3//4-1)))
+        delay=random.randint(350,750)
+        explorer.reserve(frame_file(self.directory),candidate,point,delay)
+        self.note('unknown_exploration_intent',candidate=candidate,point=list(point),delay_ms=delay)
+        entry=dict(step=self.state['step'],page_before='UNKNOWN',scene_before=record['scene'],
+            observation=record,frame=frame,candidates=candidates,action='click',
+            target=box,click_point=list(point),delay_ms=delay,clicks_sent=1,
+            passed=False,stopped=None,reason='unknown_navigation_probe')
+        self.artifacts['steps'].append(entry)
+        self.artifacts['clicks_sent']+=1;self.state['step']+=1
+        # Attempt counts and intent are durable before Maa receives any input.
+        self.device.click(*point)
+        time.sleep(delay/1000)
+        after=record;page='UNKNOWN'
+        for attempt in range(max(1,self.settings.rounds)):
+            if attempt:time.sleep(self.settings.interval)
+            after=self._observe();page=resolve_scene(self.registry,self.directory,after)
+            if page not in WAIT_PAGES:break
+        outcome=explorer.finish(frame_file(self.directory),page)
+        self.note('unknown_exploration_review_queued',**outcome,input_sent=False)
+        entry.update(page_after=page,settled=after,passed=True,
+            progress_verified=outcome['success'],review_proposal=outcome['proposal'],
+            reason='unknown_navigation_succeeded' if outcome['success'] else 'unknown_navigation_unresolved')
+        return self._result('UNKNOWN',box,True,None)
+
     def _record(self, page, record, frame, candidates, plan, reason):
         """Append the record-only step the guard paths write, and return its stop."""
         self.artifacts['steps'].append({

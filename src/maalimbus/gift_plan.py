@@ -46,3 +46,12 @@ def wanted(plan, keyword, *, fallback=('Wound Clerid',)):
         return teams[key]
     default = list((plan or {}).get('default') or [])
     return default or list(fallback)
+
+
+def shop_wanted(team,catalog):
+    """The active saved team's full known gift system, separate from starters."""
+    unknown=(set(team.allow)|set(team.block))-set(catalog.entries)
+    if unknown:raise ValueError('Saved shop gift identity absent from catalogue')
+    preferred=[name for name,entry in catalog.entries.items()
+               if name not in team.block and (name in team.allow or set(entry['keywords'])&set(team.keywords))]
+    return sorted(preferred,key=lambda name:(name not in team.allow,name))

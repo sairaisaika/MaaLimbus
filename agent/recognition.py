@@ -277,22 +277,10 @@ class LimbusRecognition(CustomRecognition):
             # full-frame detector finds only some of them (window-20261012-023229/frame-0068
             # reads card 7's '6' at .79 and card 10's '8' at .99), so each card gets its own
             # narrow crop.
-            for index in range(1, CARD_COUNT + 1):
-                number_roi = assignment_box(self.controls.get('pre_battle.card_%02d' % index))
-                if number_roi is None:
-                    continue
-                detail = context.run_recognition_direct(JRecognitionType.OCR,
-                    JOCR(roi=number_roi, expected=[r'\d{1,2}'], threshold=.6), image)
-                if detail is None:
-                    raise RuntimeError('Maa local deployment order OCR returned no evidence')
-                x,y,w,h = number_roi
-                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
-                found=[]
-                if detail.hit:
-                    for result in detail.filtered_results:
-                        records.append(Text(result.text,number_roi,result.score))
-                        found.append(dict(text=result.text,score=result.score,box=list(number_roi)))
-                local.append(dict(purpose='deployment_assignment',card=index,roi=list(number_roi),results=found))
+            from maalimbus.deployment_numbers_native import read_assignments
+            records,assignment_proof=read_assignments(context.run_recognition_direct,image,records,
+                [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)])
+            local.extend(assignment_proof)
         if scene=='UNKNOWN' and battle_hud(records,size) is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
             # from artwork, and this identifies the page only.

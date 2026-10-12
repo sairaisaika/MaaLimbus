@@ -1,7 +1,8 @@
 """Bind each observed gift to its own Mounting Trials; no positional default.
 
-English trial grammar is deliberately finite. Updated/unknown text and Japanese
-trials refuse until independently validated, rather than inheriting old artwork.
+English trial grammar is deliberately finite. Unknown effects stay unpriced;
+an explicitly identified card can use a separate uncertainty-cost exploration
+policy, without turning that choice into a validated effect interpretation.
 """
 from dataclasses import dataclass, asdict
 import re
@@ -38,9 +39,8 @@ class Offer:
     selection_source: str = 'counter'
     visible_benefit: int = 0
     # Printed trial text that the finite grammar could not price. Such an offer is
-    # carried as evidence so the page can still be read, but it is never chosen:
-    # an unreadable cost is refused, not guessed, and not allowed to stop a page
-    # whose other cards are priced.
+    # carried as evidence and excluded from ordinary ranking. The player's
+    # bounded exploration fallback never asserts an unknown effect's value.
     unpriced: str = ''
 
     def identity(self):
@@ -145,9 +145,8 @@ def observe(records, size, catalog, *, image=None, select_box=None):
             trial=parse_trial(level,effects)
             unpriced=''
         except UnpricedTrial:
-            # The printed cost is carried read-only; the offer stays on the page
-            # for its title and counter but can never be selected.
-            trial=Trial(0,'unpriced',0)
+            # Preserve the observed level, but never invent the effect's price.
+            trial=Trial(level,'unpriced',0)
             unpriced=trial_text(effects)
         owned = bool(find(records,r'^Owned$',(left,.13,right,.25),size,.9))
         offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),
@@ -296,3 +295,24 @@ def rank(offers, team, selected):
                             score=score, trial=asdict(offer.trial),
                             preferred=preferred, owned=offer.owned,visible_benefit=offer.visible_benefit))
     return sorted(ranking,key=lambda r:(r['score'],r['title']))
+
+
+def exploration_rank(offers,team,selected):
+    """Last-resort game choice explicitly allowed by the player.
+
+    It prices uncertainty, not the unknown effect: retain the native level and
+    prefer an unowned matching gift only after all fully priced options ran out.
+    No learned benefit or asserted interpretation of the printed text is added.
+    """
+    selected={normalized(n) for n in selected};rows=[]
+    for offer in offers:
+        if (not offer.unpriced or normalized(offer.title) in selected
+                or offer.canonical in team.block or not 0<offer.trial.level<=30):continue
+        if re.search(r'lunacy|enkephalin|modules?|purchase|cost|refill|convert',offer.unpriced,re.I):continue
+        preferred=offer.canonical in team.allow or bool(offer.keywords & team.keywords)
+        score=1000+offer.trial.level*30+(60 if offer.owned else 0)-(40 if preferred else 0)
+        rows.append(dict(title=offer.title,canonical=offer.canonical,score=score,
+            preferred=preferred,owned=offer.owned,trial=None,
+            observed_level=offer.trial.level,printed_trial=offer.unpriced,
+            uncertainty_penalty=1000,exploratory=True,learned_applied=False))
+    return sorted(rows,key=lambda row:(row['score'],row['title']))

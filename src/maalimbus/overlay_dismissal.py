@@ -13,13 +13,18 @@ def identity_details(record):
 def recognize(native,image,record):
     if record.get('size')!=[1920,1080]:return None
     is_details=identity_details(record)
-    if record.get('scene')!='TUTORIAL' and not is_details:return None
+    unclassified=record.get('scene')=='UNKNOWN'
+    if record.get('scene')!='TUTORIAL' and not is_details and not unclassified:return None
     texts=[Text(x['text'],tuple(x['box']),x['score']) for x in record.get('ocr',[])]
     # The guide's title and page triangle are independent of inactive controls
     # visible behind it. Generic resource dialogs never pass this guide gate.
     headers=find(texts,r'^.{4,80}$',(.11,.02,.75,.11),record['size'],.9)
     arrows=page_turn_arrows(image)
-    if not is_details and (len(headers)!=1 or not (arrows.get('next') or arrows.get('previous'))):return None
+    if not is_details and (len(headers)!=1 or (not unclassified and not (arrows.get('next') or arrows.get('previous')))):return None
+    if unclassified:
+        import re
+        if re.search(r'Enkephalin|Lunacy|Refill|Give Up|Purchase|Claim|Confirm|Convert',
+                     ' '.join(t.text for t in texts),re.I):return None
     from maa.pipeline import JRecognitionType,JTemplateMatch
     template='navigation/identity-details-back.png' if is_details else 'navigation/tutorial-back.png'
     detail=native(JRecognitionType.TemplateMatch,JTemplateMatch(
@@ -28,6 +33,6 @@ def recognize(native,image,record):
     match=detail.filtered_results[0];b=match.box
     if match.score<.92:return None
     box=list((b.x,b.y,b.w,b.h) if hasattr(b,'x') else b)
-    return dict(kind='identity_details' if is_details else 'tutorial_book',box=box,native_score=match.score,
+    return dict(kind='identity_details' if is_details else ('unclassified_overlay_return' if unclassified else 'tutorial_book'),box=box,native_score=match.score,
         title='Identity details' if is_details else headers[0].text,template=template,
         reason='close_known_overlay_with_its_own_header_arrow',input_authorized=False)

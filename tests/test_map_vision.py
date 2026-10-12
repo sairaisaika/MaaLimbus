@@ -183,7 +183,7 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
                                 'node_away_from_player', 'badge_mark', 'lit_node',
-                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node')
+                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node', 'neutral_outline_candidate')
                for item in clicks)
 
 
@@ -221,7 +221,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring')
+                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring', 'neutral_outline_candidate')
                for item in clicks)
 
 

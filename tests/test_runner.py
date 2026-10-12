@@ -549,7 +549,7 @@ MAP_LATTICE_CANDIDATE = [1521, 307, 190, 190]
 def test_the_pages_own_header_is_not_a_node_to_step_to():
     record = json.loads((MAP_PANNED / 'frame-0021.json').read_text(encoding='utf-8'))
     chrome = header_chrome(record)
-    assert [list(box) for box in chrome] == MAP_CHROME
+    assert [list(box) for box in chrome[:2]] == MAP_CHROME
     assert inside_chrome(MAP_CHROME_CANDIDATE, chrome) is True
     assert inside_chrome(MAP_LATTICE_CANDIDATE, chrome) is False
 
@@ -736,7 +736,9 @@ def shop_page():
 def shop_window(tmp_path, record):
     """A one-step window sitting on the shop page, with the run's own store."""
     from types import SimpleNamespace
-    from maalimbus.storage import RunStore
+    from maalimbus.storage import RunStore,ProfileStore
+    from maalimbus.policies import Team
+    ProfileStore(tmp_path/'user-team-profiles.json').save([Team(2,frozenset({'Bleed'}))])
     store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
     scope = store.start()
     image = archived(SHOP_FRAME)
@@ -827,6 +829,10 @@ def test_the_purchase_question_offers_only_the_confirm_it_printed():
 def test_a_purchase_attempt_is_reserved_without_claiming_it_was_bought(tmp_path):
     """A click reserves its intent; only a separately proven receipt books a purchase."""
     runner, device, notes = shop_window(tmp_path, shop_page())
+    from maalimbus.storage import ProfileStore
+    from maalimbus.policies import Team
+    ProfileStore(tmp_path/'user-team-profiles.json').save([
+        Team(2,frozenset({'Bleed'}),allow=frozenset({'Prejudice'}))])
     runner.state['gift_plan'] = {'teams': {'bleed': ['Prejudice']}, 'default': []}
     runner.run(steps=1, interval=0.0, round_limit=1)
     sent = [details for event, details in notes.events if event == 'shop_purchase_sent']
