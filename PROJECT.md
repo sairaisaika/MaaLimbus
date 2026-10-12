@@ -1810,3 +1810,17 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   teacher as 12 measured cards / 3 resolved / 9 unresolved, detector_read false.
   Changed PNG bytes still refuse. 39 focused runner/theme/hash tests passed in
   26.08 s; whole-source test evidence above predates these two corrections.
+
+
+2026-10-12 shop value and unavailable deployment continuation: see
+`docs/shop-value-learning.md`. Actual readiness: 1 pending purchase sample,
+0 reviewed episodes; no value model or production neural shopping. Native
+retained HP-zero/capacity/card proof passes in
+`build/deployment-unavailable-native-verification.json`; current encounter
+order filtering preserves the permanent roster order and pending no-op evidence.
+Source fixes also independently read TURN 7 and locate the shifted lit START
+dial. Full current-run completion still requires installed GUI continuation.
+
+Idle source verification after these changes: 1528 passed, 1 skipped
+(Windows symlink privilege), 98.33 s; build/shop-value-deployment-full-tests.txt.
+This is a source test result, not complete game or production-value acceptance.

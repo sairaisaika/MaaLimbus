@@ -846,7 +846,10 @@ def team_state(record, controls):
              for index in range(1, CARD_COUNT + 1)]
     if not any(boxes):
         return None
-    return {'states': card_states(records, boxes, size),
+    availability=next((p for p in record.get('local_ocr',[]) if p.get('purpose')=='deployment_availability'
+                       and p.get('accepted')),None)
+    return {'availability':availability,'unavailable':list((availability or {}).get('unavailable',[])),
+            'states': card_states(records, boxes, size),
             'participants': participants(records, size),
             'numbers': assignment_numbers(records, boxes, size)}
 
@@ -918,7 +921,7 @@ def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges
 
 
 def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
-               reserve_coins=0, policy='manual', learning=None):
+               reserve_coins=0, policy='manual', learning=None, value_context=None):
     """What the shop page offers and the one input a shop visit may spend.
 
     A shop is spent from by reading its own page: every offer prints its name and
@@ -976,7 +979,9 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
         policy_trace=None
         if policy=='learned':
             from .shop_learning import rank_offers
-            affordable,policy_trace=rank_offers(affordable,learning or [])
+            affordable,policy_trace=rank_offers(affordable,learning or [],dict(value_context or {},
+                coins=cash,reserve_coins=reserve_coins,refreshes_used=refreshes_used,
+                refresh_limit=refresh_limit,wanted=list(wanted)))
         if affordable:
             offer = affordable[0]
             buy = {'box': list(offer.click), 'name': offer.name, 'price': offer.price,
@@ -1564,6 +1569,15 @@ class MirrorRunner:
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
                 return self._result(page,None,False,stopped,done=True)
             try:
+                availability=team.get('availability')
+                if availability:
+                    import hashlib
+                    if hashlib.sha256(frame_file(directory).with_suffix('.png').read_bytes()).hexdigest()!=record.get('image_sha256'):
+                        raise ValueError('Deployment availability frame bytes differ')
+                    availability=dict(availability,frame=str(frame_file(directory)),image_sha256=record.get('image_sha256'))
+                if team['participants'][1]!=len(team['order']) and not team.get('unavailable'):
+                    retry=self._unread_deployment_retry(state,page,'deployment_availability_not_read')
+                    if retry is not None:return retry
                 pending=self.deployment_transaction.data.get('pending') if self.deployment_transaction.data else None
                 if pending and self.deployment_transaction.data['scope']==self.run_id:
                     if pending['kind']=='clear' and team['participants'][0]==0:
@@ -1571,8 +1585,12 @@ class MirrorRunner:
                     elif (pending['kind']=='card' and team['participants'][0]==pending['before']+1
                           and team['states'][pending['card']-1] in ('selected','backup')):
                         self.deployment_transaction.observe(tuple(team['participants']))
+                    elif pending['kind']=='card' and pending['card'] in team.get('unavailable',[]):
+                        self.deployment_transaction.reconcile_unavailable(self.run_id,tuple(team['participants']),
+                                                                         team['unavailable'],availability)
+                        self.note('deployment_unavailable_attempt_reconciled',card=pending['card'],proof=availability)
                 team.update(self.deployment_transaction.prepare(self.run_id,team['order'],
-                                                                 tuple(team['participants']),team.get('numbers')))
+                    tuple(team['participants']),team.get('numbers'),team.get('unavailable',[]),availability))
                 if team.get('order_uncertain'):
                     retry=self._unread_deployment_retry(state,page,'deployment_order_digits_incomplete')
                     if retry is not None:return retry
@@ -1698,7 +1716,8 @@ class MirrorRunner:
                               bought=[entry['name'] for entry in state['shop_bought']],
                               refreshes_used=state['shop_refreshes'],
                               refresh_limit=settings.shop_refreshes,reserve_coins=settings.shop_reserve_coins,
-                              policy=settings.shop_policy,learning=learning)
+                              policy=settings.shop_policy,learning=learning,
+                              value_context=dict(floor=state['floor_now'],keywords=keywords))
             self.note('shop_policy',mode=settings.shop_policy,refresh_limit=settings.shop_refreshes,
                       reserve_coins=settings.shop_reserve_coins,decision=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP_PURCHASE' and shop:
@@ -2181,6 +2200,7 @@ class MirrorRunner:
                 target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),
                     reserve_coins=settings.shop_reserve_coins,decision_context=dict(team=self.store.team_slot,
                     keywords=keywords,floor=state['floor_now'],owned_bought=list(state['shop_bought']),
+                    wanted=list(shop['wanted']),
                     policy=settings.shop_policy,policy_trace=shop.get('policy_trace'),
                     reserve_coins=settings.shop_reserve_coins,refresh_limit=settings.shop_refreshes,
                     refreshes_used=state['shop_refreshes'],offers=shop['offers']))

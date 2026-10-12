@@ -1604,3 +1604,17 @@ Actual `174217` native NN shadow has 11 predicted boxes per prebattle frame, wit
 quality/input flags false. Corrected encoded-PNG identity-teacher binding replays
 12 measured / 3 resolved / 9 unresolved and refuses changed PNG bytes. 39 focused
 tests passed; live teacher publication and subsequent theme continuation remain.
+
+
+2026-10-12 shop value and unavailable deployment continuation: see
+`docs/shop-value-learning.md`. Actual readiness: 1 pending purchase sample,
+0 reviewed episodes; no value model or production neural shopping. Native
+retained HP-zero/capacity/card proof passes in
+`build/deployment-unavailable-native-verification.json`; current encounter
+order filtering preserves the permanent roster order and pending no-op evidence.
+Source fixes also independently read TURN 7 and locate the shifted lit START
+dial. Full current-run completion still requires installed GUI continuation.
+
+Idle source verification after these changes: 1528 passed, 1 skipped
+(Windows symlink privilege), 98.33 s; build/shop-value-deployment-full-tests.txt.
+This is a source test result, not complete game or production-value acceptance.

@@ -844,7 +844,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page,'saved_deployment_sequence_not_proven')
         if not full:
             order = (team or {}).get('order') or list(range(1, len(states) + 1))
-            if (len(order) != len(states) or set(order) != set(range(1, len(states) + 1))):
+            unavailable=set((team or {}).get('unavailable') or [])
+            if (len(set(order))!=len(order) or set(order) != set(range(1, len(states) + 1))-unavailable):
                 return _refuse(page, 'saved_deployment_order_invalid')
             for card in order:
                 index = card - 1

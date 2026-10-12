@@ -143,7 +143,17 @@ def start_button(records, size, image=None):
         # No readable START word: this board keeps it too small under its own dial
         # (live build/live-battle2.png), so the dial is read by colour instead of
         # re-assigning skills for a turn that never gets submitted.
-        return None if image is None else dial_control(image)
+        if image is None:return None
+        fixed=dial_control(image)
+        if fixed is not None:return fixed
+        buttons=auto_assign_buttons(records,size)
+        if buttons is None or battle_hud(records,size) is None:return None
+        # The rightmost dial moves when the number of active sinners changes.
+        # Derive its search band from the two native assignment captions; keep
+        # the exact same lit-disc area/shape/fill gate and reject dim controls.
+        width,height=size;x,y,w,h=buttons['win_rate'];sx,sy=width/1920,height/1080
+        return dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
+                                      (x-10*sx)/width,(y+145*sy)/height))
     label = matches[0].box
     if image is None:
         return label

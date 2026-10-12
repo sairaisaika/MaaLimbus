@@ -227,6 +227,10 @@ class LimbusRecognition(CustomRecognition):
         if scene=='UNKNOWN' and deployment_page(records,self.locale,(image.shape[1],image.shape[0])):
             scene='DEPLOYMENT'
         local=map_local
+        if scene in ('UNKNOWN','BATTLE_HUD'):
+            from maalimbus.battle_counter_native import repair_turn
+            records,turn_local=repair_turn(context.run_recognition_direct,image,records)
+            local.extend(turn_local)
         if scene=='DEPLOYMENT':
             # Isolated ordinal digits are often absent from the full-frame text
             # detector. Recognize only the small badge strips, retaining ROIs.
@@ -293,6 +297,9 @@ class LimbusRecognition(CustomRecognition):
             records,assignment_proof=read_assignments(context.run_recognition_direct,image,records,
                 [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)])
             local.extend(assignment_proof)
+            from maalimbus.deployment_availability_native import read_availability
+            local.extend(read_availability(context.run_recognition_direct,image,records,
+                [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)]))
         if scene=='UNKNOWN' and battle_hud(records,size) is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
             # from artwork, and this identifies the page only.

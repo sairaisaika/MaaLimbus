@@ -93,11 +93,13 @@ def sync_receipts(transaction,root,wanted,keywords):
     return result
 
 
-def rank_offers(offers,samples):
+def rank_offers(offers,samples,context=None):
     """No survival/strength evidence yet: deterministic affordable rule fallback."""
     # Buying receipt != stronger party. Never train strength from transaction success.
-    return list(offers),dict(mode='learned',buy_learning_applied=False,
-        reason='gift_strength_outcomes_not_yet_verified_rule_fallback',samples=len(samples))
+    from .runtime_paths import ROOT
+    from .shop_value_shadow import rank_preview
+    ordered,trace=rank_preview(offers,context or {},ROOT/'assets/resource/base/model/shop-value')
+    return ordered,dict(trace,mode='learned',samples=len(samples))
 
 
 def refresh_decision(samples,trace=None):
