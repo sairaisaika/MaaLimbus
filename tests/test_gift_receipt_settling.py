@@ -1,5 +1,6 @@
 """Retained Select/CONNECTING/GET sequence, driven without a controller."""
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -8,12 +9,16 @@ import pytest
 from maalimbus.floor_gifts import observe
 from maalimbus.gift_vision import GiftCatalog
 from maalimbus.policies import Team
-from maalimbus.runner import FakeDevice, FrameObserver, MirrorRunner, unselected_reward_successor
+from maalimbus.runner import (FakeDevice, FrameObserver, MirrorRunner, events,
+                              unselected_reward_successor)
 from maalimbus.floor_gift_transaction import FloorGiftTransaction
 from maalimbus.storage import ProfileStore, RunStore
 from maalimbus.vision import Text
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/'agent'))
+from recognition import Journal
+
 BEFORE = ROOT/'evidence/runtime/window-20261008-102111/frame-0435.json'
 SELECTED = ROOT/'evidence/runtime/window-20261008-110526/frame-0001.json'
 CONNECTING = SELECTED.with_name('frame-0002.json')
@@ -144,3 +149,99 @@ def test_named_gift_receipt_can_finish_at_unselected_encounter_reward(tmp_path):
     assert tx.data['receipts'][0]['title'] == 'Perversion'
     with pytest.raises(ValueError):
         tx.receipt_intent('Perversion', GET)
+
+
+def test_runner_recovers_a_receipt_whose_successor_is_the_reward_page(tmp_path):
+    """Recovery must honour the successor rule the settling path already honours.
+
+    Live run ``pi-20261012-151818`` cleared the gift notice onto the encounter
+    reward page with ``Selectable 0/1`` whole. The receipt guard accepted that page
+    while the run held the frame, but re-reading the retained notice called the
+    transaction's own settling rule with no successor at all, so the receipt stayed
+    pending on every later step and the run stopped. Both paths read the page
+    through one rule now, so the retained notice books and the run continues.
+    """
+    teams = (Team(2, frozenset({'Charge', 'Tremor'})),)
+    ProfileStore(tmp_path/'user-team-profiles.json').save(teams)
+    store = RunStore(tmp_path/'ledger.json', teams)
+    scope = store.start()
+    evidence = tmp_path/'runtime'/'pi-test'
+    # The booked notice has to live under the evidence root: retained_notice_name
+    # trusts a frame only inside the run's own tree.
+    retained = tmp_path/'runtime'/'retained'
+    retained.mkdir(parents=True)
+    for suffix in ('.json', '.png'):
+        (retained/f'frame-0001{suffix}').write_bytes(GET.with_suffix(suffix).read_bytes())
+    reward, _ = merged_counter_reward()
+    page = tmp_path/'successor'
+    page.mkdir()
+    (page/'frame-0002.json').write_text(json.dumps(reward))
+    (page/'frame-0002.png').write_bytes(REWARD.with_suffix('.png').read_bytes())
+
+    device = FakeDevice([cv2.imread(str(REWARD.with_suffix('.png')))]*3)
+    runner = MirrorRunner(device, settings={'rounds': 2, 'interval': 0}, store=store,
+                          run_id=scope, directory=evidence, journal=Journal(evidence),
+                          observer=FrameObserver(evidence, [str(page/'frame-0002.png')]*3))
+    tx = runner.floor_gift_transaction
+    offers, count = offer(BEFORE)
+    tx.prepare(scope, offers, count, BEFORE)
+    tx.intent('Perversion', count, BEFORE)
+    offers, count = offer(SELECTED)
+    tx.observe_pick(offers, count, SELECTED)
+    tx.commit(SELECTED)
+    tx.receipt_intent('Perversion', retained/'frame-0001.json')
+
+    runner.step()
+
+    assert tx.data['completed'] is True and tx.data['pending'] is None
+    recovered = events(evidence, 'floor_gift_receipt_recovered')
+    assert len(recovered) == 1
+    assert recovered[0]['title'] == 'Perversion'
+    # The booking rests on the notice's own hash-checked frame.  ``printed`` only
+    # carries whatever the loose middle-band reader saw here -- the reward page
+    # prints '2~3 E.G.O Gift' straight into that band -- so it is not the proof.
+    assert recovered[0]['before'] == str(retained/'frame-0001.json')
+    assert events(evidence, 'floor_gift_receipt_unknown_repeated_or_pending') == []
+
+
+def test_runner_still_refuses_a_successor_the_page_does_not_prove(tmp_path):
+    """Widening the page set is not a weaker rule: an unproven page still stops.
+
+    The same reward frame with its anchors removed proves nothing, so the retained
+    notice must not be booked and the transaction must stay pending.
+    """
+    teams = (Team(2, frozenset({'Charge', 'Tremor'})),)
+    ProfileStore(tmp_path/'user-team-profiles.json').save(teams)
+    store = RunStore(tmp_path/'ledger.json', teams)
+    scope = store.start()
+    evidence = tmp_path/'runtime'/'pi-test'
+    retained = tmp_path/'runtime'/'retained'
+    retained.mkdir(parents=True)
+    for suffix in ('.json', '.png'):
+        (retained/f'frame-0001{suffix}').write_bytes(GET.with_suffix(suffix).read_bytes())
+    stripped = json.loads(REWARD.read_text())
+    stripped['ocr'] = [r for r in stripped['ocr']
+                       if 'Select Encounter Reward Card' not in (r['text'] or '')]
+    page = tmp_path/'successor'
+    page.mkdir()
+    (page/'frame-0002.json').write_text(json.dumps(stripped))
+    (page/'frame-0002.png').write_bytes(REWARD.with_suffix('.png').read_bytes())
+
+    device = FakeDevice([cv2.imread(str(REWARD.with_suffix('.png')))]*3)
+    runner = MirrorRunner(device, settings={'rounds': 2, 'interval': 0}, store=store,
+                          run_id=scope, directory=evidence, journal=Journal(evidence),
+                          observer=FrameObserver(evidence, [str(page/'frame-0002.png')]*3))
+    tx = runner.floor_gift_transaction
+    offers, count = offer(BEFORE)
+    tx.prepare(scope, offers, count, BEFORE)
+    tx.intent('Perversion', count, BEFORE)
+    offers, count = offer(SELECTED)
+    tx.observe_pick(offers, count, SELECTED)
+    tx.commit(SELECTED)
+    tx.receipt_intent('Perversion', retained/'frame-0001.json')
+
+    runner.step()
+
+    assert events(evidence, 'floor_gift_receipt_recovered') == []
+    assert (tx.data['pending'] or {}).get('kind') == 'receipt'
+    assert tx.data['completed'] is False

@@ -9,7 +9,7 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-12 the reward successor, read as the page prints it
+## Current continuation: 2026-10-12 the reward successor and the receipt that could never be booked
 - October12 board order stands. Card2/card3 were proved live: `pi-20261012-135557`
   walked MAP→NODE_PANEL→PRE_BATTLE_TEAM→DEPLOYMENT→BATTLE_HUD→BATTLE_RESULT→GIFT_GET
   (the first real live win) and died on `floor_gift_receipt_successor_not_proven`; the
@@ -31,6 +31,28 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   tests rebuild the merged shape from that frame
   (`tests/test_gift_receipt_settling.py`), and `window.py` already knew the merged form
   (`tests/test_window.py:897`), so the runner anchor was the one blind spot.
+- The successor rule reading is only half of that stop: the receipt itself could never be
+  booked once the game left the notice page. `runner.py` attempted retained-evidence
+  recovery only on a fresh `GIFT_GET` notice, and `_resolve_floor_receipt` called
+  `observe_receipt` with no successor at all, so the settling path accepted five anchors
+  while the recovery path accepted one. The live `pi-20261012-151818` receipt
+  (`pending` kind `receipt`, title `Phlebotomy Pack`, proof `frame-0177.json`,
+  `commit_sent` true, `completed` false) would have stopped any resumed run on the
+  `REWARD_CARD` page it is standing on. Both paths now read the page through one rule
+  (`floor_gift_transaction.RECEIPT_SUCCESSOR_PAGES`,
+  `runner._receipt_successor_offers`), and the post-condition matches the page: a notice
+  successor must attribute the next commit, any other accepted page must have closed the
+  receipt. Replayed on the real files, `frame-0178` takes the live state from
+  `completed False / pending receipt / receipts 0` to `completed True / pending None`.
+  The new runner test also caught a second defect in the same step: `runner.py:2131`
+  booked a receipt intent from the loose middle-band reader on **any** page with a commit
+  outstanding, and the real reward page prints `2~3 E.G.O Gift` into that band
+  (`frame-0002.json`, box `[602,591,154,28]`, 0.981), so the uncaught `ValueError` would
+  have aborted the next step; the call is now limited to an outstanding commit, never a
+  page that just booked its own receipt, and an unprovable intent stops the run as
+  `unverified_floor_gift_receipt_intent` before any input. Suite `1447 passed, 1 skipped`
+  (`tests/test_gift_receipt_settling.py` 12, including a control that keeps the receipt
+  pending on the same frame with its reward anchors stripped).
 - The identity teacher finally has its assembly and the twelve-slot semantics:
   `pre_battle_identity.identity_report`, `slot_row`, `learned_references`,
   `agrees_with_saved_team`, `agrees_with_saved_order`, wired into the runner as

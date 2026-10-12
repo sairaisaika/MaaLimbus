@@ -47,6 +47,7 @@ from . import session_flow as flows
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
+from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES
 from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from .jobs import wait_job, wait_task
@@ -1766,6 +1767,7 @@ class MirrorRunner:
         else:
             state['gift_picks'] = 0
         floor_receipt=None
+        receipt_booked=False
         floor_tx=self.floor_gift_transaction
         if floor_tx is not None and floor_tx.data and floor_tx.data['scope']==self.run_id and floor_tx.data['commit_sent'] and not floor_tx.data['completed']:
             from . import initial_gifts
@@ -1784,11 +1786,20 @@ class MirrorRunner:
                 # An outstanding receipt whose own confirm already landed is resolved from
                 # the retained pair: the notice the run booked, its hash-checked frame, and
                 # this fresh successor. It books what the page printed instead of stopping.
-                if not (page=='GIFT_GET' and (d.get('pending') or {}).get('kind')=='receipt'
-                        and self._resolve_floor_receipt(floor_tx,page,floor_receipt,directory)
-                        and _attributed(floor_tx.data)):
+                # The successor is any page the settling rule itself honours, not only
+                # another notice: a cleared notice usually lands on the encounter reward
+                # page, and demanding a notice there stranded the receipt on every later
+                # step. A notice successor still has to attribute the next commit, because
+                # that page is the one the run goes on to click.
+                booked=(page in RECEIPT_SUCCESSOR_PAGES
+                        and (d.get('pending') or {}).get('kind')=='receipt'
+                        and self._resolve_floor_receipt(floor_tx,page,floor_receipt,directory,record)
+                        and (_attributed(floor_tx.data) if page=='GIFT_GET'
+                             else bool(floor_tx.data['completed'])))
+                if not booked:
                     stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
                     return self._result(page,None,False,stopped,done=True)
+                receipt_booked=True
         plan_controls=dict(self.controls)
         if page=='TUTORIAL' and record.get('overlay_dismissal',{}):
             closer=record['overlay_dismissal']
@@ -2119,8 +2130,20 @@ class MirrorRunner:
             self.floor_gift_transaction.refusal_confirm_intent(self.run_id,frame_file(directory))
         if plan.get('reason')=='select_takes_the_picked_floor_gifts':
             self.floor_gift_transaction.commit(frame_file(directory))
-        if floor_receipt:
-            self.floor_gift_transaction.receipt_intent(floor_receipt,frame_file(directory))
+        if floor_receipt and not receipt_booked:
+            # Only an outstanding commit expects a receipt, and never a page that has
+            # just booked one above: this reader is a loose middle-band text match, so
+            # the encounter reward page prints '2~3 E.G.O Gift' straight into it. An
+            # intent the transaction cannot prove stops the run before any input.
+            pending=(self.floor_gift_transaction.data or {}).get('pending') or {}
+            if pending.get('kind')=='commit':
+                try:
+                    self.floor_gift_transaction.receipt_intent(floor_receipt,frame_file(directory))
+                except ValueError as error:
+                    entry.update(passed=False,reason=str(error),
+                                 stopped='unverified_floor_gift_receipt_intent')
+                    self.artifacts['steps'].append(entry)
+                    return self._result(page,None,False,entry['stopped'],done=True)
         if page=='GIFT_GET' and state.get('initial_receipt'):
             from .storage import write_json
             self.initial_transaction.data['receipt_pending']=state['initial_receipt']
@@ -2331,17 +2354,10 @@ class MirrorRunner:
                 from . import initial_gifts
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
-                next_free=None
-                if settled_page=='GIFT_PICK':
-                    from .floor_gifts import observe as observe_gifts
-                    offers,count=observe_gifts(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
-                        image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
-                    if count==dict(chosen=0,required=1) and all(o.selection_source.endswith('_free_select_button') for o in offers):
-                        next_free=dict(count=count,source=offers[0].selection_source,
-                            offer=self.floor_gift_transaction.signature(offers))
+                next_free,next_reward=self._receipt_successor_offers(settled,settled_page,directory)
                 label=self.floor_gift_transaction.observe_receipt(settled_page,title,frame_file(directory),
                     next_free_offer=next_free,
-                    next_reward_offer=unselected_reward_successor(settled) if settled_page=='REWARD_CARD' else None)
+                    next_reward_offer=next_reward)
                 if label:
                     # The page answered the pick with a different gift. Keep what the
                     # device printed as a labelled observation instead of a silent guess.
@@ -2641,22 +2657,48 @@ class MirrorRunner:
             reason='unknown_navigation_succeeded' if outcome['success'] else 'unknown_navigation_unresolved')
         return self._result(record['scene'],box,True,None)
 
-    def _resolve_floor_receipt(self,floor_tx,page,name,directory):
+    def _receipt_successor_offers(self,record,page,directory):
+        """The fresh offers that prove a floor-gift receipt's successor on this page.
+
+        Both the settling path and the retained-evidence recovery path read the same
+        page through here, because a proof one of them accepts and the other does not
+        is how a cleared notice leaves a receipt that can never be booked.
+        """
+        next_free=None
+        if page=='GIFT_PICK':
+            from .floor_gifts import observe as observe_gifts
+            records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            offers,count=observe_gifts(records,record.get('size') or (1920,1080),self.floor_gift_catalog,
+                image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
+            if (count==dict(chosen=0,required=1) and offers
+                    and all(o.selection_source.endswith('_free_select_button') for o in offers)):
+                next_free=dict(count=count,source=offers[0].selection_source,
+                    offer=self.floor_gift_transaction.signature(offers))
+        next_reward=unselected_reward_successor(record) if page=='REWARD_CARD' else None
+        return next_free,next_reward
+
+    def _resolve_floor_receipt(self,floor_tx,page,name,directory,record=None):
         """Book an outstanding floor-gift receipt from retained evidence.
 
         Never re-sends input: the booked notice's own frame is re-read and its image
         hash checked, so the resolution rests on what the device already produced.
+        The successor page has to prove itself the same way the settling path reads
+        it; the recovery path is not a weaker rule, it is the same rule over a frame
+        the run no longer has in hand.
         """
         from . import initial_gifts
         from .floor_gift_transaction import retained_notice_name
+        if record is None:return False
         pending=floor_tx.data.get('pending') or {}
         try:
             retained=retained_notice_name(pending['proof'],Path(directory).parent)
         except (ValueError,KeyError,TypeError,FileNotFoundError,OSError):
             return False
         if not retained or not initial_gifts.same_name(retained,pending['title']):return False
+        next_free,next_reward=self._receipt_successor_offers(record,page,directory)
         try:
-            label=floor_tx.observe_receipt(page,name,frame_file(directory))
+            label=floor_tx.observe_receipt(page,name,frame_file(directory),
+                next_free_offer=next_free,next_reward_offer=next_reward)
         except ValueError:
             return False
         self.note('floor_gift_receipt_recovered',title=pending['title'],before=str(pending['proof']),

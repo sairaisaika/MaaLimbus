@@ -5,6 +5,15 @@ from pathlib import Path
 
 from .storage import read_json, write_json
 
+#: The page families that end a floor gift's pick sequence without another pick:
+#: the theme-pack shelf and the map both mean this floor's gift step is over.
+FINAL_SUCCESSOR_PAGES = ('THEME_PACKS', 'MAP')
+#: Every page that can independently prove a floor gift receipt's successor. The
+#: settling rule and the retained-evidence recovery path must accept the same set:
+#: a proof one of them honours and the other does not is how a cleared notice
+#: leaves a receipt that can never be booked.
+RECEIPT_SUCCESSOR_PAGES = ('GIFT_GET', 'GIFT_PICK', 'REWARD_CARD') + FINAL_SUCCESSOR_PAGES
+
 
 class FloorGiftTransaction:
     def __init__(self, path):
@@ -165,7 +174,7 @@ class FloorGiftTransaction:
         reward_successor=(not remaining and page=='REWARD_CARD' and next_reward_offer
             and next_reward_offer.get('count')=={'chosen':0,'required':1}
             and next_reward_offer.get('title')=='Select Encounter Reward Card')
-        final_successor=(not remaining and page in ('THEME_PACKS','MAP')) or bool(free_successor or reward_successor)
+        final_successor=(not remaining and page in FINAL_SUCCESSOR_PAGES) or bool(free_successor or reward_successor)
         if not (next_receipt or final_successor or substituted):
             raise ValueError('floor_gift_receipt_successor_not_proven')
         label=None

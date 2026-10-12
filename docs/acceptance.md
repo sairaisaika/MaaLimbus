@@ -1523,3 +1523,49 @@ and HOME. No purchase, private budget change or Release occurred.
 - Still required: the live run that crosses this successor and carries
   `pre_battle_identity_report`, the GET-overlay acknowledgement bound to a real purchase,
   and a full floor 2→5 run.
+
+## October12 the retained notice must honour the successor the settling path honours
+
+- `pi-20261012-151818`'s own receipt never closed. The live state file
+  (`config/user-floor-gift-transaction.json`) carried
+  `pending={"kind":"receipt","title":"Phlebotomy Pack","proof":"…\\pi-20261012-151818\\frame-0177.json"}`,
+  `selected=['Phlebotomy Pack']`, `commit_sent=True`, `completed=False`, `receipts=[]` — the run had
+  clicked the notice's Confirm and the game had moved on to the encounter reward page.
+- Cause: the guard at `runner.py:1784` attempted retained-evidence recovery only when the fresh page
+  was itself a `GIFT_GET` notice (`page=='GIFT_GET' and (d.get('pending') or {}).get('kind')=='receipt'`),
+  so every other page — including the `REWARD_CARD` the run was standing on — fell to
+  `floor_gift_receipt_unknown_repeated_or_pending` and stopped the run. `_resolve_floor_receipt` also
+  called `FloorGiftTransaction.observe_receipt(page,name,proof)` with no successor at all, so recovery
+  could only ever prove a notice page: the settling path honoured five anchors, the recovery path none.
+- Fix, one rule for both paths: `floor_gift_transaction.RECEIPT_SUCCESSOR_PAGES` =
+  `('GIFT_GET','GIFT_PICK','REWARD_CARD','THEME_PACKS','MAP')`, and
+  `runner._receipt_successor_offers(record,page,directory)` reads the fresh page's own proof (the
+  unselected reward offer, the fresh free single/three-free offer) so the settle path and the recovery
+  path call the transaction with the same value. The post-condition now matches the page: a notice
+  successor must attribute the next commit (`_attributed(floor_tx.data)`), any other accepted page only
+  has to have closed the receipt (`floor_tx.data['completed']`) — a final successor clears `pending` by
+  design, so demanding an attributed commit there refused every non-notice page.
+- Proof on the real files, before any new input: `retained_notice_name(pending['proof'],
+  dist/MaaLimbus/evidence/runtime)` returns `'Phlebotomy Pack'` from the hash-checked `frame-0177.json`;
+  `unselected_reward_successor(frame-0178.json)` returns
+  `{'count': {'chosen': 0, 'required': 1}, 'title': 'Select Encounter Reward Card'}`; and
+  `observe_receipt('REWARD_CARD', None, frame-0178, next_reward_offer=…)` on a copy of the live state
+  moves it from `completed False / pending kind receipt / receipts 0` to `completed True / pending None`,
+  recording `frame-0178` as the receipt's successor.
+- Second defect, found by the new runner test: `runner.py:2131` booked a receipt intent from
+  `initial_gifts.receipt_name`'s loose middle-band read on **any** page with a commit outstanding, and
+  the real encounter reward page prints `2~3 E.G.O Gift` straight into that band (the older retained
+  reward frame `window-20261008-111130/frame-0002.json`, box `[602,591,154,28]`, score 0.981), so the
+  uncaught `ValueError` would have aborted the very next step after the recovery. The call now runs only
+  for an outstanding commit and never for a page that just booked its own receipt, and an intent the
+  transaction cannot prove is recorded as `unverified_floor_gift_receipt_intent` before any input
+  instead of raising out of the step.
+- Tests: `tests/test_gift_receipt_settling.py` gained
+  `test_runner_recovers_a_receipt_whose_successor_is_the_reward_page` (the guard books through the
+  retained notice and the run does not stop) and
+  `test_runner_still_refuses_a_successor_the_page_does_not_prove` (the same frame with its reward
+  anchors stripped keeps the receipt pending, so the page set was widened and not weakened). That file
+  is 12 passed; the full suite is `1447 passed, 1 skipped`.
+- Still required: the live run that books this pending receipt on the reward page and carries
+  `pre_battle_identity_report`, the GET-overlay acknowledgement bound to a real purchase, and a full
+  floor 2→5 run.
