@@ -238,7 +238,7 @@ def test_the_offered_question_node_outranks_the_lifted_badge_boxes():
     root = Path(__file__).resolve().parents[1]
     image, template = live_map(root, 'window-20261007-023156/frame-0053.png')
     clicks = map_clicks(image, template=template)
-    assert clicks[0]['kind'] == 'lit_icon', clicks[:3]
+    assert clicks[0]['kind'] in ('lit_icon','bright_lit_icon'), clicks[:3]
     point = clicks[0]['point']
     assert abs(point[0] - 1087) <= 12 and abs(point[1] - 409) <= 12, point
     lifted = [item for item in clicks if item['kind'] == 'node_away_from_player']

@@ -9351,5 +9351,29 @@
       "slot": 20
     },
     "next": []
+  },
+  "MirrorShopPolicy": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "shop_policy": "saved"
+    },
+    "next": []
+  },
+  "MirrorShopRefreshLimit": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "shop_refreshes": "saved"
+    },
+    "next": []
+  },
+  "MirrorShopCoinReserve": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "shop_reserve_coins": "saved"
+    },
+    "next": []
   }
 }

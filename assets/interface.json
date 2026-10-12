@@ -119,6 +119,9 @@
         "mirror_star_source",
         "mirror_initial_keyword",
         "mirror_gift_search",
+        "mirror_shop_policy",
+        "mirror_shop_refresh_limit",
+        "mirror_shop_coin_reserve",
         "mirror_run_bounds",
         "mirror_preferences",
         "mirror_battle_assignment"
@@ -67942,6 +67945,195 @@
             "MirrorGiftSearch": {
               "attach": {
                 "mode": "refuse"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mirror_shop_policy": {
+      "type": "select",
+      "label": "$mirror_shop_policy",
+      "description": "$mirror_shop_policy_description",
+      "default_case": "saved",
+      "cases": [
+        {
+          "name": "saved",
+          "label": "$mirror_keep_launch",
+          "pipeline_override": {
+            "MirrorShopPolicy": {
+              "attach": {
+                "shop_policy": "saved"
+              }
+            }
+          }
+        },
+        {
+          "name": "manual",
+          "label": "$mirror_shop_policy_manual",
+          "pipeline_override": {
+            "MirrorShopPolicy": {
+              "attach": {
+                "shop_policy": "manual"
+              }
+            }
+          }
+        },
+        {
+          "name": "learned",
+          "label": "$mirror_shop_policy_learned",
+          "pipeline_override": {
+            "MirrorShopPolicy": {
+              "attach": {
+                "shop_policy": "learned"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mirror_shop_refresh_limit": {
+      "type": "select",
+      "label": "$mirror_shop_refresh_limit",
+      "description": "$mirror_shop_refresh_description",
+      "default_case": "saved",
+      "cases": [
+        {
+          "name": "saved",
+          "label": "$mirror_keep_launch",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": "saved"
+              }
+            }
+          }
+        },
+        {
+          "name": "0",
+          "label": "$mirror_shop_refresh_0",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": 0
+              }
+            }
+          }
+        },
+        {
+          "name": "1",
+          "label": "$mirror_shop_refresh_1",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "$mirror_shop_refresh_2",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": 2
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "$mirror_shop_refresh_3",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "$mirror_shop_refresh_5",
+          "pipeline_override": {
+            "MirrorShopRefreshLimit": {
+              "attach": {
+                "shop_refreshes": 5
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mirror_shop_coin_reserve": {
+      "type": "select",
+      "label": "$mirror_shop_coin_reserve",
+      "description": "$mirror_shop_coin_reserve_description",
+      "default_case": "saved",
+      "cases": [
+        {
+          "name": "saved",
+          "label": "$mirror_keep_launch",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": "saved"
+              }
+            }
+          }
+        },
+        {
+          "name": "0",
+          "label": "$mirror_shop_reserve_0",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": 0
+              }
+            }
+          }
+        },
+        {
+          "name": "100",
+          "label": "$mirror_shop_reserve_100",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": 100
+              }
+            }
+          }
+        },
+        {
+          "name": "200",
+          "label": "$mirror_shop_reserve_200",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": 200
+              }
+            }
+          }
+        },
+        {
+          "name": "300",
+          "label": "$mirror_shop_reserve_300",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": 300
+              }
+            }
+          }
+        },
+        {
+          "name": "500",
+          "label": "$mirror_shop_reserve_500",
+          "pipeline_override": {
+            "MirrorShopCoinReserve": {
+              "attach": {
+                "shop_reserve_coins": 500
               }
             }
           }

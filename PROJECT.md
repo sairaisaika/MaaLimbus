@@ -1513,3 +1513,38 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   learned evidence as zero adjustment. Its159 tests are offline policy evidence,
   not actual neural inference or Mirror completion. Training agent is preparing
   a12-class130-card real research dataset; no model/promotion claim yet.
+
+## Continuation: October12 GUI Start, neural research and shop handoff
+
+- GUI Start really dispatched installed MirrorTask/MainTask. The first actual
+  GUI run pi-20261012-111430 hit a missing re import in map header recovery;
+  the fault is repaired in bc913b5 and the complete Agent observer was replayed
+  natively on its actual frames, with no device input. Callback errors now retain
+  the message and stack, and stop summaries remain literal GUI text.
+- The resumed actual GUI/Agent13240/40172 is pi-20261012-112240, active at the
+  handoff. It is still MAPfloor2, not a full run completion. It must not race a
+  second controller or be replaced by a freeze while active. Root source now
+  shortens unchanged-map settling and prioritizes the actual54px question glyph
+  before neutral path cubes/reward badges; real-frame+masked replay passes but
+  the live node successor is still required.
+- A real130-crop/12-class ONNX research model is installed through the local
+  shadow policy. Native retained inference found missing/misclassified boxes;
+  quality/production/input authorization remain false. No live PRE inference
+  or completed neural-assisted dungeon is claimed. Review bundles, predictions,
+  raw frames and hashes collect in build/learning-review. Global CUDA is restored;
+  training work uses the isolated neural-learning-venv.
+- DSH added independent native shop policy/refresh/reserve controls; Root wired
+  them into MainTask/Runner and the durable transaction. Coin reserve is checked
+  again before either purchase/refresh intent. Empirical refresh learning uses
+  complete native shelf/coin-delta receipts; it never treats buying as a combat
+  strength label. Unknown strength has explicit rule fallback. Named shop GET
+  acknowledgment, actual purchases/skills/refresh and pre-boss shop remain live
+  acceptance work. New source is not installed in the running GUI.
+- Final225 relevant focused tests passed37.24s. Earlier whole suite1345passed,
+  1skip/5fail was not green: four outdated option fixtures were fixed, the actual
+  canonical-controller test collided with the live lease and awaits idle replay.
+- User explicitly delegated continuation until Codex returns and requested DSH's
+  task board. Exact plan/process/evidence/remaining work is in
+  docs/DEEPSEEK_CONTINUATION.md. Keep GUI Start/full-floor/receipt/HOME evidence
+  separate from unit/resource/package checks. No new payout/module permission,
+  FGO input, limit check or public Release occurred.

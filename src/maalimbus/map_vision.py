@@ -892,6 +892,10 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     clicks = []
 
     def add(point, kind, side):
+        # Candidate probes belong to the map canvas, never the header or party.
+        if not .10*height<=point[1]<.84*height or point[0]>=.94*width:return
+        if (kind in ('neutral_outline_candidate','lit_icon','bright_lit_icon','lattice_step')
+                and point[0]<.30*width and point[1]<.215*height):return
         x = min(max(0, point[0] - side // 2), max(0, width - side))
         y = min(max(0, point[1] - side // 2), max(0, height - side))
         for item in clicks:
@@ -986,8 +990,6 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
                     + (point[1] - corroborated[1]) ** 2 > 90 * 90]
     for point in bright_rings:
         add(point, 'lit_ring', CLICK_SIDE)
-    for point in neutral_node_outlines(image):
-        add(point,'neutral_outline_candidate',CLICK_SIDE)
     # The ring is the only reading that survives a floor which draws the offer in
     # another hue -- floor 3 draws it orange, where ``highlighted_nodes`` and the
     # chevrons read nothing at all (build/window-run78.json), so these come next.
@@ -1007,10 +1009,14 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # A wide, dense icon is stronger evidence than small reward/buff badges.
     # Keep path/ring precedence while ensuring it fits the bounded candidates.
     for item in bright_icons:
-        if max(item['box'][2:])>=60 and item['fill']>=.5:
+        # Actual GUI frame0095 question glyph is54x54/.455; reward badges
+        # are46px. This orders candidates only, never proves a node successor.
+        if max(item['box'][2:])>=50 and item['fill']>=.4:
             point=item['point']
             if not corroborated or (point[0]-corroborated[0])**2+(point[1]-corroborated[1])**2>90*90:
                 add(point,'bright_lit_icon',CLICK_SIDE)
+    for point in neutral_node_outlines(image):
+        add(point,'neutral_outline_candidate',CLICK_SIDE)
     for point in icons:
         add(point, 'lit_icon', CLICK_SIDE)
     # Vain Pride frame20261009-053703/0102 retains the offered icon at

@@ -157,7 +157,7 @@ class ShopTransaction:
         self._bound(scope, visit)
         return self.data['visits'][visit]['refreshes']
 
-    def begin_visit(self, scope, visit, frame_path):
+    def begin_visit(self, scope, visit, frame_path, learning_context=None):
         if not isinstance(scope, str) or not scope or not isinstance(visit, str) or not visit:
             raise ValueError('Shop requires explicit run scope and visit')
         if self.data and self.data['scope'] != scope:
@@ -181,6 +181,15 @@ class ShopTransaction:
             version=1, scope=scope, visits={}, bought=[], pending=None)
         data['current_visit'] = visit
         data['visits'][visit] = dict(entry=proof, refreshes=0, closed=False)
+        if learning_context is not None:
+            if (not isinstance(learning_context,dict) or set(learning_context)!=
+                    {'keywords','wanted','reserve_coins'} or
+                    any(not isinstance(learning_context[k],list) or
+                        any(not isinstance(x,str) or not x for x in learning_context[k])
+                        for k in ('keywords','wanted'))):
+                raise ValueError('Invalid captured shop learning context')
+            _integer(learning_context['reserve_coins'],'captured reserve')
+            data['visits'][visit]['learning_context']=copy.deepcopy(learning_context)
         self._save(data)
         return True
 
@@ -190,17 +199,18 @@ class ShopTransaction:
             raise ValueError('Shop action needs a fresh shelf')
         return texts, size, proof, _coins(texts, size), _shelf(texts, size)
 
-    def reserve_purchase(self, scope, visit, offer, coins, frame_path):
+    def reserve_purchase(self, scope, visit, offer, coins, frame_path, reserve_coins=0):
         self._ready(scope, visit)
         name = offer.name if hasattr(offer, 'name') else offer['name']
         price = offer.price if hasattr(offer, 'price') else offer['price']
         _integer(price, 'price', 1)
         _integer(coins, 'currency')
+        _integer(reserve_coins, 'reserve')
         if _key(name) in {_key(n) for n in self.bought_names}:
             raise ValueError('Shop title already receipted in this run')
         texts, size, proof, observed_coins, shelf = self._before(frame_path)
         matching = [o for o in shelf if _key(o['name']) == _key(name) and o['price'] == price]
-        if len(matching) != 1 or observed_coins != coins or price > coins:
+        if len(matching) != 1 or observed_coins != coins or price > coins-reserve_coins:
             raise ValueError('Fresh exact shop title/price/currency not proven')
         data = copy.deepcopy(self.data)
         data['pending'] = dict(kind='purchase', stage='card_intent', scope=scope, visit=visit,
@@ -209,18 +219,19 @@ class ShopTransaction:
         self._save(data)
         return matching[0]['click']
 
-    def reserve_refresh(self, scope, visit, cost, coins, limit, frame_path, kind='regular'):
+    def reserve_refresh(self, scope, visit, cost, coins, limit, frame_path, kind='regular', reserve_coins=0):
         self._ready(scope, visit)
         _integer(cost, 'refresh cost', 1)
         _integer(coins, 'currency')
         _integer(limit, 'refresh limit')
+        _integer(reserve_coins, 'reserve')
         if kind != 'regular':
             raise ValueError('Keyword refresh policy not verified')
         if self.refreshes_used(scope, visit) >= limit:
             raise ValueError('Shop visit refresh limit reached')
         texts, size, proof, observed_coins, shelf = self._before(frame_path)
         refresh = refreshes([t for t in texts if t.score >= .9], size)['regular']
-        if refresh.cost != cost or refresh.box is None or observed_coins != coins or cost > coins:
+        if refresh.cost != cost or refresh.box is None or observed_coins != coins or cost > coins-reserve_coins:
             raise ValueError('Fresh shop refresh cost/currency not proven')
         data = copy.deepcopy(self.data)
         # Count attempts, including uncertain ones, before input; restart cannot

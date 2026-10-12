@@ -152,6 +152,7 @@ def _defaults():
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
         'gift_search': 'refuse', 'shop_refreshes': 2,
+        'shop_policy': 'manual', 'shop_reserve_coins': 0,
         'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
         'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
@@ -173,6 +174,10 @@ class Settings:
         object.__setattr__(self, '_values', dict(_defaults()))
         if source is not None:
             self._values.update(_overrides(source))
+        if (self._values['shop_policy'] not in ('manual','learned') or
+                type(self._values['shop_refreshes']) is not int or not 0<=self._values['shop_refreshes']<=5 or
+                type(self._values['shop_reserve_coins']) is not int or not 0<=self._values['shop_reserve_coins']<=500):
+            raise ValueError('Invalid bounded shop settings')
 
     def __getattr__(self, name):
         try:
@@ -845,7 +850,8 @@ def team_state(record, controls):
             'numbers': assignment_numbers(records, boxes, size)}
 
 
-def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2):
+def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
+               reserve_coins=0, policy='manual', learning=None):
     """What the shop page offers and the one input a shop visit may spend.
 
     A shop is spent from by reading its own page: every offer prints its name and
@@ -892,7 +898,11 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2):
         reason = 'shop_currency_not_read'
     else:
         affordable = [offer for offer in wanted_offers_now
-                      if offer.price is not None and offer.price <= cash]
+                      if offer.price is not None and offer.price <= cash-reserve_coins]
+        policy_trace=None
+        if policy=='learned':
+            from .shop_learning import rank_offers
+            affordable,policy_trace=rank_offers(affordable,learning or [])
         if affordable:
             offer = affordable[0]
             buy = {'box': list(offer.click), 'name': offer.name, 'price': offer.price,
@@ -911,11 +921,15 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2):
                     and refreshes_used < refresh_limit
                     and plain is not None and plain.box is not None
                     and plain.cost is not None and cash is not None
-                    and cash >= 2 * plain.cost)
+                    and cash >= 2 * plain.cost and cash-plain.cost>=reserve_coins)
+        if worth_it and policy=='learned':
+            from .shop_learning import refresh_decision
+            worth_it,policy_trace=refresh_decision(learning or [],policy_trace)
         if worth_it:
             refresh = {'box': list(plain.box), 'cost': plain.cost,
                        'reason': 'no_offer_matches_the_gift_plan_yet'}
     return {'currency': cash, 'buy': buy, 'refresh': refresh,
+            'policy_trace':locals().get('policy_trace'),
             'confirm': purchase_confirm_target(records, size), 'reason': reason,
             'wanted': list(wanted),
             'offers': [{'index': offer.index, 'name': offer.name, 'price': offer.price,
@@ -1205,6 +1219,23 @@ class MirrorRunner:
         self.last_event = name
         if self.journal is not None:
             self.journal.record(name, **fields)
+        labels={'MAP':'地图','NODE_PANEL':'节点进入','PRE_BATTLE_TEAM':'核对保存编队',
+                'BATTLE_HUD':'战斗','BATTLE_PLANNING':'战斗配卡','SHOP':'商店',
+                'SHOP_PURCHASE':'商店购买确认','GIFT_PICK':'选择藏品','GIFT_GET':'藏品到账',
+                'THEME_PACKS':'选择下一层','RUN_CLAIM':'通关结果'}
+        message=None
+        if name=='window_intent' and fields.get('page')!=getattr(self,'_ui_phase',None):
+            self._ui_phase=fields.get('page')
+            message='当前阶段：'+labels.get(self._ui_phase,str(self._ui_phase))
+        elif name=='window_map_retry':
+            message='地图候选未打开节点，尝试另一候选；次数='+str(fields.get('attempt'))
+        elif name=='unknown_exploration_intent':
+            message='有界探索：'+str((fields.get('candidate') or {}).get('kind'))
+        elif name=='shop_receipt_verified':
+            message='商店交易已核对金币与完整货架后继：'+str(fields.get('kind'))
+        if message:
+            try:print('MaaLimbus '+message+'。',flush=True)
+            except (OSError,UnicodeError):pass
 
     def locale_dictionary(self):
         """The label patterns of this run's language, loaded once.
@@ -1496,18 +1527,34 @@ class MirrorRunner:
             if not shop_tx.data['visits'][visit].get('closed'):
                 shop_tx.close_visit(self.run_id,visit,frame_file(directory))
         if page in ('SHOP', 'SHOP_PURCHASE'):
+            names=wanted_gifts(state['gift_plan'],settings.gift_keyword,fallback=())
+            keywords=[]
+            if self.store is not None:
+                from .storage import ProfileStore
+                from .gift_plan import shop_wanted
+                from .gift_vision import GiftCatalog
+                profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
+                              if p.slot==self.store.team_slot),None)
+                if profile is None:raise ValueError('Current saved shop team absent')
+                names=shop_wanted(profile,GiftCatalog(ROOT/'assets/resource/base'))
+                keywords=sorted(profile.keywords)
+                self.note('shop_saved_team_plan',team=profile.slot,keywords=keywords,
+                          wanted=names,blocked=sorted(profile.block),input_sent=False)
             try:
                 if shop_tx is None:
                     raise ValueError('shop_transaction_scope_missing')
                 d=shop_tx.data
                 if d and d.get('pending') and page=='SHOP':
                     reconcile=(shop_tx.reconcile_purchase if d['pending']['kind']=='purchase' else shop_tx.reconcile_refresh)
+                    kind=d['pending']['kind']
                     reconcile(self.run_id,d['current_visit'],frame_file(directory))
+                    self.note('shop_receipt_verified',kind=kind,input_sent=False)
                 d=shop_tx.data
                 if page=='SHOP':
                     visit=(d['current_visit'] if d and not d['visits'][d['current_visit']].get('closed')
                            else str(len(d['visits'])+1 if d else 1))
-                    shop_tx.begin_visit(self.run_id,visit,frame_file(directory))
+                    shop_tx.begin_visit(self.run_id,visit,frame_file(directory),
+                        learning_context=dict(keywords=keywords,wanted=sorted(names),reserve_coins=settings.shop_reserve_coins))
                 else:
                     if not d or not d.get('pending') or d['pending']['kind']!='purchase' or d['pending']['stage']!='card_intent':
                         raise ValueError('shop_purchase_question_has_no_unsent_matching_intent')
@@ -1517,21 +1564,19 @@ class MirrorRunner:
             except (ValueError,OSError) as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
-            names=wanted_gifts(state['gift_plan'],settings.gift_keyword,fallback=())
-            if self.store is not None:
-                from .storage import ProfileStore
-                from .gift_plan import shop_wanted
-                from .gift_vision import GiftCatalog
-                profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
-                              if p.slot==self.store.team_slot),None)
-                if profile is None:raise ValueError('Current saved shop team absent')
-                names=shop_wanted(profile,GiftCatalog(ROOT/'assets/resource/base'))
-                self.note('shop_saved_team_plan',team=profile.slot,keywords=sorted(profile.keywords),
-                          wanted=names,blocked=sorted(profile.block),input_sent=False)
+            learning=[]
+            try:
+                from .shop_learning import sync_receipts
+                learning=sync_receipts(shop_tx,self.store.path.parent.parent/'build/learning-review/shop',names,keywords)
+            except (ValueError,OSError) as error:
+                self.note('shop_learning_unavailable',reason=str(error),input_sent=False)
             shop = shop_state(record, names,
                               bought=[entry['name'] for entry in state['shop_bought']],
                               refreshes_used=state['shop_refreshes'],
-                              refresh_limit=settings.shop_refreshes)
+                              refresh_limit=settings.shop_refreshes,reserve_coins=settings.shop_reserve_coins,
+                              policy=settings.shop_policy,learning=learning)
+            self.note('shop_policy',mode=settings.shop_policy,refresh_limit=settings.shop_refreshes,
+                      reserve_coins=settings.shop_reserve_coins,decision=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP_PURCHASE' and shop:
                 from .shop_vision import matching_purchase_question
                 pending=shop_tx.data['pending']
@@ -1952,9 +1997,9 @@ class MirrorRunner:
                 'confirming_the_purchase_the_shop_asked_about'):
             visit=shop_tx.data['current_visit']
             if plan['reason']=='buying_the_gift_the_gift_plan_asked_for':
-                target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory))
+                target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),reserve_coins=settings.shop_reserve_coins)
             elif plan['reason']=='refreshing_the_shelf_for_the_gift_the_plan_wants':
-                target=shop_tx.reserve_refresh(self.run_id,visit,plan['detail']['cost'],shop['currency'],settings.shop_refreshes,frame_file(directory))
+                target=shop_tx.reserve_refresh(self.run_id,visit,plan['detail']['cost'],shop['currency'],settings.shop_refreshes,frame_file(directory),reserve_coins=settings.shop_reserve_coins)
             else:
                 target=shop_tx.reserve_confirm(self.run_id,visit,frame_file(directory))
             if list(target)!=list(plan['target']):
@@ -2031,7 +2076,9 @@ class MirrorRunner:
         # live probe found the game already on MAP — so the run had stopped on a page
         # that was merely still loading.
         patient = plan.get('reason') == 'the_floor_theme_pack_is_pulled_down_to_be_taken'
-        settle_budget = max(1, settings.unknown_rounds if patient or page=='MAP' else settings.rounds)
+        settle_budget = max(1, settings.unknown_rounds if patient else
+                            min(6,settings.unknown_rounds) if page=='MAP' else settings.rounds)
+        map_successor_reads=0
         for index in range(settle_budget):
             if index:
                 time.sleep(settings.interval)
@@ -2039,6 +2086,8 @@ class MirrorRunner:
             settled_page = resolve_scene(self.registry, directory, settled)
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
+                map_successor_reads=map_successor_reads+1 if settled_page=='MAP' else 0
+                if map_successor_reads>=2:break  # Proven unchanged map: try another bounded candidate.
                 continue
             if patient and settled_page=='MAP':
                 from .theme_vision import ThemeCatalog
@@ -2729,6 +2778,10 @@ def build_parser(defaults=None):
                         help='what to do on the gift-search page')
     parser.add_argument('--shop-refreshes', type=int, default=defaults['shop_refreshes'],
                         help='how many plain shelf refreshes one shop visit may pay for')
+    parser.add_argument('--shop-policy',choices=('manual','learned'),default=defaults['shop_policy'],
+                        help='rules or observed shelf-yield learning, always within player caps')
+    parser.add_argument('--shop-reserve-coins',type=int,default=defaults['shop_reserve_coins'],
+                        help='minimum run coins preserved after purchases and refreshes')
     parser.add_argument('--loop-guard', type=int, default=defaults['loop_guard'],
                         help='how many times one plan may repeat before stopping')
     parser.add_argument('--claim-tries', type=int, default=defaults['claim_tries'],

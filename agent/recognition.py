@@ -1302,9 +1302,13 @@ def loop_parameters(params):
     if launch_path.exists():
         saved_launch = read_json(launch_path)
         chosen.update({key: saved_launch[key] for key in
-                       ('graces','grace_budget','gift_keyword','gift_search','battle_assignment') if key in saved_launch})
+                       ('graces','grace_budget','gift_keyword','gift_search','battle_assignment',
+                        'shop_policy','shop_refreshes','shop_reserve_coins') if key in saved_launch})
     chosen.update(loop_environment())
     chosen.update({key: value for key, value in params.items() if key in known})
+    from maalimbus.shop_settings import resolve_shop_settings,FIELDS
+    shops=resolve_shop_settings({key:chosen[key] for key in FIELDS if key in chosen},{})
+    chosen.update({key:shops[key] for key in FIELDS})
     ignored = sorted(set(params) - known - set(LOOP_EXTRA_PARAMS))
     return runner.settings(chosen), ignored
 
@@ -1587,6 +1591,10 @@ class MainTaskAction(CustomAction):
                     from maalimbus.mirror_task_options import collect as collect_task_options
                     loop_params=dict(node['action']['param']['custom_action_param'])
                     loop_params.update(collect_task_options(context.get_node_data))
+                    from maalimbus.shop_settings import FIELDS
+                    for name,field in zip(('MirrorShopPolicy','MirrorShopRefreshLimit','MirrorShopCoinReserve'),FIELDS):
+                        choice=context.get_node_data(name)['attach'][field]
+                        if choice!='saved':loop_params[field]=choice
                     selected=SimpleNamespace(custom_action_param=json.dumps(loop_params),node_name='MirrorLoop')
                     return MirrorLoopAction(self.recognition).run(context,selected)
                 observer=runner.MaaObserver(AgentTasker(context),directory)

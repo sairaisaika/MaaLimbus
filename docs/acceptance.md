@@ -1308,3 +1308,19 @@ Evidence: build/lux-navigation-installed-verification.json and
 build/installed-lux-navigation-native-verification.json. Native GUI interaction,
 restart, actual Lux menu navigation/stage/farming and public updates remain open.
 No game/controller input, private budget change, payout or Release occurred.
+
+## October12 shop and real GUI regression boundary
+
+The actual installed GUI Start reached MirrorTask/MainTask and exposed a map
+observer NameError, repaired and replayed through the complete native Agent
+observer on retained actual frames. The resumed task is still on floor2. This
+proves real dispatch and regression diagnosis, not dungeon completion. Candidate
+priority replay/masked negatives do not prove a live node panel.
+
+Three independent native shop settings reach Runner; reserve is checked before
+durable purchase/refresh intents. Focused225 tests pass. Actual shop dialog,
+named GET acknowledgment, coin delta, refreshed shelf, skill replacement and
+full-run reward/HOME are still required. A trained neural research model has
+known native quality failures, so its predictions remain shadow proposals and
+not ground truth or device-input authority. Continuation is explicitly delegated
+to DSH with a task-board plan in docs/DEEPSEEK_CONTINUATION.md.

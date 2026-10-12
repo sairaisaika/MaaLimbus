@@ -113,7 +113,8 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
                for i in range(1,41))
     assert 'team_keywords' not in tasks['mirror_loop']['option']
     assert tasks['mirror_loop']['option']==['mirror_team_mode','mirror_star_source',
-        'mirror_initial_keyword','mirror_gift_search','mirror_run_bounds','mirror_preferences','mirror_battle_assignment']
+        'mirror_initial_keyword','mirror_gift_search','mirror_shop_policy','mirror_shop_refresh_limit',
+        'mirror_shop_coin_reserve','mirror_run_bounds','mirror_preferences','mirror_battle_assignment']
     assert 'TeamBuildSave' not in tasks['mirror_loop'].get('pipeline_override', {})
 
 
