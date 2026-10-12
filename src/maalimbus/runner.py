@@ -1691,7 +1691,7 @@ class MirrorRunner:
                 from .shop_vision import matching_purchase_question
                 pending=shop_tx.data['pending']
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
-                shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'])
+                shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending['coins'])
             self.note('shop_offers', currency=shop['currency'] if shop else None,
                       reason=shop['reason'] if shop else 'shop_page_not_read',
                       buy=shop['buy'] if shop else None,

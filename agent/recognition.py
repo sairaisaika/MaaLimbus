@@ -355,6 +355,10 @@ class LimbusRecognition(CustomRecognition):
             from maalimbus.shop_native import repair_refresh_cost
             records,shop_local=repair_refresh_cost(context.run_recognition_direct,image,records)
             local.extend(shop_local)
+        if scene=='SHOP_PURCHASE':
+            from maalimbus.shop_native import repair_purchase_balances
+            records,shop_local=repair_purchase_balances(context.run_recognition_direct,image,records)
+            local.extend(shop_local)
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
         from maalimbus.overlay_dismissal import recognize as recognize_overlay

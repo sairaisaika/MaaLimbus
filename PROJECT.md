@@ -1728,3 +1728,23 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   real store copy end to end without touching it. `tests/test_floor_gifts.py` gained
   the labelled-substitution, repeated-notice, stray-notice, retained-name and
   changed-image tests. Whole suite `1423 passed, 1 skipped` in 85.83 s.
+
+## Continuation: October 12 actual Purchase modal
+
+- `dist/MaaLimbus/evidence/runtime/pi-20261012-170045` stopped after 58
+  inputs on frame 0239: the Purchase modal was classified as SHOP because the
+  earlier detector expected Confirm. The runner then checked a post-purchase
+  coin delta before Purchase had been sent. The existing card intent remains
+  pending; it is not a failed paid purchase or an unknown gift effect.
+- Added the actual native `Purchase E.G.O Gifts` / `Purchase` / `X Cancel`
+  layout. The full selected name plus two independently read balance crops
+  bind the pending offer: Devil's Share, 2707 -> 2563, price 144. Descriptive
+  effect text is not a purchase prerequisite. GIFT_GET is a valid confirmation
+  successor; only the later shelf reconciliation books the purchased gift.
+- `build/shop-purchase-dialog-native-replay/verification.json` uses the real
+  Agent observer and retained PNG, with changed price/title and masked balance
+  negatives. An isolated copy reserves one confirmation and rejects a duplicate;
+  the authoritative transaction hash remains unchanged, with zero device input.
+  Related purchase/shelf/transaction/floor-receipt tests: 83 passed in 7.96 s.
+- Actual fresh Purchase -> GET -> shelf receipt and GUI Start continuation remain
+  required. Offline replay is not a completed purchase or whole-run acceptance.

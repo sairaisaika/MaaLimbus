@@ -308,7 +308,7 @@ class ShopTransaction:
             raise ValueError('Shop Confirm already reserved; never repeat')
         if record.get('scene') != 'SHOP_PURCHASE':
             raise ValueError('Independent shop purchase question required')
-        target = matching_purchase_question(texts, pending['name'], pending['price'], size)
+        target = matching_purchase_question(texts, pending['name'], pending['price'], size, coins=pending['coins'])
         if target is None:
             raise ValueError('Full matching purchase title/price/question not proven')
         data = copy.deepcopy(self.data)

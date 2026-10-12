@@ -566,7 +566,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         confirm = (shop or {}).get('confirm')
         if confirm:
             return _plan(page, CLICK, target=confirm,
-                         expect=('SHOP', 'SHOP_PURCHASE', 'MAP', 'UNKNOWN'),
+                         expect=('SHOP', 'SHOP_PURCHASE', 'GIFT_GET', 'MAP', 'UNKNOWN'),
                          reason='confirming_the_purchase_the_shop_asked_about')
         if page == 'SHOP_PURCHASE':
             # A purchase question is up and its Confirm was not read: buying, refreshing

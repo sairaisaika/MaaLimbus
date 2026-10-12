@@ -253,6 +253,25 @@ CONFIRM_ROI = (0.50, 0.58, 0.70, 0.80)
 CANCEL_ROI = (0.31, 0.58, 0.50, 0.80)
 
 
+def native_purchase_dialog(records,size=None):
+    """The real modal printed Purchase, not Confirm. Effects are not anchors."""
+    from .vision import find
+    size=size or REFERENCE
+    title=find(records,r'^Purchase E\.G\.O Gifts$',(.32,.20,.55,.27),size,.9)
+    buy=find(records,r'^Purchase$',CONFIRM_ROI,size,.9)
+    cancel=find(records,r'^[X×]?\s*Cancel$',CANCEL_ROI,size,.9)
+    return dict(title=title[0],purchase=buy[0],cancel=cancel[0]) if len(title)==len(buy)==len(cancel)==1 else None
+
+
+def purchase_balances(records,size=None):
+    from .vision import find
+    size=size or REFERENCE
+    before=find(records,r'^\d{1,4}$',(.639,.213,.672,.251),size,.9)
+    after=find(records,r'^\d{1,4}$',(.679,.213,.711,.251),size,.9)
+    if len(before)!=1 or len(after)!=1:return None
+    return int(before[0].text),int(after[0].text)
+
+
 def purchase_confirm_target(records, size=None, require_offers=True):
     """The Confirm of the shop's own purchase dialog, read off the frame.
 
@@ -269,6 +288,8 @@ def purchase_confirm_target(records, size=None, require_offers=True):
     """
     from .vision import find
 
+    dialog=native_purchase_dialog(records,size)
+    if dialog is not None:return list(dialog['purchase'].box)
     if require_offers and not offers(records, size):
         return None
     confirm = find(records, r'^Confirm$', CONFIRM_ROI, size, .9)
@@ -278,7 +299,7 @@ def purchase_confirm_target(records, size=None, require_offers=True):
     return list(confirm[0].box)
 
 
-def matching_purchase_question(records, name, price, size=None, threshold=.9):
+def matching_purchase_question(records, name, price, size=None, threshold=.9, coins=None):
     """Return a Confirm only for a complete question naming the reserved offer.
 
     The older ``purchase_confirm_target`` is a scene detector, not authorization.
@@ -293,6 +314,16 @@ def matching_purchase_question(records, name, price, size=None, threshold=.9):
     if not isinstance(name, str) or not name.strip() or type(price) is not int or price <= 0:
         return None
     size = size or REFERENCE
+    dialog=native_purchase_dialog(records,size)
+    if dialog is not None:
+        normalized=lambda text:re.sub(r'\s+',' ',text).strip().casefold()
+        names=find(records,r'.+',(.26,.51,.41,.59),size,threshold)
+        names=[r for r in names if normalized(r.text)==normalized(name)]
+        balances=purchase_balances(records,size)
+        if (len(names)==1 and balances and balances[0]-balances[1]==price and balances[1]>=0
+                and (coins is None or balances[0]==coins)):
+            return list(dialog['purchase'].box)
+        return None
     target = purchase_confirm_target(records, size, require_offers=False)
     if target is None:
         return None

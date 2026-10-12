@@ -269,6 +269,9 @@ def classify(records, locale, size):
     # purchase (or a refresh, or Leave) behind it: its plan then sends only the
     # Confirm it read off the frame.
     # Live evidence pending: the first purchase this project sends is that frame.
+    from .shop_vision import native_purchase_dialog
+    if native_purchase_dialog(records,size) is not None:
+        return 'SHOP_PURCHASE'
     if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
         and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)
         and find(records, locale['gift_confirm'], PURCHASE_CONFIRM_ROI, size, .9)

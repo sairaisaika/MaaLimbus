@@ -1569,3 +1569,13 @@ and HOME. No purchase, private budget change or Release occurred.
 - Still required: the live run that books this pending receipt on the reward page and carries
   `pre_battle_identity_report`, the GET-overlay acknowledgement bound to a real purchase, and a full
   floor 2→5 run.
+
+### October 12 Purchase modal repair
+
+Actual retained frame 0239 of `pi-20261012-170045` replays through the native
+Agent as SHOP_PURCHASE. Full selected title and independent before/after balance
+crops prove Devil's Share for 144 (2707 -> 2563), without requiring effect text.
+Changed title/price and masked balance refuse; isolated pending confirmation is
+reserved once and duplicate refused. Authoritative transaction unchanged; zero
+device input. 83 related tests passed. This does not yet prove the live Purchase,
+GET acknowledgement, shelf receipt, GUI continuation, or whole five-floor run.
