@@ -20,6 +20,7 @@ is `tests/test_window.py`):
 """
 import ast
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -30,7 +31,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.runner import (FakeDevice, FrameObserver, MaaDevice,  # noqa: E402
-                              MirrorRunner, REGISTRY)
+                              MirrorRunner, REGISTRY, candidates_of, header_chrome,
+                              inside_chrome)
 
 # A live window whose first pages are the run summary's claim: frame-0001 is RUN_CLAIM,
 # and the plan's one input is the Claim button the anchors prove at [1638, 855, 180, 80].
@@ -258,3 +260,374 @@ def test_stop_page_prevents_the_first_input_on_that_page(tmp_path):
     result=runner.step()
     assert result['done'] and result['stopped']=='stop_page_reached'
     assert not result['input_sent'] and device.clicks==[]
+
+
+class Notes:
+    """The journal surface the runner uses, recording instead of writing a file."""
+
+    def __init__(self):
+        self.events=[]
+
+    def record(self,event,**details):
+        self.events.append((event,details))
+
+
+def test_a_swallowed_click_is_retried_before_the_run_gives_up(tmp_path):
+    # Live 2026-10-12: the packaged application sent the DUNGEON_TEAM slot click
+    # through `adb shell input tap`, MaaFramework reported it as succeeded, and the
+    # page never moved, so the run ended on its first step. The same page served five
+    # times is what a swallowed tap looks like offline: identical pixels, identical
+    # OCR, and a plan whose `advance` claimed something had to change.
+    frames=[archived(CLAIM_FRAME) for _ in range(6)]
+    device=FakeDevice(frames)
+    observer=FrameObserver(tmp_path,[str(CLAIM_FRAME)]*6)
+    notes=Notes()
+    runner=MirrorRunner(device,settings={'rounds':1,'interval':0.0,'page_tries':2},
+                        registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                        directory=tmp_path,observer=observer,journal=notes)
+    result=runner.run(steps=4,interval=0.0,round_limit=4)
+
+    # The click was retried once (page_tries) and only then did the run stop, so two
+    # inputs went out instead of the single one the user's run managed.
+    assert result['passed'] is False
+    assert result['reason']=='unexpected_successor'
+    assert result['clicks_sent']==2
+    assert len(device.clicks)==2
+    assert [entry['stopped'] for entry in result['steps']]==[
+        'click_was_swallowed_by_the_game','unexpected_successor']
+    assert [entry['passed'] for entry in result['steps']]==[False,False]
+    # The retry is named with the installation's input posture, which is the fact the
+    # person reading the log needs: a healthy framework line means look at the box.
+    swallowed=[details for event,details in notes.events if event=='window_click_swallowed']
+    assert len(swallowed)==1
+    assert swallowed[0]['attempt']==1 and swallowed[0]['reason']==CLAIM_REASON
+    assert swallowed[0]['input_helpers'].startswith('input helpers:')
+
+
+# The live Grace page of 2026-10-12 01:50: frame-0001 reads every price once, and
+# frame-0005 is the frame the device handed back right after a purchase re-rendered a
+# price, where that price reads twice.
+GRACE_DIR = ROOT / 'evidence/runtime/window-20261012-015054'
+GRACE_CLEAN = GRACE_DIR / 'frame-0001.json'
+GRACE_REREAD = GRACE_DIR / 'frame-0005.json'
+GRACE_REASON = 'grace_card_is_bought_within_the_available_starlight'
+
+
+def grace_window(tmp_path, frames, settings, monkeypatch, reading, notes=None):
+    """A Grace-page runner whose counter reading is the case's own."""
+    import maalimbus.runner as runner_module
+    monkeypatch.setattr(runner_module, 'available_starlight', reading)
+    device = FakeDevice([archived(frame) for frame in frames])
+    observer = FrameObserver(tmp_path, [str(frame) for frame in frames])
+    runner = MirrorRunner(device, settings=settings, registry=json.loads(
+        REGISTRY.read_text(encoding='utf-8')), directory=tmp_path, observer=observer,
+        journal=notes if notes is not None else Notes())
+    return runner, device
+
+
+def test_a_grace_page_that_reads_nothing_is_reread_before_the_run_gives_up(tmp_path,
+                                                                         monkeypatch):
+    # The counter and the prices are read from the newest frame on every round, so a
+    # frame that proves nothing is a frame rather than a page: live 2026-10-12 01:50 the
+    # run stopped on 'configured_grace_costs_not_proven' because the frame taken right
+    # after a purchase carried one price twice. The run spends a bounded round re-reading
+    # instead of ending there, and then buys exactly as it would have.
+    if not GRACE_CLEAN.exists():
+        pytest.skip('retained live grace-page evidence is not present')
+    from maalimbus import runner as runner_module
+    real = runner_module.available_starlight
+    calls = []
+    def flaky(records, size, **options):
+        calls.append(1)
+        return None if len(calls) == 1 else real(records, size, **options)
+    runner, device = grace_window(tmp_path, [GRACE_CLEAN, GRACE_CLEAN, GRACE_REREAD,
+                                             GRACE_REREAD],
+                                  {'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                   'graces': '2', 'grace_budget': 100},
+                                  monkeypatch, flaky)
+    result = runner.run(steps=1, interval=0.0, round_limit=2)
+
+    assert len(calls) == 2, 'the unreadable round must not spend the run'
+    assert result['passed'] is True
+    assert result['reason'] == 'window_steps_passed'
+    assert result['clicks_sent'] == 1
+    assert [entry['reason'] for entry in result['steps']] == [GRACE_REASON]
+
+
+def test_a_grace_page_that_never_reads_still_stops_on_its_own_reason(tmp_path, monkeypatch):
+    # page_tries bounds the wait, so a page that never reads stops with the reason the
+    # log has always shown and no input is sent at a page the run could not read.
+    if not GRACE_CLEAN.exists():
+        pytest.skip('retained live grace-page evidence is not present')
+    calls = []
+    def unreadable(records, size, **options):
+        calls.append(1)
+        return None
+    runner, device = grace_window(tmp_path, [GRACE_CLEAN] * 4,
+                                  {'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                   'graces': '2'},
+                                  monkeypatch, unreadable)
+    result = runner.run(steps=2, interval=0.0, round_limit=4)
+
+    assert len(calls) == 2
+    assert result['passed'] is False
+    assert result['reason'] == 'starlight_available_balance_not_proven'
+    assert result['clicks_sent'] == 0
+    assert device.clicks == []
+    assert [entry['stopped'] for entry in result['steps']] == \
+        ['starlight_available_balance_not_proven']
+
+
+def test_a_configured_set_the_page_cannot_pay_for_narrows_and_leaves_the_page(tmp_path,
+                                                                              monkeypatch):
+    # The live 01:56 run bought 2,4,5 and then refused the Graces page forever, because
+    # that page offered 60 starlight and the configured set costs 100. A wish list the
+    # page cannot pay for narrows onto the prefix this run already paid for, so the run
+    # reaches the page's own Enter instead of stopping on a count it can never satisfy.
+    if not GRACE_CLEAN.exists():
+        pytest.skip('retained live grace-page evidence is not present')
+    from types import SimpleNamespace
+    import maalimbus.runner as runner_module
+    from maalimbus.storage import RunStore
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    (tmp_path / 'user-grace-transaction.json').write_text(json.dumps(dict(
+        scope=scope, requested=[2, 4, 5, 7], budget=100, selected=[2, 4, 5], spent=60,
+        available=0, pending=None, proofs=['entry'])), encoding='utf-8')
+    notes = Notes()
+    device = FakeDevice([archived(GRACE_CLEAN) for _ in range(4)])
+    observer = FrameObserver(tmp_path, [str(GRACE_CLEAN)] * 4)
+    monkeypatch.setattr(runner_module, 'available_starlight', lambda records, size, **o: 0)
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                            'graces': '2,4,5,7', 'grace_budget': 100},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    result = runner.run(steps=1, interval=0.0, round_limit=1)
+
+    # The step is the page's own Enter: the run was stopped by the offline frame that
+    # never moves, not by the count.
+    assert result['clicks_sent'] == 1
+    assert result['steps'][0]['plan']['reason'] == 'the_graces_page_is_left_with_its_own_enter'
+    assert result['steps'][0]['stopped'] == 'unexpected_successor'
+    assert runner.state['grace_wanted'] == [2, 4, 5]
+    written = json.loads((tmp_path / 'user-grace-transaction.json').read_text(encoding='utf-8'))
+    assert written['requested'] == [2, 4, 5]
+    assert written['affordable_plan']['previous_requested'] == [2, 4, 5, 7]
+    narrowed = [details for event, details in notes.events
+                if event == 'grace_selection_narrowed_to_the_affordable_prefix']
+    assert len(narrowed) == 1
+    assert narrowed[0]['requested'] == [2, 4, 5, 7] and narrowed[0]['affordable'] == [2, 4, 5]
+    assert narrowed[0]['unaffordable'] == [7]
+
+
+# The floor theme pack is pulled down and the game answers with one empty frame before
+# the map is drawn: frame-0020 of this window carries no text at all, while the next
+# probe of the same device found the game already on MAP with the pulled pack on it.
+THEME_DIR = ROOT / 'evidence/runtime/window-20261012-021508'
+THEME_PAGE = THEME_DIR / 'frame-0019.json'
+THEME_LOADING = THEME_DIR / 'frame-0020.json'
+THEME_MAP = ROOT / 'evidence/runtime/window-20261012-022123/frame-0001.json'
+THEME_REASON = 'the_floor_theme_pack_is_pulled_down_to_be_taken'
+
+
+def test_the_theme_pull_waits_out_the_empty_frame_before_it_judges(tmp_path):
+    # The live 02:17 run pulled the pack, read the empty loading frame two seconds later
+    # and stopped with 'Selected theme successor map floor/name is not proven' — but the
+    # pull had worked and the map was on its way. The step reads its successor on the
+    # unknown budget and keeps waiting while the page it cannot name changes, so the
+    # map the pull really earned is what proves it.
+    for frame in (THEME_PAGE, THEME_LOADING, THEME_MAP):
+        if not frame.exists():
+            pytest.skip('retained live theme-page evidence is not present')
+    import shutil
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    shutil.copyfile(ROOT / 'config/user-team-profiles.json',
+                    tmp_path / 'user-team-profiles.json')
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    frames = [THEME_PAGE, THEME_LOADING, THEME_LOADING, THEME_MAP, THEME_MAP, THEME_MAP]
+    device = FakeDevice([archived(frame) for frame in frames])
+    observer = FrameObserver(tmp_path, [str(frame) for frame in frames])
+    notes = Notes()
+    runner = MirrorRunner(device,
+                          settings={'rounds': 1, 'unknown_rounds': 6, 'interval': 0.0,
+                                    'page_tries': 2, 'grace_budget': 100},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    result = runner.run(steps=1, interval=0.0, round_limit=1)
+
+    assert result['clicks_sent'] == 1
+    assert result['steps'][0]['plan']['reason'] == THEME_REASON
+    assert result['steps'][0]['page_after'] == 'MAP'
+    assert result['passed'] is True and result['reason'] == 'window_steps_passed'
+    written = json.loads((tmp_path / 'user-theme-transaction.json').read_text(encoding='utf-8'))
+    assert written['pending'] is None
+    assert [entry['floor'] for entry in written['selected']] == [1]
+    assert written['selected'][0]['name'] == 'To be Cleaved'
+
+
+# The pre-battle participant counter rolls up while it changes and one settled frame can
+# be read without it: frame-0026 of this window is a PRE_BATTLE_TEAM frame whose counter
+# band carried only the 'Chai' label under it, while the frames either side read 7/12.
+DEPLOY_DIR = ROOT / 'evidence/runtime/window-20261012-022454'
+DEPLOY_NO_COUNTER = DEPLOY_DIR / 'frame-0026.json'
+
+
+def test_a_pre_battle_frame_without_its_counter_is_reread(tmp_path):
+    # The live 02:26 run stopped on 'Deployment successor participant count not proven'
+    # after a card click whose settled frame simply had no counter in it, so the run
+    # spends a bounded round re-reading instead of ending the run on that one frame.
+    if not DEPLOY_NO_COUNTER.exists():
+        pytest.skip('retained live pre-battle evidence is not present')
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    frames = [DEPLOY_NO_COUNTER] * 4
+    device = FakeDevice([archived(frame) for frame in frames])
+    observer = FrameObserver(tmp_path, [str(frame) for frame in frames])
+    notes = Notes()
+    runner = MirrorRunner(device,
+                          settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    result = runner.run(steps=4, interval=0.0, round_limit=4)
+
+    rereads = [details for event, details in notes.events
+               if event == 'deployment_counter_reread']
+    assert len(rereads) == 1, 'the missing counter is a frame, not the end of the run'
+    assert rereads[0]['reason'] == 'deployment_counter_not_read'
+    assert result['passed'] is False
+    assert result['reason'] == 'deployment_transaction_or_counter_missing'
+    assert device.clicks == []
+
+
+# The map page's own chrome is not a node. This window's frame-0021 was taken with the
+# view pulled away from the nodes, and the only lit glyph left sat inside the
+# "Exploring Floor 1" caption: the journal's window_intent asks for [278, 132, 40, 40],
+# which the game ignores, so the run burned its map tries on the caption and on plain
+# lattice guesses. A real node never overlaps those captions.
+MAP_PANNED = ROOT / 'evidence/runtime/window-20261012-022147'
+MAP_CHROME = [[58, 129, 334, 47], [62, 186, 136, 28]]
+MAP_CHROME_CANDIDATE = [278, 132, 40, 40]
+MAP_LATTICE_CANDIDATE = [1521, 307, 190, 190]
+
+
+def test_the_pages_own_header_is_not_a_node_to_step_to():
+    record = json.loads((MAP_PANNED / 'frame-0021.json').read_text(encoding='utf-8'))
+    chrome = header_chrome(record)
+    assert [list(box) for box in chrome] == MAP_CHROME
+    assert inside_chrome(MAP_CHROME_CANDIDATE, chrome) is True
+    assert inside_chrome(MAP_LATTICE_CANDIDATE, chrome) is False
+
+
+def test_a_map_candidate_under_the_header_is_dropped(tmp_path):
+    directory = tmp_path / 'runtime'
+    directory.mkdir()
+    shutil.copy(MAP_PANNED / 'frame-0021.png', directory / 'frame-0021.png')
+    record = json.loads((MAP_PANNED / 'frame-0021.json').read_text(encoding='utf-8'))
+
+    name, boxes = candidates_of(directory, record)
+
+    assert name == 'frame-0021.png'
+    assert MAP_CHROME_CANDIDATE not in boxes, 'the caption is chrome, not a step'
+    assert MAP_LATTICE_CANDIDATE in boxes, 'the rest of the ordering is untouched'
+
+
+
+
+# The game keeps the previous encounter's deployment, so the page the driver meets on the
+# second battle already prints the saved order (live window-20261012-023229/frame-0068
+# shows eight of them). The driver asks each card's own band and submits instead of
+# clearing the team and re-picking it.
+INHERITED_FRAME = ROOT / 'evidence/runtime/window-20261012-023229/frame-0068.json'
+INHERITED_REASON = 'battle_button_submits_the_team'
+CLEAR_REASON = 'clear_inherited_participant_order_before_saved_deployment'
+
+
+def saved_deployment_order():
+    from maalimbus.runtime_paths import data_directory
+    from maalimbus.storage import SINNERS, ProfileStore
+    profiles = ProfileStore(data_directory(ROOT) / 'user-team-profiles.json')
+    saved = next((team for team in profiles.load() if team.slot == 2), None)
+    assert saved is not None and saved.deployment, 'the saved team carries a deployment'
+    return [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
+
+
+def inherited_page(numbers, counter=(12, 12)):
+    """The live pre-battle frame, redrawn with its own counter and printed order."""
+    from maalimbus.runner import controls_by_id
+    from maalimbus.team_vision import assignment_box
+    record = json.loads(INHERITED_FRAME.read_text(encoding='utf-8'))
+    controls = controls_by_id(json.loads(REGISTRY.read_text(encoding='utf-8')))
+    bands = [assignment_box(controls.get('pre_battle.card_%02d' % index))
+             for index in range(1, 13)]
+    counter_roi = (1680, 738, 180, 92)
+
+    def inside(token, box):
+        x, y, w, h = box
+        cx, cy = token['box'][0] + token['box'][2] / 2, token['box'][1] + token['box'][3] / 2
+        return x <= cx <= x + w and y <= cy <= y + h
+
+    ocr = [token for token in record['ocr']
+           if not any(band and inside(token, band) for band in bands)
+           and not inside(token, counter_roi)]
+    for card, number in enumerate(numbers, start=1):
+        if number is None or not bands[card - 1]:
+            continue
+        x, y, w, h = bands[card - 1]
+        ocr.append({'text': str(number), 'box': [x, y, w, h], 'score': 1.0})
+    if counter:
+        ocr.append({'text': '%d / %d' % counter, 'box': list(counter_roi), 'score': 1.0})
+    record['ocr'] = ocr
+    record.pop('image', None)
+    return record
+
+
+def deployment_window(tmp_path, record):
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    image = archived(INHERITED_FRAME)
+    device = FakeDevice([image, image, image])
+    observer = FrameObserver(tmp_path, [record, record, record])
+    notes = Notes()
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    return runner, device, notes
+
+
+def test_a_page_that_already_prints_the_saved_order_goes_straight_to_battle(tmp_path):
+    if not INHERITED_FRAME.exists():
+        pytest.skip('retained live pre-battle evidence is not present')
+    order = saved_deployment_order()
+    numbers = [None] * 12
+    for position, card in enumerate(order, start=1):
+        numbers[card - 1] = position
+    runner, device, notes = deployment_window(tmp_path, inherited_page(numbers))
+    result = runner.run(steps=1, interval=0.0, round_limit=1)
+
+    assert result['steps'][0]['plan']['reason'] == INHERITED_REASON
+    assert all(step['plan']['reason'] != CLEAR_REASON for step in result['steps'])
+    assert runner.deployment_transaction.data['sequence'] == []
+    assert len(device.clicks) == 1, 'the only input is Battle!'
+
+
+def test_a_page_that_prints_another_order_is_cleared_before_the_saved_one(tmp_path):
+    if not INHERITED_FRAME.exists():
+        pytest.skip('retained live pre-battle evidence is not present')
+    order = saved_deployment_order()
+    shifted = [None] * 12
+    for position, card in enumerate(order, start=1):
+        shifted[card - 1] = position % 12 + 1
+    runner, device, notes = deployment_window(tmp_path, inherited_page(shifted))
+    result = runner.run(steps=1, interval=0.0, round_limit=1)
+    assert result['steps'][0]['plan']['reason'] == CLEAR_REASON
+    assert len(device.clicks) == 1

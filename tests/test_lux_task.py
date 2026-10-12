@@ -185,7 +185,7 @@ def test_prepare_idle_choice_preserves_other_task_queue_profiles_and_receipts(tm
     assert all((tmp_path/n).read_bytes()==b for n,b in before.items())
 
 
-@pytest.mark.parametrize('choice',[True,'2',0,21])
+@pytest.mark.parametrize('choice',[True,'2',0,41])
 def test_prepare_invalid_choice_does_not_materialize_preferences(tmp_path,choice):
     with pytest.raises(ValueError,match='choice'):prepare(tmp_path,'thread',choice)
     assert not list(tmp_path.iterdir())

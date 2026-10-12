@@ -1,9 +1,18 @@
 import pytest
-from maalimbus.team_vision import card_states, participants, team_row,team_header
+from maalimbus.team_vision import (assignment_numbers, card_states, carries_saved_order,
+                                   participants, team_row,team_header)
 from maalimbus.policies import Team
 from maalimbus.vision import Text,classify
 from test_vision import LOCALES
 import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+#: The live pre-battle card boxes, identical to `pre_battle.card_NN` in the registry.
+CARDS = [(355,236,190,248),(553,236,190,248),(750,236,190,248),(954,236,190,248),
+         (1148,236,190,248),(1345,236,190,248),(355,528,190,248),(553,528,190,248),
+         (750,528,190,248),(954,528,190,248),(1148,528,190,248),(1345,528,190,248)]
+SAVED = [3,4,9,1,7,2,12,5,8,10,11,6]
 
 
 @pytest.mark.parametrize('locale,name',[('en','TEAMS #2'),('jp','チーム #2')])
@@ -86,3 +95,46 @@ def test_card_state_needs_a_caption_inside_the_card():
     assert card_states(records, boxes, (1920, 1080)) == [None] * 12
     # A missing card box is reported as unknown rather than guessed at.
     assert card_states(records, [None] + boxes[1:], (1920, 1080)) == [None] * 12
+
+
+def test_the_print_on_a_live_card_is_its_place_in_the_deployment_order():
+    # window-20261012-023229/frame-0068 has eight cards in the team, each printing its
+    # place; the full-frame detector only found card 7's '6' and card 10's '8', which is
+    # why the driver asks every card's own band.
+    frame = ROOT / 'evidence/runtime/window-20261012-023229/frame-0068.json'
+    if not frame.exists():
+        pytest.skip('retained live pre-battle evidence is not present')
+    record = json.loads(frame.read_text(encoding='utf-8'))
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in record['ocr']]
+    numbers = assignment_numbers(records, CARDS, tuple(record['size']))
+    assert numbers[6] == 6, 'card 7 prints 6th'
+    assert numbers[9] == 8, 'card 10 prints 8th'
+    assert numbers.count(None) == 10, 'the other cards are unread rather than guessed'
+
+
+def test_every_card_prints_one_number_and_only_its_own():
+    records = []
+    for card, box in enumerate(CARDS, start=1):
+        from maalimbus.team_vision import assignment_box
+        x, y, w, h = assignment_box(box)
+        records.append(Text(str(card), (x + 4, y + 4, 30, 40), .97))
+    numbers = assignment_numbers(records, CARDS, (1920, 1080))
+    assert numbers == list(range(1, 13))
+    # A number counts only inside its own card's band, never on its neighbour.
+    from maalimbus.team_vision import assignment_box
+    x, y, w, h = assignment_box(CARDS[1])
+    assert assignment_numbers([Text('7', (x + 4, y + 4, 30, 40), .97)],
+                              CARDS, (1920, 1080)) == [None, 7] + [None] * 10
+
+
+def test_a_page_that_already_prints_the_saved_order_needs_no_clear():
+    numbers = [None] * 12
+    for position, card in enumerate(SAVED, start=1):
+        numbers[card - 1] = position
+    assert carries_saved_order(numbers, SAVED, (12, 12)) is True
+    assert carries_saved_order(numbers, SAVED, (8, 12)) is True
+    assert carries_saved_order(numbers, SAVED, (0, 12)) is False
+    # Another encounter's order, an unread page and a missing counter all fall back.
+    assert carries_saved_order(list(reversed(numbers)), SAVED, (12, 12)) is False
+    assert carries_saved_order([None] * 12, SAVED, (12, 12)) is False
+    assert carries_saved_order(numbers, SAVED, None) is False

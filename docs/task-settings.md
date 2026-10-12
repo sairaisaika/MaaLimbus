@@ -54,7 +54,7 @@ assuming nested action-param patches will deep-merge. An invalid run ledger now
 stops the loop before game input instead of allowing bookkeeping to be skipped.
 
 Mirror now references global builds through keep-current-rotation, single-team,
-or ordered-rotation selectors. Rotation length is 1..20 and positions are fixed
+or ordered-rotation selectors. Rotation length is 1..40 and positions are fixed
 team dropdowns; only the selected length applies. Changing the queue during an
 active run rejects without replacing ledger/preferences. Idle changes preserve
 completed receipts and retain the next saved team when it is still in the queue.
@@ -101,6 +101,19 @@ Only basic stars are supported: no Enhance or leftover conversion. The task
 budget defaults to zero. Source/native isolated persistence checks are complete;
 GUI rendering, installed editor restart and real automatic purchases remain
 unverified. The existing desktop and v0.1.1 draft do not contain this change.
+
+## Starlight selection narrows to what the page can pay (October12)
+
+Every source -- keep-current, follow-team, follow-task and automatic -- buys inside the
+page's own visible balance. When the configured set costs more than the page offers, the
+run seals the affordable prefix in configured order once, before any further purchase,
+and the cards it already paid for stay in that plan; what Enter verifies is that sealed
+plan, not the whole wish list. Live October12 01:56: `Available60` against the task's
+`2,4,5,7` (10+20+30+40=100) had bought 2,4,5 and then refused the page forever
+(`config/user-grace-transaction.json`: selected [2,4,5], spent 60). The run now leaves
+that page through its own Enter and continues into the run. Prices, the balance and
+pending inputs keep their veto: a page whose price or balance cannot be read is re-read
+once and then stops rather than guessed.
 ## Mirror task window options (October9)
 
 The Mirror task now exposes initial-gift system, gift-search refusal and bounded

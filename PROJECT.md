@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October12 user requests settings audit and script-owned Team22 Burn+Tremor
+  Mirror validation with corresponding sinner E.G.O loadouts/self-label NN.
+  Actual fresh TEAM_LIBRARY independently reads #22 and sidebar #33–40, confirms
+  forty slots. Expanded native source options/global/profile/queue/Lux checks to
+  forty; independent queue-target test and native22/40 Resource replay passed,
+  929Python61.04s/1symlink skip. Current runtime preflight is NOT ready:
+  incomplete inventory, absent identity/EGO executors, untrained/off model and
+  prior scope unsettled; build/team22-runtime-readiness.json. No game equipment,
+  entry or resource input. docs/team22-validation.md records acceptance and UI
+  findings. User opened installed settings; elevated MXU makes helper input
+  ineffective. Project UI patch uses normal privileges for MaaLimbus.exe while
+  preserving explicit Win32 administrator restart; real Rust build pending.
+  Keep installed running app unchanged until a verified safe replacement.
 - Latest October11 index supersedes the initial184-entry checkpoint below.
   Normal browser read of HuiJi Data:Personalities.json succeeded despite direct
   HTTP403; revision145235 has189 playable IDs/one NPC9999 excluded/no duplicate.
@@ -1366,3 +1379,33 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   theme/gift editors and actual installed interaction/restart remain open.
 - Current Team7 INITIAL_GIFTS and scope4734 remain unchanged, with no live runner.
   No repeated star/entry/Confirm or other game input. FGO untouched and deferred.
+## Continuation: October12 mirror loop repairs and packaging gate
+
+- Live runs on the real window (evidence/runtime/window-20261012-023229,
+  window-20261012-024300, logs build/live-deploy*.log) drove the deployment
+  transaction into two stop classes; both are repaired with tests. The
+  participant counter was read from a fixed ROI (1700,754,128,58) with
+  single-line recognition and returned nothing on three consecutive live frames
+  while 'Total Participants 8 / 12' was on screen. The agent now reads
+  1680,738,180,92 with detection enabled and pattern \d{1,2}\s*/\s*\d{1,2}; the
+  same live loop then read 9/12..12/12 with zero counter rereads.
+- Deployment order reuse is implemented from the user report that a party is not
+  rebuilt every battle: every deployed card prints its place in the order.
+  team_vision gains assignment_box/assignment_numbers/carries_saved_order,
+  deployment_transaction.prepare accepts the printed numbers and reports
+  inherited_order, and the PRE_BATTLE_TEAM plan submits the saved order without
+  Clear Selection when the print already carries it. 107 focused and 980 suite
+  tests pass; a live frame whose print matches the saved order has not been
+  observed yet, so that rule stays source-verified only.
+- Packaging was blocked and is repaired: assets/interface.json grew to 3,727,668
+  bytes, past the 2 MiB guard in update_install.metadata, so make_local_app
+  failed with StageError Invalid application metadata. storage.py now exposes
+  INTERFACE_LIMIT (16 MiB) and read_json takes an explicit limit; metadata and
+  the three tools that read interface.json use it. dist/MaaLimbus was rebuilt
+  from this tree (source_dirty, commit a6ac321, self_test and agent_self_test
+  true, 40 private files preserved) and the frozen product carries maatouch, the
+  agent exe and the 3,727,710-byte interface.json.
+- Shop purchase/refresh/skill replacement and applying learned labels to mirror
+  decisions remain open. The shop plan still leaves without buying and the shop
+  page has no offer anchors; semantic_labels is consumed by the offline
+  collection tool only and live frames still report neural_sinners status off.

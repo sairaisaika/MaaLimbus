@@ -10,13 +10,13 @@ from maa.library import Library
 from maa.resource import Resource
 from maalimbus.jobs import wait_job
 from maalimbus.reward_task_budget import apply
-from maalimbus.storage import read_json,write_json
+from maalimbus.storage import INTERFACE_LIMIT,read_json,write_json
 
 
 def main():
     Library.open(ROOT/'dist/MaaLimbus/maafw',agent_server=False)
     resource=Resource();wait_job(resource.post_bundle(ROOT/'assets/resource/base'),timeout=30)
-    pi=read_json(ROOT/'assets/interface.json')
+    pi=read_json(ROOT/'assets/interface.json',limit=INTERFACE_LIMIT)
     task=next(t for t in pi['task'] if t['name']=='rewards')
     assert task['option']==['reward_module_budget'] and not task['default_check']
     assert resource.get_node_data('RewardModuleBudget')['attach']['maximum']=='saved'

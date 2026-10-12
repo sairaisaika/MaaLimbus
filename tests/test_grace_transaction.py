@@ -41,6 +41,33 @@ def test_purchase_survives_restart_and_unverified_input_stays_pending(tmp_path):
     with pytest.raises(ValueError):t.validate('run-a',[2,4,5,7],100,90)
 
 
+def test_a_wish_list_the_page_cannot_pay_for_narrows_onto_its_affordable_prefix(tmp_path):
+    # Live 2026-10-12 01:56: the Graces page offered 60 starlight while the configured
+    # set costs 100, so 2,4,5 were bought and the run then refused the page forever.
+    # The cards this run already paid for stay in the plan and only the tail is dropped.
+    p=tmp_path/'transaction.json';t=GraceTransaction(p)
+    t.begin('run',[2,4,5,7],100,'entry.png')
+    costs=[10,10,20,20,30,30,40,40,50,60]
+    assert t.seal_affordable('run',[2,4,5,7],100,60,costs,'board.png')==[2,4,5]
+    assert t.validate('run',[2,4,5],100,0)['requested']==[2,4,5]
+    # The seal is durable and never re-budgets: a later round gets the frozen plan back.
+    assert GraceTransaction(p).seal_affordable('run',[2,4,5,7],100,40,costs,'later.png')==[2,4,5]
+    # A selection that is already part bought narrows onto what was actually paid for.
+    t2=GraceTransaction(tmp_path/'part.json');t2.begin('run',[2,4,5,7],100,'entry.png')
+    t2.data.update(selected=[2,4,5],spent=60)
+    assert t2.seal_affordable('run',[2,4,5,7],100,60,costs,'after.png')==[2,4,5]
+    # An unknown scope, an unverified purchase and an empty affordable set all refuse.
+    t3=GraceTransaction(tmp_path/'other.json');t3.begin('run',[2,4,5,7],100,'entry.png')
+    with pytest.raises(ValueError,match='scope'):
+        t3.seal_affordable('other',[2,4,5,7],100,60,costs,'x.png')
+    t3.data['pending']=dict(card=2)
+    with pytest.raises(ValueError,match='pending'):
+        t3.seal_affordable('run',[2,4,5,7],100,60,costs,'x.png')
+    t4=GraceTransaction(tmp_path/'none.json');t4.begin('run',[10],100,'entry.png')
+    with pytest.raises(ValueError,match='fits the current balance'):
+        t4.seal_affordable('run',[10],100,5,costs,'x.png')
+
+
 def test_confirmation_requires_complete_transaction_and_no_conversion():
     c={'star_confirm.confirm_button':[1034,778,154,35],
        'star_confirm.cancel_button':[740,774,146,41]}

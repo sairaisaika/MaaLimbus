@@ -1350,3 +1350,21 @@ def test_inherited_deployment_uses_registered_clear_selection_anchor():
                    team={'reset_required':True,'participants':[12,12]})
     assert plan['action']==CLICK and plan['target']==box
     assert plan_step('PRE_BATTLE_TEAM',team={'reset_required':True})['action']==RECORD
+
+
+def test_unknown_dialog_is_dismissed_with_its_own_close():
+    # Live 2026-10-12 01:01 (dist evidence pi-20261012-010122): the Charge Enkephalin
+    # modal sat over the home page with 'X Cancel' at [710,782,142,40], the runner had
+    # no plan for the page and the run stopped at its first step. The planner now
+    # clicks that close control and never the Confirm beside it.
+    box=[710,782,142,40]
+    plan=plan_step('UNKNOWN_DIALOG',controls={'unknown_dialog.close':box})
+    assert plan['action']==CLICK and plan['target']==box
+    assert plan['advance'] is True and plan['expect']==[ANY]
+    assert plan['reason']=='the_unexpected_dialog_is_dismissed_with_its_own_close'
+
+
+def test_unknown_dialog_without_a_close_refuses_instead_of_confirming():
+    plan=plan_step('UNKNOWN_DIALOG',controls={})
+    assert plan['action']==RECORD
+    assert plan['reason']=='unknown_dialog_close_not_anchored'

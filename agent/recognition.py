@@ -18,7 +18,7 @@ from maa.toolkit import Toolkit
 
 from maalimbus.vision import Text, classify, find, inset_box
 from maalimbus.policies import Team
-from maalimbus.team_vision import team_row, team_header
+from maalimbus.team_vision import CARD_COUNT, assignment_box, team_row, team_header
 from maalimbus.windows_preflight import check_window, InputPermissionError
 from maalimbus.adb_preflight import controller_foreground
 from maalimbus.storage import ProfileStore
@@ -26,6 +26,7 @@ from maalimbus.controller_lease import ControllerLease
 from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend,search_owned_names
 from maalimbus.jobs import wait_job
 from maalimbus import runner
+from maalimbus import event_log, input_helpers
 from maalimbus.runtime_paths import ROOT, data_directory, ledger_path
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
@@ -33,6 +34,7 @@ from maalimbus.storage import KEYWORDS, SINNERS
 from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button
 from maalimbus import star_vision
 from maalimbus import initial_gifts
+from maalimbus.grace_vision import AVAILABLE_LABEL, AVAILABLE_PATTERN
 from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
 from maalimbus.storage import read_json, write_json
 from maalimbus.storage import RunStore
@@ -97,6 +99,10 @@ class LimbusRecognition(CustomRecognition):
     def __init__(self, locale='en', journal=None):
         super().__init__()
         self.locale = json.loads((ROOT / f'assets/resource/{locale}/locale.json').read_text(encoding='utf-8'))
+        # The verified anchor boxes (the same registry the driver plans with) so a page
+        # can ask for a narrow read of its own cards, not just the whole screen.
+        self.controls = runner.controls_by_id(
+            json.loads(runner.REGISTRY.read_text(encoding='utf-8')))
         self.journal = journal or Journal(os.environ.get('MAALIMBUS_EVIDENCE', ROOT / 'evidence/runtime/agent'))
         self.cache = None
         self.last_frame = None
@@ -247,11 +253,15 @@ class LimbusRecognition(CustomRecognition):
             # team-library judgement above is corrected only with both captions.
             scene='PRE_BATTLE_TEAM'
         if scene=='PRE_BATTLE_TEAM':
-            # Full-screen detection dropped the numerator in actual 1/12.
-            # Recognize only the fixed counter within an independently proven page.
-            roi=(1700,754,128,58)
+            # Full-screen detection dropped the numerator in actual 1/12, and the fixed
+            # crop then clipped the digits themselves: live window-20261012-023229
+            # frames 0066-0068 read '8 / 12' off the pixels while (1700,754,128,58)
+            # recognized nothing at all, so the run spent both re-reads and stopped on a
+            # deployment it had already made. The crop keeps a margin and the OCR detects
+            # inside it, accepting only the counter's own shape.
+            roi=(1680,738,180,92)
             detail=context.run_recognition_direct(JRecognitionType.OCR,
-                JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,2}\s*/\s*\d{1,2}$'],threshold=.85),image)
+                JOCR(roi=roi,expected=[r'\d{1,2}\s*/\s*\d{1,2}'],threshold=.8),image)
             if detail is None:raise RuntimeError('Maa local participant OCR returned no evidence')
             x,y,w,h=roi
             records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
@@ -261,6 +271,28 @@ class LimbusRecognition(CustomRecognition):
                     records.append(Text(result.text,roi,result.score))
                     found.append(dict(text=result.text,score=result.score,box=list(roi)))
             local.append(dict(purpose='deployment_participants',roi=list(roi),only_rec=True,results=found))
+            # Every card in the team prints its place in the deployment order, and the page
+            # keeps the previous encounter's order, so reading those glyphs is what lets the
+            # driver accept an inherited order instead of clearing and re-picking it. The
+            # full-frame detector finds only some of them (window-20261012-023229/frame-0068
+            # reads card 7's '6' at .79 and card 10's '8' at .99), so each card gets its own
+            # narrow crop.
+            for index in range(1, CARD_COUNT + 1):
+                number_roi = assignment_box(self.controls.get('pre_battle.card_%02d' % index))
+                if number_roi is None:
+                    continue
+                detail = context.run_recognition_direct(JRecognitionType.OCR,
+                    JOCR(roi=number_roi, expected=[r'\d{1,2}'], threshold=.6), image)
+                if detail is None:
+                    raise RuntimeError('Maa local deployment order OCR returned no evidence')
+                x,y,w,h = number_roi
+                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
+                found=[]
+                if detail.hit:
+                    for result in detail.filtered_results:
+                        records.append(Text(result.text,number_roi,result.score))
+                        found.append(dict(text=result.text,score=result.score,box=list(number_roi)))
+                local.append(dict(purpose='deployment_assignment',card=index,roi=list(number_roi),results=found))
         if scene=='UNKNOWN' and battle_hud(records,size) is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
             # from artwork, and this identifies the page only.
@@ -268,12 +300,14 @@ class LimbusRecognition(CustomRecognition):
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
         if scene in ('STAR_GRACES','STAR_CONFIRM'):
-            # The full text detector truncated 86 to 8 in actual frame-0005.
-            # A fixed numeric crop is accepted only with a fresh Available label.
-            if len(find(records,r'^Available$',(.70,.02,.80,.10),size,.85))==1:
+            # The full text detector truncated 86 to 8 in actual frame-0005, and reads
+            # the label as "Avallable" in window-20261012-012943/frame-0012.json. A
+            # fixed numeric crop is accepted only with a fresh Available label, and the
+            # crop itself tolerates the starlight glyph glued to the digits.
+            if len(find(records,AVAILABLE_LABEL,(.70,.02,.80,.10),size,.85))==1:
                 roi=(1515,45,54,40)
                 detail=context.run_recognition_direct(JRecognitionType.OCR,
-                    JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,5}$'],threshold=.85),image)
+                    JOCR(roi=roi,only_rec=True,expected=[AVAILABLE_PATTERN.lstrip('^')],threshold=.85),image)
                 if detail is None:raise RuntimeError('Maa local Available OCR returned no evidence')
                 x,y,w,h=roi
                 records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
@@ -1134,6 +1168,15 @@ class InputPreflight(CustomAction):
             self.recognition.journal.record('preflight_failed',reason='another_controller_owns_game')
             return False
         info=context.tasker.controller.info
+        helpers=input_helpers.report(ROOT)
+        self.recognition.journal.record('input_helpers', **helpers)
+        missing=input_helpers.warning(helpers)
+        if missing:
+            # The fallback is otherwise silent: MaaFramework reports the click as
+            # succeeded while the game ignores it, so the run looks healthy and stops on
+            # the first page that does not move. Name it once, before any input is sent.
+            self.recognition.journal.record('input_helpers_missing', reason=missing)
+            print('MaaLimbus: '+missing, flush=True)
         if info.get('type')=='adb':
             try:
                 self.recognition.input_validator=lambda:controller_foreground(context.tasker.controller.info)
@@ -1293,6 +1336,26 @@ def write_loop_result(directory, result):
     return path
 
 
+def write_run_log(directory, result):
+    """Write the human-readable trace of the run beside its machine evidence.
+
+    `agent-result.json` and `events.jsonl` stay the machine record; this file is the
+    one a person reads when the task goes red, so it carries one line per step, the
+    installation's input-helper posture, and the stop reason spelled out. Writing it
+    must never turn a finished run into a failure.
+    """
+    try:
+        helpers = input_helpers.report(ROOT)
+        text = event_log.report(result, extra=[input_helpers.line(helpers),
+                                               input_helpers.warning(helpers)])
+        path = Path(directory) / 'run.log'
+        path.write_text(text, encoding='utf-8')
+        return path
+    except OSError as error:
+        print('MaaLimbus: run log could not be written: ' + str(error), flush=True)
+        return None
+
+
 class AgentJob:
     """The job surface ``run_node`` reads, for a node already run to its end.
 
@@ -1418,8 +1481,11 @@ class MirrorLoopAction(CustomAction):
                            verified_clear=False)
             write_loop_result(directory, {'reason': 'mirror_loop_failed', 'error': str(error),
                                           'error_type': type(error).__name__})
+            write_run_log(directory, {'reason': 'mirror_loop_failed', 'error': str(error),
+                                      'steps': []})
             return False
         write_loop_result(directory, result)
+        write_run_log(directory, result)
         journal.record('mirror_loop_stopped', reason=result.get('reason'),
                        steps=len(result.get('steps') or []),
                        clicks_sent=result.get('clicks_sent', 0),

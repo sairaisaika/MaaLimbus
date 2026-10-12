@@ -23,7 +23,7 @@ def prepare(config,task,choice=None):
     if task not in ('experience','thread'):raise ValueError('Unknown Lux task')
     config=Path(config)
     check_run(config)
-    if choice is not None and (type(choice) is not int or not 1<=choice<=20):
+    if choice is not None and (type(choice) is not int or not 1<=choice<=40):
         raise ValueError('Invalid Lux saved-team choice')
     preferences=TaskPreferences(config)
     value=preferences.lux_defaults()

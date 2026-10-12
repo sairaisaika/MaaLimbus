@@ -258,8 +258,12 @@ This pure policy is implemented; native UI execution remains pending.
 Grace indices follow Lix0..9, left-to-right then top-to-bottom. Current user's
 1,3,4,6 are base-only. Read each configured cost and available balance through Maa
 numeric OCR. Persist intent before input, then require fresh balance decrease before
-adding a selected index. Pending/changed balances veto retries. Full selection and
-budget must be verified again before Enter. The confirmation independently checks
+adding a selected index. Pending/changed balances veto retries. A configured set the
+page's own balance cannot cover narrows once, in configured order, onto the affordable
+prefix it can cover -- the cards already paid for stay in it -- and that frozen plan,
+not the wish list, is what must be verified again before Enter (live 2026-10-12: the
+page offered 60 starlight against a 100-starlight set, so 2,4,5 were bought and the run
+had refused that page forever). The confirmation independently checks
 the conversion checkbox and numeric Cost0; remaining starlight conversion is off.
 All targets use inset boxes with350..750ms randomized delay. Structural card edges,
 ordinal position and page control text replace seasonal icons/colors/buff prose;

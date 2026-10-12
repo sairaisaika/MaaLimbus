@@ -16,7 +16,7 @@ class TaskPreferences:
         mirror=value.get('mirror',{})
         if mirror.get('difficulty') not in ('hard','normal'):raise ValueError('Unknown mirror mode')
         queue=mirror.get('teams')
-        if (not isinstance(queue,list) or not queue or len(queue)>20 or
+        if (not isinstance(queue,list) or not queue or len(queue)>40 or
                 any(type(t) is not int or t not in builds for t in queue) or len(set(queue))!=len(queue)):
             raise ValueError('Mirror queue must reference distinct saved teams')
         if mirror.get('team_mode') not in ('single','rotation'):
@@ -110,7 +110,7 @@ def collect_mirror_queue(get_node):
         queue=[get_node('MirrorTaskSingleTeam')['attach']['slot']]
     elif mode=='rotation':
         count=get_node('MirrorTaskQueueCount')['attach']['count']
-        if type(count) is not int or not 1<=count<=20:raise ValueError('Invalid rotation size')
+        if type(count) is not int or not 1<=count<=40:raise ValueError('Invalid rotation size')
         queue=[get_node(f'MirrorTaskQueue{n}')['attach']['slot'] for n in range(1,count+1)]
     else:raise ValueError('Unknown mirror team mode')
     return mode,queue

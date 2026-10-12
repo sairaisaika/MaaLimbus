@@ -30,8 +30,8 @@ class Team:
     def __post_init__(self):
         if self.grace_budget is not None and (type(self.grace_budget) is not int or not 0<=self.grace_budget<=1000000):
             raise ValueError('Team starlight budget must be an explicit nonnegative integer')
-        if not 1 <= self.slot <= 20:
-            raise ValueError('Saved team slot must be 1..20')
+        if type(self.slot) is not int or not 1 <= self.slot <= 40:
+            raise ValueError('Saved team slot must be 1..40')
         if len(self.deployment) != len(set(self.deployment)):
             raise ValueError('A sinner cannot be deployed twice')
         if type(self.auto_team) is not bool:
@@ -134,7 +134,7 @@ class RunLedger:
     completed_runs: int = 0
 
     def __post_init__(self):
-        if not self.team_slots or any(not 1 <= s <= 20 for s in self.team_slots):
+        if not self.team_slots or any(type(s) is not int or not 1 <= s <= 40 for s in self.team_slots):
             raise ValueError('Configure at least one valid saved team')
 
     def complete(self) -> bool:

@@ -891,6 +891,22 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason=battle_assignment+'_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
+    if page == 'UNKNOWN_DIALOG':
+        # A modal that named no page still shows its own close control, and taking it
+        # is the only safe input: the modal's other control is a Confirm that spends a
+        # resource or accepts what the run never chose. The closing box is bound fresh
+        # from the frame that shows the modal (`plan_controls['unknown_dialog.close']`),
+        # because a modal is drawn wherever the page underneath puts it. The successor
+        # is proven by the covered page being gone, so the expectation is ANY.
+        # Live: the packaged application's run pi-20261012-010122 put the Charge
+        # Enkephalin modal ('Insufficient Enkephalin.', 'Use Lunacy', 'Use Boxes',
+        # 'X Cancel' [710,782], 'Confirm' [1110,784]) over the Window page and the window
+        # stopped with page_is_observe_only without sending anything.
+        box = controls.get('unknown_dialog.close')
+        if box is None:
+            return _refuse(page, 'unknown_dialog_close_not_anchored')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='the_unexpected_dialog_is_dismissed_with_its_own_close')
     return _refuse(page, 'page_is_observe_only')
 
 

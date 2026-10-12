@@ -2,15 +2,24 @@
 from .storage import read_json,write_json
 class DeploymentTransaction:
     def __init__(self,path):self.path=path;self.data=read_json(path) if path.exists() else None
-    def prepare(self,scope,order,count):
+    def prepare(self,scope,order,count,numbers=None):
+        """What the page needs next: clear it, keep picking, or submit.
+
+        The game keeps the previous encounter's deployment, so a page that already
+        prints the saved order position on every card needs no clear at all -- the
+        driver submits it (`numbers` is `team_vision.assignment_numbers` output).
+        """
         d=self.data
         if d and (d.get('pending') or d.get('submit_pending')):raise ValueError('Unverified deployment input remains pending')
         if not d or d['scope']!=scope or d.get('submitted'):
             d=dict(scope=scope,order=list(order),sequence=[],pending=None,submitted=False);self.data=d;write_json(self.path,d)
         if d['order']!=list(order):raise ValueError('Deployment order changed during selection')
         if d['sequence'] and count[0]!=len(d['sequence']):raise ValueError('Participant count diverged from verified deployment')
-        return dict(reset_required=not d['sequence'] and count[0]>0,
-                    order_verified=d['sequence']==list(order)[:count[1]] and count[0]==count[1])
+        from .team_vision import carries_saved_order
+        inherited=carries_saved_order(numbers,order,count)
+        return dict(reset_required=not d['sequence'] and count[0]>0 and not inherited,
+                    order_verified=(d['sequence']==list(order)[:count[1]] and count[0]==count[1]) or inherited,
+                    inherited_order=inherited,assignment=numbers)
     def intent(self,kind,count,card=None):
         d=self.data
         if d['pending']:raise ValueError('Deployment input already pending')

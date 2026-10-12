@@ -11,7 +11,7 @@ from .storage import ProfileStore, SINNERS, KEYWORDS, read_json
 def collect_builds(get_node):
     """Read distinct nodes: ordinary MXU overrides replace action params shallowly."""
     result = {}
-    for slot in range(1, 21):
+    for slot in range(1, 41):
         prefix = f'Global_global_team_{slot}'
         enabled = get_node(prefix)['attach']['global_build']['edit']
         if type(enabled) is not bool:
@@ -36,7 +36,7 @@ def apply_builds(directory, edits):
     ledger = directory / 'user-run-ledger.json'
     active = read_json(ledger).get('active') if ledger.exists() else None
     for key, edit in edits.items():
-        if not isinstance(key, str) or not key.isdecimal() or not 1 <= int(key) <= 20:
+        if not isinstance(key, str) or not key.isdecimal() or not 1 <= int(key) <= 40:
             raise ValueError('Unknown global build slot')
         if not isinstance(edit, dict) or edit.get('edit') is not True:
             raise ValueError('Build replacement must be explicitly selected')

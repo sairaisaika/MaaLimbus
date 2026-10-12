@@ -99,7 +99,7 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
     for name in ('TeamKeywordSet','TeamKeywordExtra','TeamBuildSave'):
         assert nodes[name]['custom_action'] == 'limbus_team'
     cases = pi['option']['team_build_slot']['cases']
-    assert [c['name'] for c in cases] == [str(i) for i in range(1,21)]
+    assert [c['name'] for c in cases] == [str(i) for i in range(1,41)]
     for case in cases:
         slot = int(case['name'])
         assert case['pipeline_override']['TeamKeywordSet']['custom_action_param']['slot'] == slot
@@ -110,7 +110,7 @@ def test_the_pipeline_chain_and_the_interface_agree_on_the_same_nodes():
     assert tasks['mirror_loop']['entry'] == 'MirrorTask'
     assert nodes['GlobalSettingsApply']['next'] == ['MirrorLoop']
     assert all(nodes[f'Global_global_team_{i}']['attach']['global_build']['edit'] is False
-               for i in range(1,21))
+               for i in range(1,41))
     assert 'team_keywords' not in tasks['mirror_loop']['option']
     assert tasks['mirror_loop']['option']==['mirror_team_mode','mirror_star_source',
         'mirror_initial_keyword','mirror_gift_search','mirror_run_bounds','mirror_preferences','mirror_battle_assignment']

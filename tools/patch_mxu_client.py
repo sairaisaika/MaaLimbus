@@ -35,6 +35,17 @@ def patch(source):
         s=s.replace('tauri::generate_handler![','tauri::generate_handler![\n            limbus_update::limbus_project_update_check,',1)
         rust.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/limbus_update.rs',source/'src-tauri/src/limbus_update.rs')
+    # MaaLimbus settings and ADB do not need administrator privileges. The
+    # existing explicit restart_as_admin command remains available for Win32.
+    main=source/'src-tauri/src/main.rs';s=main.read_text(encoding='utf8')
+    needle='if !cfg!(debug_assertions) && !mxu_lib::commands::system::is_elevated() {'
+    replacement='''let maalimbus_ui = std::env::current_exe().ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+            .map(|n| n.eq_ignore_ascii_case("MaaLimbus.exe")).unwrap_or(false);
+        if !maalimbus_ui && !cfg!(debug_assertions) && !mxu_lib::commands::system::is_elevated() {'''
+    if 'let maalimbus_ui =' not in s:
+        if s.count(needle)!=1:raise ValueError('Pinned MXU elevation hook changed')
+        main.write_text(s.replace(needle,replacement,1),encoding='utf8')
 
 
 if __name__=='__main__':patch(sys.argv[1])

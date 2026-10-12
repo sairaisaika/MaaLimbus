@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from maalimbus.storage import write_json
-from maalimbus.update_install import install_staged
+from maalimbus.storage import INTERFACE_LIMIT, read_json, write_json
+from maalimbus.update_install import install_staged, metadata
 from maalimbus.update_stage import StageError
 
 
@@ -143,3 +143,25 @@ def test_real_controller_lock_blocks_installation(tmp_path):
         assert (paths[1]/'MaaLimbus.exe').read_bytes() == b'old'
     finally:
         lease.close()
+
+
+def test_the_project_interface_is_read_with_its_own_limit(tmp_path):
+    # The ProjectInterface carries an option table for every identity (708 options,
+    # 3.7 MB on 2026-10-12), so the private-state limit must not be applied to it --
+    # that guard rejected the packaged app on its own install.
+    interface = tmp_path / 'interface.json'
+    interface.write_text(json.dumps({'name': 'MaaLimbus', 'interface_version': 2,
+                                     'version': 'v0.1.0', 'label': 'MaaLimbus',
+                                     'github': 'https://github.com/sairaisaika/MaaLimbus',
+                                     'padding': 'x' * (3 * 1024 * 1024)}), encoding='utf-8')
+    assert interface.stat().st_size > 2 * 1024 * 1024
+    with pytest.raises(ValueError):
+        read_json(interface)
+    assert read_json(interface, limit=INTERFACE_LIMIT)['name'] == 'MaaLimbus'
+    assert metadata(tmp_path)['version'] == 'v0.1.0'
+    # The identity checks themselves still fail closed.
+    broken = json.loads(interface.read_text(encoding='utf-8'))
+    broken['github'] = 'https://github.com/someone/else'
+    interface.write_text(json.dumps(broken), encoding='utf-8')
+    with pytest.raises(StageError):
+        metadata(tmp_path)

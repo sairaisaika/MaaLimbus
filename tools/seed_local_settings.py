@@ -7,7 +7,7 @@ import sys
 import uuid
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
-from maalimbus.storage import ProfileStore,read_json,write_json
+from maalimbus.storage import INTERFACE_LIMIT,ProfileStore,read_json,write_json
 from maalimbus.settings_migration import seed_editors
 from maalimbus.update_install import plain_path,plain_tree,closed_app
 from maalimbus.controller_lease import ControllerLease
@@ -22,7 +22,7 @@ def main():
     if not (app/'MaaLimbus.exe').is_file():raise ValueError('Expected local MaaLimbus app')
     plain_tree(source);plain_tree(app/'config')
     teams=ProfileStore(source/'user-team-profiles.json').load()
-    interface=read_json(app/'interface.json')
+    interface=read_json(app/'interface.json',limit=INTERFACE_LIMIT)
     path=app/'config/mxu-MaaLimbus.json'
     before=read_json(path)
     if before['settings']['autoRunOnLaunch'] or any(t['enabled'] for i in before['instances'] for t in i['tasks']):

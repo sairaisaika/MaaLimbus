@@ -21,7 +21,7 @@ from maa.toolkit import Toolkit
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'tools')]
 from maalimbus.policies import Team
-from maalimbus.storage import ProfileStore,SINNERS,read_json
+from maalimbus.storage import INTERFACE_LIMIT,ProfileStore,SINNERS,read_json
 from maalimbus.deployment import DeploymentDraft
 from maalimbus.jobs import wait_job,wait_task
 from verify_deployment_replay import Replay
@@ -56,10 +56,10 @@ def main():
     assert not config['settings']['autoRunOnLaunch']
     tasks=[t for i in config['instances'] for t in i['tasks']]
     assert len(tasks)==1 and not tasks[0]['enabled']
-    selected=next((t for t in read_json(app/'interface.json')['task'] if t['name']==tasks[0]['taskName']),None)
+    selected=next((t for t in read_json(app/'interface.json',limit=INTERFACE_LIMIT)['task'] if t['name']==tasks[0]['taskName']),None)
     if selected is None or selected['entry']!='DeploymentStart':
         raise ValueError('This legacy deployment verifier requires its original diagnostic interface')
-    patches=resolve_choices(read_json(app/'interface.json'),tasks[0])
+    patches=resolve_choices(read_json(app/'interface.json',limit=INTERFACE_LIMIT),tasks[0])
     assert patches['DeploymentPreset']['custom_action_param']['preset']=='custom'
     draft=DeploymentDraft()
     for i in range(1,13):

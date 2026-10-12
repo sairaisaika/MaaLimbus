@@ -18,7 +18,7 @@ def test_profiles_persist_rotation_order_keywords_and_deployment(tmp_path):
 
 
 @pytest.mark.parametrize('value',[
-    {'slot':True},{'slot':'1'},{'slot':0},{'slot':21},
+    {'slot':True},{'slot':'1'},{'slot':0},{'slot':41},
     {'slot':1,'keywords':['MadeUp']}, {'slot':1,'deployment':['Faust','Faust']},
     {'slot':1,'deployment':['Unknown']}, {'slot':1,'name':'a'*81},
 ])

@@ -57,9 +57,9 @@ from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_sta
                             gift_cards, initial_gift_box, keyword_panel_point,
                             select_ready)
 from .run_wiring import earned_its_payout, expire, reconcile, settle
-from .team_vision import CARD_COUNT, card_states, participants
+from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
 from .vision import Text, inset_box
-from .window import (NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
+from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
                      step_result)
 
 #: repository root: the loop resolves the pipeline, the anchors and the templates
@@ -654,15 +654,44 @@ def node_badge_template():
     return node_badge_template.cache
 
 
+def header_chrome(record):
+    """The floor caption and pack line of a MAP page, as boxes no node can occupy.
+
+    The top left of the map page carries the page's own chrome over the artwork, and
+    lit glyphs under it come back as nodes (live window-20261012-022147/frame-0021.json:
+    a ``lit_icon`` at (278,132,40,40) whose centre sits inside the ``Exploring Floor 1``
+    caption). A real node never overlaps those captions.
+    """
+    if record.get('scene') != 'MAP':
+        return []
+    texts = [Text(item['text'], tuple(item['box']), item['score'])
+             for item in record.get('ocr') or ()]
+    header = map_header(texts, record.get('size') or (1920, 1080))
+    if header is None:
+        return []
+    boxes = [list(header.exploring_text.box)]
+    if header.pack_text is not None:
+        boxes.append(list(header.pack_text.box))
+    return boxes
+
+
+def inside_chrome(box, chrome):
+    """True when a candidate box's centre falls inside one of ``chrome``'s boxes."""
+    centre = (box[0] + box[2] / 2, box[1] + box[3] / 2)
+    return any(item[0] <= centre[0] <= item[0] + item[2]
+               and item[1] <= centre[1] <= item[1] + item[3] for item in chrome)
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
     Which nodes the run may step to depends on the paths drawn under the dots, and
-    that connectivity is not readable from a frame, so the list is ordered and never
-    filtered: the window tries them in turn and stops at the first that really opens
-    the panel, and a click on an unreachable node is a harmless no-op. The order comes
-    from map_vision.map_clicks: the desaturated-bright glyph the game uses to mark the
-    step it will accept, then the crescent-badge nodes away from the player.
+    that connectivity is not readable from a frame, so the list is ordered and only the
+    page's own chrome is dropped: the window tries the rest in turn and stops at the
+    first that really opens the panel, and a click on an unreachable node is a harmless
+    no-op. The order comes from map_vision.map_clicks: the desaturated-bright glyph the
+    game uses to mark the step it will accept, then the crescent-badge nodes away from
+    the player.
     """
     if record['scene'] != 'MAP':
         return None, None
@@ -670,6 +699,9 @@ def candidates_of(directory, record):
     if image is None:
         return None, None
     clicks = map_clicks(image, template=node_badge_template())
+    chrome = header_chrome(record)
+    if chrome:
+        clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
     return name, [list(item['box']) for item in clicks]
 
 
@@ -774,7 +806,8 @@ def team_state(record, controls):
     if not any(boxes):
         return None
     return {'states': card_states(records, boxes, size),
-            'participants': participants(records, size)}
+            'participants': participants(records, size),
+            'numbers': assignment_numbers(records, boxes, size)}
 
 
 def reward_state(record):
@@ -972,6 +1005,7 @@ class MirrorRunner:
         self.device = device
         self.settings = settings if isinstance(settings, Settings) else Settings(settings)
         self.locale = locale
+        self._locale = None
         self.registry = registry if registry is not None else _load_registry()
         self.store = store
         self.run_id = run_id
@@ -1051,6 +1085,23 @@ class MirrorRunner:
         self.last_event = name
         if self.journal is not None:
             self.journal.record(name, **fields)
+
+    def locale_dictionary(self):
+        """The label patterns of this run's language, loaded once.
+
+        The planner's fresh bindings (a modal's own close control, the layer under an
+        overlay) need the same locale patterns the recognizer classifies with, so the
+        file is read here instead of hardcoding English labels into the loop.
+        """
+        if self._locale is None:
+            path = ROOT / f'assets/resource/{self.locale}/locale.json'
+            self._locale = json.loads(path.read_text(encoding='utf-8'))
+        return self._locale
+
+    def input_helper_line(self):
+        """This installation's input-helper posture, for a swallowed-click note."""
+        from . import input_helpers
+        return input_helpers.line(input_helpers.report(ROOT))
 
     def _observe(self, deadline=None):
         """One page, from the injected observer, with the journal details attached."""
@@ -1243,7 +1294,16 @@ class MirrorRunner:
                 if saved is not None and saved.deployment:
                     team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
         if page=='PRE_BATTLE_TEAM' and team is not None and team.get('order'):
-            if self.deployment_transaction is None or not team.get('participants'):
+            if self.deployment_transaction is None:
+                stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
+                return self._result(page,None,False,stopped,done=True)
+            if not team.get('participants'):
+                # The counter rolls up while it changes, so a frame that carries none is
+                # a frame rather than a page (see _unread_deployment_retry): spend a
+                # bounded round re-reading before the run gives up on the deployment.
+                retry=self._unread_deployment_retry(state,page,'deployment_counter_not_read')
+                if retry is not None:
+                    return retry
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
                 return self._result(page,None,False,stopped,done=True)
             try:
@@ -1254,7 +1314,8 @@ class MirrorRunner:
                     elif (pending['kind']=='card' and team['participants'][0]==pending['before']+1
                           and team['states'][pending['card']-1] in ('selected','backup')):
                         self.deployment_transaction.observe(tuple(team['participants']))
-                team.update(self.deployment_transaction.prepare(self.run_id,team['order'],tuple(team['participants'])))
+                team.update(self.deployment_transaction.prepare(self.run_id,team['order'],
+                                                                 tuple(team['participants']),team.get('numbers')))
             except ValueError as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
                 return self._result(page,None,False,stopped,done=True)
@@ -1364,6 +1425,14 @@ class MirrorRunner:
                 # Clear Selection is a page identity anchor, not a static control.
                 # Bind its fresh, paired caption before asking the planner to reset.
                 plan_controls['pre_battle.clear_selection']=list(current_team.clear_selection.box)
+        if page=='UNKNOWN_DIALOG':
+            # A modal that named no page is dismissed through its own close control,
+            # bound from this frame: the modal is drawn wherever the page under it puts
+            # it, and its other control (Confirm) spends a resource the run never chose.
+            from .vision import dialog_dismissal
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            box=dialog_dismissal(texts,record.get('size') or (1920,1080),self.locale_dictionary())
+            if box:plan_controls['unknown_dialog.close']=list(box)
         initial = None
         if page == 'INITIAL_GIFTS':
             from . import initial_gifts
@@ -1456,15 +1525,28 @@ class MirrorRunner:
                        for item in record.get('ocr') or []]
             available = available_starlight(records, record.get('size') or (1920, 1080))
             if available is None:
+                retry = self._unread_grace_retry(state, page,
+                                                 'starlight_available_balance_not_proven')
+                if retry is not None:
+                    return retry
                 stopped = self._record(page, record, frame, candidates, None,
                                        'starlight_available_balance_not_proven')
+                self._detail(requested=state['grace_wanted'],
+                             bought=sorted(state['grace_bought']))
                 return self._result(page, None, False, stopped, done=True)
             from .grace_vision import observed_board
             image, _ = latest_frame(directory)
             board=observed_board(image,records,state['grace_wanted']) if image is not None else None
             if board is None:
+                retry = self._unread_grace_retry(state, page,
+                                                 'configured_grace_costs_not_proven')
+                if retry is not None:
+                    return retry
                 stopped=self._record(page,record,frame,candidates,None,'configured_grace_costs_not_proven')
+                self._detail(requested=state['grace_wanted'],
+                             bought=sorted(state['grace_bought']))
                 return self._result(page,None,False,stopped,done=True)
+            state['grace_read_attempts'] = 0
             spent = sum(board['costs'][index-1] for index in state['grace_bought'])
             total_budget = min(settings.grace_budget, available + spent)
             wanted = plan_purchases(state['grace_wanted'], total_budget,
@@ -1475,9 +1557,34 @@ class MirrorRunner:
                                 budget=settings.grace_budget, costs=board['costs'], next=wanted)
             remaining = set(state['grace_wanted']) - state['grace_bought']
             if remaining and not wanted:
-                stopped=self._record(page,record,frame,candidates,None,
-                                     'configured_graces_incomplete_within_budget')
-                return self._result(page,None,False,stopped,done=True)
+                # The page's balance is the hard limit on how much of the configured set
+                # one run can buy: live 2026-10-12 the Graces page offered 60 starlight
+                # against a 100-starlight selection, so 2,4,5 were bought and the run
+                # then refused the page forever (config/user-grace-transaction.json,
+                # selected [2,4,5], spent 60). The wish list narrows onto the affordable
+                # prefix -- the same freeze an automatic plan gets -- so the run can
+                # leave the page, and what Enter verifies is that narrowed plan.
+                try:
+                    narrowed=transaction.seal_affordable(
+                        self.run_id,[int(n) for n in str(settings.graces).split(',') if n.strip()],
+                        settings.grace_budget,total_budget,board['costs'],frame_file(directory))
+                except ValueError as error:
+                    stopped=self._record(page,record,frame,candidates,None,
+                                         'configured_graces_incomplete_within_budget')
+                    self._detail(requested=state['grace_wanted'],
+                                 bought=sorted(state['grace_bought']), available=available,
+                                 budget=total_budget, unaffordable=sorted(remaining),
+                                 costs={index: board['costs'][index - 1]
+                                        for index in state['grace_wanted']},
+                                 error=str(error))
+                    return self._result(page,None,False,stopped,done=True)
+                self.note('grace_selection_narrowed_to_the_affordable_prefix',
+                          requested=sorted(state['grace_wanted']),affordable=narrowed,
+                          bought=sorted(state['grace_bought']),available=available,
+                          budget=total_budget,unaffordable=sorted(remaining))
+                state['grace_wanted']=narrowed
+                wanted=plan_purchases(state['grace_wanted'],total_budget,
+                                      bought=state['grace_bought'],costs=board['costs'])
             if wanted and wanted[0] in points:
                 graces = {'card': wanted[0], 'point': points[wanted[0]],
                           'available': available}
@@ -1662,7 +1769,16 @@ class MirrorRunner:
         time.sleep(delay / 1000)
         settled, settled_page = None, None
         before_sha = record.get('image_sha256')
-        for index in range(max(1, settings.rounds)):
+        # The floor theme pack is pulled down into the floor and the game answers with a
+        # black loading frame before the map is drawn, so that one step reads its
+        # successor on the unknown budget instead of the ordinary settle rounds. Live
+        # evidence/runtime/window-20261012-021508: the drag was sent at 02:17:11 and
+        # frame-0020 (02:17:13) is that empty frame with no text at all, while the next
+        # live probe found the game already on MAP — so the run had stopped on a page
+        # that was merely still loading.
+        patient = plan.get('reason') == 'the_floor_theme_pack_is_pulled_down_to_be_taken'
+        settle_budget = max(1, settings.unknown_rounds if patient else settings.rounds)
+        for index in range(settle_budget):
             if index:
                 time.sleep(settings.interval)
             settled = self._observe()
@@ -1675,7 +1791,12 @@ class MirrorRunner:
             # change is not a named GET receipt; spend the remaining read-only
             # settle rounds without sending Select again.
             awaiting_gift_receipt = plan.get('reason') == 'select_takes_the_picked_floor_gifts'
+            # The pixel rule is about the page the run came from keeping its label; a
+            # changed frame on a page it cannot name is a page still loading, not a
+            # landed successor, so waiting continues under the budget above (the floor
+            # theme pull answers with exactly that empty frame).
             if (not awaiting_gift_receipt
+                    and settled_page == page
                     and settled.get('image_sha256') not in (None, before_sha)):
                 break
         if page=='DUNGEON_TEAM' and settled_page!='DUNGEON_TEAM':state['entry_reconciled']=False
@@ -1786,7 +1907,13 @@ class MirrorRunner:
             try:
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 if not (plan['reason']=='clear_inherited_participant_order_before_saved_deployment' and settled_page=='DEPLOYMENT_RESET'):
-                    self.deployment_transaction.observe(participants(post_records,settled.get('size') or (1920,1080)))
+                    count=participants(post_records,settled.get('size') or (1920,1080))
+                    if count is None:
+                        retry=self._unread_deployment_retry(state,page,plan.get('reason'))
+                        if retry is not None:
+                            return retry
+                    self.deployment_transaction.observe(count)
+                    state['deployment_read_attempts']=0
             except ValueError as error:entry.update(passed=False,reason=str(error),stopped='unverified_deployment_input')
         if plan.get('reason')=='battle_button_submits_the_team' and self.deployment_transaction is not None:
             from .storage import write_json
@@ -1869,6 +1996,27 @@ class MirrorRunner:
             # exactly such a frame while the next one had the shop node again). Waiting a
             # round is the whole fix, and map_attempts still bounds it.
             no_candidate = plan.get('reason') == 'no_candidate_node_observed'
+            # A click whose plan declared `advance` with an ANY expectation has already
+            # said that this input must change something: the page stays and the pixels
+            # do not move, so the input was swallowed rather than merely early. On an
+            # emulator the usual cause is an input channel that fell back to `adb shell
+            # input tap` (the controller reports success and the game ignores the tap),
+            # so the page is re-read and the plan retried a bounded number of times
+            # instead of ending the whole run on the first swallowed tap.
+            swallowed = (entry.get('reason') == 'unexpected_successor'
+                         and plan.get('action') == CLICK
+                         and plan.get('advance')
+                         and ANY in (plan.get('expect') or [])
+                         and plan.get('target') is not None
+                         and state['swallowed_attempts'] + 1 < max(1, settings.page_tries))
+            if swallowed:
+                state['swallowed_attempts'] += 1
+                entry['stopped'] = 'click_was_swallowed_by_the_game'
+                self.note('window_click_swallowed', page=page, target=list(plan['target']),
+                          attempt=state['swallowed_attempts'], reason=plan.get('reason'),
+                          input_helpers=self.input_helper_line())
+                time.sleep(settings.interval)
+                return self._result(page, plan.get('target'), True, None, waiting=True)
             retryable = (page == 'MAP' and settled_page in ('MAP', 'UNKNOWN')
                          and (plan.get('target') is not None or no_candidate)
                          and state['map_attempts'] + 1 < max(1, settings.map_tries))
@@ -1892,6 +2040,7 @@ class MirrorRunner:
             return self._result(page, plan.get('target'), True, None, waiting=True)
         state['map_attempts'] = 0
         state['page_attempts'] = 0
+        state['swallowed_attempts'] = 0
         if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
             state['gift_picks'] += 1
         if detail.get('keyword') and entry.get('passed'):
@@ -1968,6 +2117,56 @@ class MirrorRunner:
             'candidates': candidates, 'action': 'record', 'reason': reason,
             'passed': False, 'clicks_sent': 0, 'stopped': reason})
         return reason
+
+    def _detail(self, **detail):
+        """Attach the numbers the reason needs to the step just recorded.
+
+        The reasons that stop a run are mostly counts -- what was asked for, what was
+        bought, what the page offered -- and a person reading the log has no other way
+        to see them: the step is a record-only step with no plan of its own.
+        """
+        if self.artifacts['steps']:
+            self.artifacts['steps'][-1].setdefault('detail', {}).update(detail)
+
+    def _unread_grace_retry(self, state, page, reason):
+        """Wait out a Grace page whose own reading did not prove this frame.
+
+        The counter and the prices are re-read from the newest frame on every round, so
+        a reading that fails describes one frame rather than the page: the live run that
+        stopped on 'configured_grace_costs_not_proven' read card 4's price twice in the
+        frame taken right after the purchase that re-rendered it, while the frame before
+        and the frame seven rounds later both read it once
+        (evidence/runtime/window-20261012-015054/frame-0005.json against frame-0003 and
+        frame-0007). page_tries bounds the wait, and the round that gives up still stops
+        with the same reason on the record.
+        """
+        if state['grace_read_attempts'] + 1 >= max(1, self.settings.page_tries):
+            return None
+        state['grace_read_attempts'] += 1
+        self.note('grace_page_reread', page=page, attempt=state['grace_read_attempts'],
+                  reason=reason, input_helpers=self.input_helper_line())
+        time.sleep(self.settings.interval)
+        return self._result(page, None, False, None, waiting=True)
+
+    def _unread_deployment_retry(self, state, page, reason):
+        """Wait out a participant counter this frame did not carry.
+
+        The page's own counter rolls up while it changes and the settled frame can be
+        read without it at all: live evidence/runtime/window-20261012-022454/frame-0026
+        is a PRE_BATTLE_TEAM frame whose counter band held only the 'Chai' label under
+        it, while the frames either side read 7/12, so the run stopped on 'Deployment
+        successor participant count not proven' although its click had landed. Re-reading
+        sends nothing, and page_tries bounds it; the round that gives up still stops with
+        the reason the log has always shown.
+        """
+        if state['deployment_read_attempts'] + 1 >= max(1, self.settings.page_tries):
+            return None
+        state['deployment_read_attempts'] += 1
+        self.note('deployment_counter_reread', page=page,
+                  attempt=state['deployment_read_attempts'], reason=reason,
+                  input_helpers=self.input_helper_line())
+        time.sleep(self.settings.interval)
+        return self._result(page, None, False, None, waiting=True)
 
     def _result(self, page, target, sent, stopped, *, done=False, waiting=False):
         """The public shape of one step."""
@@ -2050,6 +2249,7 @@ def _fresh_state(settings, store=None):
     return {'step': 0, 'unknown_seen': 0, 'battle_sig': None, 'battle_rounds': 0,
             'map_progress': MapProgress(), 'floor_now': None, 'map_attempts': 0,
             'page_attempts': 0, 'gift_picks': 0, 'initial_picked': 0,
+            'swallowed_attempts': 0, 'grace_read_attempts': 0, 'deployment_read_attempts': 0,
             'repeated_plans': {}, 'guard_page': None, 'claim_steps': 0,
             'team_slot_picked': None, 'defeat_row_sent': False, 'defeat_attempts': 0,
             'tutorial_cards': set(), 'grace_wanted': grace_wanted, 'grace_bought': set(),

@@ -75,4 +75,4 @@ def test_saved_team_slots_are_validated():
     with pytest.raises(ValueError):
         RunLedger(team_slots=(0, 3))
     with pytest.raises(ValueError):
-        RunLedger(team_slots=(21,))
+        RunLedger(team_slots=(41,))

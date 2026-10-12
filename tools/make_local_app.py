@@ -13,6 +13,7 @@ own directory.
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import shutil
@@ -38,6 +39,33 @@ PREPARED = ROOT/'build/windows-package-28e4293e95e847dcb6f335d2b824cc7a/MaaLimbu
 def digest(path):
     with Path(path).open('rb') as file:
         return hashlib.file_digest(file, 'sha256').hexdigest()
+
+
+def agent_binaries(explicit=None, *, prepared=PREPARED):
+    """Locate the MaaAgentBinary tree the framework's ADB input units push to a device.
+
+    Candidates, in order: an explicit path, the MaaFw wheel this interpreter imports
+    (its `MaaAgentBinary` sits beside the `maa` package, whose `__file__` is None
+    because it is a namespace package), and the MaaFramework release the prepared
+    runtime came from. A directory without the maatouch helper is never accepted:
+    `Maatouch` is the unit MuMu 12 needs, and without it MaaFramework falls back to
+    `adb shell input tap`, which this game ignores.
+    """
+    candidates = []
+    if explicit is not None:
+        # An explicitly named directory is authoritative: silently substituting a
+        # different one would hide a packaging mistake behind a working build.
+        named = Path(explicit)
+        return named if (named/'maatouch/universal/maatouch').is_file() else None
+    spec = importlib.util.find_spec('maa')
+    if spec is not None:
+        for location in spec.submodule_search_locations or ():
+            candidates.append(Path(location).parent/'MaaAgentBinary')
+    candidates.append(Path(prepared).parent/'maa/share/MaaAgentBinary')
+    for candidate in candidates:
+        if (candidate/'maatouch/universal/maatouch').is_file():
+            return candidate
+    return None
 
 
 def packaged_interface():
@@ -107,6 +135,9 @@ def main():
                         help='the MXU executable to rename into MaaLimbus.exe')
     parser.add_argument('--maafw', type=Path, default=PREPARED/'maafw',
                         help='the already-verified MaaFramework runtime directory')
+    parser.add_argument('--agent-binaries', type=Path, default=None,
+                        help='MaaAgentBinary (maatouch/minitouch) to ship as '
+                             'maafw/MaaAgentBinary; default: the MaaFw wheel')
     parser.add_argument('--out', type=Path, default=ROOT/'dist/MaaLimbus')
     parser.add_argument('--skip-agent', action='store_true',
                         help='reuse the frozen agent already in --out instead of freezing again')
@@ -134,6 +165,22 @@ def main():
         shutil.copyfile(mxu_source,staged/'sources/MXU-MaaLimbus-source.zip')
         shutil.copyfile(args.mxu_proof,staged/'sources/MXU-build-proof.json')
     shutil.copytree(args.maafw, staged/'maafw')
+    # MaaFramework's ADB input units push a helper binary to the device, and the
+    # application points `agent_path` at `maafw/MaaAgentBinary`. Shipping the DLLs
+    # without that directory makes every unit except AdbShell fail to initialize, and
+    # MaaFramework then falls back to `adb shell input tap` silently: the controller
+    # reports the click as succeeded while the game ignores it, so the run stops on the
+    # first page that does not move. Live 2026-10-12: the packaged app's own maafw.log
+    # shows `AdbShellInput::click [x=125] [y=527]` + `Controller.Action.Succeeded` for a
+    # DUNGEON_TEAM slot that never changed, while a source run of the same plan used
+    # `MaatouchInput`.
+    helpers = agent_binaries(args.agent_binaries)
+    if helpers is None:
+        raise ValueError(
+            'Missing MaaAgentBinary (maatouch/minitouch): the packaged application would '
+            'fall back to `adb shell input tap`, which the game ignores. Pass '
+            '--agent-binaries or install the MaaFw wheel that ships them.')
+    shutil.copytree(helpers, staged/'maafw'/'MaaAgentBinary')
     for name in ('assets', 'docs', 'THIRD_PARTY_NOTICES'):
         shutil.copytree(ROOT/name, staged/name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     for name in ('README.md', 'README_en.md', 'LICENSE'):

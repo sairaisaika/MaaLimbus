@@ -8,7 +8,7 @@ import subprocess
 import uuid
 
 from .controller_lease import ControllerLease
-from .storage import write_json
+from .storage import INTERFACE_LIMIT, write_json
 from .update_stage import StageError, file_digest, verify_package
 
 PRIVATE = ('config', 'evidence', 'logs', 'build')
@@ -31,7 +31,7 @@ def plain_tree(root):
 
 def metadata(app, version=None):
     path = app/'interface.json'
-    if not path.is_file() or path.stat().st_size > 2*1024*1024:
+    if not path.is_file() or path.stat().st_size > INTERFACE_LIMIT:
         raise StageError('Invalid application metadata')
     info = json.loads(path.read_text(encoding='utf-8'))
     if (info.get('name') != 'MaaLimbus' or info.get('interface_version') != 2 or

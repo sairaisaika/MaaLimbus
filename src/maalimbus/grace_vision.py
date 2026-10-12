@@ -44,7 +44,21 @@ TITLE_PATTERN = re.compile(
 #: (maalimbus.vision.find hands the pattern to re.search with its own flags, so this
 #: one stays a plain string.)
 AVAILABLE_BAND = (0.52, 0.02, 0.80, 0.12)
-AVAILABLE_PATTERN = r'^\d{1,5}$'
+
+#: The label, with the OCR's slips tolerated: the same header reads cleanly as
+#: "Available" in window-20261008-033202/frame-0001.json but comes back as
+#: "Avallable" (doubled l, score .99) in window-20261012-012943/frame-0012.json, and
+#: an l/i/digit-1 swap is the same family of slip.
+AVAILABLE_LABEL = r'^Ava[l1i]{1,3}ab[l1i]e$'
+
+#: The counter keeps the starlight glyph glued to its digits, so the digits are picked
+#: out of the token instead of the whole token being the number: the same live frame
+#: reads '本60' (score .82) where the 20261008 frame read a clean '116'. The glued form
+#: also scores lower — the live card costs read .75 to .86 that way against 1.0 clean —
+#: so a token that proves its digits through this pattern is accepted from DIGIT_FLOOR.
+AVAILABLE_PATTERN = r'^[^\d]{0,3}\d{1,5}[^\d]{0,2}$'
+AVAILABLE_DIGITS = re.compile(r'\d{1,5}')
+DIGIT_FLOOR = 0.70
 
 #: from a card title's centre to its ``+`` button centre, in 1920x1080 pixels.
 PLUS_OFFSET = (-118, 250)
@@ -70,23 +84,57 @@ def cost_of(index):
     return COSTS[index - 1]
 
 
+#: A card's cost is read through its own tight box, and the OCR can hand the same glyph
+#: back twice in one frame: the click that buys a card re-renders its price, and the
+#: number is then read once through the box and once with the starlight icon glued to it
+#: (live evidence/runtime/window-20261012-015054/frame-0005.json reads card 4's 20 at
+#: [1336,229,42,32] and again at [1306,230,60,28], both at score 1.0). Both readings sit
+#: inside the box only because vision.find judges by centre point, so a lone reading was
+#: never stronger proof than two readings that agree: readings that agree are one glyph
+#: read twice, and readings that disagree are two different numbers and prove nothing.
+COST_PATTERN = r'^\d{1,3}$'
+COST_FLOOR = 0.85
+
+
+def agreeing_number(values):
+    """The number a group of OCR readings of one glyph agrees on, or None."""
+    values = list(values)
+    if not values or len(set(values)) != 1:
+        return None
+    return values[0]
+
+
+def read_cost(records, box, size):
+    """The starlight a card's cost box proves this frame, or None."""
+    import maalimbus.vision as vision
+
+    x, y, w, h = box
+    region = (x / size[0], y / size[1], (x + w) / size[0], (y + h) / size[1])
+    values = []
+    for item in vision.find(records, COST_PATTERN, region, size, COST_FLOOR):
+        text = (item.text or '').strip()
+        if re.fullmatch(COST_PATTERN, text):
+            values.append(int(text))
+    return agreeing_number(values)
+
+
 def available_starlight(records, size, *, band=AVAILABLE_BAND):
     """The number beside "Available", or None when this frame does not read it."""
     import maalimbus.vision as vision
 
     records=list(records)
-    labels=vision.find(records,r'^Available$',band,size,.85)
+    labels=vision.find(records,AVAILABLE_LABEL,band,size,.85)
     if len(labels)!=1:return None
     x,y,w,h=labels[0].box
     scale=size[0]/1920
     hits=[]
     for item in records:
         bx,by,bw,bh=item.box
-        if (item.score>=.85 and re.fullmatch(AVAILABLE_PATTERN,item.text)
+        if (item.score>=DIGIT_FLOOR and re.fullmatch(AVAILABLE_PATTERN,item.text or '')
             and bx>=x+w-10*scale and bx+bw/2<=x+w+200*scale
             and abs((by+bh/2)-(y+h/2))<=25*scale):
-            hits.append(item)
-    return int(hits[0].text) if len(hits)==1 else None
+            hits.append(int(AVAILABLE_DIGITS.search(item.text).group()))
+    return agreeing_number(hits)
 
 
 def plus_points(records, size):
@@ -116,9 +164,9 @@ def observed_board(image, records, wanted):
         if not 1<=index<=10:return None
         box=boxes[index-1]
         x,y,w,h=star_vision.cost_roi(box)
-        hits=find(records,r'^\d{1,3}$',(x/width,y/height,(x+w)/width,(y+h)/height),(width,height),.85)
-        if len(hits)!=1 or int(hits[0].text)<=0:return None
-        costs[index-1]=int(hits[0].text)
+        cost=read_cost(records,(x,y,w,h),(width,height))
+        if cost is None or cost<=0:return None
+        costs[index-1]=cost
         x,y,w,h=star_vision.target_box(box)
         points[index]=(x+w//2,y+h//2)
     return {'costs':costs,'points':points}

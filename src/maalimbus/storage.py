@@ -15,6 +15,10 @@ SINNERS = ('Yi Sang', 'Faust', 'Don Quixote', 'Ryoshu', 'Meursault', 'Hong Lu',
            'Heathcliff', 'Ishmael', 'Rodion', 'Sinclair', 'Outis', 'Gregor')
 KEYWORDS = ('Bleed', 'Blunt', 'Burn', 'Charge', 'Keywordless', 'Pierce', 'Poise',
             'Rupture', 'Sinking', 'Slash', 'Tremor', 'Vestige')
+#: Private configuration and state stay small; the ProjectInterface does not. It carries
+#: the option table for every identity (708 options, 3.7 MB on 2026-10-12), so it is read
+#: with this limit instead of the default one.
+INTERFACE_LIMIT = 16 * 1024 * 1024
 
 
 def write_json(path, data):
@@ -33,10 +37,10 @@ def write_json(path, data):
             os.unlink(name)
 
 
-def read_json(path):
+def read_json(path, limit=2 * 1024 * 1024):
     path = Path(path)
-    if path.stat().st_size > 2 * 1024 * 1024:
-        raise ValueError('Configuration/state exceeds 2 MiB')
+    if path.stat().st_size > limit:
+        raise ValueError('Configuration/state exceeds %d MiB' % (limit // (1024 * 1024)))
     return json.loads(path.read_text(encoding='utf-8'))
 
 
@@ -71,7 +75,7 @@ class ProfileStore:
         if value.get('version') != 1:
             raise ValueError('Unsupported profile version')
         teams = tuple(team_from_json(t) for t in value['teams'])
-        if not teams or len(teams) > 20 or len({t.slot for t in teams}) != len(teams):
+        if not teams or len(teams) > 40 or len({t.slot for t in teams}) != len(teams):
             raise ValueError('Configure unique saved-team slots in rotation order')
         return teams
 
@@ -83,7 +87,7 @@ class ProfileStore:
                 value[key] = sorted(value[key])
             team_from_json(value)
             data.append(value)
-        if not data or len(data) > 20 or len({t['slot'] for t in data}) != len(data):
+        if not data or len(data) > 40 or len({t['slot'] for t in data}) != len(data):
             raise ValueError('Configure unique saved-team slots in rotation order')
         write_json(self.path, {'version': 1, 'teams': data})
         return self.load()
@@ -105,7 +109,7 @@ def seed_run_store(path, slots, *, rotation=0, overwrite=False):
     """
     path = Path(path)
     slots = [int(s) for s in slots]
-    if not slots or len(set(slots)) != len(slots) or any(not 1 <= s <= 20 for s in slots):
+    if not slots or len(set(slots)) != len(slots) or any(type(s) is not int or not 1 <= s <= 40 for s in slots):
         raise ValueError('Configure unique saved-team slots in rotation order')
     if not 0 <= rotation < len(slots):
         raise ValueError('Rotation must point at one of the saved teams')

@@ -68,6 +68,38 @@ class GraceTransaction:
         write_json(self.path,d)
         return chosen
 
+    def seal_affordable(self,scope,priorities,budget,limit,costs,proof):
+        """Freeze the affordable prefix of a player's own selection before input.
+
+        The Graces page decides how much of that selection one run can pay for: live
+        2026-10-12 01:56 the page offered 60 starlight against a configured set that
+        costs 100, so the run bought 2,4,5 and then refused the page forever
+        (config/user-grace-transaction.json, selected [2,4,5], spent 60). Narrowing to
+        the affordable prefix keeps what a full set guaranteed -- Enter is only pressed
+        for a plan this transaction froze and proved -- while letting the run leave the
+        page. ``limit`` is what the run may still spend in total, so a selection that is
+        already part bought narrows onto its own bought cards instead of failing.
+        """
+        d=self.data
+        if not d or d['scope']!=scope or d['budget']!=budget or d['pending']:
+            raise ValueError('Narrowed star scope/budget/pending mismatch')
+        if 'affordable_plan' in d:
+            return list(d['requested'])
+        if not d['selected'] or d['requested']==list(priorities):
+            from .mirror_starlight import affordable
+            chosen=affordable(list(priorities),budget,limit,costs)
+            if not chosen:
+                raise ValueError('No configured grace fits the current balance')
+            if not set(d['selected'])<=set(chosen):
+                raise ValueError('An already bought grace is not in the affordable prefix')
+        else:
+            chosen=list(d['requested'])
+        d['affordable_plan']=dict(previous_requested=list(d['requested']),limit=limit,
+                                  proof=str(proof))
+        d['requested']=list(chosen)
+        write_json(self.path,d)
+        return list(chosen)
+
     def intent(self,card,cost,available,proof):
         d=self.data
         if (d['pending'] or card not in d['requested'] or card in d['selected'] or cost<=0

@@ -6,7 +6,7 @@ from .storage import KEYWORDS, SINNERS
 
 def import_profiles(value, existing=()):
     slots=value.get('team_indexes')
-    if not isinstance(slots,list) or not slots or len(slots)>20 or len(set(slots))!=len(slots):
+    if not isinstance(slots,list) or not slots or len(slots)>40 or len(set(slots))!=len(slots):
         raise ValueError('Lix rotation must contain unique team slots')
     columns=('mirror_team_styles','mirror_team_ego_gift_styles','team_orders',
              'mirror_team_stars','mirror_team_initial_ego_orders',

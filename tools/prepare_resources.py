@@ -146,7 +146,7 @@ def main():
                     'TeamLibraryConfigure':{'custom_action_param':{'mode':'configure','slot':slot}},
                     'ThemePackConfigure':{'custom_action_param':{'mode':'configure','slot':slot}},
                     'DeploymentConfigure':{'custom_action_param':{'mode':'configure','slot':slot}}}}
-                for slot in range(1,21)]},
+                for slot in range(1,41)]},
             'team_name': {'type':'input','label':'$team_name','inputs':[{'name':'name','label':'$team_name',
                            'default':'','verify':r'^.{0,80}$','pipeline_type':'string'}],
                           'pipeline_override':{'TeamLibraryName':{'custom_action_param':{'mode':'name','name':'{name}'}}}},

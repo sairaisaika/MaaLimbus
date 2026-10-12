@@ -35,6 +35,25 @@ def deployment_reset_confirm(records, size):
     return None
 
 
+def dialog_dismissal(records, size, locale):
+    """The close control of a modal that named no page, read from the modal itself.
+
+    A modal the planner cannot name still prints its own dismissal, and dismissing it
+    is the only safe input: the other control such a modal offers is a Confirm that
+    spends a resource or accepts a state the run never chose. The control is read from
+    the frame that shows the modal, not from a stored anchor, because a modal's
+    position depends on the page underneath it.
+    Live: the packaged application's run pi-20261012-010122 shows the Charge
+    Enkephalin modal over the Window page with 'Insufficient Enkephalin.', 'Use
+    Lunacy', 'Use Boxes', 'X Cancel' [710,782] and 'Confirm' [1110,784]; the run
+    recorded page_is_observe_only and sent nothing at all.
+    """
+    close = find(records, locale.get('cancel', r'(?!x)x'), (.25, .25, .75, .82), size, .8)
+    if len(close) != 1:
+        return None
+    return close[0].box
+
+
 def classify(records, locale, size):
     if deployment_reset_confirm(records,size) is not None:
         return 'DEPLOYMENT_RESET'

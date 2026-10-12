@@ -21,7 +21,7 @@ def collect(get_node):
 def apply(directory, edit, *, gifts, packs):
     if edit is None:return None
     slot=edit['slot']
-    if type(slot) is not int or not 1<=slot<=20:raise ValueError('Unknown saved team')
+    if type(slot) is not int or not 1<=slot<=40:raise ValueError('Unknown saved team')
     for key,catalog in [('allow',gifts),('block',gifts),('preferred',packs),('avoided',packs)]:
         if edit[key]!='saved' and edit[key] not in catalog:
             raise ValueError('Unknown preference catalog identity')
@@ -58,7 +58,7 @@ def apply(directory, edit, *, gifts, packs):
         if ledger.get('version')!=1:raise ValueError('Invalid run ledger')
         active=ledger.get('active')
         if active is not None and (not isinstance(active,dict) or
-                type(active.get('team')) is not int or not 1<=active['team']<=20 or
+                type(active.get('team')) is not int or not 1<=active['team']<=40 or
                 not isinstance(active.get('id'),str) or not active['id']):
             raise ValueError('Invalid active run ledger')
         if active and active.get('team')==slot and revised!=team:
