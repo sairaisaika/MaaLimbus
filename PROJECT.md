@@ -1457,3 +1457,21 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   ('floor_gift_enemy_trial_unknown', evidence/runtime/window-20261012-034813
   frame-0079.png). That strictness is deliberate: rank() prices the pick from the
   trial, so an unreadable trial is a stop rather than a guess.
+
+## Continuation: October12 installed task verification repair
+
+- Rechecked the live game without input: Maa foreground LimbusCompany and GIFT_PICK
+  0/2 remain, evidence/runtime/sinner-sample-20261012-081957. Current source run
+  f855ac82/team7 differs from the installed copy's empty active ledger; those
+  files must not be silently overwritten or treated as the same state.
+- Retained unpriced trials as explicit excluded offers, without assigning unknown
+  penalty values. Three supported offers on actual frame0079 can still rank; the
+  unknown Bloody Gadget defense-final-power trial cannot be selected. Duplicate
+  or missing evidence still refuses.33 floor cases and88 combined focused cases
+  passed; actual selection/receipt remains pending.
+- Packaged verifier now defaults to MirrorTask/MainTask, the real PI Start entry,
+  with Agent ownership of the canonical controller lease and an explicit optional
+  private-state binding. Removed hardcoded team5. Entry wiring, bounded progress
+  and dungeon completion are separately reported: a deployment successor failure
+  cannot pass merely because mirror_loop_start was recorded. Actual installed
+  rerun and GUI Start remain to be verified.

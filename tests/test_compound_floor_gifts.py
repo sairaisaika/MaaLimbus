@@ -26,18 +26,31 @@ def test_real_four_columns_include_wrapped_and_decimal_effects():
     assert offers[2].title=='Patrolling Flashlight'
 
 
-@pytest.mark.parametrize('text',['+5%','Damage Dealt +7.5%','Mounting Trials','0/2'])
-def test_partial_trial_or_missing_anchor_refuses(text):
+@pytest.mark.parametrize('text',['Mounting Trials','0/2'])
+def test_missing_trial_anchor_or_counter_refuses(text):
     records,catalog=fixture()
     with pytest.raises(ValueError):observe([r for r in records if r.text!=text],(1920,1080),catalog)
 
 
+@pytest.mark.parametrize('text',['+5%','Damage Dealt +7.5%'])
+def test_a_trial_that_lost_a_fragment_is_carried_and_never_chosen(text):
+    records,catalog=fixture()
+    offers,_=observe([r for r in records if r.text!=text],(1920,1080),catalog)
+    carried={o.title for o in offers if o.unpriced}
+    assert carried and not (carried & {r['title'] for r in rank(offers,Team(2,frozenset({'Charge','Tremor'})),[])})
+
+
 def test_unknown_component_and_wrong_column_never_discarded():
     records,catalog=fixture()
+    team=Team(2,frozenset({'Charge','Tremor'}))
     changed=[Text('Coin Power +7.5%',r.box,r.score) if r.text=='Damage Dealt +7.5%' else r for r in records]
-    with pytest.raises(ValueError):observe(changed,(1920,1080),catalog)
+    offers,_=observe(changed,(1920,1080),catalog)
+    carried={o.title for o in offers if o.unpriced}
+    assert carried and not (carried & {r['title'] for r in rank(offers,team,[])})
     wrong=[Text(r.text,(1068,754,222,36),r.score) if r.text=='Damage Dealt +7.5%' else r for r in records]
-    with pytest.raises(ValueError):observe(wrong,(1920,1080),catalog)
+    offers,_=observe(wrong,(1920,1080),catalog)
+    carried={o.title for o in offers if o.unpriced}
+    assert carried and not (carried & {r['title'] for r in rank(offers,team,[])})
 
 
 def test_fresh_actual_ocr_without_comma_keeps_both_complete_effects():

@@ -37,15 +37,27 @@ class Offer:
     owned: bool
     selection_source: str = 'counter'
     visible_benefit: int = 0
+    # Printed trial text that the finite grammar could not price. Such an offer is
+    # carried as evidence so the page can still be read, but it is never chosen:
+    # an unreadable cost is refused, not guessed, and not allowed to stop a page
+    # whose other cards are priced.
+    unpriced: str = ''
 
     def identity(self):
         value = dict(title=self.title, canonical=self.canonical,
                      trial=asdict(self.trial), owned=self.owned)
-        if not self.trial.components:value['trial'].pop('components')
+        if self.unpriced:
+            value['trial'] = None
+            value['unpriced_trial'] = self.unpriced
+        elif not self.trial.components:value['trial'].pop('components')
         if self.selection_source != 'counter':
             value['selection_source'] = self.selection_source
         if self.visible_benefit:value['visible_benefit']=self.visible_benefit
         return value
+
+
+class UnpricedTrial(ValueError):
+    """The printed trial text is outside the finite grammar, so it has no price."""
 
 
 GRAMMAR = ((r'Defense Level\s*\+\s*(\d+)', 'defense'),
@@ -57,31 +69,36 @@ GRAMMAR = ((r'Defense Level\s*\+\s*(\d+)', 'defense'),
            (r'Damage Dealt\s*\+\s*(\d+(?:\.\d+)?)\s*%', 'damage_dealt'))
 
 
-def parse_trial(level, records):
-    if len({r.box for r in records})!=len(records):
-        raise ValueError('floor_gift_enemy_trial_not_unique')
-    # Complete wrapped text, ordered by row then horizontal position. Each comma
-    # separates an independently supported effect; no unknown fragment is dropped.
+def trial_text(records):
+    """Complete wrapped trial text, ordered by row then horizontal position."""
     rows=[]
     for record in sorted(records,key=lambda r:(r.box[1]+r.box[3]/2,r.box[0])):
         cy=record.box[1]+record.box[3]/2
         if rows and abs(cy-rows[-1][0])<=12:rows[-1][1].append(record)
         else:rows.append((cy,[record]))
-    text=' '.join(' '.join(r.text.strip() for r in sorted(row,key=lambda r:r.box[0])) for _,row in rows)
+    return ' '.join(' '.join(r.text.strip() for r in sorted(row,key=lambda r:r.box[0])) for _,row in rows)
+
+
+def parse_trial(level, records):
+    if len({r.box for r in records})!=len(records):
+        raise ValueError('floor_gift_enemy_trial_not_unique')
+    # Complete wrapped text, ordered by row then horizontal position. Each comma
+    # separates an independently supported effect; no unknown fragment is dropped.
+    text=trial_text(records)
     effects=[]
     remaining=text.strip()
     while remaining:
         matches=[(kind,float(m[1]),m.end()) for pattern,kind in GRAMMAR
                  if (m:=re.match(pattern+r'(?=\s|,|$)',remaining,re.I))]
         if len(matches)!=1 or not 0<matches[0][1]<=100:
-            raise ValueError('floor_gift_enemy_trial_unknown')
+            raise UnpricedTrial('floor_gift_enemy_trial_unknown')
         kind,amount,end=matches[0];effects.append((kind,amount))
         remaining=remaining[end:].strip()
         if remaining.startswith(','):
             remaining=remaining[1:].strip()
-            if not remaining:raise ValueError('floor_gift_enemy_trial_unknown')
+            if not remaining:raise UnpricedTrial('floor_gift_enemy_trial_unknown')
     if not 0<level<=30 or not 1<=len(effects)<=3 or len({kind for kind,_ in effects})!=len(effects):
-        raise ValueError('floor_gift_enemy_trial_unknown')
+        raise UnpricedTrial('floor_gift_enemy_trial_unknown')
     if len(effects)==1:return Trial(level,*effects[0])
     return Trial(level,'compound',0,tuple(effects))
 
@@ -124,10 +141,17 @@ def observe(records, size, catalog, *, image=None, select_box=None):
         if len(trials)!=1 or len(levels)!=1 or not effects:
             raise ValueError('floor_gift_enemy_trial_not_unique')
         level = int(re.findall(r'\d+', levels[0].text)[0])
-        trial=parse_trial(level,effects)
+        try:
+            trial=parse_trial(level,effects)
+            unpriced=''
+        except UnpricedTrial:
+            # The printed cost is carried read-only; the offer stays on the page
+            # for its title and counter but can never be selected.
+            trial=Trial(0,'unpriced',0)
+            unpriced=trial_text(effects)
         owned = bool(find(records,r'^Owned$',(left,.13,right,.25),size,.9))
         offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),
-                            tuple(box),trial,owned))
+                            tuple(box),trial,owned,unpriced=unpriced))
     if len({normalized(o.title) for o in offers})!=len(offers):
         raise ValueError('floor_gift_duplicate_identity')
     if not 0 <= state['chosen'] <= state['required'] <= len(offers):
@@ -259,6 +283,10 @@ def rank(offers, team, selected):
     ranking = []
     for offer in offers:
         if normalized(offer.title) in selected or offer.canonical in team.block:
+            continue
+        if offer.unpriced:
+            # Never chosen: the printed trial could not be priced, and a pick is
+            # the one input that cannot be taken back.
             continue
         preferred = offer.canonical in team.allow or bool(offer.keywords & team.keywords)
         # Preference offsets a modest trial, but never unconditionally beats a

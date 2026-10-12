@@ -26,15 +26,24 @@ def test_complete_fourth_floor_trials_keep_all_three_components():
 
 
 @pytest.mark.parametrize('text',['Coin Power +1, Max HP','Clash Power, Max HP','Clash Power +1.5, Max HP'])
-def test_unknown_or_incomplete_power_cannot_be_skipped(text):
+def test_unknown_or_incomplete_power_is_carried_and_never_chosen(text):
     records,catalog=fixture()
     changed=[Text(text,r.box,r.score) if r.text=='Clash Power +1, Max HP' else r for r in records]
-    with pytest.raises(ValueError):observe(changed,(1920,1080),catalog)
+    offers,count=observe(changed,(1920,1080),catalog)
+    assert count==dict(chosen=0,required=2)
+    carried=[o for o in offers if o.unpriced]
+    assert len(carried)==1 and text in carried[0].unpriced
+    ranking=rank(offers,Team(2,frozenset({'Charge','Tremor'})),[])
+    assert len(ranking)==3 and all(r['title']!=carried[0].title for r in ranking)
 
 
-def test_unknown_third_component_stops():
+def test_unknown_third_component_is_carried_and_never_chosen():
     records,catalog=fixture()
     changed=[Text('Defense Level +3, Unknown +10',r.box,r.score)
              if r.text=='Defense Level +3, Max HP' else r for r in records]
-    with pytest.raises(ValueError):observe(changed,(1920,1080),catalog)
+    offers,_=observe(changed,(1920,1080),catalog)
+    carried=[o for o in offers if o.unpriced]
+    assert len(carried)==1 and 'Defense Level +3, Unknown +10' in carried[0].unpriced
+    assert all(r['title']!=carried[0].title
+               for r in rank(offers,Team(2,frozenset({'Charge','Tremor'})),[]))
 

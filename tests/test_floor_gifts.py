@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from maalimbus.vision import Text
 
 ROOT=Path(__file__).resolve().parents[1]
 FRAME=ROOT/'evidence/runtime/window-20261008-051724/frame-0032.json'
+MOUNTING=ROOT/'evidence/runtime/window-20261012-034813/frame-0079.json'
 
 
 @pytest.fixture(scope='module')
@@ -41,12 +43,46 @@ def test_missing_identity_trial_or_counter_refuses(catalog,text):
         observe([r for r in words() if r.text!=text],(1920,1080),catalog)
 
 
-def test_changed_buff_and_duplicate_effect_refuse(catalog):
+def test_changed_buff_is_carried_unreadable_and_duplicate_effect_refuses(catalog):
     records=words()
     changed=[Text('Coin Power +9',r.box,r.score) if r.text=='Offense Level +1' else r for r in records]
-    with pytest.raises(ValueError,match='unknown'):observe(changed,(1920,1080),catalog)
+    offers,count=observe(changed,(1920,1080),catalog)
+    assert count==dict(chosen=1,required=2)
+    carried={o.title:o for o in offers}['Lithograph']
+    assert 'Coin Power +9' in carried.unpriced and carried.trial.kind=='unpriced'
+    ranked=rank(offers,Team(2,frozenset({'Charge','Tremor'})),['Dimensional Recycle Bin'])
+    assert ranked and 'Lithograph' not in [r['title'] for r in ranked]
     records.append(next(r for r in records if r.text=='Max HP +5%'))
     with pytest.raises(ValueError,match='unique'):observe(records,(1920,1080),catalog)
+
+
+def test_a_page_whose_trials_all_miss_the_grammar_has_no_choice(catalog):
+    def unreadable():
+        out=[]
+        for r in words():
+            if re.search(r'Level \+|Max HP \+|Damage Taken',r.text):out.append(Text('Coin Power +9',r.box,r.score))
+            else:out.append(r)
+        return out
+    offers,_=observe(unreadable(),(1920,1080),catalog)
+    assert all(o.unpriced for o in offers)
+    assert rank(offers,Team(2,frozenset({'Charge'})),[])==[]
+
+
+def test_the_live_mounting_trials_page_prices_three_cards_and_carries_one(catalog):
+    data=json.loads(MOUNTING.read_text())
+    records=[Text(r['text'],tuple(r['box']),r['score']) for r in data['ocr']]
+    offers,count=observe(records,tuple(data['size']),catalog)
+    assert count==dict(chosen=0,required=2)
+    assert [o.title for o in offers]==['Oracle','Bloody Gadget','Voodoo Doll','Blood, Sweat, and Tears']
+    assert {o.title:o.unpriced for o in offers if o.unpriced}=={'Bloody Gadget':'Defense Skill Final Power'}
+    ranked=[r['title'] for r in rank(offers,Team(5,frozenset({'Poise'})),[])]
+    assert ranked==['Oracle','Voodoo Doll','Blood, Sweat, and Tears']
+    # Evidence changes when the printed trial is read: the carried text is part of
+    # the offer identity, so a later priced read is a new transaction, not a resume.
+    repriced=[Text('Damage Taken -5%',r.box,r.score) if r.text=='Defense Skill Final Power' else r
+              for r in records]
+    other,_=observe(repriced,tuple(data['size']),catalog)
+    assert FloorGiftTransaction.signature(other)!=FloorGiftTransaction.signature(offers)
 
 
 def test_block_wins_and_team_synergy_is_bounded(catalog):

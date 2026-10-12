@@ -1508,10 +1508,15 @@ class MirrorRunner:
                     if len(refuse)!=1:raise ValueError('owned_gift_refuse_control_missing')
                     gift.update(refuse_owned=True,refuse_target=list(refuse[0].box))
                 elif gift['chosen']<gift['required']:
-                    if not ranking:raise ValueError('floor_gift_no_allowed_offer')
+                    if not ranking:
+                        unpriced=[o.title for o in floor_offers if o.unpriced]
+                        raise ValueError('floor_gift_unpriced_choices_insufficient'
+                                         if unpriced else 'floor_gift_no_allowed_offer')
                     selected=next(o for o in floor_offers if o.title==ranking[0]['title'])
                     gift.update(target=list(selected.box),title=selected.title)
                 self.note('floor_gift_ranking',team=profile.slot,ranking=ranking,
+                          unpriced=[dict(title=o.title,printed=o.unpriced)
+                                    for o in floor_offers if o.unpriced],
                           selected=d['selected'],selection_source=floor_offers[0].selection_source,
                           proof=str(frame_file(directory)))
             except (ValueError,FileNotFoundError) as error:

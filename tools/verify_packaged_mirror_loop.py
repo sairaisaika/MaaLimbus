@@ -1,7 +1,7 @@
-"""Run the packaged product's own MirrorLoop entry against the live window.
+"""Run the installed MirrorTask (MXU Start entry) against the live window.
 
 The packaged app is only proven to automate the dungeon when the task MXU starts
-is the task that runs here: `MirrorLoop` in the installed pipeline, executed by
+is the task that runs here: `MirrorTask` in the installed pipeline, executed by
 the frozen `MaaLimbusAgent.exe`, driving a real device controller. This tool
 starts exactly that -- the same entry, the same agent binary, the same resources
 -- with a bounded step budget, and records what the frozen loop did.
@@ -33,6 +33,20 @@ from maalimbus.jobs import wait_job, wait_task
 from maalimbus import runner
 
 
+def verdict(record, outcome, started):
+    """Entry wiring, bounded progress and dungeon completion are separate facts."""
+    steps = (record or {}).get('steps') or []
+    reason = (record or {}).get('reason')
+    passed = bool(started and outcome.get('task_succeeded') and
+                  not outcome.get('timed_out') and not outcome.get('interrupted') and
+                  (record or {}).get('passed') and reason == 'window_steps_passed' and
+                  steps and all(s.get('passed') for s in steps))
+    return dict(passed=passed, entry_connected=bool(started),
+                bounded_progress_verified=passed,
+                dungeon_complete=bool(passed and record.get('verified_clear')),
+                stop_reason=reason)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', type=Path, required=True)
@@ -46,6 +60,11 @@ def main():
     parser.add_argument('--gift-keyword', default='bleed')
     parser.add_argument('--shop-refreshes', type=int, default=2)
     parser.add_argument('--observe-only', action='store_true')
+    parser.add_argument('--entry', choices=('MirrorTask', 'MirrorLoop'), default='MirrorTask')
+    parser.add_argument('--data-directory', type=Path,
+                        help='Explicit private-state binding; defaults to installed app config')
+    parser.add_argument('--report', type=Path,
+                        default=ROOT / 'build/packaged-mirror-loop-verification.json')
     args = parser.parse_args()
     app = args.app.resolve()
     if not args.observe_only and not runner.authorized(args.authorize):
@@ -56,7 +75,7 @@ def main():
     directory.mkdir(parents=True)
     result = dict(app=str(app), address=args.address, observe_only=bool(args.observe_only),
                   agent=str(app / 'agent/MaaLimbusAgent.exe'), directory=str(directory),
-                  steps_requested=args.steps, clicks_sent=0, passed=False)
+                  entry=args.entry, steps_requested=args.steps, clicks_sent=0, passed=False)
     Library.open(app / 'maafw', agent_server=False)
     Toolkit.init_option(directory / 'debug')
     lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
@@ -88,6 +107,9 @@ def main():
                        # The loop reads its own run directory from this name; without it
                        # the run lands inside the installed product instead.
                        'MAALIMBUS_RUN_DIR': str(directory)}
+        if args.data_directory:
+            environment['MAALIMBUS_DATA_PATH'] = str(args.data_directory.resolve())
+        result['private_state_binding'] = environment.get('MAALIMBUS_DATA_PATH', str(app/'config'))
         with (directory / 'agent.stdout.log').open('w') as stdout, \
                 (directory / 'agent.stderr.log').open('w') as stderr:
             child = subprocess.Popen([result['agent'], agent.identifier], cwd=str(app),
@@ -109,11 +131,17 @@ def main():
                                   claim_tries=3, battle_rounds=8, defeat_tries=1,
                                   gift_plan=args.gift_plan, gift_keyword=args.gift_keyword,
                                   shop_refreshes=args.shop_refreshes,
-                                  run_store='config/user-run-ledger.json', team=5, directory='')
+                                  run_store='config/user-run-ledger.json', directory='',
+                                  budget=args.seconds)
                 override = {'MirrorLoop': {'timeout': int(args.seconds * 1000),
                                            'custom_action_param': parameters}}
+                if args.entry == 'MirrorTask':
+                    # MainTask owns the system-wide lease in the Agent process,
+                    # just as with MXU. Holding it in this host would reject Start.
+                    lease.close()
+                    result['lease_owner'] = 'installed MainTask Agent'
                 started = time.monotonic()
-                outcome = wait_task(tasker, tasker.post_task('MirrorLoop', override),
+                outcome = wait_task(tasker, tasker.post_task(args.entry, override),
                                     deadline=started + args.seconds + 30)
                 result['task'] = outcome
             finally:
@@ -135,13 +163,15 @@ def main():
             result['agent_result'] = {key: record.get(key) for key in
                                       ('steps', 'clicks_sent', 'verified_clear', 'stopped', 'reason')}
             result['agent_result']['steps'] = len(record.get('steps') or [])
-        result['passed'] = bool(result['mirror_loop_started'] and agent is not None)
-        result['scope'] = ('packaged MirrorLoop entry + frozen agent + installed resources + real '
-                           'device controller; the loop ran inside the product for a bounded budget')
+        result.update(verdict(record, result['task'], result['mirror_loop_started']))
+        result['scope'] = ('installed task entry + frozen agent + installed resources + real '
+                           'controller; bounded progress does not prove dungeon completion or GUI click')
         return 0 if result['passed'] else 1
     finally:
         result['lease'] = str(lease.path)
-        (ROOT / 'build/packaged-mirror-loop-verification.json').write_text(
+        lease.close()
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(
             json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
