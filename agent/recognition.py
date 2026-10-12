@@ -1388,6 +1388,13 @@ class AgentTasker:
         self.entries = []
 
     def post_task(self, entry, pipeline_override=None):
+        # Context.run_task shares node hit counts with its enclosing MirrorTask.
+        # These read-only nodes have max_hit=1 for a single observation; without
+        # resetting only that counter the next observation is skipped forever.
+        # Preserve every input node's hit count and all transaction guards.
+        if entry in ('WindowMapObserve', 'WindowBattleObserve'):
+            if not self.context.clear_hit_count(entry):
+                raise RuntimeError('Maa could not reset the read-only observation hit count: '+entry)
         self.entries.append(entry)
         return AgentJob(self.context.run_task(entry, pipeline_override))
 
@@ -1479,10 +1486,11 @@ class MirrorLoopAction(CustomAction):
             journal.record('mirror_loop_error', error=str(error),
                            error_type=type(error).__name__, traceback=traceback.format_exc(),
                            verified_clear=False)
-            write_loop_result(directory, {'reason': 'mirror_loop_failed', 'error': str(error),
-                                          'error_type': type(error).__name__})
-            write_run_log(directory, {'reason': 'mirror_loop_failed', 'error': str(error),
-                                      'steps': []})
+            result = loop.summary() if loop is not None else result
+            result.update(passed=False, reason='mirror_loop_failed', error=str(error),
+                          error_type=type(error).__name__)
+            write_loop_result(directory, result)
+            write_run_log(directory, result)
             return False
         write_loop_result(directory, result)
         write_run_log(directory, result)

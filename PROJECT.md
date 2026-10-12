@@ -1475,3 +1475,10 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   and dungeon completion are separately reported: a deployment successor failure
   cannot pass merely because mirror_loop_start was recorded. Actual installed
   rerun and GUI Start remain to be verified.
+- Actual installed MainTask selected Oracle once, then stopped with its pick
+  pending. Native Maa log proves the root cause: Context.check_hit_count skipped
+  WindowMapObserve after its first max_hit=1. Nested Context.run_task shares that
+  counter, unlike independent CLI tasks. AgentTasker now uses the documented
+  clear_hit_count API exclusively for WindowMapObserve/WindowBattleObserve before
+  each read, preserving input hit counters/transactions.35 focused tests passed.
+  Pending selection must resolve from a fresh counter, never be clicked again.

@@ -90,6 +90,11 @@ class FakeContext:
         self.frames = [Path(frame) for frame in frames]
         self.opened = []
         self.entries = []
+        self.cleared = []
+
+    def clear_hit_count(self, name):
+        self.cleared.append(name)
+        return True
 
     def run_task(self, entry, pipeline_override=None):
         self.entries.append(entry)
@@ -230,6 +235,19 @@ def test_the_observation_proxy_runs_nodes_here_and_has_nothing_to_stop(tmp_path)
     assert (job.done, job.succeeded) == (True, True)
     assert tasker.post_stop().done is True
     assert context.entries == ['WindowMapObserve']
+    assert context.cleared == ['WindowMapObserve']
+
+
+def test_observation_hit_counts_reset_per_read_but_input_counts_are_preserved(tmp_path):
+    context = FakeContext(tmp_path, frames=(CLAIM_FRAME, CLAIM_FRAME))
+    tasker = AgentTasker(context)
+    tasker.post_task('WindowMapObserve')
+    tasker.post_task('WindowMapObserve')
+    tasker.post_task('WindowDrive')
+    assert context.cleared == ['WindowMapObserve', 'WindowMapObserve']
+    context.clear_hit_count = lambda name: False
+    with pytest.raises(RuntimeError, match='read-only observation hit count'):
+        tasker.post_task('WindowBattleObserve')
 
 
 def test_the_loop_drives_a_run_and_reports_it(tmp_path):
