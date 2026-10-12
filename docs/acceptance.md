@@ -1596,3 +1596,11 @@ tests pass. New explicit economy priorities and action/outcome review datasets
 are source-level changes pending installed continuation. 1466 full tests passed,
 1 Windows symlink permission skip. No trained buying-value model, live economy
 buy, final payout or complete five-floor acceptance is asserted.
+
+Installed GUI `175907` reached SELECT FLOOR 4 through exact named Rebate Token
+and Faint Vestige receipts, with owned Oracle substitution recorded. It stopped
+on the floor-4 theme fade; the source patient-read fix is pending fresh install.
+Actual `174217` native NN shadow has 11 predicted boxes per prebattle frame, with
+quality/input flags false. Corrected encoded-PNG identity-teacher binding replays
+12 measured / 3 resolved / 9 unresolved and refuses changed PNG bytes. 39 focused
+tests passed; live teacher publication and subsequent theme continuation remain.

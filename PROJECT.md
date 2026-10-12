@@ -1793,3 +1793,20 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   symlink-permission skip in 93.84 s. Live whole-run continuation, economy buy,
   and trained value policy application are still required; source tests do not
   establish any of them. No final payout or new module consumption claimed.
+
+- Installed `f2466d5` with 2396 private hashes preserved. GUI `175907` picked
+  Rebate Token and the already-owned Oracle once each, confirmed Select once,
+  acknowledged Rebate Token and the printed replacement Faint Vestige once,
+  and reached SELECT FLOOR 4. The substitution journal records expected_owned
+  true; no guessed Oracle effect is attributed to Faint Vestige.
+- The floor-4 drag then stopped on a changed-pixel THEME_PACKS fade. The patient
+  theme path already had a read budget, but the generic same-page pixel-change
+  break cut that budget short. It now excludes theme drags: only exact native MAP
+  floor/name clears the existing pending, and no drag is repeated.
+- Actual `174217` prebattle frames 0012/0013 executed native NN shadow inference
+  with 11 candidate boxes each, not production input. DSH's independent identity
+  helper returned no online report because it compared decoded pixel bytes with
+  the journal's encoded PNG hash. The corrected PNG hash replays the actual
+  teacher as 12 measured cards / 3 resolved / 9 unresolved, detector_read false.
+  Changed PNG bytes still refuse. 39 focused runner/theme/hash tests passed in
+  26.08 s; whole-source test evidence above predates these two corrections.

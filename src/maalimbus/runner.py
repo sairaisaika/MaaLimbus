@@ -876,7 +876,7 @@ def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges
     # The reading must be about the frame in hand, not about whatever the newest
     # stored pixels happen to be: a frame the observer has already moved past would
     # otherwise be reported under this record's evidence.
-    if hashlib.sha256(image.tobytes()).hexdigest() != record.get('image_sha256'):
+    if hashlib.sha256((Path(directory)/name).read_bytes()).hexdigest() != record.get('image_sha256'):
         return None
     present = [slot for slot in range(teacher.SLOTS)
                if measured_card_border(image, teacher.card_box(slot)) is not None]
@@ -1313,6 +1313,10 @@ class MirrorRunner:
             message='有界探索：'+str((fields.get('candidate') or {}).get('kind'))
         elif name=='shop_receipt_verified':
             message='商店交易已核对金币与完整货架后继：'+str(fields.get('kind'))
+        elif name=='theme_successor_read_retry' and fields.get('attempt') in (1,3,6):
+            message='等待主题切换的地图后继；只重新观察，不重拖主题，次数='+str(fields.get('attempt'))
+        elif name=='shop_purchase_learning_samples':
+            message='购买学习样本已记录：'+str(fields.get('samples'))+'；价值神经模型尚未应用'
         elif name=='pre_battle_identity_report':
             states=fields.get('slot_states') or {}
             message=('编队身份独立核对：测得'+str(states.get('measured'))+'/12，解析出'
@@ -2305,7 +2309,7 @@ class MirrorRunner:
             # changed frame on a page it cannot name is a page still loading, not a
             # landed successor, so waiting continues under the budget above (the floor
             # theme pull answers with exactly that empty frame).
-            if (not awaiting_gift_receipt
+            if (not awaiting_gift_receipt and not patient
                     and settled_page == page
                     and settled.get('image_sha256') not in (None, before_sha)):
                 break

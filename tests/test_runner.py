@@ -470,6 +470,27 @@ def test_the_theme_pull_waits_out_the_empty_frame_before_it_judges(tmp_path):
     assert written['selected'][0]['name'] == 'To be Cleaved'
 
 
+def test_changed_pixels_on_named_theme_loading_are_not_a_successor(tmp_path):
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    for p in (THEME_PAGE,THEME_LOADING,THEME_MAP):
+        if not p.exists():pytest.skip('Retained theme frames unavailable')
+    loading=tmp_path/'named-loading.json'
+    payload=json.loads(THEME_LOADING.read_text(encoding='utf-8'));payload['scene']='THEME_PACKS'
+    loading.write_text(json.dumps(payload),encoding='utf-8')
+    shutil.copyfile(THEME_LOADING.with_suffix('.png'),loading.with_suffix('.png'))
+    shutil.copyfile(ROOT/'config/user-team-profiles.json',tmp_path/'user-team-profiles.json')
+    store=RunStore(tmp_path/'user-run-ledger.json',[SimpleNamespace(slot=2)]);scope=store.start()
+    frames=[THEME_PAGE,loading,THEME_MAP]
+    instance=MirrorRunner(FakeDevice([archived(f) for f in frames]),
+        settings=dict(rounds=1,unknown_rounds=3,interval=0),directory=tmp_path,
+        observer=FrameObserver(tmp_path,list(map(str,frames))),store=store,run_id=scope,journal=Notes())
+    result=instance.run(steps=1,interval=0,round_limit=1)
+    assert result['passed'] and result['clicks_sent']==1
+    assert len(instance.device.swipes)==1
+    assert instance.theme_transaction.data['pending'] is None
+
+
 # The pre-battle participant counter rolls up while it changes and one settled frame can
 def test_theme_drag_waits_past_a_named_but_stale_previous_floor(tmp_path):
     from types import SimpleNamespace
