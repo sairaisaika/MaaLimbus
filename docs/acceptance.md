@@ -1,5 +1,13 @@
 ## October11 owned-inventory real collection
 
+Latest index: ordinary browser extraction independently verified189 playable Wiki
+IDs at revision145235, excluded NPC9999 and no duplicates. All189 EN/ZH names and
+188 explicit system rows from revision145587 imported with attribution/CC BY-SA4.0;
+missing JP aliases/system row and blank booleans remain explicit unknowns. Account
+reconciliation now129 exact owned matches/78 unresolved observations, still partial.
+12focused/923fullPython61.36s/1Windows permission skip passed. These facts supersede
+the initial184/127/80 checkpoint below. No game input during catalogue import.
+
 Box is the owned identity inventory, separate from detector boxes. Native Maa
 OCR / TemplateMatch proved Owned checked and ALL unchecked and independent
 headers for all12 sinner galleries.127 exact ID matches/80 unresolved observations

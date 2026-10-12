@@ -9,6 +9,25 @@ def normalized(value):
     return re.sub(r'\s+', '', unicodedata.normalize('NFKC', value)).casefold()
 
 
+def wiki_systems(source,known_ids):
+    columns=['Combustion','Laceration','Vibration','Burst','Sinking','Breath','Charge','Discard','Aggro','Bullet']
+    if source.get('columns')!=columns:raise ValueError('Wiki system columns changed')
+    canonical=['Burn','Bleed','Tremor','Rupture','Sinking','Poise','Charge']
+    result={}
+    for row in source['rows'].split():
+        identifier,separator,flags=row.partition(':')
+        if not separator or not identifier.isdigit() or not re.fullmatch(r'[01?]{10}',flags):
+            raise ValueError('Malformed Wiki system flags')
+        identifier=int(identifier)
+        if identifier not in known_ids or identifier in result:raise ValueError('Unknown/duplicate Wiki identity')
+        result[identifier]=dict(keywords=[k for k,f in zip(canonical,flags[:7]) if f=='1'],
+            unknown_keywords=[k for k,f in zip(canonical,flags[:7]) if f=='?'],
+            extras={k:True if f=='1' else False if f=='0' else None for k,f in zip(columns[7:],flags[7:])})
+    if len(result)!=source['count'] or sorted(known_ids-result.keys())!=source['missing_identity_ids']:
+        raise ValueError('Wiki system coverage changed')
+    return result
+
+
 def build_index(names, catalog, provenance):
     facts = {item['id']: item for item in catalog['identities']}
     entries = {}

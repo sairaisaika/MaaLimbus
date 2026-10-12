@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source": "https://limbuscompany.huijiwiki.com/wiki/Data%3APersonalities.json",
+  "revision": 145235,
+  "method": "read_only_rendered_public_table",
+  "license": "CC BY-SA 4.0",
+  "attribution": "Limbus Company HuiJi Wiki contributors",
+  "retrieved_utc": "2026-10-12T03:17:00Z",
+  "playable_id_count": 189,
+  "playable_counts": [16, 16, 15, 16, 15, 16, 16, 16, 17, 15, 15, 16],
+  "duplicates": [],
+  "excluded_npc_ids": [9999],
+  "en_title_source": "https://www.limbuscompany.tools/identities",
+  "en_title_method": "Cross-reference unique sinner/title with HuiJi personality ID; public title facts only",
+  "note": "Five missing titles supplement the revisioned localization index; no skills or keyword facts inferred.",
+  "dataList": [
+    {"id": 10315, "name": "堂吉诃德", "title": "高级定制:: 黑派 品牌经理", "star": 3, "en_title": "Haute Couture:: Le Noir Brand Manager"},
+    {"id": 10416, "name": "良秀", "title": "高级定制:: 黑派制鞋馆", "star": 3, "en_title": "Haute Couture:: Le Noir Footwear Hall"},
+    {"id": 10616, "name": "鸿璐", "title": "Cinq协会 东部3科", "star": 3, "en_title": "Cinq Assoc. East Section 3"},
+    {"id": 10816, "name": "以实玛利", "title": "高级定制:: 红派精品店", "star": 3, "en_title": "Haute Couture:: Boutique du Rouge"},
+    {"id": 10917, "name": "罗佳", "title": "高级定制:: 改衣室", "star": 3, "en_title": "Haute Couture:: Alteration Shop"}
+  ]
+}

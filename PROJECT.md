@@ -10,6 +10,19 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- Latest October11 index supersedes the initial184-entry checkpoint below.
+  Normal browser read of HuiJi Data:Personalities.json succeeded despite direct
+  HTTP403; revision145235 has189 playable IDs/one NPC9999 excluded/no duplicate.
+  Imported five missing IDs and cross-referenced public EN titles, all189 EN/ZH
+  aliases available; five JP aliases remain missing. HuiJi Buffchoose.tabx
+  revision145587 has188 identity system flag rows. Explicit empty fields for
+  Rodion10917 stay unknown; Don10315 lacks a system row, not guessed. Source
+  attribution/CC BY-SA4.0 and derived-table hashes retained. New index separates
+  Wiki flags from128 older static facts. Exact account reconciliation now129
+  owned IDs/78 unresolved observations across12 real pages, completeFalse.
+  12focused/923fullPython61.36s/1Windows symlink skip passed,
+  build/wiki-owned-inventory-full-tests.txt. No new device inputs for this import.
+  Full account text/end coverage and trained/evaluated Mirror model remain open.
 - October11 box clarification: box is owned identities per sinner, not bounding
   boxes alone. Full revisioned personality index/account reconciliation and
   Mirror self-label learning are the finishing priorities. New identity-index

@@ -1,5 +1,5 @@
 import pytest
-from maalimbus.owned_inventory import build_index,reconcile_titles,owned_page
+from maalimbus.owned_inventory import build_index,reconcile_titles,owned_page,wiki_systems
 
 
 def test_index_separates_missing_facts_and_npc():
@@ -22,6 +22,23 @@ def test_ambiguous_alias_and_cross_sinner_do_not_assign():
 def test_actual_ryoshu_accent_header_is_not_a_different_sinner():
     assert owned_page(dict(size=[1920,1080],ocr=[dict(text='IDENTITIES:RYOSHÚ',
         box=[176,69,214,42],score=.959572)],owned_filter=dict(owned_checked=True,all_unchecked=True)))==4
+
+
+@pytest.mark.parametrize('fault',[None,'columns','duplicate','invalid','unknown','coverage'])
+def test_wiki_boolean_table_preserves_empty_cells(fault):
+    source=dict(columns=['Combustion','Laceration','Vibration','Burst','Sinking','Breath','Charge',
+        'Discard','Aggro','Bullet'],rows='10917:??1???1???',count=1,missing_identity_ids=[10315])
+    if fault=='columns':source['columns'].reverse()
+    elif fault=='duplicate':source['rows']+=' 10917:0000000000'
+    elif fault=='invalid':source['rows']='10917:0010002???'
+    elif fault=='unknown':source['rows']='9999:0000000000'
+    elif fault=='coverage':source['missing_identity_ids']=[]
+    if fault:
+        with pytest.raises(ValueError):wiki_systems(source,{10917,10315})
+    else:
+        result=wiki_systems(source,{10917,10315})[10917]
+        assert result['keywords']==['Tremor','Charge']
+        assert 'Bleed' in result['unknown_keywords'] and result['extras']['Bullet'] is None
 
 
 @pytest.mark.parametrize('fault',['filter','header','confidence'])

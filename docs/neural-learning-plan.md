@@ -11,9 +11,13 @@ never marks an identity owned; an incomplete account scan never marks it absent.
 Identity records use game personality ID as key, with independent EN/JP/ZH titles,
 source revision/hash, and nullable missing keyword/skill facts. The retained
 localization currently yields184 playable IDs; the old statics yield128 facts.
-Both are partial until reconciled against a current complete catalogue. HuiJi
-Personalities and Personalitypassives are intended sources; current raw access
-returns403, so search snippets are not imported as a complete JSON database.
+The initial184 snapshot is superseded by a normal browser read of HuiJi revision
+145235:189 playable IDs, all189 EN/ZH aliases, five JP aliases pending. The Wiki
+Buffchoose.tabx revision145587 contributes188 explicit system flag rows, with
+empty fields preserved as unknown and one identity's systems absent. Attribution
+and CC BY-SA4.0 provenance are retained. Direct raw HTTP403 is distinct from the
+successful rendered public table extraction; no search snippet became raw data.
+Wiki-revision ID completeness is separate from live-game/account completeness.
 
 MuMu ownership collection uses native Maa OCR and native TemplateMatch for the
 Owned checked / ALL unchecked controls, a unique sinner header and hash-bound

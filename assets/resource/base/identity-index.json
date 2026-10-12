@@ -13,7 +13,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10102,
@@ -27,7 +41,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10103,
@@ -41,7 +69,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10104,
@@ -53,10 +95,26 @@
         "jp": "開花 E.G.O::\n壇香梅"
       },
       "keywords": [
+        "Tremor",
+        "Sinking"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Sinking",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10105,
@@ -70,7 +128,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10106,
@@ -82,10 +154,26 @@
         "jp": "W社 3級\n整理要員"
       },
       "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10107,
@@ -100,7 +188,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10108,
@@ -114,7 +218,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10109,
@@ -126,9 +244,31 @@
         "jp": "薬指点描派\nスチューデント"
       },
       "keywords": [
+        "Burn",
+        "Bleed",
+        "Tremor",
+        "Rupture",
+        "Sinking"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Tremor",
+          "Rupture",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10110,
@@ -142,7 +282,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10111,
@@ -156,7 +310,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10112,
@@ -167,8 +335,22 @@
         "en": "Liu Assoc.\nSouth Section 3",
         "jp": "南部リウ協会\n3課"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10113,
@@ -179,8 +361,24 @@
         "en": "N Corp. E.G.O::\nFell Bullet",
         "jp": "N社E.G.O::\n凶弾"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10114,
@@ -191,8 +389,24 @@
         "en": "Heishou Pack -\nWu Branch Adept",
         "jp": "黒獣 - 午 筆頭"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Tremor",
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10115,
@@ -203,8 +417,26 @@
         "en": "The House of Spiders:\nThe Index Nursefather",
         "jp": "蜘蛛の巣\n人差し指の親方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Sinking",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Sinking",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10116,
@@ -215,8 +447,24 @@
         "en": "LCE E.G.O::\nDimension Shredder",
         "jp": "LCE E.G.O::\n次元裂き"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10201,
@@ -228,7 +476,17 @@
         "jp": "LCB\n囚人"
       },
       "keywords": [],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10202,
@@ -242,7 +500,21 @@
       "keywords": [
         "Charge"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Charge"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10203,
@@ -254,10 +526,26 @@
         "jp": "生き残った\nロボトミー職員"
       },
       "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Poise",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10204,
@@ -271,7 +559,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10205,
@@ -283,7 +585,17 @@
         "jp": "南部ツヴァイ協会\n4課"
       },
       "keywords": [],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10206,
@@ -297,7 +609,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10207,
@@ -311,7 +637,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10208,
@@ -323,9 +663,25 @@
         "jp": "剣契\n殺手"
       },
       "keywords": [
+        "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10209,
@@ -339,7 +695,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10210,
@@ -353,7 +723,21 @@
       "keywords": [
         "Charge"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Charge"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10211,
@@ -367,7 +751,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10212,
@@ -378,8 +776,24 @@
         "en": "Heishou Pack -\nMao Branch Adept",
         "jp": "黒獣 - 卯 筆頭"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10213,
@@ -390,8 +804,24 @@
         "en": "Shi Assoc.\nEast Section 3",
         "jp": "東部シ協会\n3課"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10214,
@@ -402,8 +832,24 @@
         "en": "The Index Proselyte:\n【Paper Slip】",
         "jp": "人差し指遂行者:\n【紙片】"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Sinking",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10215,
@@ -414,8 +860,24 @@
         "en": "The House of Spiders:\nThe Ring Apprentice",
         "jp": "蜘蛛の巣\n薬指の子方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10216,
@@ -426,8 +888,24 @@
         "en": "Dawn Office\nFixer",
         "jp": "夜明事務所\nフィクサー"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10301,
@@ -441,7 +919,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10302,
@@ -453,10 +945,26 @@
         "jp": "W社 3級\n整理要員"
       },
       "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10303,
@@ -470,7 +978,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10304,
@@ -482,9 +1004,25 @@
         "jp": "N社\n中鎚"
       },
       "keywords": [
+        "Bleed",
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10305,
@@ -496,7 +1034,17 @@
         "jp": "南部センク協会\n5課 部長"
       },
       "keywords": [],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10306,
@@ -510,7 +1058,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10307,
@@ -524,7 +1086,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10308,
@@ -538,7 +1114,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10309,
@@ -552,7 +1142,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10310,
@@ -566,7 +1170,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10311,
@@ -577,8 +1195,24 @@
         "en": "Cinq Assoc.\nEast Section 3",
         "jp": "東部センク協会\n3課"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10312,
@@ -589,8 +1223,26 @@
         "en": "Lobotomy E.G.O::\nIn the Name of\nLove and Hate",
         "jp": "ロボトミーE.G.O::\n愛と憎悪の名の下に"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Sinking",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Sinking",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10313,
@@ -601,8 +1253,24 @@
         "en": "Heishou Pack -\nWei Branch",
         "jp": "黒獣 - 未"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10314,
@@ -613,8 +1281,37 @@
         "en": "The Index Proxy - \nEffloresced E.G.O::\nProcuration",
         "jp": "人差し指代行者 - \n開花E.G.O::\n代行"
       },
+      "keywords": [
+        "Sinking",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
+    },
+    {
+      "id": 10315,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "高级定制:: 黑派 品牌经理",
+        "en": "Haute Couture:: Le Noir Brand Manager"
+      },
       "keywords": null,
-      "facts_available": false
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": null
     },
     {
       "id": 10401,
@@ -628,7 +1325,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10402,
@@ -642,7 +1353,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10403,
@@ -656,7 +1381,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10404,
@@ -670,7 +1409,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10405,
@@ -684,7 +1437,21 @@
       "keywords": [
         "Charge"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Charge"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10406,
@@ -696,11 +1463,29 @@
         "jp": "LCCB\n係長"
       },
       "keywords": [
+        "Tremor",
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Poise",
         "Rupture",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10407,
@@ -714,7 +1499,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10408,
@@ -728,7 +1527,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10409,
@@ -742,7 +1555,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10410,
@@ -754,9 +1581,25 @@
         "jp": "ロボトミーE.G.O::\n赤眼・懺悔"
       },
       "keywords": [
+        "Bleed",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10411,
@@ -767,8 +1610,22 @@
         "en": "Heishou Pack - Mao Branch",
         "jp": "黒獣 - 卯"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10412,
@@ -779,8 +1636,24 @@
         "en": "N Corp. E.G.O::\nContempt, Awe",
         "jp": "N社E.G.O::\n軽蔑、畏敬"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10413,
@@ -791,8 +1664,24 @@
         "en": "Drifting Blade of Hongyuan",
         "jp": "鴻園の放浪武者"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10414,
@@ -803,8 +1692,24 @@
         "en": "Lobotomy E.G.O::\nFaint Aroma & Solitude",
         "jp": "ロボトミーE.G.O::\n残香・寂しさ"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Tremor",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10415,
@@ -815,8 +1720,53 @@
         "en": "Blade of the House of Spiders",
         "jp": "蜘蛛の巣の刀"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
+    },
+    {
+      "id": 10416,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "高级定制:: 黑派制鞋馆",
+        "en": "Haute Couture:: Le Noir Footwear Hall"
+      },
+      "keywords": [
+        "Tremor",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10501,
@@ -830,7 +1780,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10502,
@@ -844,7 +1808,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10503,
@@ -856,10 +1834,26 @@
         "jp": "W社 2級\n整理要員"
       },
       "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10504,
@@ -870,8 +1864,22 @@
         "en": "N Corp.\nGroßhammer",
         "jp": "N社\n大鎚"
       },
-      "keywords": [],
-      "facts_available": true
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10505,
@@ -883,10 +1891,26 @@
         "jp": "バラのスパナ工房\nフィクサー"
       },
       "keywords": [
+        "Tremor",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10506,
@@ -901,7 +1925,23 @@
         "Bleed",
         "Charge"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Charge"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10507,
@@ -915,7 +1955,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10508,
@@ -930,7 +1984,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10509,
@@ -944,7 +2014,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10510,
@@ -958,7 +2042,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10511,
@@ -970,10 +2068,26 @@
         "jp": "西部センク協会\n3課"
       },
       "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Poise",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10512,
@@ -984,8 +2098,24 @@
         "en": "The Thumb\nEast Capo IIII",
         "jp": "東部親指\nカポIIII"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10513,
@@ -996,8 +2126,24 @@
         "en": "The Prince of La Manchaland",
         "jp": "ラ・マンチャランドの王子"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10514,
@@ -1008,8 +2154,24 @@
         "en": "Lobotomy E.G.O::\nHornet 【Alteration】",
         "jp": "ロボトミーE.G.O::\nホーネット【変調】"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10515,
@@ -1020,8 +2182,24 @@
         "en": "The Ring Fauvist\nStudent",
         "jp": "薬指 野獣派\nスチューデント"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10601,
@@ -1036,7 +2214,23 @@
         "Rupture",
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture",
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10602,
@@ -1050,7 +2244,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10603,
@@ -1064,7 +2272,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10604,
@@ -1078,7 +2300,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10605,
@@ -1092,7 +2328,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10606,
@@ -1104,10 +2354,26 @@
         "jp": "W社 2級\n整理要員"
       },
       "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10607,
@@ -1121,7 +2387,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10608,
@@ -1135,7 +2415,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10609,
@@ -1149,7 +2443,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10610,
@@ -1161,10 +2469,24 @@
         "jp": "牙狩事務所\nフィクサー"
       },
       "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10611,
@@ -1178,7 +2500,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10612,
@@ -1189,8 +2525,24 @@
         "en": "R Corp. 4th Pack\nReindeer",
         "jp": "R社第4群\nトナカイチーム"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Sinking",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10613,
@@ -1201,8 +2553,24 @@
         "en": "The Lord\nof Hongyuan",
         "jp": "鴻園の君主"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10614,
@@ -1213,8 +2581,26 @@
         "en": "The House of Spiders:\nThe Ring Nursefather",
         "jp": "蜘蛛の巣\n薬指の親方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10615,
@@ -1225,8 +2611,51 @@
         "en": "S Corp. Ch'unokkun",
         "jp": "S社\nチュノックン"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
+    },
+    {
+      "id": 10616,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "Cinq协会 东部3科",
+        "en": "Cinq Assoc. East Section 3"
+      },
+      "keywords": [
+        "Burn",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10701,
@@ -1240,7 +2669,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10702,
@@ -1254,7 +2697,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10703,
@@ -1267,10 +2724,28 @@
       },
       "keywords": [
         "Bleed",
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10704,
@@ -1284,7 +2759,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10705,
@@ -1299,7 +2788,23 @@
         "Rupture",
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture",
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10706,
@@ -1313,7 +2818,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10707,
@@ -1328,7 +2847,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10708,
@@ -1342,7 +2877,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10709,
@@ -1356,7 +2905,21 @@
       "keywords": [
         "Charge"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Charge"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10710,
@@ -1370,7 +2933,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10711,
@@ -1384,7 +2961,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10712,
@@ -1395,8 +2986,22 @@
         "en": "Kurokumo Clan\nWakashu",
         "jp": "黒雲会\n若衆"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10713,
@@ -1407,8 +3012,24 @@
         "en": "W Corp. L4\nCleanup Agent -\nCCA",
         "jp": "W社 4級\n整理要員 - CCA"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10714,
@@ -1419,8 +3040,24 @@
         "en": "Heishou Pack -\nYou Branch Adept",
         "jp": "黒獣 - 酉 筆頭"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10715,
@@ -1431,8 +3068,26 @@
         "en": "The Middle\nBig Brother",
         "jp": "中指\n末兄"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10716,
@@ -1443,8 +3098,24 @@
         "en": "The House of Spiders:\nThe Thumb Apprentice",
         "jp": "蜘蛛の巣\n親指の子方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10801,
@@ -1458,7 +3129,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10802,
@@ -1470,10 +3155,26 @@
         "jp": "R社第4群\nトナカイチーム"
       },
       "keywords": [
+        "Sinking",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Sinking"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10803,
@@ -1487,7 +3188,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10804,
@@ -1499,10 +3214,26 @@
         "jp": "LCCB\n係長"
       },
       "keywords": [
+        "Tremor",
+        "Rupture"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Rupture",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 10805,
@@ -1514,10 +3245,26 @@
         "jp": "ロボトミーE.G.O::\nたぷつき"
       },
       "keywords": [
+        "Tremor",
+        "Rupture"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Rupture",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10806,
@@ -1531,7 +3278,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10807,
@@ -1543,11 +3304,27 @@
         "jp": "奥歯ボートセンター\nフィクサー"
       },
       "keywords": [
+        "Tremor",
+        "Sinking"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Rupture",
         "Sinking",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10808,
@@ -1559,11 +3336,29 @@
         "jp": "ピークォド号\n船長"
       },
       "keywords": [
+        "Burn",
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed",
         "Burn",
         "Poise"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10809,
@@ -1575,10 +3370,26 @@
         "jp": "エドガー家\nバトラー"
       },
       "keywords": [
+        "Sinking",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Poise",
         "Sinking"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10810,
@@ -1592,7 +3403,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10811,
@@ -1603,8 +3428,22 @@
         "en": "Kurokumo Clan\nCaptain",
         "jp": "黒雲会\n副組長"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10812,
@@ -1615,8 +3454,24 @@
         "en": "Family Hierarch Candidate",
         "jp": "家主候補"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10813,
@@ -1627,8 +3482,24 @@
         "en": "Jeong's Office Rep",
         "jp": "定事務所\n代表"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Tremor",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10814,
@@ -1639,8 +3510,24 @@
         "en": "The House of Spiders:\nThe Middle Apprentice",
         "jp": "蜘蛛の巣\n中指の子方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10815,
@@ -1651,8 +3538,51 @@
         "en": "LCD OSIR Team",
         "jp": "LCD\n現場推理チーム"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
+    },
+    {
+      "id": 10816,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "高级定制:: 红派精品店",
+        "en": "Haute Couture:: Boutique du Rouge"
+      },
+      "keywords": [
+        "Bleed",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10901,
@@ -1666,7 +3596,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10902,
@@ -1681,7 +3625,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10903,
@@ -1693,7 +3653,17 @@
         "jp": "LCCB\n係長"
       },
       "keywords": [],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10904,
@@ -1707,7 +3677,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10905,
@@ -1719,10 +3703,26 @@
         "jp": "バラのスパナ工房\n代表"
       },
       "keywords": [
+        "Tremor",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10906,
@@ -1736,7 +3736,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10907,
@@ -1750,7 +3764,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10908,
@@ -1764,7 +3792,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10909,
@@ -1778,7 +3820,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10910,
@@ -1792,7 +3848,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10911,
@@ -1807,7 +3877,23 @@
         "Bleed",
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10912,
@@ -1818,8 +3904,24 @@
         "en": "Heishou Pack - Si Branch",
         "jp": "黒獣 - 巳"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10913,
@@ -1830,8 +3932,24 @@
         "en": "Lobotomy E.G.O::\nThe Sword Sharpened\nwith Tears",
         "jp": "ロボトミーE.G.O::\n涙で研ぎ澄まされた剣"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Sinking",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10914,
@@ -1842,8 +3960,24 @@
         "en": "R Corp. 4th Pack\nReindeer",
         "jp": "R社第4群\nトナカイチーム"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Sinking",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10915,
@@ -1854,8 +3988,24 @@
         "en": "The Ring Fauvist\nDocent",
         "jp": "薬指 野獣派\nドーセント"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 10916,
@@ -1866,8 +4016,57 @@
         "en": "The House of Spiders:\nThe Thumb Nursefather",
         "jp": "蜘蛛の巣\n親指の親方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
+    },
+    {
+      "id": 10917,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "高级定制:: 改衣室",
+        "en": "Haute Couture:: Alteration Shop"
+      },
+      "keywords": [
+        "Tremor",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Charge"
+        ],
+        "unknown_keywords": [
+          "Burn",
+          "Bleed",
+          "Rupture",
+          "Sinking",
+          "Poise"
+        ],
+        "extras": {
+          "Discard": null,
+          "Aggro": null,
+          "Bullet": null
+        }
+      }
     },
     {
       "id": 11001,
@@ -1881,7 +4080,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11002,
@@ -1896,7 +4109,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11003,
@@ -1910,7 +4139,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11004,
@@ -1922,10 +4165,26 @@
         "jp": "マリアッチ\nボス"
       },
       "keywords": [
+        "Sinking",
+        "Poise"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Poise",
         "Sinking"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Sinking",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11005,
@@ -1937,10 +4196,26 @@
         "jp": "握らんとする者"
       },
       "keywords": [
+        "Burn",
+        "Bleed"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed",
         "Burn"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11006,
@@ -1954,7 +4229,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11007,
@@ -1966,10 +4255,24 @@
         "jp": "奥歯ボートセンター\nフィクサー"
       },
       "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Rupture",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11008,
@@ -1983,7 +4286,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11009,
@@ -1997,7 +4314,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11010,
@@ -2011,7 +4342,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11011,
@@ -2025,7 +4370,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11012,
@@ -2036,8 +4395,22 @@
         "en": "The Middle\nLittle Brother",
         "jp": "中指\n末弟"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11013,
@@ -2048,8 +4421,24 @@
         "en": "The Thumb\nEast Soldato II",
         "jp": "東部親指\nソルダートII"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 11014,
@@ -2060,8 +4449,24 @@
         "en": "Heishou Pack -\nYou Branch",
         "jp": "黒獣 - 酉"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11015,
@@ -2072,8 +4477,24 @@
         "en": "The House of Spiders:\nThe Pinky Apprentice",
         "jp": "蜘蛛の巣\n小指の子方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11101,
@@ -2087,7 +4508,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11102,
@@ -2101,7 +4536,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11103,
@@ -2115,7 +4564,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11104,
@@ -2129,7 +4592,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11105,
@@ -2143,7 +4620,21 @@
       "keywords": [
         "Tremor"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Tremor"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": true,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11106,
@@ -2157,7 +4648,21 @@
       "keywords": [
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11107,
@@ -2171,7 +4676,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 11108,
@@ -2185,7 +4704,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11109,
@@ -2197,9 +4730,31 @@
         "jp": "薬指点描派\nスチューデント"
       },
       "keywords": [
+        "Burn",
+        "Bleed",
+        "Tremor",
+        "Rupture",
+        "Sinking"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed",
+          "Tremor",
+          "Rupture",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11110,
@@ -2211,10 +4766,26 @@
         "jp": "W社 3級\n整理要員チーフ"
       },
       "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11111,
@@ -2228,7 +4799,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11112,
@@ -2239,8 +4824,22 @@
         "en": "Heishou Pack - Mao Branch",
         "jp": "黒獣 - 卯"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11113,
@@ -2251,8 +4850,22 @@
         "en": "T Corp. Class 3\nVDCU Staff",
         "jp": "T社3級\n強制徴収職 職員"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11114,
@@ -2263,8 +4876,24 @@
         "en": "LCA Udjat Vanguard\nTeam 3 Leader",
         "jp": "LCA\nウアジェト先鋒三隊隊長"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Tremor",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 11115,
@@ -2275,8 +4904,24 @@
         "en": "The House of Spiders:\nThe Middle Nursefather",
         "jp": "蜘蛛の巣\n中指の親方"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Bleed"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11201,
@@ -2290,7 +4935,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11202,
@@ -2304,7 +4963,21 @@
       "keywords": [
         "Burn"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Burn"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11203,
@@ -2318,7 +4991,21 @@
       "keywords": [
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11204,
@@ -2332,7 +5019,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11205,
@@ -2344,11 +5045,29 @@
         "jp": "バラのスパナ工房\nフィクサー"
       },
       "keywords": [
+        "Tremor",
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": true,
+      "static_keywords": [
         "Charge",
         "Rupture",
         "Tremor"
       ],
-      "facts_available": true
+      "wiki_systems": {
+        "keywords": [
+          "Tremor",
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11206,
@@ -2360,7 +5079,17 @@
         "jp": "南部ツヴァイ協会\n4課"
       },
       "keywords": [],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [],
+      "wiki_systems": {
+        "keywords": [],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11207,
@@ -2375,7 +5104,23 @@
         "Bleed",
         "Poise"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": true
+        }
+      }
     },
     {
       "id": 11208,
@@ -2389,7 +5134,21 @@
       "keywords": [
         "Bleed"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11209,
@@ -2403,7 +5162,21 @@
       "keywords": [
         "Sinking"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Sinking"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11210,
@@ -2418,7 +5191,23 @@
         "Bleed",
         "Rupture"
       ],
-      "facts_available": true
+      "facts_available": true,
+      "static_keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Rupture"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11211,
@@ -2429,8 +5218,22 @@
         "en": "Firefist Office\nSurvivor",
         "jp": "炎拳事務所\n生存者"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11212,
@@ -2441,8 +5244,24 @@
         "en": "Heishou Pack - Si Branch",
         "jp": "黒獣 - 巳"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Poise"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Poise"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11213,
@@ -2453,8 +5272,24 @@
         "en": "Night Awls Capitano",
         "jp": "夜の錐\nカピターノ"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Bleed",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Bleed",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11214,
@@ -2465,8 +5300,24 @@
         "en": "Lobotomy E.G.O::Lamp",
         "jp": "ロボトミーE.G.O::\nランプ"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Sinking"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Sinking"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11215,
@@ -2477,8 +5328,24 @@
         "en": "LCE E.G.O::\nAEDD",
         "jp": "LCE E.G.O::\nAEDD"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Rupture",
+        "Charge"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Rupture",
+          "Charge"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": true,
+          "Bullet": false
+        }
+      }
     },
     {
       "id": 11216,
@@ -2489,8 +5356,24 @@
         "en": "Dawn Office Rep",
         "jp": "夜明事務所\n代表"
       },
-      "keywords": null,
-      "facts_available": false
+      "keywords": [
+        "Burn",
+        "Tremor"
+      ],
+      "facts_available": false,
+      "static_keywords": null,
+      "wiki_systems": {
+        "keywords": [
+          "Burn",
+          "Tremor"
+        ],
+        "unknown_keywords": [],
+        "extras": {
+          "Discard": false,
+          "Aggro": false,
+          "Bullet": false
+        }
+      }
     }
   ],
   "provenance": {
@@ -2498,12 +5381,39 @@
     "revision": "231a8bcfc347273e7769b70ebc4f9f3e2fecaa5a",
     "retained_sha256": "0c13b70aea524081086d1fba392eb54727475c233f15356bbc23f4766b8b000f",
     "wiki_url": "https://limbuscompany.huijiwiki.com/wiki/Data%3APersonalities.json",
-    "wiki_imported": false,
-    "wiki_access_status": 403
+    "wiki_imported": true,
+    "wiki_method": "read_only_rendered_public_table",
+    "wiki_revision": 145235,
+    "wiki_license": "CC BY-SA 4.0",
+    "wiki_attribution": "Limbus Company HuiJi Wiki contributors",
+    "wiki_supplement_sha256": "05aedd1d993a9352bd0ab17f783dbe8a8f704b2769ab1ae9d6e07c111dc872ea",
+    "raw_api_access_status": 403,
+    "wiki_systems": {
+      "url": "https://limbuscompany.huijiwiki.com/wiki/Data%3ABuffchoose.tabx",
+      "revision": 145587,
+      "sha256": "0e505ffd22276ec093d8620d9cd5a4f15cb43591942a3c7550357647060bb113",
+      "license": "CC BY-SA 4.0",
+      "attribution": "Limbus Company HuiJi Wiki contributors"
+    },
+    "supplement_en_title_source": "https://www.limbuscompany.tools/identities"
   },
   "coverage": {
-    "known_count": 184,
+    "known_count": 189,
     "live_complete": false,
-    "reason": "Source revision coverage requires live catalogue reconciliation"
+    "reason": "Source revision coverage requires live catalogue reconciliation",
+    "wiki_revision_complete": true,
+    "wiki_playable_count": 189,
+    "wiki_systems_count": 188,
+    "wiki_systems_missing": 1,
+    "missing_aliases": {
+      "en": [],
+      "jp": [
+        10315,
+        10416,
+        10616,
+        10816,
+        10917
+      ]
+    }
   }
 }
