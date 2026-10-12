@@ -216,6 +216,204 @@ def test_nearest_badge_ranks_by_distance_and_reports_its_margin():
     assert best['margin'] == pytest.approx(1.0)
 
 
+# --- the measured caption and level bands --------------------------------
+
+def test_the_skill_line_above_the_title_never_joins_the_caption():
+    # Measured on 1878 retained frames: the "Entry SP" line's centre sits 183..196
+    # below the card origin and the printed title 204..230, so a caption window that
+    # starts at 185 lets every slot's skill line into its own title.
+    origin_x, origin_y = teacher.card_origin(1)
+    tokens = [token('Entry SP +20', origin_x + 90, origin_y + 188),
+              token('Heishou Pack - Wu Branch Adept', origin_x + 90, origin_y + 208)]
+    row = teacher.read_caption(tokens, 1)
+    assert row['caption'] == 'Heishou Pack - Wu Branch Adept'
+    assert 'Entry SP +20' in row['rejected_tokens']
+
+
+def test_a_level_band_in_the_lower_row_is_read_not_dropped():
+    # Measured on the same frames: level bands sit at 161..199 or 218..219, so a
+    # window that stops at 205 reports no level at all for the lower stripe.
+    origin_x, origin_y = teacher.card_origin(7)
+    row = teacher.read_caption([token('Lv.60', origin_x + 90, origin_y + 218)], 7)
+    assert row['level'] == 60 and row['caption'] is None
+
+
+def test_a_level_band_below_the_measured_window_is_a_gap_not_a_level():
+    origin_x, origin_y = teacher.card_origin(7)
+    row = teacher.read_caption([token('Lv.60', origin_x + 90, origin_y + 230)], 7)
+    assert row['level'] is None and row['level_tokens'] == []
+
+
+# --- the twelve-slot report ---------------------------------------------
+
+def test_a_present_slot_outside_the_grid_is_refused():
+    with pytest.raises(ValueError):
+        teacher.identity_report([], present_slots=[12])
+
+
+def test_a_repeated_present_slot_is_refused():
+    with pytest.raises(ValueError):
+        teacher.identity_report([], present_slots=[3, 3])
+
+
+def test_the_report_always_states_twelve_slots_and_both_lists():
+    report = teacher.identity_report([], present_slots=[1, 5])
+    assert report['slot_count'] == teacher.SLOTS and len(report['slots']) == 12
+    assert report['slot_states'] == {'measured': 2, 'missing': 10}
+    assert report['measured_slots'] == [1, 5]
+    assert report['missing_slots'] == [0, 2, 3, 4, 6, 7, 8, 9, 10, 11]
+    assert report['all_slots_accounted_for'] is True
+    assert report['detector_read'] is False
+    assert report['teacher'] == teacher.TEACHER
+    assert report['schema_version'] == teacher.REPORT_SCHEMA
+    assert [row['grid_slot'] for row in report['slots']] == list(range(12))
+
+
+def test_an_unmeasured_slot_is_missing_and_never_an_empty_reading():
+    report = teacher.identity_report([], present_slots=[0], presence_source='no_border')
+    missing = report['slots'][1]
+    assert missing['slot_state'] == 'missing'
+    assert missing['card_state'] == 'missing_grid_slot'
+    assert missing['caption'] is None
+    assert missing['resolution'] == dict(resolved=False, reason='slot_missing')
+    assert missing['missing_reason'] == 'no_border'
+    assert report['presence_source'] == 'no_border'
+    assert report['unresolved_reasons'] == {'slot_missing': 11, 'no_catalogue_index': 1}
+
+
+def test_a_measured_card_without_a_catalogue_stays_a_named_gap():
+    report = teacher.identity_report([], present_slots=[4])
+    assert report['slots'][4]['resolution'] == dict(resolved=False, reason='no_catalogue_index')
+    assert report['resolved_slots'] == [] and report['identity_ids'] == {}
+
+
+def test_a_measured_card_behind_no_ocr_is_a_caption_gap(aliases):
+    report = teacher.identity_report([], present_slots=[4], aliases=aliases)
+    assert report['slots'][4]['resolution'] == dict(resolved=False, reason='caption_not_read')
+
+
+def test_no_frame_pixels_yield_no_emblem_references():
+    report = teacher.identity_report([], present_slots=[0])
+    assert teacher.learned_references(report, None) == []
+
+
+def test_only_a_resolved_slot_becomes_a_labelled_reference(aliases):
+    pytest.importorskip('cv2')
+    import numpy as np
+    pixels = np.random.default_rng(7).integers(0, 256, size=(600, 1600, 3), dtype='uint8')
+    origin_x, origin_y = teacher.card_origin(0)
+    tokens = [token('Heishou Pack - Wu Branch Adept', origin_x + 90, origin_y + 208)]
+    report = teacher.identity_report(tokens, present_slots=[0, 1], pixels=pixels, aliases=aliases)
+    assert report['resolved_slots'] == [0]
+    assert report['slots'][0]['badge'] is None
+    assert report['slots'][0]['badge_reason'] == 'no_corner_emblem_references'
+    references = teacher.learned_references(report, pixels)
+    assert [row['grid_slot'] for row in references] == [0]
+    assert references[0]['sinner_index'] == 1
+    assert references[0]['identity_id'] == 10114
+    assert references[0]['caption'] == 'Heishou Pack - Wu Branch Adept'
+    assert references[0]['source'] == 'caption_teacher'
+    assert references[0]['sample'][1] > 6.0
+
+
+# --- the two saved-order verdicts ---------------------------------------
+
+def resolution(sinner_index):
+    return dict(resolved=True, sinner_index=sinner_index,
+                sinner=teacher.sinner_name(sinner_index), identity_id=10000 + sinner_index)
+
+
+UNRESOLVED = dict(resolved=False, reason='caption_not_read')
+LIVE_ORDER = [6, 2, 4, 9, 12, 7, 11, 10, 3, 1, 8, 5]
+LIVE_BADGES = [10, 2, 9, 3, 12, 1, 6, 11, 4, 8, 7, 5]
+
+
+def report_of(rows):
+    """A report with the structure the two saved-order verdicts read."""
+    return dict(teacher=teacher.TEACHER,
+                slots=[dict(grid_slot=slot, resolution=row) for slot, row in enumerate(rows)],
+                identity_ids={slot: row['identity_id'] for slot, row in enumerate(rows)
+                              if row.get('resolved') is True})
+
+
+def test_a_saved_order_that_is_not_twelve_sinners_is_refused():
+    with pytest.raises(ValueError):
+        teacher.agrees_with_saved_team(report_of([UNRESOLVED] * 12), list(range(1, 12)))
+
+
+def test_the_team_verdict_needs_twelve_resolved_sinners():
+    report = report_of([resolution((slot % 12) + 1) for slot in range(12)])
+    verdict = teacher.agrees_with_saved_team(report, list(range(1, 13)))
+    assert verdict['verified'] is True
+    assert verdict['unread_slots'] == [] and verdict['saved_but_not_read'] == []
+    assert verdict['read_but_not_saved'] == []
+    rows = [resolution((slot % 12) + 1) for slot in range(12)]
+    rows[7] = UNRESOLVED
+    verdict = teacher.agrees_with_saved_team(report_of(rows), list(range(1, 13)))
+    assert verdict['verified'] is False and verdict['unread_slots'] == [7]
+
+
+def test_the_team_verdict_compares_multisets_not_membership():
+    rows = [resolution((slot % 12) + 1) for slot in range(12)]
+    rows[0] = resolution(2)
+    verdict = teacher.agrees_with_saved_team(report_of(rows), list(range(1, 13)))
+    assert len(verdict['read_slots']) == 12 and verdict['unread_slots'] == []
+    assert verdict['saved_but_not_read'] == [1] and verdict['read_but_not_saved'] == [2]
+    assert verdict['verified'] is False
+
+
+def test_the_order_badge_not_the_grid_position_ties_a_card_to_its_seat():
+    # The retained live frame reads Hong Lu in grid slot 5 and Faust in grid slot 1
+    # with badges 1 and 2. Grid-slot alignment would call that a contradiction; the
+    # printed badge seats both correctly, and only the badge may be trusted.
+    rows = [UNRESOLVED] * 12
+    rows[5], rows[1] = resolution(6), resolution(2)
+    verdict = teacher.agrees_with_saved_order(report_of(rows), LIVE_ORDER, LIVE_BADGES)
+    assert verdict['agreed_slots'] == [1, 5] and verdict['mismatched'] == []
+    assert LIVE_ORDER[LIVE_BADGES[5] - 1] == 6
+    assert LIVE_ORDER[5] == 7 != 6
+    assert verdict['verified'] is False
+
+
+def test_a_readable_card_whose_badge_is_unread_is_unaligned_not_agreed():
+    rows = [UNRESOLVED] * 12
+    rows[5] = resolution(6)
+    verdict = teacher.agrees_with_saved_order(report_of(rows), LIVE_ORDER, [None] * 12)
+    assert verdict['agreed_slots'] == [] and verdict['unaligned_slots'] == [5]
+    assert verdict['mismatched'] == [] and verdict['verified'] is False
+
+
+def test_the_order_verdict_reports_a_real_contradiction_with_both_indexes():
+    rows = [UNRESOLVED] * 12
+    rows[5] = resolution(6)
+    badges = [None] * 12
+    badges[5] = 2
+    verdict = teacher.agrees_with_saved_order(report_of(rows), LIVE_ORDER, badges)
+    assert [row['grid_slot'] for row in verdict['mismatched']] == [5]
+    assert verdict['mismatched'][0]['saved_sinner_index'] == 2
+    assert verdict['mismatched'][0]['read_sinner_index'] == 6
+    assert verdict['mismatched'][0]['read_sinner'] == 'Hong Lu'
+
+
+def test_an_unresolved_slot_is_unread_even_where_its_badge_is_known():
+    verdict = teacher.agrees_with_saved_order(report_of([UNRESOLVED] * 12), LIVE_ORDER, LIVE_BADGES)
+    assert verdict['unresolved_slots'] == list(range(12))
+    assert verdict['agreed_slots'] == [] and verdict['unaligned_slots'] == []
+    assert verdict['verified'] is False
+
+
+def test_the_order_verdict_is_verified_only_when_all_twelve_agree():
+    rows = [resolution(LIVE_ORDER[LIVE_BADGES[slot] - 1]) for slot in range(12)]
+    verdict = teacher.agrees_with_saved_order(report_of(rows), LIVE_ORDER, LIVE_BADGES)
+    assert verdict['verified'] is True
+    assert verdict['agreed_slots'] == list(range(12))
+
+
+def test_the_order_verdict_refuses_a_short_badge_list():
+    with pytest.raises(ValueError):
+        teacher.agrees_with_saved_order(report_of([UNRESOLVED] * 12), LIVE_ORDER, [None] * 11)
+
+
 # --- sinner names come from the one canonical numbering ------------------
 
 def test_sinner_name_uses_the_single_canonical_numbering():

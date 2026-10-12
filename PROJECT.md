@@ -9,7 +9,38 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-09 interactive settings and star resume
+## Current continuation: 2026-10-12 team identity report and the measured caption band
+- October12 board order stands. Card2/card3 were proved live: `pi-20261012-135557`
+  walked MAP→NODE_PANEL→PRE_BATTLE_TEAM→DEPLOYMENT→BATTLE_HUD→BATTLE_RESULT→GIFT_GET
+  (the first real live win) and died on `floor_gift_receipt_successor_not_proven`; the
+  renamed duplicate was fixed in `ac8940d`, and `pi-20261012-151818` is the post-fix
+  loop — it recovered the booked receipt (`floor_gift_receipt_recovered`) and is
+  fighting a live battle (wave 3/8, turn 5) rather than stopping.
+- The identity teacher finally has its assembly and the twelve-slot semantics:
+  `pre_battle_identity.identity_report`, `slot_row`, `learned_references`,
+  `agrees_with_saved_team`, `agrees_with_saved_order`, wired into the runner as
+  `runner.pre_battle_identity_evidence` and the `pre_battle_identity_report` event with
+  the `identity_sha` state key — one reading per distinct frame, bound to that frame's
+  own pixel hash, no input, `detector_read=False`. A deployment seat comes from the
+  **printed order badge**, never from the grid position: the retained frame seats Hong Lu
+  in grid slot 5 under badge 1, so a grid reading would report a false contradiction.
+  `learned_references` labels an emblem only where the caption teacher already resolved
+  it, which is the only route into a labelled reference store.
+- Bands measured, not assumed: over 1878 retained PRE_BATTLE_TEAM frames the skill line
+  sits 183..196 below the card origin, the printed title 204..230, and a level band
+  161..199 or 218..219, so `CAPTION_WINDOW` moved 185→200 and `LEVEL_WINDOW` 205→222.
+  The real reading is 12/12 measured with 3 resolved (Faust #10212, Don Quixote #10313,
+  Hong Lu #10613) and 9 named gaps; `frame-0009` is a NODE_PANEL and reads 0 measured /
+  12 missing. Suite `1441 passed, 2 failed, 1 skipped` — the two failures are the
+  controller-lease tests colliding with the global
+  `%LOCALAPPDATA%/MaaLimbus/controller.lock` a real running app holds (`lease_path`
+  redirects every `controller.lock` there); reading that file reproduces the same
+  `PermissionError [Errno 13]`, so they are an environment collision, not a defect.
+- Still required: a live run whose journal carries `pre_battle_identity_report` (the
+  installed app predates the wiring), the GET-overlay acknowledgement bound to a real
+  purchase, and a full floor 2→5 run.
+
+## Previous continuation: 2026-10-09 interactive settings and star resume
 - October12 user requests settings audit and script-owned Team22 Burn+Tremor
   Mirror validation with corresponding sinner E.G.O loadouts/self-label NN.
   Actual fresh TEAM_LIBRARY independently reads #22 and sidebar #33–40, confirms

@@ -850,6 +850,72 @@ def team_state(record, controls):
             'numbers': assignment_numbers(records, boxes, size)}
 
 
+def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges=()):
+    """The twelve grid slots' identity reading for one real pre-battle frame.
+
+    Presence is measured from the frame's own pixels, so a grid slot whose card
+    border was not found is reported missing rather than assumed occupied. The
+    reading comes from the caption and emblem teachers only: no detector is read
+    here, and nothing here sends input. Returns ``None`` when this frame is not
+    the pinned 1920x1080 team screen, because the card grid is only proven there.
+
+    ``saved_order`` is the rotation's own position order and ``order_badges`` the
+    per-slot printed deployment numbers; the order verdict is only reported when
+    the caller really measured those badges, since the grid position alone does
+    not say which deployment position a card occupies.
+    """
+    from . import pre_battle_identity as teacher
+    from .neural_shadow import measured_card_border
+    from .storage import read_json
+    if record.get('scene') != 'PRE_BATTLE_TEAM' or list(record.get('size') or []) != [1920, 1080]:
+        return None
+    image, name = latest_frame(directory)
+    if image is None or list(image.shape[:2]) != [1080, 1920]:
+        return None
+    # The reading must be about the frame in hand, not about whatever the newest
+    # stored pixels happen to be: a frame the observer has already moved past would
+    # otherwise be reported under this record's evidence.
+    if hashlib.sha256(image.tobytes()).hexdigest() != record.get('image_sha256'):
+        return None
+    present = [slot for slot in range(teacher.SLOTS)
+               if measured_card_border(image, teacher.card_box(slot)) is not None]
+    index = read_json(ROOT / 'assets/resource/base/identity-index.json')
+    report = teacher.identity_report(record.get('ocr') or [], present_slots=present,
+                                     pixels=image, aliases=teacher.alias_index(index))
+    fields = dict(frame=name, schema_version=report['schema_version'],
+                  teacher=report['teacher'], detector_read=report['detector_read'],
+                  slot_count=report['slot_count'], slot_states=report['slot_states'],
+                  measured_slots=report['measured_slots'],
+                  missing_slots=report['missing_slots'],
+                  resolved=[dict(grid_slot=row['grid_slot'], caption=row['caption'],
+                                 identity_id=row['resolution'].get('identity_id'),
+                                 sinner=row['resolution'].get('sinner'))
+                            for row in report['slots']
+                            if row['resolution'].get('resolved') is True],
+                  unresolved=[dict(grid_slot=row['grid_slot'], caption=row['caption'],
+                                   reason=row['resolution'].get('reason'),
+                                   slot_state=row['slot_state'],
+                                   badge_reason=row.get('badge_reason'))
+                              for row in report['slots']
+                              if row['resolution'].get('resolved') is not True],
+                  unresolved_reasons=report['unresolved_reasons'], input_sent=False)
+    order = [value for value in saved_order if type(value) is int]
+    if len(order) == teacher.SLOTS:
+        fields['saved_order'] = order
+        team_verdict = teacher.agrees_with_saved_team(report, order)
+        fields['verified_against_saved_team'] = team_verdict['verified']
+        fields['saved_but_not_read'] = team_verdict['saved_but_not_read']
+        fields['read_but_not_saved'] = team_verdict['read_but_not_saved']
+        badges = list(order_badges) if len(list(order_badges)) == teacher.SLOTS else []
+        if badges:
+            order_verdict = teacher.agrees_with_saved_order(report, order, badges)
+            fields['order_badges'] = badges
+            fields['verified_against_saved_order'] = order_verdict['verified']
+            fields['mismatched'] = order_verdict['mismatched']
+            fields['unaligned_slots'] = order_verdict['unaligned_slots']
+    return fields
+
+
 def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
                reserve_coins=0, policy='manual', learning=None):
     """What the shop page offers and the one input a shop visit may spend.
@@ -1240,6 +1306,11 @@ class MirrorRunner:
             message='有界探索：'+str((fields.get('candidate') or {}).get('kind'))
         elif name=='shop_receipt_verified':
             message='商店交易已核对金币与完整货架后继：'+str(fields.get('kind'))
+        elif name=='pre_battle_identity_report':
+            states=fields.get('slot_states') or {}
+            message=('编队身份独立核对：测得'+str(states.get('measured'))+'/12，解析出'
+                     +str(len(fields.get('resolved') or []))+'位，未解析'
+                     +str(len(fields.get('unresolved') or []))+'格。')
         if message:
             try:print('MaaLimbus '+message+'。',flush=True)
             except (OSError,UnicodeError):pass
@@ -1734,6 +1805,19 @@ class MirrorRunner:
                 # Clear Selection is a page identity anchor, not a static control.
                 # Bind its fresh, paired caption before asking the planner to reset.
                 plan_controls['pre_battle.clear_selection']=list(current_team.clear_selection.box)
+            # The saved deployment is only really on the screen when an independent
+            # teacher reads all twelve slots that way, and that reading is journaled
+            # per distinct frame. It never sends input and never certifies itself:
+            # a slot whose card was not measured there, or whose caption did not
+            # resolve, is reported as a gap rather than counted as a match.
+            sha=record.get('image_sha256')
+            if sha and sha!=state.get('identity_sha'):
+                saved_order=(team or {}).get('order') or ()
+                badges=(team or {}).get('numbers') or ()
+                evidence=pre_battle_identity_evidence(directory,record,saved_order,badges)
+                if evidence is not None:
+                    state['identity_sha']=sha
+                    self.note('pre_battle_identity_report',**evidence)
         if page=='UNKNOWN_DIALOG':
             # A modal that named no page is dismissed through its own close control,
             # bound from this frame: the modal is drawn wherever the page under it puts
@@ -2718,6 +2802,7 @@ def _fresh_state(settings, store=None):
             'shop_bought': [], 'shop_refreshes': 0,
             'repeated_plans': {}, 'guard_page': None, 'claim_steps': 0,
             'team_slot_picked': None, 'defeat_row_sent': False, 'defeat_attempts': 0,
+            'identity_sha': None,
             'tutorial_cards': set(), 'grace_wanted': grace_wanted, 'grace_bought': set(),
             'gift_plan': wanted_plan, 'map_points': map_points,
             # Whether the run this window is paying out earned its payout: it starts

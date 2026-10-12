@@ -1450,3 +1450,44 @@ and HOME. No purchase, private budget change or Release occurred.
 - Still required: a full floor 2→5 run, the shop purchase with the GET-overlay
   acknowledgement bound to a real purchase, the report assembly above the identity
   teacher, and the 12-slot missing/measured team semantics.
+
+## October12 the twelve-slot identity report, and the measured caption band
+
+- `pre_battle_identity.identity_report` now assembles all twelve grid slots of one real
+  team screen into a single report that states both counts and both slot lists. The
+  invariant is structural: a slot whose card border the caller did not measure is an
+  explicit `missing` row, never an empty or unknown card, and `detector_read=False`
+  travels with the evidence.
+- `learned_references(report, pixels)` labels a corner emblem **only** where the caption
+  teacher already resolved that slot, which is the one route into a labelled reference
+  store; `agrees_with_saved_team` verifies the multiset of twelve resolved sinners, and
+  `agrees_with_saved_order` verifies slot by slot against each card's printed order
+  badge rather than its grid position, refusing to answer when the badges were not read.
+- The badge is the whole point. On the retained frame, grid slot 5 holds Hong Lu under
+  badge 1 and grid slot 1 holds Faust under badge 2 — a grid-position reading would have
+  reported a false contradiction between the page and the saved rotation `[6, 2, 4, 9,
+  12, 7, 11, 10, 3, 1, 8, 5]`. With badges `[10, 2, 9, 3, 12, 1, 6, 11, 4, 8, 7, 5]`
+  every readable card agrees and `mismatched` is empty.
+- Real reading (`pi-20261012-151818`): `frame-0009` is a `NODE_PANEL` and reads 0
+  measured / 12 missing, the honest negative control; `frame-0011` and `frame-0012` read
+  12 measured / 0 missing with 3 identities resolved (`Heishou Pack Mao Branch Adept` →
+  #10212 Faust, `Heishou Pack Wei Branch` → #10313 Don Quixote, `The Lord ongyuan` →
+  #10613 Hong Lu) and 9 named gaps (6 `no_catalogue_alias_matches`, 3
+  `ambiguous_catalogue_alias`).
+- The caption and level bands were measured rather than assumed: over 1878 retained
+  `PRE_BATTLE_TEAM` frames the skill line's centre sits 183..196 below the card origin,
+  the printed title 204..230, and a level band 161..199 or 218..219. `CAPTION_WINDOW`
+  moved 185 → 200 and `LEVEL_WINDOW` 205 → 222, which is why the earlier reading folded
+  each card's `Entry SP` line into its own title and reported no level for the lower
+  stripe.
+- Retained evidence: `evidence/runtime/pi-20261012-151818/frame-0009.*`, `frame-0011.*`,
+  `frame-0012.*` (gitignored, guarded by `pytest.skip`). Suite `1441 passed, 2 failed,
+  1 skipped`; both failures are `tests/test_controller_lease.py` and
+  `tests/test_update_install.py` colliding with the lock a **real app instance** holds,
+  because `controller_lease.lease_path` redirects every path named `controller.lock` to
+  `%LOCALAPPDATA%/MaaLimbus/controller.lock`. Reading that file directly reproduces the
+  same `PermissionError [Errno 13]`, so the two failures are an environment collision
+  and not a code defect.
+- Still required: a live run whose journal carries `pre_battle_identity_report` (the
+  installed app predates the wiring), the shop purchase with the GET-overlay
+  acknowledgement bound to a real purchase, and a full floor 2→5 run.
