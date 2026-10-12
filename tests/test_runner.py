@@ -31,8 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.runner import (FakeDevice, FrameObserver, MaaDevice,  # noqa: E402
-                              MirrorRunner, REGISTRY, candidates_of, header_chrome,
-                              inside_chrome)
+                              MaaObserver, MirrorRunner, REGISTRY, candidates_of,
+                              header_chrome, inside_chrome)
+import maalimbus.runner as runner_module  # noqa: E402
 
 # A live window whose first pages are the run summary's claim: frame-0001 is RUN_CLAIM,
 # and the plan's one input is the Claim button the anchors prove at [1638, 855, 180, 80].
@@ -631,3 +632,56 @@ def test_a_page_that_prints_another_order_is_cleared_before_the_saved_one(tmp_pa
     result = runner.run(steps=1, interval=0.0, round_limit=1)
     assert result['steps'][0]['plan']['reason'] == CLEAR_REASON
     assert len(device.clicks) == 1
+
+
+OBSERVATION_RECORD = {'event': 'map_observed', 'scene': 'MAP', 'frame': 'frame-0002'}
+
+
+def silent_node(directory, record=None, on_call=None):
+    """A pipeline node that records nothing, or records on the call it is told to."""
+    calls = []
+
+    def run(tasker, name, deadline=None):
+        calls.append(name)
+        if record is not None and (on_call is None or len(calls) == on_call):
+            with (Path(directory) / 'events.jsonl').open('a', encoding='utf-8') as handle:
+                handle.write(json.dumps(record) + '\n')
+    return run, calls
+
+
+def test_an_observation_node_that_records_no_page_is_run_again(tmp_path, monkeypatch):
+    """One silent node run is not a page: the node is re-run for this frame.
+
+    The packaged agent stopped a live run on 'Deployment successor participant count
+    not proven' while its click was already on the board, because the successor read
+    returned the pre-click event (evidence/runtime/packaged-mirror-20261012-032032 has
+    one map_observed and one frame for the whole run). A reader that reuses the newest
+    event of its kind cannot see that, so the node runs again instead.
+    """
+    run, calls = silent_node(tmp_path, OBSERVATION_RECORD, on_call=2)
+    monkeypatch.setattr(runner_module, 'run_node', run)
+    record = MaaObserver(object(), tmp_path).observe()
+    assert record['frame'] == 'frame-0002'
+    assert calls == ['WindowMapObserve', 'WindowMapObserve']
+
+
+def test_a_stale_page_is_never_returned_as_this_frame(tmp_path, monkeypatch):
+    """A page recorded before this call is not this frame's page."""
+    (tmp_path / 'events.jsonl').write_text(
+        json.dumps({'event': 'map_observed', 'scene': 'PRE_BATTLE_TEAM',
+                    'participant_texts': ['2/12']}) + '\n', encoding='utf-8')
+    run, calls = silent_node(tmp_path)
+    monkeypatch.setattr(runner_module, 'run_node', run)
+    with pytest.raises(RuntimeError, match='observation node recorded no page'):
+        MaaObserver(object(), tmp_path).observe()
+    assert len(calls) == 2, 'a silent node is retried, then the run stops with the reason'
+
+
+def test_a_battle_frame_whose_observation_records_nothing_stops(tmp_path, monkeypatch):
+    """The battle node is guarded the same way as the map node."""
+    run, calls = silent_node(tmp_path, {'event': 'map_observed', 'scene': 'BATTLE_HUD',
+                                        'frame': 'frame-0002'}, on_call=1)
+    monkeypatch.setattr(runner_module, 'run_node', run)
+    with pytest.raises(RuntimeError, match='battle observation node recorded no page'):
+        MaaObserver(object(), tmp_path).observe()
+    assert calls == ['WindowMapObserve', 'WindowBattleObserve', 'WindowBattleObserve']

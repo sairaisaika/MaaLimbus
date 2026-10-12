@@ -592,12 +592,13 @@ class MaaObserver:
     """
 
     def __init__(self, context, directory=None, *, pipeline='WindowMapObserve',
-                 battle_pipeline='WindowBattleObserve'):
+                 battle_pipeline='WindowBattleObserve', read_tries=2):
         self.context = context
         self.directory = Path(directory if directory is not None
                               else getattr(context, 'directory', '.'))
         self.pipeline = pipeline
         self.battle_pipeline = battle_pipeline
+        self.read_tries = read_tries
 
     @property
     def tasker(self):
@@ -605,11 +606,38 @@ class MaaObserver:
         return getattr(self.context, 'tasker', None)
 
     def observe(self, *, deadline=None):
-        run_node(self.tasker, self.pipeline, deadline)
-        record = events(self.directory, 'map_observed')[-1]
+        """This frame's page, never the previous frame's event.
+
+        A node whose own screencap fails records nothing and still returns a finished
+        job, so a reader that only takes the newest event of its kind hands back the
+        page from the *previous* frame. The packaged agent stopped a live run exactly
+        that way: evidence/runtime/packaged-mirror-20261012-032032 has one
+        ``map_observed`` in the whole run while the click it had sent was already on
+        the board, and the deployment successor was then judged against the pre-click
+        counter. A node that records nothing is re-run, and one that never records
+        stops the run with that as the reason instead of a page it did not read.
+        """
+        recorded = events(self.directory, 'map_observed')
+        before = len(recorded)
+        for attempt in range(max(1, self.read_tries)):
+            run_node(self.tasker, self.pipeline, deadline)
+            recorded = events(self.directory, 'map_observed')
+            if len(recorded) > before:
+                break
+        if len(recorded) <= before:
+            raise RuntimeError('the observation node recorded no page for this frame')
+        record = recorded[-1]
         if record.get('scene') in BATTLE_PAGES:
-            run_node(self.tasker, self.battle_pipeline, deadline)
-            record = events(self.directory, 'battle_observed')[-1]
+            battle = events(self.directory, 'battle_observed')
+            before_battle = len(battle)
+            for attempt in range(max(1, self.read_tries)):
+                run_node(self.tasker, self.battle_pipeline, deadline)
+                battle = events(self.directory, 'battle_observed')
+                if len(battle) > before_battle:
+                    break
+            if len(battle) <= before_battle:
+                raise RuntimeError('the battle observation node recorded no page for this frame')
+            record = battle[-1]
         return record
 
 

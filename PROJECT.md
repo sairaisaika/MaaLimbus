@@ -1405,6 +1405,19 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   from this tree (source_dirty, commit a6ac321, self_test and agent_self_test
   true, 40 private files preserved) and the frozen product carries maatouch, the
   agent exe and the 3,727,710-byte interface.json.
+- The packaged product was then made to run the entry MXU starts:
+  tools/verify_packaged_mirror_loop.py launches dist/MaaLimbus/agent/MaaLimbusAgent.exe
+  over Maa IPC, binds the installed resources and posts MirrorLoop on a real device
+  controller. The frozen agent registers limbus_mirror_loop and ran the loop live
+  (evidence/runtime/packaged-mirror-20261012-032032): one team card was clicked and
+  the run then stopped on 'Deployment successor participant count not proven'. That
+  stop is a product-path defect, not a planner one: the whole run has one
+  map_observed and one frame, so the successor read handed the loop the pre-click
+  page, and deployment_transaction.observe compared the new count against 2/12.
+  MaaObserver.observe now re-runs a node that recorded nothing and stops with
+  'the observation node recorded no page for this frame' rather than returning a
+  stale event, guarded the same way for the battle node; three cases in
+  tests/test_runner.py drive it through an injected node.
 - Shop purchase/refresh/skill replacement and applying learned labels to mirror
   decisions remain open. The shop plan still leaves without buying and the shop
   page has no offer anchors; semantic_labels is consumed by the offline
