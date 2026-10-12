@@ -9,13 +9,28 @@ MaaFramework Win32 controller + ProjectInterface V2 + MXU + Python Agent.
 Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation and repeat;
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
-## Current continuation: 2026-10-12 team identity report and the measured caption band
+## Current continuation: 2026-10-12 the reward successor, read as the page prints it
 - October12 board order stands. Card2/card3 were proved live: `pi-20261012-135557`
   walked MAP→NODE_PANEL→PRE_BATTLE_TEAM→DEPLOYMENT→BATTLE_HUD→BATTLE_RESULT→GIFT_GET
   (the first real live win) and died on `floor_gift_receipt_successor_not_proven`; the
   renamed duplicate was fixed in `ac8940d`, and `pi-20261012-151818` is the post-fix
-  loop — it recovered the booked receipt (`floor_gift_receipt_recovered`) and is
-  fighting a live battle (wave 3/8, turn 5) rather than stopping.
+  loop — it recovered the booked receipt (`floor_gift_receipt_recovered`), fought a live
+  battle to wave 6/8, took a real floor gift, and then stopped on the **same** reason one
+  page later, so the first fix was not the whole defect.
+- That second stop is now fixed, and it was in the successor rule itself:
+  `runner.unselected_reward_successor` tested two of its four anchors by exact
+  membership, and the live reward page prints its counter on one of those lines —
+  `Selectable 0/1` — so `'Selectable' in texts` was never true. Every anchor is a
+  substring test now, matching the `Confirm`/`Cancel` anchors that already were.
+  The retained frame `pi-20261012-151818/frame-0178` proves it: `reward_state` reads
+  `{'chosen': 0, 'required': 1}` and the successor proof is
+  `{'count': {'chosen': 0, 'required': 1}, 'title': 'Select Encounter Reward Card'}`,
+  which is exactly the value the runner hands the transaction (runner.py:2320, 2336,
+  2344). The older retained reward frame splits `Selectable` and `0/1` into two tokens,
+  which is why the offline tests passed while the real page stopped the run; the new
+  tests rebuild the merged shape from that frame
+  (`tests/test_gift_receipt_settling.py`), and `window.py` already knew the merged form
+  (`tests/test_window.py:897`), so the runner anchor was the one blind spot.
 - The identity teacher finally has its assembly and the twelve-slot semantics:
   `pre_battle_identity.identity_report`, `slot_row`, `learned_references`,
   `agrees_with_saved_team`, `agrees_with_saved_order`, wired into the runner as
@@ -31,11 +46,10 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
   161..199 or 218..219, so `CAPTION_WINDOW` moved 185→200 and `LEVEL_WINDOW` 205→222.
   The real reading is 12/12 measured with 3 resolved (Faust #10212, Don Quixote #10313,
   Hong Lu #10613) and 9 named gaps; `frame-0009` is a NODE_PANEL and reads 0 measured /
-  12 missing. Suite `1441 passed, 2 failed, 1 skipped` — the two failures are the
-  controller-lease tests colliding with the global
-  `%LOCALAPPDATA%/MaaLimbus/controller.lock` a real running app holds (`lease_path`
-  redirects every `controller.lock` there); reading that file reproduces the same
-  `PermissionError [Errno 13]`, so they are an environment collision, not a defect.
+  12 missing. Suite `1445 passed, 1 skipped`; the two controller-lease failures recorded
+  in `1b360f5` were the global `%LOCALAPPDATA%/MaaLimbus/controller.lock` held by a real
+  running app (`lease_path` redirects every `controller.lock` there) and clear when no
+  app is running.
 - Still required: a live run whose journal carries `pre_battle_identity_report` (the
   installed app predates the wiring), the GET-overlay acknowledgement bound to a real
   purchase, and a full floor 2→5 run.

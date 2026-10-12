@@ -1016,12 +1016,18 @@ def reward_state(record):
 
 
 def unselected_reward_successor(record):
-    """Independent encounter-reward anchors, not a page label alone."""
+    """Independent encounter-reward anchors, not a page label alone.
+
+    Every anchor is a substring test, because the pick counter rides one of the
+    lines the OCR keeps whole: the reward page prints ``Selectable 0/1``, so an
+    exact-match ``'Selectable' in texts`` never fires, and a floor gift receipt
+    clearing its notice onto that page has no provable successor.
+    """
     texts = [r['text'].strip() for r in record.get('ocr', []) if r['score'] >= .9]
     count = reward_state(record)
     if (count == {'chosen': 0, 'required': 1}
-            and 'Select Encounter Reward Card' in texts
-            and 'Selectable' in texts
+            and any('Select Encounter Reward Card' in t for t in texts)
+            and any('Selectable' in t for t in texts)
             and any('Confirm' in t for t in texts)
             and any('Cancel' in t for t in texts)):
         return dict(count=count, title='Select Encounter Reward Card')

@@ -1491,3 +1491,35 @@ and HOME. No purchase, private budget change or Release occurred.
 - Still required: a live run whose journal carries `pre_battle_identity_report` (the
   installed app predates the wiring), the shop purchase with the GET-overlay
   acknowledgement bound to a real purchase, and a full floor 2→5 run.
+
+## October12 the encounter reward successor, read as the page prints it
+
+- `pi-20261012-151818` walked the live spine (MAP → NODE_PANEL → PRE_BATTLE_TEAM →
+  DEPLOYMENT → BATTLE_HUD, wave 6/8 → BATTLE_RESULT → GIFT_PICK → GIFT_GET) and stopped
+  at `mirror_loop_stopped reason=floor_gift_receipt_successor_not_proven`, steps 37,
+  `passed: false`, on the frame after it clicked the gift notice's own Confirm.
+- Cause, read off that frame rather than guessed: `runner.unselected_reward_successor`
+  required `'Selectable' in texts` and `'Select Encounter Reward Card' in texts` by exact
+  membership while the neighbouring `Confirm`/`Cancel` anchors were already substring
+  tests, and the live page prints its counter whole — `Selectable 0/1` — so the anchor
+  never fired (`frame-0178.json`: `page: ""`, `scene: REWARD_CARD`, tokens
+  `Select Encounter Reward Card` 1.00, `Confirm` 1.00, `Selectable 0/1` 0.98, `X Cancel`
+  0.95). Every anchor is now a substring test.
+- Proof in three steps, all against the retained frame: `reward_state(frame-0178)` is
+  `{'chosen': 0, 'required': 1}`; `unselected_reward_successor` returned `None` before and
+  returns `{'count': {'chosen': 0, 'required': 1}, 'title': 'Select Encounter Reward
+  Card'}` after; and `FloorGiftTransaction.observe_receipt('REWARD_CARD', …, proof)` with
+  that value sets `completed` and clears `pending`, where the same call without it raises
+  `floor_gift_receipt_successor_not_proven`.
+- Why the offline suite missed it: the older retained reward frame
+  (`evidence/runtime/window-20261008-111130/frame-0002.json`) splits the tokens into
+  `Selectable` and `0/1`, so the exact membership matched there and only there. The new
+  tests rebuild the production shape by merging that frame's two tokens into one
+  (`merged_counter_reward` in `tests/test_gift_receipt_settling.py`) and drive both the
+  successor rule and the settling transaction through it. `window.py` already knew the
+  merged form (`tests/test_window.py:897` cites `frame-0022.json`), so the runner anchor
+  was the single blind spot; the same grep finds no other exact-membership OCR anchor.
+- Suite after the fix: `1445 passed, 1 skipped`.
+- Still required: the live run that crosses this successor and carries
+  `pre_battle_identity_report`, the GET-overlay acknowledgement bound to a real purchase,
+  and a full floor 2→5 run.

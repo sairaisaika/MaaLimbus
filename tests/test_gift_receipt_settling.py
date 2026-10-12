@@ -75,6 +75,58 @@ def test_reward_successor_requires_every_independent_anchor(missing):
     assert unselected_reward_successor(data) is None
 
 
+def merged_counter_reward():
+    """The retained reward page with the live OCR shape: ``Selectable 0/1`` whole."""
+    data = json.loads(REWARD.read_text())
+    merged, kept = None, []
+    for r in data['ocr']:
+        text = (r['text'] or '').strip()
+        if text == 'Selectable':
+            merged = dict(r, text='Selectable 0/1', box=[1326, 176, 214, 38])
+            kept.append(merged)
+        elif text == '0/1':
+            continue
+        else:
+            kept.append(r)
+    assert merged is not None
+    data['ocr'] = kept
+    return data, merged
+
+
+def test_reward_successor_survives_the_counter_riding_the_selectable_line():
+    """The live OCR keeps ``Selectable 0/1`` whole; the anchor must still fire.
+
+    This retained frame splits the two tokens, so it proved the successor rule
+    while the real page did not: a run clearing its gift notice onto a reward
+    page stopped on ``floor_gift_receipt_successor_not_proven`` because an
+    exact-match ``'Selectable' in texts`` never saw ``Selectable 0/1``.
+    """
+    data, merged = merged_counter_reward()
+    assert unselected_reward_successor(data) == {'count': {'chosen': 0, 'required': 1},
+                                                 'title': 'Select Encounter Reward Card'}
+    data['ocr'] = [r for r in data['ocr'] if r is not merged]
+    assert unselected_reward_successor(data) is None
+
+
+def test_a_named_gift_receipt_settles_on_the_merged_counter_reward_page(tmp_path):
+    """The page that stopped the live run settles the receipt once read as it prints."""
+    frame = tmp_path/'frame-0178.json'
+    data, _ = merged_counter_reward()
+    frame.write_text(json.dumps(data))
+    tx = FloorGiftTransaction(tmp_path/'tx.json')
+    offers, count = offer(BEFORE)
+    tx.prepare('scope', offers, count, BEFORE)
+    tx.intent('Perversion', count, BEFORE)
+    offers, count = offer(SELECTED)
+    tx.observe_pick(offers, count, SELECTED)
+    tx.commit(SELECTED)
+    tx.receipt_intent('Perversion', GET)
+    tx.observe_receipt('REWARD_CARD', None, frame,
+                       next_reward_offer=unselected_reward_successor(data))
+    assert tx.data['completed'] and tx.data['pending'] is None
+    assert tx.data['next_reward_offer']['count'] == {'chosen': 0, 'required': 1}
+
+
 def test_named_gift_receipt_can_finish_at_unselected_encounter_reward(tmp_path):
     tx = FloorGiftTransaction(tmp_path/'tx.json')
     offers, count = offer(BEFORE)
