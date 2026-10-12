@@ -1,0 +1,16 @@
+{
+  "template": "assets\\resource\\base\\image\\navigation\\identity-details-back.png",
+  "source": "private retained Maa capture",
+  "source_sha256": "f2b3d0806f69e094bafc8c135b3f93ef9052c0e51b6052d0ce3eaa53aee83f99",
+  "source_size": [
+    1920,
+    1080
+  ],
+  "crop": [
+    98,
+    53,
+    68,
+    43
+  ],
+  "purpose": "neutral identity-details return arrow; require independent Summary/Skill/Sanity/Level Up controls"
+}

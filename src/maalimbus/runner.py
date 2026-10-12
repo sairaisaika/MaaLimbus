@@ -1343,6 +1343,10 @@ class MirrorRunner:
                 stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
                 return self._result(page,None,False,stopped,done=True)
         plan_controls=dict(self.controls)
+        if page=='TUTORIAL' and record.get('overlay_dismissal',{}):
+            closer=record['overlay_dismissal']
+            if closer.get('kind')=='tutorial_book':
+                plan_controls['tutorial.book_close']=closer['box']
         if page=='EVENT_RESULT':
             from .event_vision import factory_result_panel
             box=factory_result_panel(record.get('ocr'),record.get('size') or (1920,1080))

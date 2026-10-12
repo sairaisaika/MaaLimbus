@@ -10,6 +10,24 @@ Goal: Hard Mirror Dungeon floors 1–5, verified rewards, saved-team rotation an
 then budgeted Enkephalin conversion/refill, mail and daily missions. English/Japanese.
 
 ## Current continuation: 2026-10-09 interactive settings and star resume
+- October11 box clarification: box is owned identities per sinner, not bounding
+  boxes alone. Full revisioned personality index/account reconciliation and
+  Mirror self-label learning are the finishing priorities. New identity-index
+  has184 playable IDs with exact EN/JP/ZH titles;128 have older static facts,
+  remaining keyword facts are null. Current-source completeness remains false;
+  Wiki JSON403 and old static mirror revision are recorded, never called full.
+  Maa-native Owned checked/ALL unchecked templates plus unique sinner headers
+  validated all12 actual galleries. Ordinary Click opened inventory; the earlier
+  detail view was returned via its native-matched arrow, not repeated holding.
+  Known guide close/back and original/successor JSON/PNG intent binding retained.
+  Latest private snapshot matches127 owned IDs,80 unresolved observations,
+  inventory_completeFalse; no absent-ownership inference or guessed levels.
+  build/owned-inventory-real-verification.json binds all12 frames and unchanged
+  four game-private hashes. No equipment edits/resources/claim/rotation/Release
+  or installed-app update.917fullPython61.89s/1Windows symlink skip passed,
+  build/owned-inventory-full-tests.txt. Current page Gregor owned gallery, no
+  active controller; full index refresh, missing OCR/scroll/end coverage and
+  trained/evaluated Mirror learning remain open. Roadmap updated accordingly.
 - October11 user requested Maa-native neural self-label learning, twelve sinner
   boxes and Mirror assessment, with MuMu notification before real-device work.
   Roadmap: docs/neural-learning-plan.md. Offline stage1 implemented:12canonical

@@ -1,3 +1,16 @@
+## October11 owned-inventory real collection
+
+Box is the owned identity inventory, separate from detector boxes. Native Maa
+OCR / TemplateMatch proved Owned checked and ALL unchecked and independent
+headers for all12 sinner galleries.127 exact ID matches/80 unresolved observations
+are retained in a private partial snapshot; neither full coverage nor unowned
+status is inferred.184 revisioned EN/JP/ZH ID entries are a partial catalogue;
+Wiki full import/current complete statics remain unverified. Four actual game
+private hashes unchanged, no equips/upgrades/resources, all navigation intents
+resolved. Proof: build/owned-inventory-real-verification.json.917Python tests
+passed/1Windows symlink permission skip61.89s. Trained NN, full catalogue,
+scroll/end verification and complete account reconciliation remain required.
+
 ## October11 neural learning offline foundation
 
 docs/neural-learning-plan.md defines Maa-native inference and separate offline

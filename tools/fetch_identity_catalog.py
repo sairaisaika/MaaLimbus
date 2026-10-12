@@ -118,6 +118,7 @@ def main():
     parser.add_argument('--commit', action='append', default=[],
                         help='override a revision, e.g. --commit flaglow/LimbusStaticData=<sha>')
     args = parser.parse_args()
+    args.output = args.output.resolve()
     overrides = {}
     for item in args.commit:
         repo, _, revision = item.partition('=')

@@ -1,0 +1,2509 @@
+{
+  "schema_version": 1,
+  "identities": [
+    {
+      "id": 10101,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10102,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "Seven协会\n南部6科",
+        "en": "Seven Assoc.\nSouth Section 6",
+        "jp": "南部セブン協会\n6課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10103,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "剑契组\n杀手",
+        "en": "Blade Lineage\nSalsu",
+        "jp": "剣契\n殺手"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10104,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "绽放E.G.O::\n山茶花",
+        "en": "Effloresced E.G.O::Spicebush",
+        "jp": "開花 E.G.O::\n壇香梅"
+      },
+      "keywords": [
+        "Sinking",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10105,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "臼齿事务所\n收尾人",
+        "en": "Molar Office\nFixer",
+        "jp": "奥歯事務所\nフィクサー"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10106,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "W公司 3级\n清扫人员",
+        "en": "W Corp. L3\nCleanup Agent",
+        "jp": "W社 3級\n整理要員"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10107,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "裴廓德号\n大副",
+        "en": "The Pequod\nFirst Mate",
+        "jp": "ピークォド号\n1等航海士"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10108,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "Dieci协会\n南部4科",
+        "en": "Dieci Assoc.\nSouth Section 4",
+        "jp": "南部ディエーチ協会\n4課"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10109,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "环指 点彩派\n学徒",
+        "en": "The Ring Pointillist\nStudent",
+        "jp": "薬指点描派\nスチューデント"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10110,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n庄严哀悼",
+        "en": "Lobotomy E.G.O::\nSolemn Lament",
+        "jp": "ロボトミーE.G.O::\n厳粛な哀悼"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10111,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "LCE E.G.O::\n提灯",
+        "en": "LCE E.G.O::\nLantern",
+        "jp": "LCE E.G.O::\n提灯"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10112,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "六协会\n南部3科",
+        "en": "Liu Assoc.\nSouth Section 3",
+        "jp": "南部リウ協会\n3課"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10113,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "N公司E.G.O::\n凶弹",
+        "en": "N Corp. E.G.O::\nFell Bullet",
+        "jp": "N社E.G.O::\n凶弾"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10114,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "黑兽 - 午 魁首",
+        "en": "Heishou Pack -\nWu Branch Adept",
+        "jp": "黒獣 - 午 筆頭"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10115,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n食指 父辈",
+        "en": "The House of Spiders:\nThe Index Nursefather",
+        "jp": "蜘蛛の巣\n人差し指の親方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10116,
+      "sinner_index": 1,
+      "sinner": "Yi Sang",
+      "titles": {
+        "zh-CN": "LCE E.G.O::\n次元撕裂者",
+        "en": "LCE E.G.O::\nDimension Shredder",
+        "jp": "LCE E.G.O::\n次元裂き"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10201,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 10202,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "W公司 2级\n清扫人员",
+        "en": "W Corp. L2\nCleanup Agent",
+        "jp": "W社 2級\n整理要員"
+      },
+      "keywords": [
+        "Charge"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10203,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "脑叶公司\n幸存者",
+        "en": "Lobotomy Corp. Remnant",
+        "jp": "生き残った\nロボトミー職員"
+      },
+      "keywords": [
+        "Poise",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10204,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "执柄者",
+        "en": "The One Who Grips",
+        "jp": "握る者"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10205,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "Zwei协会\n南部4科",
+        "en": "Zwei Assoc.\nSouth Section 4",
+        "jp": "南部ツヴァイ協会\n4課"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 10206,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "Seven协会\n南部4科",
+        "en": "Seven Assoc.\nSouth Section 4",
+        "jp": "南部セブン協会\n4課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10207,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n悔恨",
+        "en": "Lobotomy E.G.O::Regret",
+        "jp": "ロボトミーE.G.O::\n後悔"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10208,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "剑契组\n杀手",
+        "en": "Blade Lineage\nSalsu",
+        "jp": "剣契\n殺手"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10209,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "呼啸山庄\n管家",
+        "en": "Wuthering Heights\nButler",
+        "jp": "ワザリング・ハイツ\nバトラー"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10210,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "多裂纹事务所\n代表",
+        "en": "MultiCrack Office\nRep",
+        "jp": "マルチクラック事務所\n代表"
+      },
+      "keywords": [
+        "Charge"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10211,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "LCE E.G.O::\n红艳煞",
+        "en": "LCE E.G.O::\nArdor Blossom\nStar",
+        "jp": "LCE E.G.O::\n紅炎殺"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10212,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "黑兽 - 卯 魁首",
+        "en": "Heishou Pack -\nMao Branch Adept",
+        "jp": "黒獣 - 卯 筆頭"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10213,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "し协会\n东部3科",
+        "en": "Shi Assoc.\nEast Section 3",
+        "jp": "東部シ協会\n3課"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10214,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "食指 苦行者:\n【纸条】",
+        "en": "The Index Proselyte:\n【Paper Slip】",
+        "jp": "人差し指遂行者:\n【紙片】"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10215,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n环指 子辈",
+        "en": "The House of Spiders:\nThe Ring Apprentice",
+        "jp": "蜘蛛の巣\n薬指の子方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10216,
+      "sinner_index": 2,
+      "sinner": "Faust",
+      "titles": {
+        "zh-CN": "黎明事务所\n收尾人",
+        "en": "Dawn Office\nFixer",
+        "jp": "夜明事務所\nフィクサー"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10301,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10302,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "W公司 3级\n清扫人员",
+        "en": "W Corp. L3\nCleanup Agent",
+        "jp": "W社 3級\n整理要員"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10303,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "し协会\n南部5科科长",
+        "en": "Shi Assoc.\nSouth Section 5 Director",
+        "jp": "南部シ協会\n5課"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10304,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "N公司\n中锤",
+        "en": "N Corp.\nMittelhammer",
+        "jp": "N社\n中鎚"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10305,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "Cinq协会\n南部5科科长",
+        "en": "Cinq Assoc.\nSouth Section 5 Director",
+        "jp": "南部センク協会\n5課 部長"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 10306,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "中指\n幼妹",
+        "en": "The Middle\nLittle Sister",
+        "jp": "中指\n末妹"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10307,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n提灯",
+        "en": "Lobotomy E.G.O::Lantern",
+        "jp": "ロボトミーE.G.O::\n提灯"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10308,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "剑契组\n杀手",
+        "en": "Blade Lineage\nSalsu",
+        "jp": "剣契\n殺手"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10309,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "T公司 3级\n征收人员",
+        "en": "T Corp. Class 3\nCollection Staff",
+        "jp": "T社 3級\n徴収職職員"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10310,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "拉·曼却领\n总督",
+        "en": "The Manager\nof La Manchaland",
+        "jp": "ラ・マンチャランド\n室長"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10311,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "Cinq协会\n东部3科",
+        "en": "Cinq Assoc.\nEast Section 3",
+        "jp": "東部センク協会\n3課"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10312,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n以爱与憎之名",
+        "en": "Lobotomy E.G.O::\nIn the Name of\nLove and Hate",
+        "jp": "ロボトミーE.G.O::\n愛と憎悪の名の下に"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10313,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "黑兽 - 未",
+        "en": "Heishou Pack -\nWei Branch",
+        "jp": "黒獣 - 未"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10314,
+      "sinner_index": 3,
+      "sinner": "Don Quixote",
+      "titles": {
+        "zh-CN": "食指 代行者\n绽放E.G.O::\n代行",
+        "en": "The Index Proxy - \nEffloresced E.G.O::\nProcuration",
+        "jp": "人差し指代行者 - \n開花E.G.O::\n代行"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10401,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10402,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "Seven协会\n南部6科",
+        "en": "Seven Assoc.\nSouth Section 6",
+        "jp": "南部セブン協会\n6課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10403,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "黑云会\n若众",
+        "en": "Kurokumo Clan\nWakashu",
+        "jp": "黒雲会\n若衆"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10404,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "良·派\n厨师长",
+        "en": "R.B.\nChef de Cuisine",
+        "jp": "りょ・ミ・パ\n厨房長"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10405,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "W公司 3级\n清扫人员",
+        "en": "W Corp. L3\nCleanup Agent",
+        "jp": "W社 3級\n整理要員"
+      },
+      "keywords": [
+        "Charge"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10406,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "LCCB\n系长",
+        "en": "LCCB\nAssistant Manager",
+        "jp": "LCCB\n係長"
+      },
+      "keywords": [
+        "Poise",
+        "Rupture",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10407,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "六协会\n南部4科",
+        "en": "Liu Assoc.\nSouth Section 4",
+        "jp": "南部リウ協会\n4課"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10408,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "埃德加家族\n首席管家",
+        "en": "Edgar Family\nChief Butler",
+        "jp": "エドガー家\nチーフバトラー"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10409,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "20区\n圣愚",
+        "en": "District 20\nYurodivy",
+        "jp": "20区\nユロージヴィ"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10410,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n赤瞳·忏悔",
+        "en": "Lobotomy E.G.O::\nRed Eyes &\nPenitence",
+        "jp": "ロボトミーE.G.O::\n赤眼・懺悔"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10411,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "黑兽 - 卯",
+        "en": "Heishou Pack - Mao Branch",
+        "jp": "黒獣 - 卯"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10412,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "N公司E.G.O::\n轻蔑，敬畏",
+        "en": "N Corp. E.G.O::\nContempt, Awe",
+        "jp": "N社E.G.O::\n軽蔑、畏敬"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10413,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "鸿园的\n流浪武者",
+        "en": "Drifting Blade of Hongyuan",
+        "jp": "鴻園の放浪武者"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10414,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n余香·孤独",
+        "en": "Lobotomy E.G.O::\nFaint Aroma & Solitude",
+        "jp": "ロボトミーE.G.O::\n残香・寂しさ"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10415,
+      "sinner_index": 4,
+      "sinner": "Ryoshu",
+      "titles": {
+        "zh-CN": "蜘蛛巢之刃",
+        "en": "Blade of the House of Spiders",
+        "jp": "蜘蛛の巣の刀"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10501,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10502,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "六协会\n南部6科",
+        "en": "Liu Assoc.\nSouth Section 6",
+        "jp": "南部リウ協会\n6課"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10503,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "W公司 2级\n清扫人员",
+        "en": "W Corp. L2\nCleanup Agent",
+        "jp": "W社 2級\n整理要員"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10504,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "N公司\n大锤",
+        "en": "N Corp.\nGroßhammer",
+        "jp": "N社\n大鎚"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 10505,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "玫瑰扳手工坊\n收尾人",
+        "en": "Rosespanner Workshop Fixer",
+        "jp": "バラのスパナ工房\nフィクサー"
+      },
+      "keywords": [
+        "Charge",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10506,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "R公司\n第四集团军\n犀牛队",
+        "en": "R Corp. 4th Pack\nRhino",
+        "jp": "R社第4群\nサイチーム"
+      },
+      "keywords": [
+        "Bleed",
+        "Charge"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10507,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "中指\n幼弟",
+        "en": "The Middle\nLittle Brother",
+        "jp": "中指\n末弟"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10508,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "剑契组\n头领",
+        "en": "Blade Lineage\nMentor",
+        "jp": "剣契\n頭目"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10509,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "死兔帮\n老大",
+        "en": "Dead Rabbits\nBoss",
+        "jp": "デッドラビッツ\nボス"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10510,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "Dieci协会\n南部4科科长",
+        "en": "Dieci Assoc.\nSouth Section 4 Director",
+        "jp": "南部ディエーチ協会\n4課 部長"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10511,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "Cinq协会\n西部3科",
+        "en": "Cinq Assoc.\nWest Section 3",
+        "jp": "西部センク協会\n3課"
+      },
+      "keywords": [
+        "Poise",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10512,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "拇指 东部\n指挥官IIII",
+        "en": "The Thumb\nEast Capo IIII",
+        "jp": "東部親指\nカポIIII"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10513,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "拉·曼却领\n王子",
+        "en": "The Prince of La Manchaland",
+        "jp": "ラ・マンチャランドの王子"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10514,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n黄蜂【变调】",
+        "en": "Lobotomy E.G.O::\nHornet 【Alteration】",
+        "jp": "ロボトミーE.G.O::\nホーネット【変調】"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10515,
+      "sinner_index": 5,
+      "sinner": "Meursault",
+      "titles": {
+        "zh-CN": "环指 野兽派\n学徒",
+        "en": "The Ring Fauvist\nStudent",
+        "jp": "薬指 野獣派\nスチューデント"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10601,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Rupture",
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10602,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "黑云会\n若众",
+        "en": "Kurokumo Clan\nWakashu",
+        "jp": "黒雲会\n若衆"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10603,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "豆豆帮\n帮主",
+        "en": "Tingtang Gang\nGangleader",
+        "jp": "ぽんぽん派\nボス"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10604,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "六协会\n南部5科",
+        "en": "Liu Assoc.\nSouth Section 5",
+        "jp": "南部リウ協会\n5課"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10605,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "K公司 3级\n摘除人员",
+        "en": "K Corp. Class 3\nExcision Staff",
+        "jp": "K社 3級\n摘出職職員"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10606,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "W公司 2级\n清扫人员",
+        "en": "W Corp. L2\nCleanup Agent",
+        "jp": "W社 2級\n整理要員"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10607,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "吊钩事务所\n收尾人",
+        "en": "Hook Office\nFixer",
+        "jp": "鈎事務所\nフィクサー"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10608,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "Dieci协会\n南部4科",
+        "en": "Dieci Assoc.\nSouth Section 4",
+        "jp": "南部ディエーチ協会\n4課"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10609,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "20区\n圣愚",
+        "en": "District 20\nYurodivy",
+        "jp": "20区\nユロージヴィ"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10610,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "猎牙事务所\n收尾人",
+        "en": "Fanghunt Office\nFixer",
+        "jp": "牙狩事務所\nフィクサー"
+      },
+      "keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10611,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "句点事务所\n代表",
+        "en": "Full-Stop Office\nRep",
+        "jp": "終止符事務所\n代表"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10612,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "R公司\n第四集团军\n驯鹿队",
+        "en": "R Corp. 4th Pack\nReindeer",
+        "jp": "R社第4群\nトナカイチーム"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10613,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "鸿园的君主",
+        "en": "The Lord\nof Hongyuan",
+        "jp": "鴻園の君主"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10614,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n环指 父辈",
+        "en": "The House of Spiders:\nThe Ring Nursefather",
+        "jp": "蜘蛛の巣\n薬指の親方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10615,
+      "sinner_index": 6,
+      "sinner": "Hong Lu",
+      "titles": {
+        "zh-CN": "S公司 推奴人",
+        "en": "S Corp. Ch'unokkun",
+        "jp": "S社\nチュノックン"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10701,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10702,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "し协会\n南部5科",
+        "en": "Shi Assoc.\nSouth Section 5",
+        "jp": "南部シ協会\n5課"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10703,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "R公司\n第四集团军\n兔子队",
+        "en": "R Corp. 4th Pack\nRabbit",
+        "jp": "R社第4群\nウサギチーム"
+      },
+      "keywords": [
+        "Bleed",
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10704,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "N公司\n小锤",
+        "en": "N Corp.\nKleinhammer",
+        "jp": "N社\n小鎚"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10705,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n狐雨",
+        "en": "Lobotomy E.G.O::\nSunshower",
+        "jp": "ロボトミーE.G.O::\n狐雨"
+      },
+      "keywords": [
+        "Rupture",
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10706,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "Seven协会\n南部4科",
+        "en": "Seven Assoc.\nSouth Section 4",
+        "jp": "南部セブン協会\n4課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10707,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "裴廓德号\n鱼叉手",
+        "en": "The Pequod\nHarpooneer",
+        "jp": "ピークォド号\n銛使い"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10708,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "Öufi协会\n南部3科",
+        "en": "Öufi Assoc.\nSouth Section 3",
+        "jp": "南部ウーフィ協会\n3課"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10709,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "多裂纹事务所\n收尾人",
+        "en": "MultiCrack Office\nFixer",
+        "jp": "マルチクラック事務所\nフィクサー"
+      },
+      "keywords": [
+        "Charge"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10710,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "狂猎",
+        "en": "Wild Hunt",
+        "jp": "ワイルドハント"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10711,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "句点事务所\n收尾人",
+        "en": "Full-Stop Office\nFixer",
+        "jp": "終止符事務所\nフィクサー"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10712,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "黑云会\n若众",
+        "en": "Kurokumo Clan\nWakashu",
+        "jp": "黒雲会\n若衆"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10713,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "W公司 4级\n清扫人员 - CCA",
+        "en": "W Corp. L4\nCleanup Agent -\nCCA",
+        "jp": "W社 4級\n整理要員 - CCA"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10714,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "黑兽 - 酉 魁首",
+        "en": "Heishou Pack -\nYou Branch Adept",
+        "jp": "黒獣 - 酉 筆頭"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10715,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "中指\n幼兄",
+        "en": "The Middle\nBig Brother",
+        "jp": "中指\n末兄"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10716,
+      "sinner_index": 7,
+      "sinner": "Heathcliff",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n拇指 子辈",
+        "en": "The House of Spiders:\nThe Thumb Apprentice",
+        "jp": "蜘蛛の巣\n親指の子方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10801,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10802,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "R公司\n第四集团军\n驯鹿队",
+        "en": "R Corp. 4th Pack\nReindeer",
+        "jp": "R社第4群\nトナカイチーム"
+      },
+      "keywords": [
+        "Charge",
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10803,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "し协会\n南部5科",
+        "en": "Shi Assoc.\nSouth Section 5",
+        "jp": "南部シ協会\n5課"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10804,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "LCCB\n系长",
+        "en": "LCCB\nAssistant Manager",
+        "jp": "LCCB\n係長"
+      },
+      "keywords": [
+        "Rupture",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10805,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n荡漾",
+        "en": "Lobotomy E.G.O::Sloshing",
+        "jp": "ロボトミーE.G.O::\nたぷつき"
+      },
+      "keywords": [
+        "Rupture",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10806,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "六协会\n南部4科",
+        "en": "Liu Assoc.\nSouth Section 4",
+        "jp": "南部リウ協会\n4課"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10807,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "臼齿修船厂\n收尾人",
+        "en": "Molar Boatworks\nFixer",
+        "jp": "奥歯ボートセンター\nフィクサー"
+      },
+      "keywords": [
+        "Rupture",
+        "Sinking",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10808,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "裴廓德号\n船长",
+        "en": "The Pequod\nCaptain",
+        "jp": "ピークォド号\n船長"
+      },
+      "keywords": [
+        "Bleed",
+        "Burn",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10809,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "埃德加家族\n管家",
+        "en": "Edgar Family\nButler",
+        "jp": "エドガー家\nバトラー"
+      },
+      "keywords": [
+        "Poise",
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10810,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "Zwei协会\n西部3科",
+        "en": "Zwei Assoc.\nWest Section 3",
+        "jp": "西部ツヴァイ協会\n3課"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10811,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "黑云会\n副会长",
+        "en": "Kurokumo Clan\nCaptain",
+        "jp": "黒雲会\n副組長"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10812,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "家主候选人",
+        "en": "Family Hierarch Candidate",
+        "jp": "家主候補"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10813,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "定事务所\n代表",
+        "en": "Jeong's Office Rep",
+        "jp": "定事務所\n代表"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10814,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n中指 子辈",
+        "en": "The House of Spiders:\nThe Middle Apprentice",
+        "jp": "蜘蛛の巣\n中指の子方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10815,
+      "sinner_index": 8,
+      "sinner": "Ishmael",
+      "titles": {
+        "zh-CN": "LCD\n现场推理小队",
+        "en": "LCD OSIR Team",
+        "jp": "LCD\n現場推理チーム"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10901,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10902,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "黑云会\n若众",
+        "en": "Kurokumo Clan\nWakashu",
+        "jp": "黒雲会\n若衆"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10903,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "LCCB\n系长",
+        "en": "LCCB\nAssistant Manager",
+        "jp": "LCCB\n係長"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 10904,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "N公司\n中锤",
+        "en": "N Corp.\nMittelhammer",
+        "jp": "N社\n中鎚"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10905,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "玫瑰扳手工坊\n代表",
+        "en": "Rosespanner Workshop\nRep",
+        "jp": "バラのスパナ工房\n代表"
+      },
+      "keywords": [
+        "Charge",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10906,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "Zwei协会\n南部5科",
+        "en": "Zwei Assoc.\nSouth Section 5",
+        "jp": "南部ツヴァイ協会\n5課"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10907,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "Dieci协会\n南部4科",
+        "en": "Dieci Assoc.\nSouth Section 4",
+        "jp": "南部ディエーチ協会\n4課"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10908,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "六协会\n南部4科科长",
+        "en": "Liu Assoc.\nSouth Section 4 Director",
+        "jp": "南部リウ協会\n4課 部長"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10909,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "T公司 2级\n征收人员",
+        "en": "T Corp. Class 2\nCollection Staff",
+        "jp": "T社 2級\n徴収職職員"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10910,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "Девять协会\n北部3科",
+        "en": "Devyat' Assoc.\nNorth Section 3",
+        "jp": "北部ヂェーヴィチ協会\n3課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10911,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "拉·曼却领\n公主",
+        "en": "The Princess\nof La Manchaland",
+        "jp": "ラ・マンチャランドの姫"
+      },
+      "keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 10912,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "黑兽 - 巳",
+        "en": "Heishou Pack - Si Branch",
+        "jp": "黒獣 - 巳"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10913,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n泪锋之剑",
+        "en": "Lobotomy E.G.O::\nThe Sword Sharpened\nwith Tears",
+        "jp": "ロボトミーE.G.O::\n涙で研ぎ澄まされた剣"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10914,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "R公司\n第四集团军\n驯鹿队",
+        "en": "R Corp. 4th Pack\nReindeer",
+        "jp": "R社第4群\nトナカイチーム"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10915,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "环指 野兽派\n讲解员",
+        "en": "The Ring Fauvist\nDocent",
+        "jp": "薬指 野獣派\nドーセント"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 10916,
+      "sinner_index": 9,
+      "sinner": "Rodion",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n拇指 父辈",
+        "en": "The House of Spiders:\nThe Thumb Nursefather",
+        "jp": "蜘蛛の巣\n親指の親方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11001,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11002,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "剑契组\n杀手",
+        "en": "Blade Lineage\nSalsu",
+        "jp": "剣契\n殺手"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11003,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "Zwei协会\n南部6科",
+        "en": "Zwei Assoc.\nSouth Section 6",
+        "jp": "南部ツヴァイ協会\n6課"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11004,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "流浪乐队\n老大",
+        "en": "Los Mariachis\nJefe",
+        "jp": "マリアッチ\nボス"
+      },
+      "keywords": [
+        "Poise",
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11005,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "准执柄者",
+        "en": "The One Who Shall Grip",
+        "jp": "握らんとする者"
+      },
+      "keywords": [
+        "Bleed",
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11006,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n朱符",
+        "en": "Lobotomy E.G.O::Red Sheet",
+        "jp": "ロボトミーE.G.O::\n紅籍"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11007,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "臼齿修船厂\n收尾人",
+        "en": "Molar Boatworks\nFixer",
+        "jp": "奥歯ボートセンター\nフィクサー"
+      },
+      "keywords": [
+        "Rupture",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11008,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "Cinq协会\n南部4科科长",
+        "en": "Cinq Assoc.\nSouth Section 4 Director",
+        "jp": "南部センク協会\n4課 部長"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11009,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "黎明事务所\n收尾人",
+        "en": "Dawn Office\nFixer",
+        "jp": "夜明事務所\nフィクサー"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11010,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "Zwei协会\n西部3科",
+        "en": "Zwei Assoc.\nWest Section 3",
+        "jp": "西部ツヴァイ協会\n3課"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11011,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "Девять协会\n北部3科",
+        "en": "Devyat' Assoc.\nNorth Section 3",
+        "jp": "北部ヂェーヴィチ協会\n3課"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11012,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "中指\n幼弟",
+        "en": "The Middle\nLittle Brother",
+        "jp": "中指\n末弟"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11013,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "拇指 东部\n士兵II",
+        "en": "The Thumb\nEast Soldato II",
+        "jp": "東部親指\nソルダートII"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11014,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "黑兽 - 酉",
+        "en": "Heishou Pack -\nYou Branch",
+        "jp": "黒獣 - 酉"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11015,
+      "sinner_index": 10,
+      "sinner": "Sinclair",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n小指 子辈",
+        "en": "The House of Spiders:\nThe Pinky Apprentice",
+        "jp": "蜘蛛の巣\n小指の子方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11101,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11102,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "剑契组\n杀手",
+        "en": "Blade Lineage\nSalsu",
+        "jp": "剣契\n殺手"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11103,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "G公司\n部长",
+        "en": "G Corp.\nHead Manager",
+        "jp": "G社\n部長"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11104,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "Seven协会\n南部6科科长",
+        "en": "Seven Assoc.\nSouth Section 6 Director",
+        "jp": "南部セブン協会\n6課部長"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11105,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "臼齿事务所\n收尾人",
+        "en": "Molar Office\nFixer",
+        "jp": "奥歯事務所\nフィクサー"
+      },
+      "keywords": [
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11106,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "Cinq协会\n南部4科",
+        "en": "Cinq Assoc.\nSouth Section 4",
+        "jp": "南部センク協会\n4課"
+      },
+      "keywords": [
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11107,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n魔弹",
+        "en": "Lobotomy E.G.O::Magic Bullet",
+        "jp": "ロボトミーE.G.O::\n魔弾"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11108,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "呼啸山庄\n首席管家",
+        "en": "Wuthering Heights\nChief Butler",
+        "jp": "ワザリング・ハイツ\nチーフバトラー"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11109,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "环指 点彩派\n学徒",
+        "en": "The Ring Pointillist\nStudent",
+        "jp": "薬指点描派\nスチューデント"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11110,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "W公司 3级\n清扫组长",
+        "en": "W Corp. L3\nCleanup Captain",
+        "jp": "W社 3級\n整理要員チーフ"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11111,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "拉·曼却领\n理发师",
+        "en": "The Barber\nof La Manchaland",
+        "jp": "ラ・マンチャランド\n理髪師"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11112,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "黑兽 - 卯",
+        "en": "Heishou Pack - Mao Branch",
+        "jp": "黒獣 - 卯"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11113,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "T公司 3级\n强制征收人员",
+        "en": "T Corp. Class 3\nVDCU Staff",
+        "jp": "T社3級\n強制徴収職 職員"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11114,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "LCA\n瓦吉特 先锋三队 队长",
+        "en": "LCA Udjat Vanguard\nTeam 3 Leader",
+        "jp": "LCA\nウアジェト先鋒三隊隊長"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11115,
+      "sinner_index": 11,
+      "sinner": "Outis",
+      "titles": {
+        "zh-CN": "蜘蛛巢\n中指 父辈",
+        "en": "The House of Spiders:\nThe Middle Nursefather",
+        "jp": "蜘蛛の巣\n中指の親方"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11201,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "LCB\n罪人",
+        "en": "LCB\nSinner",
+        "jp": "LCB\n囚人"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11202,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "六协会\n南部6科",
+        "en": "Liu Assoc.\nSouth Section 6",
+        "jp": "南部リウ協会\n6課"
+      },
+      "keywords": [
+        "Burn"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11203,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "G公司\n科长代理",
+        "en": "G Corp.\nManager Corporal",
+        "jp": "G社\n課長代理"
+      },
+      "keywords": [
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11204,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "良·派\n帮厨",
+        "en": "R.B.\nSous-chef",
+        "jp": "りょ・ミ・パ\n助手"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11205,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "玫瑰扳手工坊\n收尾人",
+        "en": "Rosespanner Workshop\nFixer",
+        "jp": "バラのスパナ工房\nフィクサー"
+      },
+      "keywords": [
+        "Charge",
+        "Rupture",
+        "Tremor"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11206,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "Zwei协会\n南部4科",
+        "en": "Zwei Assoc.\nSouth Section 4",
+        "jp": "南部ツヴァイ協会\n4課"
+      },
+      "keywords": [],
+      "facts_available": true
+    },
+    {
+      "id": 11207,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "双钩海盗团\n大副",
+        "en": "Twinhook Pirates\nFirst Mate",
+        "jp": "双鉤海賊団\n副船長\n"
+      },
+      "keywords": [
+        "Bleed",
+        "Poise"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11208,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "黑云会\n副会长",
+        "en": "Kurokumo Clan\nCaptain",
+        "jp": "黒雲会\n副組長"
+      },
+      "keywords": [
+        "Bleed"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11209,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "埃德加家族\n继承人",
+        "en": "Edgar Family\nHeir",
+        "jp": "エドガー家\n継承者"
+      },
+      "keywords": [
+        "Sinking"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11210,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "拉·曼却领\n神父",
+        "en": "The Priest\nof La Manchaland",
+        "jp": "ラ・マンチャランド\n神父"
+      },
+      "keywords": [
+        "Bleed",
+        "Rupture"
+      ],
+      "facts_available": true
+    },
+    {
+      "id": 11211,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "炎拳事务所\n幸存者",
+        "en": "Firefist Office\nSurvivor",
+        "jp": "炎拳事務所\n生存者"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11212,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "黑兽 - 巳",
+        "en": "Heishou Pack - Si Branch",
+        "jp": "黒獣 - 巳"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11213,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "夜锥组\n队长",
+        "en": "Night Awls Capitano",
+        "jp": "夜の錐\nカピターノ"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11214,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "脑叶公司E.G.O::\n目灯",
+        "en": "Lobotomy E.G.O::Lamp",
+        "jp": "ロボトミーE.G.O::\nランプ"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11215,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "LCE E.G.O::\nAEDD",
+        "en": "LCE E.G.O::\nAEDD",
+        "jp": "LCE E.G.O::\nAEDD"
+      },
+      "keywords": null,
+      "facts_available": false
+    },
+    {
+      "id": 11216,
+      "sinner_index": 12,
+      "sinner": "Gregor",
+      "titles": {
+        "zh-CN": "黎明事务所\n代表",
+        "en": "Dawn Office Rep",
+        "jp": "夜明事務所\n代表"
+      },
+      "keywords": null,
+      "facts_available": false
+    }
+  ],
+  "provenance": {
+    "url": "https://github.com/LocalizeLimbusCompany/LocalizeLimbusCompany",
+    "revision": "231a8bcfc347273e7769b70ebc4f9f3e2fecaa5a",
+    "retained_sha256": "0c13b70aea524081086d1fba392eb54727475c233f15356bbc23f4766b8b000f",
+    "wiki_url": "https://limbuscompany.huijiwiki.com/wiki/Data%3APersonalities.json",
+    "wiki_imported": false,
+    "wiki_access_status": 403
+  },
+  "coverage": {
+    "known_count": 184,
+    "live_complete": false,
+    "reason": "Source revision coverage requires live catalogue reconciliation"
+  }
+}

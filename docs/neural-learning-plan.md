@@ -2,6 +2,40 @@
 
 ## Contract and architecture
 
+October11 clarification: **box means the account's owned identities**, opened
+by clicking each sinner. Detector bounding boxes are supporting vision only.
+The finishing priorities are a revisioned full identity index / owned-inventory
+reconciliation, and evidence-backed Mirror self-label / learning. A public index
+never marks an identity owned; an incomplete account scan never marks it absent.
+
+Identity records use game personality ID as key, with independent EN/JP/ZH titles,
+source revision/hash, and nullable missing keyword/skill facts. The retained
+localization currently yields184 playable IDs; the old statics yield128 facts.
+Both are partial until reconciled against a current complete catalogue. HuiJi
+Personalities and Personalitypassives are intended sources; current raw access
+returns403, so search snippets are not imported as a complete JSON database.
+
+MuMu ownership collection uses native Maa OCR and native TemplateMatch for the
+Owned checked / ALL unchecked controls, a unique sinner header and hash-bound
+navigation intent. Sidebar filters only change the viewed sinner. Ordinary click
+opens the gallery; holding a library card opens its details. Known guide/detail
+return arrows are native-matched and closed once. Every observed card retains
+its OCR tokens and source image; exact normalized title matching only, unknown
+or low-confidence rows remain unresolved. Level/uptie stay null if unproven.
+End-of-list coverage and all12 sinners are required before full inventory claims.
+
+Implementation order:
+1. Refresh and version the whole ID catalogue, fill missing aliases/facts and
+   compare with current Wiki inventory. Reject NPCs/duplicate IDs.
+2. Scan twelve owned galleries, support bounded scrolling and independent end
+   detection, reconcile exact aliases, retain unresolved rows and account hashes.
+3. Feed independently verified page/card outcomes to the correction queue;
+   train/export/evaluate ONNX offline, then replay via Maa native recognizers.
+4. Learn Mirror rankings from complete verified outcome episodes, measure HP,
+   time and expenses, and compare held-out policies before any promotion.
+Completion requires a real full inventory round trip and a trained/evaluated
+native model; current protocol tests or progression90 alone do not satisfy it.
+
 Pinned runtime: MaaFramework5.12.2, ProjectInterfaceV2, Python Agent and MXU.
 Maa provides inference; it does not itself automatically train or approve labels.
 Use its YOLOv8/YOLO11 ONNX protocol, `model/detect`, zero-based `expected`

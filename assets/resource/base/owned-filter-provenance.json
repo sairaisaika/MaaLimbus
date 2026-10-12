@@ -1,0 +1,28 @@
+{
+  "source_sha256": "4d0a1da211dc4f60a84316c2be2e6721555eac0b651019111c7eab434be4283a",
+  "source_size": [
+    1920,
+    1080
+  ],
+  "purpose": "neutral ownership-mode checkbox controls only",
+  "templates": [
+    {
+      "template": "owned-filter-checked.png",
+      "crop": [
+        1697,
+        78,
+        29,
+        29
+      ]
+    },
+    {
+      "template": "all-filter-unchecked.png",
+      "crop": [
+        1777,
+        78,
+        29,
+        29
+      ]
+    }
+  ]
+}
