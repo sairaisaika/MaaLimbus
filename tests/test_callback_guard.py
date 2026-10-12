@@ -34,6 +34,8 @@ def test_recognition_error_latches_actions_and_alternatives_closed(tmp_path, bro
                            node_name='DeploymentNext', image=None)
     assert rec.analyze(None, argv) is None
     assert rec.callback_failure['error_type'] == 'RuntimeError'
+    assert rec.callback_failure['error'] == 'OCR unavailable'
+    assert 'reject_ocr' in rec.callback_failure['traceback']
     assert rec.callback_failure.get('journal_failed', False) == broken_journal
     assert rec.analyze(None, argv) is None
     assert calls == ['ocr']

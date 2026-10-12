@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import time
 import traceback
 from datetime import datetime, timezone
@@ -59,6 +60,7 @@ def guarded_callback(failed_result):
             except Exception as error:
                 failure = dict(callback=type(self).__name__,
                     node=getattr(argv, 'node_name', ''), error_type=type(error).__name__,
+                    error=str(error), traceback=traceback.format_exc(),
                     verified_clear=False)
                 recognition.callback_failure = failure
                 try:
@@ -381,7 +383,7 @@ class LimbusRecognition(CustomRecognition):
                 active=read_json(ledger).get('active') if ledger.exists() else None
                 episode=(active or {}).get('id') or 'capture:'+self.journal.directory.name
                 queued=persist_frame_proposals(proposal_root,frame_path,episode,self.locale_name,
-                    proposal_root/'build/learning-review/frames')
+                    state_root/'build/learning-review/frames')
                 self.journal.record('semantic_frame_proposal',**queued,episode=episode)
             except (ValueError,OSError,KeyError) as error:
                 self.journal.record('semantic_frame_proposal_refused',reason=str(error),input_sent=False)
@@ -1358,7 +1360,8 @@ def write_loop_result(directory, result):
     try:
         print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
               ': '+str(result.get('reason') or result.get('error') or '原因未记录')+
-              '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path),flush=True)
+              '; '+str(result.get('error') or '')+
+              '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path)+'。',flush=True)
     except (OSError,UnicodeError):
         # A closed GUI log pipe must not turn recorded gameplay into a failed action.
         pass
@@ -1512,11 +1515,14 @@ class MirrorLoopAction(CustomAction):
             result['reason'] = 'loop_deadline_exceeded'
             result['error'] = str(error)
         except Exception as error:
+            failure=self.recognition.callback_failure
+            error_text=(str(failure.get('error_type'))+': '+str(failure.get('error'))
+                        if failure else str(error))
             journal.record('mirror_loop_error', error=str(error),
                            error_type=type(error).__name__, traceback=traceback.format_exc(),
                            verified_clear=False)
             result = loop.summary() if loop is not None else result
-            result.update(passed=False, reason='mirror_loop_failed', error=str(error),
+            result.update(passed=False, reason='mirror_loop_failed', error=error_text,
                           error_type=type(error).__name__)
             write_loop_result(directory, result)
             write_run_log(directory, result)
