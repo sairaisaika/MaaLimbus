@@ -12,6 +12,11 @@ class ThemeTransaction:
     def observe(self,scope,header,catalog,proof):
         d=self.data;p=d.get('pending')
         if not p:return False
-        if d.get('scope')!=scope or header is None or header.floor!=p['floor'] or catalog.identity(header.pack or '')!=p['name']:
+        if not self.matches(scope,header,catalog):
             raise ValueError('Selected theme successor map floor/name is not proven')
         d['selected'].append(dict(**p,map_proof=str(proof)));d['pending']=None;write_json(self.path,d);return True
+
+    def matches(self,scope,header,catalog):
+        d=self.data;p=d.get('pending')
+        return bool(p and d.get('scope')==scope and header is not None
+                    and header.floor==p['floor'] and catalog.identity(header.pack or '')==p['name'])

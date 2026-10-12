@@ -471,6 +471,34 @@ def test_the_theme_pull_waits_out_the_empty_frame_before_it_judges(tmp_path):
 
 
 # The pre-battle participant counter rolls up while it changes and one settled frame can
+def test_theme_drag_waits_past_a_named_but_stale_previous_floor(tmp_path):
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    before=ROOT/'evidence/runtime/packaged-mirror-20261012-045906/frame-0008.json'
+    stale=before.with_name('frame-0009.json')
+    after=ROOT/'evidence/runtime/packaged-mirror-20261012-050948/frame-0001.json'
+    assert all(p.exists() for p in (before,stale,after))
+    shutil.copyfile(ROOT/'config/user-team-profiles.json',tmp_path/'user-team-profiles.json')
+    store=RunStore(tmp_path/'user-run-ledger.json',[SimpleNamespace(slot=7)])
+    scope=store.start()
+    frames=[before,stale,after]
+    device=FakeDevice([archived(f) for f in frames])
+    notes=Notes()
+    instance=MirrorRunner(device,settings=dict(rounds=1,unknown_rounds=3,interval=0),
+        directory=tmp_path,observer=FrameObserver(tmp_path,list(map(str,frames))),
+        registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+        journal=notes,store=store,run_id=scope)
+    result=instance.run(steps=1,interval=0,round_limit=1)
+    assert result['passed'] and result['clicks_sent']==1
+    assert len(device.swipes)==1 and not device.clicks
+    assert any(event=='theme_successor_read_retry' for event,_ in notes.events)
+    state=json.loads((tmp_path/'user-theme-transaction.json').read_text(encoding='utf-8'))
+    assert state['pending'] is None
+    assert state['selected'][0]['floor']==2
+    assert state['selected'][0]['name']=='Emotional Indolence'
+
+
+# The pre-battle participant counter rolls up while it changes and one settled frame can
 # be read without it: frame-0026 of this window is a PRE_BATTLE_TEAM frame whose counter
 # band carried only the 'Chai' label under it, while the frames either side read 7/12.
 DEPLOY_DIR = ROOT / 'evidence/runtime/window-20261012-022454'

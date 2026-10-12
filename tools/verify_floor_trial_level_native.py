@@ -35,6 +35,18 @@ def main():
     report=dict(passed=True,controller='offline CustomController',device_input=False,
                 frame=str(path),png_sha256=hashlib.sha256(path.with_suffix('.png').read_bytes()).hexdigest(),
                 count=count,positive=proof,masked_negative=negative)
+    from maalimbus.shop_native import repair_refresh_cost
+    from maalimbus.shop_vision import refreshes
+    shelf=ROOT/'evidence/runtime/window-20261012-024300/frame-0173.json'
+    sr=json.loads(shelf.read_text());st=[Text(t['text'],tuple(t['box']),t['score']) for t in sr['ocr']]
+    si=cv2.imread(str(shelf.with_suffix('.png')))
+    repaired,shop_proof=repair_refresh_cost(native,si,st)
+    assert refreshes([t for t in repaired if t.score>=.9],sr['size'])['regular'].cost==15
+    absent=si.copy();absent[212:262,1485:1530]=0
+    unchanged,shop_negative=repair_refresh_cost(native,absent,st)
+    assert unchanged==st
+    report['shop_refresh']=dict(frame=str(shelf),png_sha256=hashlib.sha256(shelf.with_suffix('.png').read_bytes()).hexdigest(),
+                               positive=shop_proof,masked_negative=shop_negative)
     (ROOT/'build/floor-trial-level-native-verification.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report))
 

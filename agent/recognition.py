@@ -363,7 +363,9 @@ class LimbusRecognition(CustomRecognition):
                 ocr=[dict(text=t.text,box=list(t.box),score=t.score) for t in records]))
         from maalimbus.neural_shadow import observe as observe_neural_shadow
         try:
-            neural_sinners=observe_neural_shadow(context,image,ROOT/'assets/resource/base')
+            neural_sinners=observe_neural_shadow(context,image,ROOT/'assets/resource/base',
+                record=dict(scene=scene,size=[image.shape[1],image.shape[0]],
+                    ocr=[dict(text=t.text,box=list(t.box),score=t.score) for t in records]))
         except (ValueError,OSError,RuntimeError,KeyError) as error:
             # Optional shadow cannot change recognition, intents or device input.
             neural_sinners=dict(status='unavailable',error_type=type(error).__name__,
@@ -1355,9 +1357,13 @@ def write_loop_result(directory, result):
     path = Path(directory) / 'agent-result.json'
     path.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str),
                     encoding='utf-8')
-    print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
-          ': '+str(result.get('reason') or result.get('error') or '原因未记录')+
-          '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path),flush=True)
+    try:
+        print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
+              ': '+str(result.get('reason') or result.get('error') or '原因未记录')+
+              '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path),flush=True)
+    except (OSError,UnicodeError):
+        # A closed GUI log pipe must not turn recorded gameplay into a failed action.
+        pass
     return path
 
 

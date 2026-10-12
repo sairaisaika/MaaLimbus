@@ -1253,11 +1253,14 @@ class MirrorRunner:
         # The map floor numeral blinks. A missing digit is not a failed drag:
         # reread the current page within the existing bounded settle budget.
         if page=='MAP' and self.theme_transaction is not None and self.theme_transaction.data and self.theme_transaction.data.get('pending'):
-            for attempt in range(max(1,settings.rounds)-1):
+            from .theme_vision import ThemeCatalog
+            theme_catalog=ThemeCatalog(ROOT/'assets/resource/base')
+            for attempt in range(max(1,settings.unknown_rounds)-1):
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
                 header=map_header(texts,record.get('size') or (1920,1080))
-                if not header or header.floor is not None:break
-                self.note('map_floor_read_retry',attempt=attempt+1,input_sent=False)
+                if self.theme_transaction.matches(self.run_id,header,theme_catalog):break
+                self.note('theme_successor_read_retry',attempt=attempt+1,input_sent=False,
+                          expected=self.theme_transaction.data['pending'])
                 time.sleep(settings.interval)
                 record=self._observe()
                 page=resolve_scene(self.registry,directory,record)
@@ -1982,6 +1985,13 @@ class MirrorRunner:
                 time.sleep(settings.interval)
             settled = self._observe()
             settled_page = resolve_scene(self.registry, directory, settled)
+            if patient and settled_page=='MAP':
+                from .theme_vision import ThemeCatalog
+                header=map_header([Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])],settled.get('size') or (1920,1080))
+                if not self.theme_transaction.matches(self.run_id,header,ThemeCatalog(ROOT/'assets/resource/base')):
+                    self.note('theme_successor_read_retry',attempt=index+1,input_sent=False,
+                              expected=self.theme_transaction.data['pending'])
+                    continue
             if settled_page not in (page, 'UNKNOWN'):
                 break
             # A tutorial card keeps the same page label but changes the pixels, so a
