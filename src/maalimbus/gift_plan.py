@@ -48,10 +48,14 @@ def wanted(plan, keyword, *, fallback=('Wound Clerid',)):
     return default or list(fallback)
 
 
-def shop_wanted(team,catalog):
+def shop_wanted(team,catalog,priorities=None):
     """The active saved team's full known gift system, separate from starters."""
     unknown=(set(team.allow)|set(team.block))-set(catalog.entries)
     if unknown:raise ValueError('Saved shop gift identity absent from catalogue')
+    priorities=priorities or {}
+    if any(name not in catalog.entries or type(weight) is not int or not 0<=weight<=100
+           for name,weight in priorities.items()):raise ValueError('Invalid explicit shop gift priority')
     preferred=[name for name,entry in catalog.entries.items()
-               if name not in team.block and (name in team.allow or set(entry['keywords'])&set(team.keywords))]
-    return sorted(preferred,key=lambda name:(name not in team.allow,name))
+               if name not in team.block and (name in team.allow or set(entry['keywords'])&set(team.keywords)
+                                              or priorities.get(name,0)>0)]
+    return sorted(preferred,key=lambda name:(-priorities.get(name,0),name not in team.allow,name))

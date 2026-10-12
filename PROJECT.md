@@ -1694,8 +1694,9 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   and a real GUI Start at 13:55:57 local produced `pi-20261012-135557`. The run
   finally left the map: shop pending reconciled, shop left, MAP → `NODE_PANEL` →
   `PRE_BATTLE_TEAM` → `DEPLOYMENT` → **`BATTLE_HUD` (15 observations) → battle won**
-  → `BATTLE_RESULT` → `GIFT_GET`. That is the first live battle this repository has
-  ever completed, and the saved team order was submitted without Clear Selection.
+  → `BATTLE_RESULT` → `GIFT_GET`. This continuation proves the repaired installed
+  entry reached a live battle; earlier repository runs already had battle and
+  Hard-five-floor evidence. Saved order was submitted without Clear Selection.
 - It then stopped at 18:02:19 UTC on `steps=32 clicks_sent=31` with
   `Fresh refresh currency delta and complete changed shelf not proven` **gone**, and
   a new reason: `floor_gift_receipt_successor_not_proven` in
@@ -1763,3 +1764,32 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   masked badge, and leaves real pending bytes unchanged. 120 focused tests pass.
   The real transaction still needs fresh GUI continuation to finish bookkeeping;
   no Purchase or GET may be replayed.
+
+## Continuation: October 12 purchase receipt and learning inputs
+
+- `pi-20261012-174217`, started with the real installed GUI button, reconciled
+  Devil's Share without another Purchase or GET. It verified both bounded
+  refreshes (15 then 30), exited to MAP floor 3 / Sinking Pang, and fought the
+  boss through BATTLE_RESULT into the floor reward. Read-only chain audit:
+  `build/actual-shop-purchase-real-verification.json` (one paid Purchase, one GET,
+  2707 -> 2563, exact item Purchased badge and all proof hashes).
+- It then stopped before gift input on frame 0084: `Acqulre E.G.O Glft` was not
+  a plate, so four cards became three and adjacent trials were mixed. The exact
+  complete-caption i/l alias restores four independent title/trial columns.
+  Actual retained-frame and missing-caption negatives pass; unknown Final Power
+  remains unpriced and uses the existing bounded exploration queue.
+- Added explicit economy preferences before keyword filtering, with Prestige
+  Card weight 100. These are manual engineering priorities, with saved-team block
+  and existing spend caps still controlling actions; not a trained value estimate.
+  `docs/economy-gift-review.md` is DSH's source-backed catalogue reviewed by Codex.
+  No unrelated forum use can disprove the player's black-card nickname.
+- `shop_outcomes` now queues actual purchased action/context and subsequent same-
+  scope outcome evidence beside PNG/JSON/review/trace. It never equates buying
+  with benefit, labels an unbought item as a negative, or invents unknown effects.
+  One actual receipt sample currently has a pending value outcome; the purchase
+  value neural model is still untrained. DSH has only the isolated feature/MLP
+  training-tool task; runtime policy and promotion remain Codex-owned.
+- Focused final: 80 passed; full source regression: 1466 passed, 1 Windows
+  symlink-permission skip in 93.84 s. Live whole-run continuation, economy buy,
+  and trained value policy application are still required; source tests do not
+  establish any of them. No final payout or new module consumption claimed.

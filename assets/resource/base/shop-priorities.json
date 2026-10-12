@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "priorities": [
+    {
+      "name": "Prestige Card",
+      "weight": 100,
+      "reason": "Manual bootstrap priority for the visible Prestige Card economic gift. The player's black-card nickname is not a verified catalogue alias. This weight is not learned utility or an inferred effect."
+    },
+    {"name":"Golden Urn","weight":90,"reason":"Manual economic preset; gain-cost effect has catalogue evidence, value has not been learned."},
+    {"name":"Voracious Hammer","weight":85,"reason":"Manual economic preset, not an estimated causal return."},
+    {"name":"Milepost of Survival","weight":80,"reason":"Manual floor-clear economy preference; no promised payout."},
+    {"name":"Pre-order Discount","weight":70,"reason":"Manual preference for regular-refresh economy, subject to the existing refresh cap."},
+    {"name":"New Release Pamphlet","weight":60,"reason":"Manual refresh-economy preference, not a guaranteed refund."}
+  ]
+}

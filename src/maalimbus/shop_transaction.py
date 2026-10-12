@@ -245,7 +245,7 @@ class ShopTransaction:
             raise ValueError('Shop action needs a fresh shelf')
         return texts, size, proof, _coins(texts, size), _shelf(texts, size)
 
-    def reserve_purchase(self, scope, visit, offer, coins, frame_path, reserve_coins=0):
+    def reserve_purchase(self, scope, visit, offer, coins, frame_path, reserve_coins=0, decision_context=None):
         self._ready(scope, visit)
         name = offer.name if hasattr(offer, 'name') else offer['name']
         price = offer.price if hasattr(offer, 'price') else offer['price']
@@ -262,6 +262,9 @@ class ShopTransaction:
         data['pending'] = dict(kind='purchase', stage='card_intent', scope=scope, visit=visit,
                                name=name, price=price, coins=coins, before=proof,
                                shelf=shelf, click=matching[0]['click'])
+        if decision_context is not None:
+            if not isinstance(decision_context,dict):raise ValueError('Invalid shop decision context')
+            data['pending']['decision_context']=copy.deepcopy(decision_context)
         self._save(data)
         return matching[0]['click']
 
@@ -394,6 +397,7 @@ class ShopTransaction:
                                    visit=visit, before=pending['before'],
                                    question=pending.get('question'), successor=proof,
                                    shelf_evidence='own_purchased_badge' if bought else 'removed_offer',
+                                   decision_context=pending.get('decision_context'),
                                    overlay_acknowledgement=pending.get('overlay_acknowledgement')))
         data['pending'] = None
         self._save(data)

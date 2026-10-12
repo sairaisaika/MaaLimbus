@@ -1586,3 +1586,13 @@ Purchased badge. The retained real shelf replay verifies that native badge with
 two independent .9 crops and exact reserved title/price, with a masked-badge
 negative. 120 focused tests passed. The marked card is not offered for rebuy;
 actual pending remains until fresh continuation, without repeated paid input.
+
+The `174217` actual GUI run completed that purchase bookkeeping without repeating
+Purchase/GET, verified two refresh receipts, exited SHOP and reached third-floor
+boss victory and GIFT_PICK. `build/actual-shop-purchase-real-verification.json`
+audits the exact native proof hashes and once-only inputs. Four-card trial binding
+then stopped because a complete plate read Glft; retained-frame alias and negative
+tests pass. New explicit economy priorities and action/outcome review datasets
+are source-level changes pending installed continuation. 1466 full tests passed,
+1 Windows symlink permission skip. No trained buying-value model, live economy
+buy, final payout or complete five-floor acceptance is asserted.

@@ -1646,10 +1646,14 @@ class MirrorRunner:
                 profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
                               if p.slot==self.store.team_slot),None)
                 if profile is None:raise ValueError('Current saved shop team absent')
-                names=shop_wanted(profile,GiftCatalog(ROOT/'assets/resource/base'))
+                catalog=GiftCatalog(ROOT/'assets/resource/base')
+                from .shop_priority import load as load_shop_priorities
+                explicit_priorities=load_shop_priorities(ROOT/'assets/resource/base/shop-priorities.json',catalog)
+                names=shop_wanted(profile,catalog,explicit_priorities)
                 keywords=sorted(profile.keywords)
                 self.note('shop_saved_team_plan',team=profile.slot,keywords=keywords,
-                          wanted=names,blocked=sorted(profile.block),input_sent=False)
+                          wanted=names,blocked=sorted(profile.block),input_sent=False,
+                          manual_priorities=explicit_priorities,manual_weights_are_learned=False)
             try:
                 if shop_tx is None:
                     raise ValueError('shop_transaction_scope_missing')
@@ -1678,6 +1682,12 @@ class MirrorRunner:
             try:
                 from .shop_learning import sync_receipts
                 learning=sync_receipts(shop_tx,self.store.path.parent.parent/'build/learning-review/shop',names,keywords)
+                from .shop_outcomes import sync as sync_purchase_outcomes
+                outcome_samples=sync_purchase_outcomes(shop_tx,
+                    self.store.path.parent.parent/'build/learning-review/shop-purchases',self.store.path)
+                self.note('shop_purchase_learning_samples',samples=len(outcome_samples),
+                          input_sent=False,neural_policy_applied=False,
+                          reason='verified_purchase_actions_with_delayed_outcomes_not_yet_trained_value')
             except (ValueError,OSError) as error:
                 self.note('shop_learning_unavailable',reason=str(error),input_sent=False)
             shop = shop_state(record, names,
@@ -2164,7 +2174,12 @@ class MirrorRunner:
                 'confirming_the_purchase_the_shop_asked_about'):
             visit=shop_tx.data['current_visit']
             if plan['reason']=='buying_the_gift_the_gift_plan_asked_for':
-                target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),reserve_coins=settings.shop_reserve_coins)
+                target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),
+                    reserve_coins=settings.shop_reserve_coins,decision_context=dict(team=self.store.team_slot,
+                    keywords=keywords,floor=state['floor_now'],owned_bought=list(state['shop_bought']),
+                    policy=settings.shop_policy,policy_trace=shop.get('policy_trace'),
+                    reserve_coins=settings.shop_reserve_coins,refresh_limit=settings.shop_refreshes,
+                    refreshes_used=state['shop_refreshes'],offers=shop['offers']))
             elif plan['reason']=='refreshing_the_shelf_for_the_gift_the_plan_wants':
                 target=shop_tx.reserve_refresh(self.run_id,visit,plan['detail']['cost'],shop['currency'],settings.shop_refreshes,frame_file(directory),reserve_coins=settings.shop_reserve_coins)
             else:
