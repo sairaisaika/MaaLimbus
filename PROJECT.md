@@ -1499,3 +1499,17 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   successor shelf are required before booked purchase. Pending/restart/UNKNOWN
   cannot reset refresh budget.50 shop integration cases passed; actual question,
   currency/receipt and later visits remain to be tested.
+
+- Pending floor pick recovery now validates its original full offer/counter and
+  JSON/PNG bindings against a fresh1-step counter successor, without another
+  input. Changed scope/original or unknown counts keep pending.91 focused tests
+  passed across runner/floor/native badge/transaction cases.
+- Shop regular Refresh native dual-crop diagnostic reads15 at.999732/.999956
+  versus old icon-prefixed015 at.844343; original confidence gates stay unchanged.
+  Runtime now drops low-confidence shop costs and uses fresh native caption-bound
+  narrow reads. Runtime self-label proposals are connected to real card-page
+  journal frames with scope/PNG/JSON bindings, always unreviewed/not training truth.
+- DeepSeek completed its permitted add-only policy files and documented empty
+  learned evidence as zero adjustment. Its159 tests are offline policy evidence,
+  not actual neural inference or Mirror completion. Training agent is preparing
+  a12-class130-card real research dataset; no model/promotion claim yet.

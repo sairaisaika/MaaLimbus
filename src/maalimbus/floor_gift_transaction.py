@@ -40,7 +40,39 @@ class FloorGiftTransaction:
         if d['pending'] or d['commit_sent'] or title in d['selected'] or count['chosen']!=len(d['selected']):
             raise ValueError('floor_gift_selection_would_repeat')
         d['pending']=dict(kind='pick',title=title,before=count['chosen'],proof=str(proof))
+        path=Path(proof)
+        if path.is_file() and path.with_suffix('.png').is_file():
+            d['pending'].update(before_json_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                                before_png_sha256=hashlib.sha256(path.with_suffix('.png').read_bytes()).hexdigest())
         write_json(self.path,d)
+
+    def recover_pick(self, scope, offers, count, proof, catalog):
+        """Resolve one sent pick from its retained original and fresh exact counter.
+
+        Does not replay input. Missing/changed original or unknown successor keeps
+        pending intact. Older intents still require original PNG metadata and the
+        complete offer signature, never a saved default or a guessed selection.
+        """
+        from .floor_gifts import observe
+        from .vision import Text
+        d=self.data;pending=(d or {}).get('pending')
+        if not pending or pending['kind']!='pick' or d['scope']!=scope:
+            raise ValueError('floor_gift_recovery_scope_or_pick_not_proven')
+        before=Path(pending['proof']); original=read_json(before)
+        old_hash=hashlib.sha256(before.with_suffix('.png').read_bytes()).hexdigest()
+        if old_hash!=original.get('image_sha256') or original.get('scene')!='GIFT_PICK':
+            raise ValueError('floor_gift_original_pick_png_not_proven')
+        if pending.get('before_png_sha256',old_hash)!=old_hash or pending.get(
+                'before_json_sha256',hashlib.sha256(before.read_bytes()).hexdigest())!=hashlib.sha256(before.read_bytes()).hexdigest():
+            raise ValueError('floor_gift_original_pick_proof_changed')
+        old_offers,old_count=observe([Text(r['text'],tuple(r['box']),r['score']) for r in original['ocr']],original['size'],catalog)
+        fresh=read_json(Path(proof)); fresh_hash=hashlib.sha256(Path(proof).with_suffix('.png').read_bytes()).hexdigest()
+        if fresh_hash!=fresh.get('image_sha256') or fresh_hash==old_hash or fresh.get('scene')!='GIFT_PICK':
+            raise ValueError('floor_gift_fresh_pick_successor_not_proven')
+        if (self.signature(old_offers)!=d['offer'] or old_count!={'chosen':pending['before'],'required':d['required']}
+                or pending['title'] not in [o.title for o in old_offers if not o.unpriced]):
+            raise ValueError('floor_gift_original_pick_offer_not_proven')
+        self.observe_pick(offers,count,proof)
 
     def observe_pick(self, offers, count, proof):
         d=self.data; p=d['pending']

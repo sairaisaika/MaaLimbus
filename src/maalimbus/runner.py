@@ -861,7 +861,7 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2):
     from .shop_vision import purchase_confirm_target, refreshes as shop_refreshes
     size = record.get('size') or (1920, 1080)
     records = [Text(item['text'], tuple(item['box']), item['score'])
-               for item in record['ocr']]
+               for item in record['ocr'] if item['score']>=.9]
     question = record.get('scene') == 'SHOP_PURCHASE'
     found = shop_offers(records, size)
     cash = shop_currency(records, size)
@@ -1524,6 +1524,12 @@ class MirrorRunner:
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
                 floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog,
                     image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
+                pending=(self.floor_gift_transaction.data or {}).get('pending')
+                if pending and pending.get('kind')=='pick':
+                    self.floor_gift_transaction.recover_pick(self.run_id,floor_offers,gift,
+                        frame_file(directory),self.floor_gift_catalog)
+                    self.note('floor_gift_pending_pick_reconciled',input_sent=False,
+                              successor=str(frame_file(directory)),count=gift)
                 d=self.floor_gift_transaction.prepare(self.run_id,floor_offers,gift,frame_file(directory))
                 profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
                               if p.slot==self.store.team_slot),None)

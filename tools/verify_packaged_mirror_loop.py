@@ -57,7 +57,8 @@ def main():
     parser.add_argument('--steps', type=int, default=12)
     parser.add_argument('--seconds', type=float, default=240.0)
     parser.add_argument('--gift-plan', default='assets/resource/base/gift-plan.json')
-    parser.add_argument('--gift-keyword', default='bleed')
+    parser.add_argument('--gift-keyword', default=None,
+                        help='Explicit override; otherwise preserve saved launch/team choice')
     parser.add_argument('--shop-refreshes', type=int, default=2)
     parser.add_argument('--observe-only', action='store_true')
     parser.add_argument('--stop-page', help='Stop on first fresh named page before input there')
@@ -130,10 +131,12 @@ def main():
                 parameters = dict(observe_only=bool(args.observe_only), steps=args.steps,
                                   interval=4.0, rounds=3, unknown_rounds=6, map_tries=4,
                                   claim_tries=3, battle_rounds=8, defeat_tries=1,
-                                  gift_plan=args.gift_plan, gift_keyword=args.gift_keyword,
+                                  gift_plan=args.gift_plan,
                                   shop_refreshes=args.shop_refreshes,
                                   run_store='config/user-run-ledger.json', directory='',
                                   budget=args.seconds, stop_page=args.stop_page)
+                if args.gift_keyword is not None:
+                    parameters['gift_keyword']=args.gift_keyword
                 override = {'MirrorLoop': {'timeout': int(args.seconds * 1000),
                                            'custom_action_param': parameters}}
                 if args.entry == 'MirrorTask':

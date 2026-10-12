@@ -36,5 +36,6 @@ def test_observed_title_requires_complete_identity(replacement):
 
 def test_missing_trial_amount_refuses_entire_offer():
     changed = [r for r in records() if not (r.text=='+7.5%' and r.box[0]<900)]
-    with pytest.raises(ValueError):
-        observe(changed,(1920,1080),GiftCatalog(ROOT/'assets/resource/base'))
+    offers,_=observe(changed,(1920,1080),GiftCatalog(ROOT/'assets/resource/base'))
+    assert offers[1].unpriced and offers[1].identity()['trial'] is None
+    assert 'For You Who Love the City' not in [r['title'] for r in rank(offers,Team(7,frozenset({'Poise'})),[])]

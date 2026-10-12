@@ -351,6 +351,10 @@ class LimbusRecognition(CustomRecognition):
             from maalimbus.floor_trial_vision import repair_levels
             records, trial_local=repair_levels(context.run_recognition_direct,image,records)
             local.extend(trial_local)
+        if scene=='SHOP':
+            from maalimbus.shop_native import repair_refresh_cost
+            records,shop_local=repair_refresh_cost(context.run_recognition_direct,image,records)
+            local.extend(shop_local)
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
         from maalimbus.overlay_dismissal import recognize as recognize_overlay
@@ -367,6 +371,20 @@ class LimbusRecognition(CustomRecognition):
         name = self.journal.frame(image, records, scene,local_ocr=local,
             reward_cost=reward_cost,reward_cost_provenance=reward_cost_provenance,
             neural_sinners=neural_sinners,overlay_dismissal=overlay_dismissal)
+        if scene in ('PRE_BATTLE_TEAM','DEPLOYMENT','TEAM_LIBRARY') or neural_sinners.get('status')=='shadow':
+            try:
+                from maalimbus.semantic_labels import persist_frame_proposals
+                frame_path=self.journal.directory/(name+'.json')
+                state_root=data_directory(ROOT).parent
+                proposal_root=ROOT if frame_path.resolve().is_relative_to(ROOT.resolve()) else state_root
+                ledger=data_directory(ROOT)/'user-run-ledger.json'
+                active=read_json(ledger).get('active') if ledger.exists() else None
+                episode=(active or {}).get('id') or 'capture:'+self.journal.directory.name
+                queued=persist_frame_proposals(proposal_root,frame_path,episode,self.locale_name,
+                    proposal_root/'build/learning-proposals')
+                self.journal.record('semantic_frame_proposal',**queued,episode=episode)
+            except (ValueError,OSError,KeyError) as error:
+                self.journal.record('semantic_frame_proposal_refused',reason=str(error),input_sent=False)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
         return records, scene, name
