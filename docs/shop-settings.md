@@ -21,7 +21,7 @@ JSON-safe decision card and writes no state.
 | --- | --- | --- | --- |
 | `shop_policy` | `saved`, `manual`, `learned` | one of those | Which rule bounds the shop spending. |
 | `shop_refreshes` | `saved`, `0`, `1`, `2`, `3`, `5` | an integer **0–5**, or `saved` | Plain refreshes allowed per shop visit. |
-| `shop_reserve_coins` | `saved`, `0`, `100`, `200`, `300`, `500` | an integer **0–500**, or `saved` | Coins never spent in a shop visit. |
+| `shop_reserve_coins` | `saved`, `0`, `100`, `200`, `300`, `500` | an integer **0–500**, or `saved` | Coins kept back and never spent in a shop visit. `0` means *no reserve*, not "spend everything". |
 
 The drop-downs are the UI's offered choices; the resolver accepts **any** integer inside the
 range, so a stored value the drop-down does not list (for example 4 or 250) still resolves.
@@ -68,9 +68,12 @@ the values.
 * It may only obey the player's own two hard settings — `shop_refreshes` and
   `shop_reserve_coins` — and the existing gift allow/block list. This module never raises,
   lowers or rewrites either setting.
-* It never lowers the coin reserve floor: a requested reserve below what was stored keeps the
-  stored floor (`reserve_floor_kept`) instead. Raising it is reported as
-  `reserve_floor_raised`.
+* An **explicit** reserve is used exactly as written. Lowering it is the player's own
+  decision and the card records it as a deliberate downgrade
+  (`reserve_manual` + `reserve_floor_lowered_by_player`); raising it is
+  `reserve_floor_raised`. What independent learning may never do is lower a floor the
+  player set, and that guard belongs to the learned layer, which only reads these settings —
+  the resolver cannot tell a learned write from a player's choice, so it does not guess.
 * With no recorded samples the **rule fallback** applies — these settings, no observed
   adjustment — and nothing claims a model learned to buy anything.
 * `learned_applied` is always `False`, because this pure resolver takes **no** decision of its

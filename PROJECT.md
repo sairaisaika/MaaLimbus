@@ -1548,3 +1548,38 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   docs/DEEPSEEK_CONTINUATION.md. Keep GUI Start/full-floor/receipt/HOME evidence
   separate from unit/resource/package checks. No new payout/module permission,
   FGO input, limit check or public Release occurred.
+
+## Continuation: October12 shop notice acknowledgment and the live run's natural end
+
+- The GUI run pi-20261012-112240 ended on its own at 11:58:14 local:
+  `mirror_loop_stopped reason=unexpected_successor steps=17 clicks_sent=17
+  passed=false`. Every one of the 17 clicks was a MAP node attempt and every
+  observation kept `route.reason=current_position_not_proven` with
+  `verified_clear=false`, so floor2 never advanced; each failed click started a
+  fresh retry budget (attempts 1-7, remaining 17..12, one per ~2.4 min) instead of
+  exhausting a shared one. That livelock is the map-identity blocker, still Root's
+  open item; the run stopped rather than sending an unproved input.
+- DSH implemented the missing one-shot native `E.G.O Gift GET!` acknowledgment
+  offline. `shop_skill_vision.frame_overlay/read_overlay` now recognise the notice
+  over a shelf (measured on the retained frame
+  evidence/runtime/window-20261006-042640/frame-0066.json: title `E.G.O Gift GET!`
+  box [828,250,258,41], single `Confirm` box [922,774,136,45]) and return
+  available/complete/target separately; an unread notice yields no target, and a
+  locale pattern may widen the match but must still normalise to the proved title.
+  `ShopTransaction.reserve_overlay_acknowledgement` records the intent at stage
+  `overlay_intent` before any input, binds it to the notice frame's own PNG hash,
+  refuses a frame that repeats the retained shelf or question, and is single-use per
+  intent so a restart can never click twice. The notice is an input anchor, never a
+  receipt: only `reconcile_purchase` on the returning shelf with the exact coin
+  delta and the removed offer records a purchase.
+- Evidence: tests/test_shop_receipt_acknowledgement.py 15 focused tests plus
+  tests/test_shop_skill_vision.py 32, together `47 passed`; the shop group
+  (receipt-acknowledgement, transaction, skill vision, settings) `134 passed`.
+  build/deepseek-shop-skill-handoff.json records the notice reading, the
+  acknowledgment contract and `notice_acknowledgement.wired_in_runner=false`.
+- Not done here: the runner still does not call the acknowledgment, so a real
+  purchase in the live loop keeps stopping safely with
+  `shop_receipt_successor_not_proven` until Root wires the GIFT_GET branch. Nothing
+  was installed into dist, no controller was started, no input was sent, no private
+  budget/ledger/config was written, and no commit was made.
+

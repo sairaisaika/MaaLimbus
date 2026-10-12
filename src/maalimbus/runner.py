@@ -1519,9 +1519,34 @@ class MirrorRunner:
             state['defeat_row_sent'] = False
         shop = None
         shop_tx=self.shop_transaction
+        notice_ack=None
         if shop_tx is not None and shop_tx.data and shop_tx.data.get('pending') and page not in ('SHOP','SHOP_PURCHASE'):
-            stopped=self._record(page,record,frame,candidates,None,'shop_receipt_successor_not_proven')
-            return self._result(page,None,False,stopped,done=True)
+            pending=shop_tx.data['pending']
+            # A purchase's own ``E.G.O Gift GET!`` notice is the one successor a pending
+            # purchase may be answered through, and it is answered exactly once: the
+            # acknowledgement is written down before the click goes out, so a run that
+            # restarts on the notice it already acknowledged stops instead of clicking the
+            # same notice twice.  Anything else -- another pending kind, a purchase whose
+            # notice was already acknowledged, an unread notice, observe-only -- keeps the
+            # pending bytes untouched and stops the run where it stands.
+            answerable=(page=='GIFT_GET' and not settings.observe_only
+                        and pending.get('kind')=='purchase'
+                        and pending.get('stage')=='confirm_intent'
+                        and not pending.get('overlay_acknowledgement'))
+            if answerable:
+                try:
+                    notice_ack=shop_tx.reserve_overlay_acknowledgement(
+                        self.run_id,pending['visit'],frame_file(directory))
+                except (ValueError,OSError) as error:
+                    stopped=self._record(page,record,frame,candidates,None,str(error))
+                    return self._result(page,None,False,stopped,done=True)
+                self.note('shop_notice_acknowledged',page=page,
+                          reason='the_purchase_own_gift_get_notice_is_acknowledged_once',
+                          target=list(notice_ack),input_sent=False,
+                          acknowledgement=shop_tx.data['pending']['overlay_acknowledgement'])
+            else:
+                stopped=self._record(page,record,frame,candidates,None,'shop_receipt_successor_not_proven')
+                return self._result(page,None,False,stopped,done=True)
         if page=='MAP' and shop_tx is not None and shop_tx.data:
             visit=shop_tx.data['current_visit']
             if not shop_tx.data['visits'][visit].get('closed'):
@@ -1698,6 +1723,13 @@ class MirrorRunner:
             texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
             box=dialog_dismissal(texts,record.get('size') or (1920,1080),self.locale_dictionary())
             if box:plan_controls['unknown_dialog.close']=list(box)
+        if page=='GIFT_GET' and notice_ack is not None:
+            # The notice's own Confirm was just re-proved against this very frame and
+            # stored as the pending purchase's acknowledgement, so that box -- not the
+            # static registry anchor -- is the only target this page may click.  It is
+            # the one control on the notice that reads a gift back to the shelf; the
+            # neighbouring control would spend currency the run never chose.
+            plan_controls['gift_get.confirm_button']=list(notice_ack)
         initial = None
         if page == 'INITIAL_GIFTS':
             from . import initial_gifts
@@ -2004,6 +2036,15 @@ class MirrorRunner:
                 target=shop_tx.reserve_confirm(self.run_id,visit,frame_file(directory))
             if list(target)!=list(plan['target']):
                 raise ValueError('Shop transaction target differs from planned current control')
+        if page=='GIFT_GET' and notice_ack is not None:
+            if list(plan['target'])!=list(notice_ack):
+                raise ValueError('Shop notice target differs from the acknowledged current control')
+            # The acknowledgement is already durable and this note is the input's own
+            # intent record: the notice is cleared once, and the receipt stays pending on
+            # the returning shelf's exact coin delta plus removed offer.
+            self.note('shop_notice_intent',page=page,target=list(notice_ack),
+                      reason=plan['reason'],receipt_pending=True,
+                      receipt_owner='returning_shelf_coin_delta_and_removed_offer')
         if plan.get('reason')=='confirm_pending_deployment_reset_once':
             self.deployment_transaction.confirm_clear(self.run_id)
         if plan.get('reason')=='battle_button_submits_the_team' and self.deployment_transaction is not None:
@@ -2054,6 +2095,12 @@ class MirrorRunner:
                       refreshes_used=state['shop_refreshes'])
         elif plan.get('reason') == 'confirming_the_purchase_the_shop_asked_about':
             self.note('shop_purchase_confirmed', point=None if point is None else list(point))
+        elif plan.get('reason') == 'the_gift_get_notice_is_cleared_with_its_own_confirm' and notice_ack is not None:
+            # The notice's Confirm has gone out once.  The receipt is still unproven: only
+            # the returning shelf's exact coin delta and complete offer list may clear it,
+            # and no run state here may treat this click as payment.
+            self.note('shop_notice_input_sent',target=list(notice_ack),receipt_pending=True,
+                      receipt_owner='returning_shelf_coin_delta_and_removed_offer')
         if page == 'MAP' and plan.get('target') is not None:
             # Whether or not the click opened anything, that spot has had its turn:
             # live run build/window-run76.json opened the same gift tray eight times

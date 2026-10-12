@@ -611,8 +611,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         box = controls.get('gift_get.confirm_button')
         if box is None:
             return _refuse(page, 'gift_get_confirm_not_anchored')
+        # A notice that covers a shop shelf returns to that shelf, so SHOP and
+        # SHOP_PURCHASE are successors of this input exactly like the reward-card
+        # successors above; anything else is still a stopped run.
         return _plan(page, CLICK, target=box,
-                     expect=('GIFT_GET', 'GIFT_SEARCH', 'GIFT_PICK', 'REWARD_CARD', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
+                     expect=('GIFT_GET', 'GIFT_SEARCH', 'GIFT_PICK', 'REWARD_CARD', 'SHOP',
+                             'SHOP_PURCHASE', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
     if page == 'GIFT_WARNING':
         # Select pressed with choices still outstanding: the game offers to trade the

@@ -7,10 +7,11 @@ module turns three option fields into one validated decision and writes nothing 
 ``shop_refreshes``     ``saved`` / an integer 0..5   (plain refresh limit per shop visit)
 ``shop_reserve_coins`` ``saved`` / an integer 0..500 (coins never spent in a shop visit)
 
-Resolving is all that happens here.  It returns the original ``manual`` or ``learned``
-policy with the player's own refresh limit and reserve floor, unchanged.  ``learned_applied``
-is always ``False`` because this pure resolver takes no decision of its own; anything that
-later scores an actual shelf runs outside this module, from hash-bound receipts and
+Resolving is all that happens here.  It returns the chosen policy with the player's own
+refresh limit and reserve floor, fully validated.  An explicit choice is used exactly as
+written, in either direction, because that is the player's own setting; ``learned_applied``
+is always ``False`` here, because this pure resolver takes no decision of its own.  Anything
+that later scores an actual shelf runs outside this module, from hash-bound receipts and
 successor evidence the run owner keeps.
 
 What ``learned`` means, and what it does not:
@@ -18,7 +19,8 @@ What ``learned`` means, and what it does not:
 * It may only obey the player's own two hard settings here (``shop_refreshes`` and
   ``shop_reserve_coins``) and the existing gift allow/block list.  This module never
   raises, lowers or rewrites either setting.
-* It never lowers the coin reserve floor: whatever was stored stays the floor.
+* Independent learning must never lower a reserve floor the player set.  Lowering the
+  reserve is the player's own explicit act, recorded as a deliberate downgrade.
 * With no recorded samples, the rule fallback applies — the settings above, no observed
   adjustment — and nothing here claims a model learned to buy anything.
 
@@ -66,8 +68,8 @@ REASONS = (
     'refresh_manual',
     'reserve_saved',
     'reserve_manual',
-    'reserve_floor_kept',
     'reserve_floor_raised',
+    'reserve_floor_lowered_by_player',
     'kept_launch_choice',
     'runtime_default_used',
 )
@@ -120,8 +122,10 @@ def resolve_shop_settings(saved=None, overrides=None):
                   ``saved`` value means "nothing stored" and the runtime default applies.
     ``overrides`` this launch's explicit option values; a field left out keeps the saved
                   choice, and mode ``saved`` is exactly that.  An explicit refresh limit or
-                  coin reserve is honoured as written; a coin reserve lower than the stored
-                  floor keeps the stored floor (``reserve_floor_kept``).
+                  coin reserve is honoured as written, including a reserve *below* the stored
+                  one, because that is the player's own decision (``reserve_manual`` plus
+                  ``reserve_floor_lowered_by_player``); the independent learned layer, which
+                  lives outside this module, may never do that lowering itself.
 
     Returns a JSON-safe decision card.  It never mutates either argument, it writes no
     state, and it takes no learning decision: ``learned_applied`` is always ``False``.
@@ -161,21 +165,23 @@ def resolve_shop_settings(saved=None, overrides=None):
 
     refresh = resolve_int('shop_refreshes', *REFRESH_RANGE, 'refresh')
 
-    # The coin reserve floor is never lowered: a value below what was already stored keeps
-    # the stored floor instead, and the card says which happened.
+    # A reserve the player chose this launch is used exactly as written, in either
+    # direction: lowering it is the player's own call.  What is never lowered is the
+    # player's stored floor by the *learned* layer, which lives outside this module and
+    # may only read these settings.  ``explicit_reserve`` is never clamped upwards.
     stored_reserve = _int_or_saved(saved.get('shop_reserve_coins'), 'shop_reserve_coins',
                                    *RESERVE_RANGE)
     explicit_reserve = _int_or_saved(overrides.get('shop_reserve_coins'), 'shop_reserve_coins',
                                      *RESERVE_RANGE)
     if explicit_reserve != 'saved':
         reasons.append('reserve_manual')
-        if stored_reserve != 'saved' and explicit_reserve < stored_reserve:
-            reasons.append('reserve_floor_kept')
-            reserve = stored_reserve
-        else:
-            if stored_reserve != 'saved' and explicit_reserve > stored_reserve:
-                reasons.append('reserve_floor_raised')
-            reserve = explicit_reserve
+        if stored_reserve != 'saved' and explicit_reserve > stored_reserve:
+            reasons.append('reserve_floor_raised')
+        elif stored_reserve != 'saved' and explicit_reserve < stored_reserve:
+            # The stored value is replaced, and the card records that it went down so a
+            # reader can tell a deliberate downgrade from a default.
+            reasons.append('reserve_floor_lowered_by_player')
+        reserve = explicit_reserve
     elif stored_reserve != 'saved':
         reasons.append('reserve_saved')
         reserve = stored_reserve
@@ -226,8 +232,11 @@ def shop_settings_protocol():
         learned=dict(
             obeys=list(LEARNED_OBEYS),
             never=['raise, lower or rewrite the two hard settings',
-                   'lower the coin reserve floor', 'edit the gift allow/block list',
+                   'lower a coin reserve floor the player set',
+                   'edit the gift allow/block list',
                    'claim a trained model', 'spend without limit'],
+            player_may=['lower or raise the coin reserve explicitly; that is reported as a '
+                        'deliberate downgrade and is the only way the floor goes down'],
             without_samples='the rule fallback: the settings above, no observed adjustment',
             decides_here=False,
             owner='the run owner keeps hash-bound receipts and successor evidence'),

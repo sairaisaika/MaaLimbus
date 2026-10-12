@@ -112,12 +112,16 @@ def test_learned_keeps_both_hard_settings_exactly_as_given():
     assert 'learned_applied' not in result or result['learned_applied'] is False
 
 
-def test_learned_never_lowers_the_coin_reserve_floor():
-    result = card({'shop_reserve_coins': 300}, {'shop_policy': 'learned',
-                                                'shop_reserve_coins': 100})
-    assert result['shop_reserve_coins'] == 300
-    assert 'reserve_floor_kept' in reasons(result)
-    assert reasons(result)[-1] != 'reserve_floor_raised'
+def test_an_explicit_lower_reserve_is_the_player_s_own_call():
+    # Lowering the floor is legitimate when the *player* writes the option; the guard that
+    # independent learning may never lower it belongs to the learned layer, not to this
+    # resolver, which cannot tell a learned write from a player's choice in ``overrides``.
+    result = card({'shop_policy': 'learned', 'shop_reserve_coins': 300},
+                  {'shop_policy': 'learned', 'shop_reserve_coins': 100})
+    assert result['shop_reserve_coins'] == 100
+    assert [r for r in reasons(result) if r.startswith('reserve')] == [
+        'reserve_manual', 'reserve_floor_lowered_by_player']
+    assert 'reserve_floor_raised' not in reasons(result)
 
 
 def test_learned_may_raise_the_coin_reserve_and_says_so():
@@ -257,8 +261,8 @@ def test_every_reason_the_resolver_emits_is_declared():
              ({'shop_policy': 'learned', 'shop_refreshes': 3, 'shop_reserve_coins': 200},
               {'shop_policy': 'saved'}),
              (None, {'shop_policy': 'manual', 'shop_refreshes': 0, 'shop_reserve_coins': 0}),
-             ({'shop_reserve_coins': 300}, {'shop_policy': 'learned',
-                                            'shop_reserve_coins': 100}),
+             ({'shop_policy': 'learned', 'shop_reserve_coins': 300},
+              {'shop_policy': 'learned', 'shop_reserve_coins': 100}),
              ({'shop_reserve_coins': 100}, {'shop_policy': 'learned',
                                             'shop_reserve_coins': 300}),
              ({'shop_policy': 'saved', 'shop_refreshes': 'saved'}, {'shop_policy': 'saved'})]
@@ -286,7 +290,7 @@ def test_the_protocol_states_the_same_contract_as_the_resolver():
                                 'shop_reserve_coins': RESERVE_CAP}
     assert protocol['learned']['obeys'] == list(LEARNED_OBEYS)
     assert protocol['learned']['decides_here'] is False
-    assert 'lower the coin reserve floor' in protocol['learned']['never']
+    assert 'lower a coin reserve floor the player set' in protocol['learned']['never']
     json.dumps(protocol, allow_nan=False, sort_keys=True)
 
 

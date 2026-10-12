@@ -85,6 +85,25 @@ def _shelf(texts, size):
     return [dict(name=o.name, price=o.price, click=list(o.click)) for o in found]
 
 
+def _notice(texts, record):
+    """The native ``E.G.O Gift GET!`` notice a shop purchase raises over the shelf.
+
+    The notice's own identity -- its title band and its single Confirm -- is read by
+    the shop reader, never by this transaction, and nothing is clicked from here.  A
+    scene that is not the notice is refused: the caller only reaches this method
+    because the page was named GIFT_GET, so an unread notice must stop the run rather
+    than let a later frame pass as one.
+    """
+    from .shop_skill_vision import read_overlay
+    result = read_overlay(texts, record.get('size'), scene=record.get('scene'),
+                          require_scene='GIFT_GET')
+    if not result['available']:
+        raise ValueError('Native E.G.O Gift GET notice not proven')
+    if not result['complete'] or not result['target']:
+        raise ValueError('Notice Confirm not proven; never click an unread notice')
+    return result
+
+
 class ShopTransaction:
     """One durable store per run; visit IDs must come from proven shop entry.
 
@@ -119,7 +138,8 @@ class ShopTransaction:
             if pending:
                 if (pending.get('scope') != d['scope'] or pending.get('visit') != d['current_visit']
                         or pending.get('kind') not in ('purchase', 'refresh')
-                        or pending.get('stage') not in ('card_intent', 'confirm_intent', 'refresh_intent')
+                        or pending.get('stage') not in ('card_intent', 'confirm_intent',
+                                                        'overlay_intent', 'refresh_intent')
                         or not isinstance(pending.get('before'), dict)
                         or not isinstance(pending.get('shelf'), list)):
                     raise ValueError('Invalid persisted shop intent')
@@ -127,10 +147,19 @@ class ShopTransaction:
                 _integer(pending.get('coins'), 'persisted coins')
                 if pending['kind'] == 'purchase':
                     _key(pending.get('name'))
-                    if pending['stage'] not in ('card_intent', 'confirm_intent'):
+                    if pending['stage'] not in ('card_intent', 'confirm_intent', 'overlay_intent'):
                         raise ValueError('Invalid purchase intent stage')
                     if pending['stage'] == 'confirm_intent' and not isinstance(pending.get('question'), dict):
                         raise ValueError('Purchase Confirm needs its retained question proof')
+                    if pending['stage'] == 'overlay_intent':
+                        overlay = pending.get('overlay_acknowledgement')
+                        if (not isinstance(overlay, dict)
+                                or not isinstance(overlay.get('frame'), dict)
+                                or not isinstance(overlay.get('before'), dict)
+                                or overlay.get('kind') != 'ego_gift_get_notice'
+                                or overlay.get('scope') != d['scope']
+                                or overlay.get('visit') != d['current_visit']):
+                            raise ValueError('Notice acknowledgement needs its retained notice proof')
                 elif pending['stage'] != 'refresh_intent':
                     raise ValueError('Invalid refresh intent stage')
 
@@ -180,7 +209,8 @@ class ShopTransaction:
         data = copy.deepcopy(self.data) if self.data else dict(
             version=1, scope=scope, visits={}, bought=[], pending=None)
         data['current_visit'] = visit
-        data['visits'][visit] = dict(entry=proof, refreshes=0, closed=False)
+        data['visits'][visit] = dict(entry=proof, refreshes=0, closed=False,
+                                     overlay_acknowledgements=[])
         if learning_context is not None:
             if (not isinstance(learning_context,dict) or set(learning_context)!=
                     {'keywords','wanted','reserve_coins'} or
@@ -271,6 +301,47 @@ class ShopTransaction:
         self._save(data)
         return target
 
+    def reserve_overlay_acknowledgement(self, scope, visit, frame_path):
+        """Anchor the one input that clears a purchase's own ``E.G.O Gift GET!`` notice.
+
+        A real purchase raises this notice over the shelf, so the shelf that proves the
+        coins is behind it.  The notice is not a receipt and this method never records
+        one: it re-proves the notice against the retained frame, binds the acknowledgement
+        to that frame's own PNG hash and to the pending intent, and only then returns the
+        notice's own Confirm box for the caller's planner to click.
+
+        It is deliberately single-use per visit and per intent.  Once reserved, a restart
+        can never send the acknowledgement again, and a second different notice cannot
+        claim the same slot.  An unread notice raises instead of clicking, so an unknown
+        pending action is preserved rather than cleared.
+        """
+        pending, record, texts, size, proof = self._pending(scope, visit, 'purchase', frame_path)
+        if pending['stage'] != 'confirm_intent':
+            raise ValueError('The purchase card intent was not confirmed yet')
+        if pending.get('overlay_acknowledgement'):
+            raise ValueError('Notice acknowledgement already reserved; never repeat')
+        notice = _notice(texts, record)
+        # A notice that re-states an already retained frame is not a successor: both the
+        # shelf the purchase started from and the question that was answered are refused,
+        # because neither can be the different page the notice has to be.
+        retained = [pending['before']]
+        if pending.get('question'):
+            retained.append(pending['question'])
+        if any(proof['png_sha256'] == kept['png_sha256'] for kept in retained):
+            raise ValueError('Notice successor repeats a retained frame')
+        previous = pending.get('question') or pending['before']
+        acknowledgement = dict(scope=scope, visit=visit, kind='ego_gift_get_notice',
+                               title=notice['title'], title_box=notice['title_box'],
+                               confirm=notice['confirm'], target=notice['target'],
+                               scene=record.get('scene'), before=previous, frame=proof,
+                               refused=[], note='the notice proves no purchase; the '
+                               'returning shelf still has to prove the coin delta')
+        data = copy.deepcopy(self.data)
+        data['pending'].update(stage='overlay_intent', overlay_acknowledgement=acknowledgement)
+        data['visits'][visit].setdefault('overlay_acknowledgements', []).append(acknowledgement)
+        self._save(data)
+        return list(notice['target'])
+
     def reconcile_purchase(self, scope, visit, frame_path):
         pending, record, texts, size, proof = self._pending(scope, visit, 'purchase', frame_path)
         # GET overlays need a separate native receipt parser. Until that parser is
@@ -294,7 +365,8 @@ class ShopTransaction:
         data = copy.deepcopy(self.data)
         data['bought'].append(dict(name=pending['name'], price=pending['price'],
                                    visit=visit, before=pending['before'],
-                                   question=pending.get('question'), successor=proof))
+                                   question=pending.get('question'), successor=proof,
+                                   overlay_acknowledgement=pending.get('overlay_acknowledgement')))
         data['pending'] = None
         self._save(data)
         return True

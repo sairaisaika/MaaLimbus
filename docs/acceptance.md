@@ -1,3 +1,33 @@
+## October12 shop notice acknowledgment and live floor2 stop
+
+The resumed actual GUI/Agent run pi-20261012-112240 ended by itself at11:58:14 local
+with `reason=unexpected_successor steps=17 clicks_sent=17 passed=false`. All17 clicks
+were MAP node attempts and every one of the454 observations kept
+`route.reason=current_position_not_proven verified_clear=false`, so floor2 never
+advanced and no battle/shop/floor3/clear was reached; each failed click began a fresh
+retry budget instead of exhausting a shared one. That is the map-identity blocker and
+it is NOT a completed floor. Journal:
+dist/MaaLimbus/evidence/runtime/pi-20261012-112240/events.jsonl.
+
+The native `E.G.O Gift GET!` notice that covers a shelf after a purchase is now read
+offline from the one retained frame that shows it
+(evidence/runtime/window-20261006-042640/frame-0066.json): title `E.G.O Gift GET!`
+box[828,250,258,41] and its single `Confirm` box[922,774,136,45], both measured, both
+matching assets/resource/base/anchors.json id gift_get. A frame that is not the notice
+is available=False; a notice without exactly one proved title and one Confirm is
+complete=False with no click target; a locale pattern may widen the match but must
+normalise to the proved title. The acknowledgment
+`ShopTransaction.reserve_overlay_acknowledgement` is single-use per purchase intent,
+records stage `overlay_intent` before input, binds to the notice frame's own PNG hash
+and refuses a frame repeating the retained shelf or question. It authorises no spend
+and proves no receipt: only reconcile_purchase on the returning shelf with the exact
+coin delta and the removed offer records one.15 focused acknowledgment tests plus32
+reader tests pass(47); the shop group passes134. Proof:
+build/deepseek-shop-skill-handoff.json. The runner does not call it yet
+(wired_in_runner=false), so a real purchase still stops safely with
+shop_receipt_successor_not_proven. No installation, no controller, no input, no
+private state change, no public Release.
+
 ## October11 owned-inventory real collection
 
 Latest index: ordinary browser extraction independently verified189 playable Wiki
