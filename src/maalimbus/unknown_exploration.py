@@ -35,6 +35,19 @@ def candidates(record):
     size=record.get('size')
     if not isinstance(size,list) or len(size)!=2:return []
     w,h=size; rows=[]
+    if record.get('scene')=='MAP':
+        from .map_vision import map_header
+        from .vision import Text
+        header=map_header([Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])],size)
+        if header and header.floor is not None and header.pack:
+            # This gesture moves only the identified map viewport. Both ends
+            # stay above the party strip and away from header/side controls.
+            for name,dx,dy in (('down',0,.21),('left',-.20,0),('right',.20,0)):
+                rows.append(dict(kind='map_viewport_pan_'+name,action='swipe',
+                    box=[round(w*.49),round(h*.55),round(w*.02),round(h*.03)],
+                    to_box=[round(w*(.49+dx)),round(h*(.55+dy)),round(w*.02),round(h*.03)],
+                    teacher='native_map_header_and_floor',score=1.0,floor=header.floor,pack=header.pack))
+            return rows
     closer=record.get('overlay_dismissal') or {}
     if closer.get('kind') in ('tutorial_book','identity_details','unclassified_overlay_return') and closer.get('native_score',0)>=.92:
         rows.append(dict(kind='matched_header_return',box=closer['box'],
@@ -62,21 +75,26 @@ class Exploration:
     def choose(self,record):
         recent=[]
         for item in reversed(self.data['attempts']):
-            if item.get('success'):break
+            if item.get('success') or item.get('episode_resolved'):break
             recent.append(item)
         if self.data.get('pending') or len(recent)>=3:return None
         used={a['candidate']['kind'] for a in recent}
         return next((c for c in candidates(record) if c['kind'] not in used),None)
 
-    def reserve(self,frame,candidate,point,delay):
+    def reserve(self,frame,candidate,point,delay,end=None):
         before,record=proof(frame)
         if self.data.get('pending') or candidate!=self.choose(record):
             raise ValueError('Exploration candidate absent, repeated or exhausted')
         x,y,w,h=candidate['box']
         if not (x<=point[0]<x+w and y<=point[1]<y+h and 350<=delay<=750):
             raise ValueError('Exploration input outside verified control')
+        if candidate.get('action')=='swipe':
+            ex,ey,ew,eh=candidate['to_box']
+            if end is None or not (ex<=end[0]<ex+ew and ey<=end[1]<ey+eh):
+                raise ValueError('Map pan must end inside its bounded canvas region')
         entry=dict(candidate=candidate,before=before,point=list(point),delay_ms=delay,
                    input_attempted=True,successor=None,reviewed=False)
+        if end is not None:entry['end']=list(end)
         self.data['attempts'].append(entry);self.data['pending']=len(self.data['attempts'])-1
         write_json(self.path,self.data)
 
@@ -92,6 +110,10 @@ class Exploration:
             raise ValueError('Exploration successor label not independently observed')
         changed=after['image_sha256']!=entry['before']['image_sha256']
         success=changed and page not in ('UNKNOWN','BATTLE_WAIT','CONNECTING')
+        if entry['candidate'].get('action')=='swipe':
+            # Pixel movement confirms panning, not arrival at a node. Three
+            # pans remain the limit until an independently named panel opens.
+            success=changed and page=='NODE_PANEL'
         entry.update(successor=after,page_after=page,changed=changed,success=success)
         key=hashlib.sha256((self.scope+entry['before']['record_sha256']+after['record_sha256']).encode()).hexdigest()
         destination=self.review_root/key;destination.mkdir(parents=True,exist_ok=True)
@@ -116,6 +138,19 @@ class Exploration:
         write_json(self.path,self.data)
         return dict(proposal=str(destination/'proposal.json'),success=success,changed=changed,
                     training_eligible=False,input_authorized=False)
+
+    def resolve_episode(self,frame,page):
+        if self.data.get('pending') is not None or not self.data['attempts']:return
+        last=self.data['attempts'][-1]
+        if last.get('success') or last.get('episode_resolved'):return
+        if page not in ('NODE_PANEL','BATTLE_HUD','SHOP','THEME_PACKS','HOME'):return
+        evidence,record=proof(frame)
+        if record.get('scene')!=page:return
+        # A later normal task input may resolve the episode. Do not relabel
+        # the earlier pan as an action that directly opened that page.
+        last.update(episode_resolved=True,resolution_page=page,resolution=evidence,
+                    resolved_via_subsequent_task_action=True)
+        write_json(self.path,self.data)
 
 
 def queue_trial(frame,offer,scope,root):

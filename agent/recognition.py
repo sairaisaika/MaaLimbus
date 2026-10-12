@@ -170,11 +170,19 @@ class LimbusRecognition(CustomRecognition):
             floors=find(records,r'^Floor$',(.12,.10,.20,.17),size,.9)
             joined=find(records,r'^Exploring Floor$',(.02,.10,.20,.17),size,.9)
             label_gate=(len(labels)==len(floors)==1 and not joined) or (len(joined)==1 and not labels and not floors)
-            if header and header.floor is None and label_gate:
+            # Full-frame detection can read 'ExploringeFlapr' during the map's
+            # glow. A unique known pack line is an independent gate for the same
+            # exact caption/digit pair; neither a pending drag nor artwork is used.
+            from maalimbus.theme_vision import ThemeCatalog
+            pack_rows=find(records,r'^.{4,80}$',(.02,.17,.29,.215),size,.9)
+            pack_gate=(len(pack_rows)==1 and ThemeCatalog(ROOT/'assets/resource/base').identity(pack_rows[0].text) is not None)
+            if ((header and header.floor is None and label_gate) or (header is None and pack_gate)):
                 w,h=size
                 readings=[]
-                for source_roi,expected in (((362,125,48,52),r'^[1-5]$'),
-                                           ((55,120,370,65),r'^Exploring Floor [1-5]$')):
+                from maalimbus.map_vision import HEADER_PATTERN
+                for source_roi,expected in (((364,134,36,40),r'^[1-5]$'),
+                                           ((370,136,25,37),r'^[1-5]$'),
+                                           ((55,120,370,65),HEADER_PATTERN)):
                     roi=tuple(round(v*(w/1920 if i%2==0 else h/1080)) for i,v in enumerate(source_roi))
                     detail=context.run_recognition_direct(JRecognitionType.OCR,
                         JOCR(roi=roi,only_rec=True,expected=[expected],threshold=.9),image)
@@ -182,11 +190,13 @@ class LimbusRecognition(CustomRecognition):
                     readings.append((roi,found))
                     map_local.append(dict(purpose='map_floor_header',roi=list(roi),
                         results=[dict(text=r.text,score=r.score) for r in found]))
-                digit,caption=readings[0][1],readings[1][1]
-                if len(digit)==len(caption)==1 and caption[0].text.strip().endswith(' '+digit[0].text.strip()):
+                digit,second,caption=(reading[1] for reading in readings)
+                match=re.fullmatch(HEADER_PATTERN,caption[0].text.strip(),re.I) if len(caption)==1 else None
+                if (len(digit)==len(second)==len(caption)==1 and match and match.group(1)
+                        and digit[0].text.strip()==second[0].text.strip()==match.group(1)):
                     label_records=labels+floors+joined
                     records=[t for t in records if all(t is not label for label in label_records)]
-                    records.append(Text(caption[0].text,readings[1][0],min(digit[0].score,caption[0].score)))
+                    records.append(Text(caption[0].text,readings[2][0],min(digit[0].score,second[0].score,caption[0].score)))
         if scene in ('UNKNOWN','BATTLE_HUD') and len(find(records,r'^TURN$',(.0,.06,.06,.13),size,.9))==1 and auto_assign_buttons(records,size) is not None:
             w,h=size;roi=(round(68*w/1920),round(90*h/1080),round(82*w/1920),round(40*h/1080))
             detail=context.run_recognition_direct(JRecognitionType.OCR,

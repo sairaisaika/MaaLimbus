@@ -1261,6 +1261,7 @@ class MirrorRunner:
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
             outcome=self.exploration.finish(frame_file(directory),page)
             self.note('unknown_exploration_reconciled',**outcome,input_sent=False)
+        if self.exploration is not None:self.exploration.resolve_episode(frame_file(directory),page)
         # The map floor numeral blinks. A missing digit is not a failed drag:
         # reread the current page within the existing bounded settle budget.
         if page=='MAP' and self.theme_transaction is not None and self.theme_transaction.data and self.theme_transaction.data.get('pending'):
@@ -1277,6 +1278,12 @@ class MirrorRunner:
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
+        if (not settings.observe_only and settings.stop_page!=page and page=='MAP' and self.exploration is not None
+                and (not candidates or state['map_attempts']>=2)):
+            recovered=self._explore_unknown(record,frame,candidates)
+            if recovered is not None:
+                state['map_attempts']=0;state['map_progress'].leave()
+                return recovered
         if self.store is not None and not settings.observe_only:
             active=self.store.data.get('active') or {}
             if active.get('phase')=='entry_pending' and page in ('STAR_GRACES','INITIAL_GIFTS','THEME_PACKS','MAP'):
@@ -2024,12 +2031,15 @@ class MirrorRunner:
         # live probe found the game already on MAP — so the run had stopped on a page
         # that was merely still loading.
         patient = plan.get('reason') == 'the_floor_theme_pack_is_pulled_down_to_be_taken'
-        settle_budget = max(1, settings.unknown_rounds if patient else settings.rounds)
+        settle_budget = max(1, settings.unknown_rounds if patient or page=='MAP' else settings.rounds)
         for index in range(settle_budget):
             if index:
                 time.sleep(settings.interval)
             settled = self._observe()
             settled_page = resolve_scene(self.registry, directory, settled)
+            if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
+                # A fading map or hover animation is not an opened node.
+                continue
             if patient and settled_page=='MAP':
                 from .theme_vision import ThemeCatalog
                 header=map_header([Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])],settled.get('size') or (1920,1080))
@@ -2066,6 +2076,8 @@ class MirrorRunner:
                                  page=settled_page,
                                  frame_changed=(settled.get('image_sha256')
                                                 not in (None, before_sha))))
+        if page=='MAP' and settled_page=='UNKNOWN':
+            entry.update(passed=False,reason='map_successor_unidentified_after_wait')
         if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:
             try:
                 observed=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
@@ -2237,6 +2249,8 @@ class MirrorRunner:
                                          page=late_page,
                                          frame_changed=(late.get('image_sha256')
                                                         not in (None, before_sha))))
+                if page=='MAP' and late_page=='UNKNOWN':
+                    entry.update(passed=False,reason='map_successor_unidentified_after_wait')
         self.artifacts['steps'].append(entry)
         if settings.stop_page and (entry.get('page_after') or page) == settings.stop_page:
             # The caller asked to hand control back the moment this page shows, so
@@ -2265,6 +2279,7 @@ class MirrorRunner:
                          and state['swallowed_attempts'] + 1 < max(1, settings.page_tries))
             if swallowed:
                 state['swallowed_attempts'] += 1
+                entry['handled_retry']=True
                 entry['stopped'] = 'click_was_swallowed_by_the_game'
                 self.note('window_click_swallowed', page=page, target=list(plan['target']),
                           attempt=state['swallowed_attempts'], reason=plan.get('reason'),
@@ -2279,6 +2294,8 @@ class MirrorRunner:
                 return self._result(page, plan.get('target'), True, entry['stopped'],
                                     done=True)
             state['map_attempts'] += 1
+            entry['handled_retry']=True
+            state['navigation_probe_pending']=True
             if no_candidate:
                 entry['stopped'] = 'map_candidates_not_observed_yet'
                 time.sleep(settings.interval)
@@ -2293,6 +2310,7 @@ class MirrorRunner:
                                      if tuple(box) != tuple(plan['target'])]))
             return self._result(page, plan.get('target'), True, None, waiting=True)
         state['map_attempts'] = 0
+        if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
         state['page_attempts'] = 0
         state['swallowed_attempts'] = 0
         if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
@@ -2382,16 +2400,20 @@ class MirrorRunner:
         point=(random.randint(x+w//4,x+max(w//4,w*3//4-1)),
                random.randint(y+h//4,y+max(h//4,h*3//4-1)))
         delay=random.randint(350,750)
-        explorer.reserve(frame_file(self.directory),candidate,point,delay)
-        self.note('unknown_exploration_intent',candidate=candidate,point=list(point),delay_ms=delay)
-        entry=dict(step=self.state['step'],page_before='UNKNOWN',scene_before=record['scene'],
-            observation=record,frame=frame,candidates=candidates,action='click',
+        end=None
+        if candidate.get('action')=='swipe':
+            ex,ey,ew,eh=candidate['to_box'];end=(random.randint(ex+ew//4,ex+ew*3//4),random.randint(ey+eh//4,ey+eh*3//4))
+        explorer.reserve(frame_file(self.directory),candidate,point,delay,end)
+        self.note('unknown_exploration_intent',candidate=candidate,point=list(point),end=end,delay_ms=delay)
+        entry=dict(step=self.state['step'],page_before=record['scene'],scene_before=record['scene'],
+            observation=record,frame=frame,candidates=candidates,action=candidate.get('action','click'),
             target=box,click_point=list(point),delay_ms=delay,clicks_sent=1,
             passed=False,stopped=None,reason='unknown_navigation_probe')
         self.artifacts['steps'].append(entry)
         self.artifacts['clicks_sent']+=1;self.state['step']+=1
         # Attempt counts and intent are durable before Maa receives any input.
-        self.device.click(*point)
+        if end is not None:self.device.swipe(*point,*end,delay)
+        else:self.device.click(*point)
         time.sleep(delay/1000)
         after=record;page='UNKNOWN'
         for attempt in range(max(1,self.settings.rounds)):
@@ -2403,7 +2425,7 @@ class MirrorRunner:
         entry.update(page_after=page,settled=after,passed=True,
             progress_verified=outcome['success'],review_proposal=outcome['proposal'],
             reason='unknown_navigation_succeeded' if outcome['success'] else 'unknown_navigation_unresolved')
-        return self._result('UNKNOWN',box,True,None)
+        return self._result(record['scene'],box,True,None)
 
     def _record(self, page, record, frame, candidates, plan, reason):
         """Append the record-only step the guard paths write, and return its stop."""
@@ -2511,14 +2533,15 @@ class MirrorRunner:
         last = result['steps'][-1] if result['steps'] else None
         result['page_before'] = None if last is None else last['page_before']
         result['page_after'] = None if last is None else last.get('page_after')
-        result['passed'] = (all(entry['passed'] for entry in result['steps'])
+        result['passed'] = (all(entry['passed'] or entry.get('handled_retry') for entry in result['steps'])
                             and bool(result['steps'] or flow_records)
+                            and not self.state.get('navigation_probe_pending')
                             and failed_flow is None)
         result['reason'] = ('window_steps_passed' if result['passed']
                             else ((failed_flow or {}).get('reason')
                                   or (last or {}).get('stopped')
                                   or (last or {}).get('reason')
-                                  or 'no_step_recorded'))
+                                  or ('navigation_probe_unresolved_at_boundary' if self.state.get('navigation_probe_pending') else 'no_step_recorded')))
         return result
 
 

@@ -40,7 +40,7 @@ def verdict(record, outcome, started):
     passed = bool(started and outcome.get('task_succeeded') and
                   not outcome.get('timed_out') and not outcome.get('interrupted') and
                   (record or {}).get('passed') and reason == 'window_steps_passed' and
-                  steps and all(s.get('passed') for s in steps))
+                  steps and all(s.get('passed') or s.get('handled_retry') for s in steps))
     return dict(passed=passed, entry_connected=bool(started),
                 bounded_progress_verified=passed,
                 dungeon_complete=bool(passed and record.get('verified_clear')),

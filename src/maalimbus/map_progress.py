@@ -44,7 +44,11 @@ class MapProgress:
 
     def remaining(self, candidates):
         """The candidates whose turn has not come yet, in the order given."""
-        return [box for box in candidates if tuple(box) not in self.tried]
+        def same_spot(box,old):
+            x,y=box[0]+box[2]/2,box[1]+box[3]/2
+            ox,oy=old[0]+old[2]/2,old[1]+old[3]/2
+            return (x-ox)**2+(y-oy)**2<=32**2
+        return [box for box in candidates if not any(same_spot(box,old) for old in self.tried)]
 
     def note_click(self, box):
         """That spot has had its turn, whether or not it opened anything."""
