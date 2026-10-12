@@ -371,7 +371,7 @@ class LimbusRecognition(CustomRecognition):
                 active=read_json(ledger).get('active') if ledger.exists() else None
                 episode=(active or {}).get('id') or 'capture:'+self.journal.directory.name
                 queued=persist_frame_proposals(proposal_root,frame_path,episode,self.locale_name,
-                    proposal_root/'build/learning-proposals')
+                    proposal_root/'build/learning-review/frames')
                 self.journal.record('semantic_frame_proposal',**queued,episode=episode)
             except (ValueError,OSError,KeyError) as error:
                 self.journal.record('semantic_frame_proposal_refused',reason=str(error),input_sent=False)

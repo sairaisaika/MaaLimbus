@@ -115,3 +115,36 @@ current unpaid run would be disturbed; never touch FGO or replay old claims.
 Need at least three independent sessions per split and20 reviewed instances per
 class/split as the initial collection target, plus reviewed negatives. Final model
 quality is decided by held-out metrics, not that count alone.
+
+## Research training and continuous runtime evidence
+
+Production coverage targets above do not prohibit an explicitly labelled research
+fit. `autolabel_owned_gallery_research.py` binds each gallery to its native unique
+sinner header and Owned/ALL template results. It measures four visible card-border
+strips before cropping actual pixels; every crop retains original JSON/PNG hashes,
+crop coordinates and the collection-proof hash. All twelve pages in one collection
+remain one episode. These labels are research-only, never production review.
+`autolabel_sinner_retained.py` additionally checks native sinner-emblem matches on
+retained pre-battle pages, binding each page's episode to its actual run result.
+Ambiguous emblem matches and unproven borders are excluded, not filled from slots.
+
+`train_sinner_detector.py --research --execute` permits actual incomplete reviewed
+data. With no validation episode, optimization diagnostics may reuse training
+images, explicitly marked `fit_validation_uses_training_images`; they are not
+held-out accuracy. Real exported ONNX hashes and actual available val/test metrics
+are retained. `evaluate_sinner_detector_native.py --research --research-fit` replays
+training images through Maa's `NeuralNetworkDetect` with a no-input offline
+controller, expressly unable to pass production quality. Ordinary evaluation
+requires every validation/test frame exactly once and counts unmatched/duplicate
+boxes as errors; missing classes or negatives cannot pass.
+
+`prepare_sinner_shadow.py` creates a new isolated resource, binding actual training,
+ONNX bytes, class order and native replay. It never replaces installed resources or
+enables input. The runtime shadow refuses changed/missing model cards and native
+evaluation files. A research model may run as untrusted shadow and reports its
+quality gate separately. `semantic_labels.persist_frame_proposals` is the Mirror
+observer hook: it queues hash-bound current-frame predictions and native semantic
+observations continuously, without altering account/run/budget state or certifying
+the model's own predictions. Corrections and independent held-out reviews remain
+required for promotion. Maa inference protocol reference remains the official
+[NeuralNetworkDetect documentation](https://maafw.com/en/docs/3.1-PipelineProtocol/).
