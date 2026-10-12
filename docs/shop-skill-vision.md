@@ -22,9 +22,12 @@ Neither call spends anything, clicks anything, or captures anything. `authorized
   the page answered*, not permission to spend.
 - **No threshold is tuned here.** `DEFAULT_THRESHOLD` is `.9` and it is only ever the
   caller's number. A field below it is reported as `*_below_threshold`, never rounded up.
-- One live shelf frame *is* retained, and it is the only live evidence:
+- Two live shelves *are* retained, and they are the only live evidence:
   `evidence/runtime/window-20261012-024300/frame-0173.json` (+ its sibling PNG, whose
-  SHA256 the reader carries).
+  SHA256 the reader carries), and the pair
+  `evidence/runtime/pi-20261012-123906/frame-0064.json` / `frame-0065.json` that a real
+  run reserved a refresh against. The second pair is the one that broke and is kept for
+  the reason below.
 
 ## Reading the shelf: who is the offer for?
 
@@ -57,6 +60,41 @@ A missing badge is `price_pair_missing` + `price_unknown` (**not** a price of ze
 badges in one column are `price_pair_ambiguous` and the first is not preferred; a stray
 one- or two-character fragment (the retained frame has a stray `C`) is OCR debris, not a
 gift title.
+
+### The page's coin mark, and why the shelf floor is one-sided
+
+Every price badge on this page is drawn with the same coin mark in front of the number.
+OCR sometimes returns that mark as part of the token: the 12:39 live shelf prints
+`①211` (confidence `.874`) where its neighbour prints a clean `158`. A reader that only
+accepts bare digits files `①211` as a *title*, which costs a card and, worse, leaves a
+real price unpaired.
+
+`shop_vision.price_value` therefore accepts `PRICE_PATTERN` **or** `PRICE_GLYPH_PATTERN`
+(one or two non-alphanumeric marks, then 1–4 digits), and
+`shop_vision.shelf_tokens(records)` is the filter a shelf read uses in place of a flat
+confidence cut:
+
+* every token at or above `.9`;
+* **plus** a token below that which still reads as a price (`price_value(...) is not None`)
+  down to `SHELF_PRICE_FLOOR = .8`.
+
+The exception is deliberately one-sided. A faint *number* beside a confident title is
+still that title's price; a faint *title* is not a title at all. A shelf must never gain
+a card because its name was read badly, or the plan would offer a purchase the page never
+printed.
+
+This is not cosmetic. On the 12:39 run the shelf's own badges scored `.835` (`' 77'`) and
+`.874` (`①211`), so the flat `.9` cut read a six-card shelf as **four** offers, stored a
+four-row pending shelf, and then refused the successor that correctly read six — the run
+died with `Fresh refresh currency delta and complete changed shelf not proven`. Both
+frames are retained and both the shape and the refusal are pinned by tests.
+
+The same coin mark can in principle land on the *refresh cost* badge, which
+`shop_vision.refreshes` still reads with a bare `PRICE_PATTERN`. No retained frame shows
+that: both live costs read clean (`30` at `.998`, `45` at `.999`). It is left as it is
+rather than changed on speculation; if a run ever reports
+`Fresh shop refresh cost/currency not proven` with the cost plainly on screen, this
+paragraph is the reason.
 
 ### Frame identity
 

@@ -223,3 +223,66 @@ def test_generic_question_cannot_borrow_background_shelf_title_and_price():
     rows = [Text(r['text'], tuple(r['box']), r['score']) for r in question()]
     rows[0] = Text('Purchase this E.G.O Gift?', rows[0].box, .99)
     assert matching_purchase_question(rows, 'Oracle', 20) is None
+
+
+# The 12:39 live run reserved its second refresh against frame-0064 and then
+# refused frame-0065.  Both frames are retained verbatim, and the run's stored
+# pending shelf held four rows where the successor read six -- so this pair is
+# the regression itself, not a reconstruction of it.
+LIVE_BEFORE = ROOT / 'evidence/runtime/pi-20261012-123906/frame-0064.json'
+LIVE_AFTER = ROOT / 'evidence/runtime/pi-20261012-123906/frame-0065.json'
+
+
+def test_the_live_refresh_pair_reserves_and_reconciles(tmp_path):
+    if not LIVE_BEFORE.exists() or not LIVE_AFTER.exists():
+        pytest.skip('retained live shop evidence is not present')
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    assert tx.begin_visit('scope', 'floor2:shop1', LIVE_BEFORE)
+    click = tx.reserve_refresh('scope', 'floor2:shop1', 30, 1647, 2, LIVE_BEFORE)
+    assert len(click) == 4 and all(type(value) is int for value in click)
+    # The whole six-slot shelf is what the reservation retains; the run that
+    # stored four rows is why the successor could never match.
+    assert len(tx.data['pending']['shelf']) == 6
+    assert tx.reconcile_refresh('scope', 'floor2:shop1', LIVE_AFTER) is True
+    assert tx.refreshes_used('scope', 'floor2:shop1') == 1
+    assert tx.data['pending'] is None
+
+
+def test_a_pending_written_by_a_sparser_reader_still_reconciles(tmp_path):
+    """The stored shelf is a reader's opinion, not the shelf.
+
+    The 12:39 run's own pending holds four rows because the build that reserved it
+    dropped two prices at its score cut.  The retained frame did not change, so the
+    baseline is re-read: the successor shelf must be complete against the frame, and
+    an intent recorded by an older reader must not become permanently unreconcilable.
+    """
+    if not LIVE_BEFORE.exists() or not LIVE_AFTER.exists():
+        pytest.skip('retained live shop evidence is not present')
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor2:shop1', LIVE_BEFORE)
+    tx.reserve_refresh('scope', 'floor2:shop1', 30, 1647, 2, LIVE_BEFORE)
+    stale = [dict(name='Melted Paraffin', price=150, click=[0, 0, 1, 1]),
+             dict(name='Thorny Path', price=160, click=[0, 0, 1, 1]),
+             dict(name='Resolution', price=207, click=[0, 0, 1, 1]),
+             dict(name='UPS System', price=156, click=[0, 0, 1, 1])]
+    data = copy.deepcopy(tx.data)
+    data['pending']['shelf'] = stale
+    tx._save(data)
+    assert len(tx.data['pending']['shelf']) == 4
+    assert tx.reconcile_refresh('scope', 'floor2:shop1', LIVE_AFTER) is True
+    assert tx.data['pending'] is None
+
+
+def test_a_sparse_successor_shelf_is_still_refused(tmp_path):
+    """Re-reading the baseline must not turn the completeness check off.
+
+    The baseline is now the frame's own reading, so the bar is the whole shelf:
+    a successor that reads one offer where the frame holds two is refused even
+    though its coin delta is exact and its fingerprint differs.
+    """
+    tx, before = setup(tmp_path)
+    tx.reserve_refresh('scope', 'floor1:shop1', 15, 100, 1, before)
+    sparse = frame(tmp_path, 'sparse', shelf(('Voodoo Doll',), 85))
+    with pytest.raises(ValueError, match='complete changed shelf not proven'):
+        tx.reconcile_refresh('scope', 'floor1:shop1', sparse)
+    assert tx.data['pending'] is not None

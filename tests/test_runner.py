@@ -761,7 +761,12 @@ def test_the_shop_page_is_read_for_the_one_offer_the_plan_asked_for():
     assert state['buy']['box'] == [1101, 585, 120, 90]
     assert state['reason'] == SHOP_REASON_BUY
     assert state['confirm'] is None, 'the shop itself is not a purchase question'
-    assert [offer['name'] for offer in state['offers']][:2] == ['Uncapped Defibrilator','Polarization']
+    # The shelf's leftmost card is the replacement announcement.  Its 77 badge scored
+    # .8348, so the old .9 shelf filter threw the price away and left the name unpaired
+    # -- a card that is plainly on screen vanished from the plan.  It is reported now.
+    assert [offer['name'] for offer in state['offers']] == [
+        'Replace Heathciffs Skill', 'Uncapped Defibrilator', 'Polarization',
+        'Scalpel', 'Curriculum Vitae', 'Prejudice']
 
 
 def test_a_plan_the_shelf_does_not_hold_buys_nothing_and_may_refresh():

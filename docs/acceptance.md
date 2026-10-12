@@ -1354,3 +1354,66 @@ full-run reward/HOME are still required. A trained neural research model has
 known native quality failures, so its predictions remain shadow proposals and
 not ground truth or device-input authority. Continuation is explicitly delegated
 to DSH with a task-board plan in docs/DEEPSEEK_CONTINUATION.md.
+
+## October12 real GUI Start, node panel, and the shop shelf floor
+
+The installed app was still the build of `bc913b597631a83f877a19dd2ab2da9453a9f7f4`,
+which predates the map-observer repair: a live Start on that install sat on a
+floor2 MAP and refused all 17 node clicks as `unexpected_successor` without ever
+entering a panel. The app was then rebuilt from HEAD
+`fd78ca83f9e8395fddfaba3a4868825ba442ac17` (24 private hashes preserved,
+installed Agent-root self-test passed) and a real GUI Start was dispatched
+through the window's own Start button. Evidence:
+`dist/MaaLimbus/evidence/runtime/pi-20261012-123906/`, 66 frames and 179 events.
+
+That run **entered the node panel** (scene `NODE_PANEL`, panel title `Emotional
+Indolence`, enter box `[1672,784,118,57]`) and walked a full page spine over 32
+steps and 31 clicks: MAP → event choice → a skill check and its four-state result
+→ node panel → battle attempt → `GIFT_GET` → shop. Two live MAP node clicks at
+`[1067,736,40,40]` and `[1450,110,40,40]` genuinely changed the page, so the
+map-identity livelock that ended `pi-20261012-112240` is fixed by the same install.
+This retires the "candidate priority replay does not prove a live node panel"
+boundary above.
+
+The `E.G.O Gift GET!` notice was also cleared on the real device at
+`16:40:24` with `reason=the_gift_get_notice_is_cleared_with_its_own_confirm` and
+target `[922,774,136,45]`, byte-identical to the measured
+`GIFT_GET_CONFIRM_BOX` in `shop_skill_vision.py`. That proves the *notice* path;
+the purchase-bound acknowledgment `ShopTransaction.reserve_overlay_acknowledgement`
+stays unexercised, because no purchase occurred to bind it to.
+
+The run then entered the shop and took its first refresh normally
+(`shop_receipt_verified kind=refresh`, cost 15, `refreshes_used=1`). It stopped on
+its own **second** refresh:
+
+```
+reason: Fresh refresh currency delta and complete changed shelf not proven
+steps: 32   clicks_sent: 31   passed: false
+```
+
+The cause was a reader defect, not a game or input failure. The shelf reader cut
+every OCR token at confidence `.9` on both sides of the pairing, and the run's own
+two shelves print badges at `.835` (`' 77'`) and `.874` (`①211`) because OCR
+sometimes folds the page's coin mark into the price token. A six-card shelf was
+therefore read as **four** offers, the stored pending shelf held four rows, and the
+successor's honest six rows could never reconcile — `reconcile_refresh` requires
+equal completeness on both sides.
+
+The repair is `shop_vision.price_value` (bare digits *or* a coin mark plus 1–4
+digits) and `shop_vision.shelf_tokens`, which admits every token at `.9` **plus** a
+faint token that still reads as a price down to `SHELF_PRICE_FLOOR = .8`. The
+exception is one-sided: a faint number is still a price, a faint title is not a
+title. `shop_transaction._shelf` and `runner.shop_state` now filter with it, so one
+reader contract covers both. On the retained pair the whole live sequence now
+replays: reserve against `frame-0064` stores six rows and reconciles against
+`frame-0065` with the exact `1647 → 1617` delta. Full suite: 1416 passed, 1 skipped.
+
+As a side effect the shelf no longer hides a card whose price read faintly, which
+corrects a previously asserted expectation in `tests/test_runner.py`:
+`Replace Heathciffs Skill` (77 at `.8348`) is the shelf's leftmost card and is now
+reported instead of silently skipped.
+
+Still required for a shop receipt: the actual purchase dialog and its Confirm, the
+coin-delta receipt on the returning shelf, the named `E.G.O Gift GET!`
+acknowledgment, skill replacement, and the full run through to floor5, the reward
+and HOME. No purchase, private budget change or Release occurred.

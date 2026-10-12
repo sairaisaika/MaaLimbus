@@ -58,7 +58,7 @@ from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_sta
                             select_ready)
 from .run_wiring import earned_its_payout, expire, reconcile, settle
 from .shop_vision import currency as shop_currency, offers as shop_offers
-from .shop_vision import wanted_offers
+from .shop_vision import SHELF_PRICE_FLOOR, shelf_tokens, wanted_offers
 from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
 from .vision import Text, inset_box
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
@@ -872,8 +872,15 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
     size = record.get('size') or (1920, 1080)
     records = [Text(item['text'], tuple(item['box']), item['score'])
                for item in record['ocr'] if item['score']>=.9]
+    # The shelf's own price badge is read below the currency's floor, so a six-slot
+    # shelf whose badge OCRs at .835 is still six offers instead of four -- an
+    # unchanged shelf must never pass for a refreshed one.  A faint title is still not
+    # a title, and the currency and refresh costs keep the stricter records, so a
+    # low-confidence number can never price a refresh.
+    shelf_read = [Text(item['text'], tuple(item['box']), item['score'])
+                  for item in record['ocr'] if item['score']>=SHELF_PRICE_FLOOR]
     question = record.get('scene') == 'SHOP_PURCHASE'
-    found = shop_offers(records, size)
+    found = shop_offers(shelf_tokens(shelf_read), size)
     cash = shop_currency(records, size)
     wanted_offers_now = wanted_offers(found, wanted, bought)
     buy = None

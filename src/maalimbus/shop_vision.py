@@ -40,6 +40,22 @@ COST_ROW_Y = 200
 
 PRICE_PATTERN = re.compile(r'^\s*(\d{1,4})\s*$')
 
+# The game draws the coin mark immediately left of every price and OCR sometimes
+# reads that mark as its own glyph ("①211") or drops it into a stray space (" 77").
+# The badge is still a price badge, so allow up to two leading marks that are
+# neither a digit nor a letter -- a title that merely ends in a number keeps its
+# letters in front of it and is never read as a price.
+PRICE_GLYPH_PATTERN = re.compile(r'^[^0-9A-Za-z]{1,2}([0-9]{1,4})\s*$')
+
+# Titles print near 1.0; a price badge beside them does not always.  On five retained
+# live shop frames every one of the six titles was read at >=.962 while badge scores
+# fell to .835 (" 77") and .874 ("①211"), so the .9 cut reported a six-slot shelf as
+# four or five offers.  That made the same shelf, read twice, look like a change and
+# stopped a real refresh, and it left the purchase receipt's "complete successor
+# shelf" comparison without the completeness it assumes.  Only the shelf's own price
+# badges use this floor: the currency and the refresh costs keep the stricter .9.
+SHELF_PRICE_FLOOR = .8
+
 # A name badge sits this far under the price badge of the same offer, and both are
 # centred on the column, so they pair up by their own printed geometry.  Two price
 # rows are 230px apart, so a row tolerance well under that keeps them apart.
@@ -103,6 +119,30 @@ def click_box(price_box, size=None):
             int(round(2 * half_w)), int(round(2 * half_h)))
 
 
+def price_value(text):
+    """The integer a price badge prints, or ``None`` when the token is not a price.
+
+    The coin mark in front of the number is not part of the price, so a badge the
+    reader saw as ``"①211"`` prices at 211 rather than being filed as a title.
+    """
+    match = PRICE_PATTERN.match(text or '') or PRICE_GLYPH_PATTERN.match(text or '')
+    return int(match.group(1)) if match else None
+
+
+def shelf_tokens(records):
+    """The tokens a shelf read may use out of a frame's OCR.
+
+    Every confident token, plus a price badge that only scored below the usual floor.
+    The exception is deliberately one-sided: a faint *number* beside a confident title
+    is still that title's price, while a faint *title* is not a title at all -- the
+    page's own price mark and the reader's confidence are not the same thing, and a
+    shelf must never gain a card because its name was read badly.
+    """
+    return [token for token in records
+            if token.score >= .9
+            or (token.score >= SHELF_PRICE_FLOOR and price_value(token.text) is not None)]
+
+
 def offers(records, size=None):
     """Every offer on the page, top row first, left to right inside a row.
 
@@ -117,11 +157,11 @@ def offers(records, size=None):
         box = tuple(record.box)
         if not _inside(box, PANEL_X, PANEL_Y, sx, sy):
             continue
-        match = PRICE_PATTERN.match(record.text or '')
-        if match:
-            prices.append((int(match.group(1)), box))
-        else:
+        price = price_value(record.text)
+        if price is None:
             names.append((str(record.text).strip(), box))
+        else:
+            prices.append((price, box))
 
     pairs = []
     for price, box in prices:

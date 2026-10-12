@@ -13,7 +13,8 @@ from pathlib import Path
 
 from .storage import read_json, write_json
 from .shop_vision import (currency, offers, refreshes, matching_purchase_question,
-                          PRICE_PATTERN, CURRENCY_X, CURRENCY_Y, _inside, _scales)
+                          PRICE_PATTERN, SHELF_PRICE_FLOOR, shelf_tokens, CURRENCY_X,
+                          CURRENCY_Y, _inside, _scales)
 from .vision import Text
 
 
@@ -81,8 +82,22 @@ def _coins(texts, size):
 
 
 def _shelf(texts, size):
-    found = offers([t for t in texts if t.score >= .9], size)
+    found = offers(shelf_tokens(texts), size)
     return [dict(name=o.name, price=o.price, click=list(o.click)) for o in found]
+
+
+def _baseline(pending):
+    """The pre-action shelf as the *current* reader sees the retained frame.
+
+    ``pending['shelf']`` was read by whichever build reserved the intent.  A later
+    build may read that very same frame with more recall -- the price is the same
+    price, the old reader just dropped it at its score cut -- so comparing a
+    successor against the stored list would refuse a shelf that never changed.
+    ``_pending`` already verifies ``pending['before']``, so re-reading it keeps both
+    sides of the comparison on one reader.  Within a single build this is a no-op.
+    """
+    _, texts, size = _verify(pending['before'])
+    return _shelf(texts, size)
 
 
 def _notice(texts, record):
@@ -356,8 +371,9 @@ class ShopTransaction:
         if any(_key(o['name']) == _key(pending['name']) for o in shelf):
             raise ValueError('Purchased offer disappearance not proven')
         # All other slots must be retained; a sparse OCR read cannot masquerade
-        # as the disappearance of the chosen card.
-        remaining = sorted((_key(o['name']), o['price']) for o in pending['shelf']
+        # as the disappearance of the chosen card.  The baseline is re-read rather
+        # than trusted from bytes an older reader wrote.
+        remaining = sorted((_key(o['name']), o['price']) for o in (_baseline(pending) or pending['shelf'])
                            if _key(o['name']) != _key(pending['name']))
         actual = sorted((_key(o['name']), o['price']) for o in shelf)
         if actual != remaining:
@@ -374,10 +390,11 @@ class ShopTransaction:
     def reconcile_refresh(self, scope, visit, frame_path):
         pending, record, texts, size, proof = self._pending(scope, visit, 'refresh', frame_path)
         shelf = _shelf(texts, size)
+        before = _baseline(pending) or pending['shelf']
         fingerprint = lambda rows: sorted((_key(o['name']), o['price']) for o in rows)
         if (record.get('scene') != 'SHOP' or _coins(texts, size) != pending['coins'] - pending['price']
-                or not shelf or fingerprint(shelf) == fingerprint(pending['shelf'])
-                or len(shelf) != len(pending['shelf'])):
+                or not shelf or fingerprint(shelf) == fingerprint(before)
+                or len(shelf) != len(before)):
             raise ValueError('Fresh refresh currency delta and complete changed shelf not proven')
         data = copy.deepcopy(self.data)
         data['visits'][visit].setdefault('refresh_receipts', []).append(

@@ -17,14 +17,34 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.shop_vision import (Offer, click_box, currency, offers,  # noqa: E402
-                                   purchase_confirm_target, refreshes,
-                                   wanted_offers)
+                                   price_value, purchase_confirm_target, refreshes,
+                                   shelf_tokens, wanted_offers)
 from maalimbus.vision import Text  # noqa: E402
 
 SHOP_FRAME = ROOT / 'evidence/runtime/window-20261012-024300/frame-0173.json'
 SHOP_NAMES = ['Replace Heathciffs Skill', 'Uncapped Defibrilator', 'Polarization',
               'Scalpel', 'Curriculum Vitae', 'Prejudice']
 SHOP_PRICES = [77, 147, 158, 155, 155, 152]
+
+# The 12:39 live run met the shop with the same six card slots as the shelf above,
+# but scored two of its price badges below the reader's usual floor: ``' 77'`` at
+# .835 and ``'①211'`` at .874.  Cutting every token at .9 dropped both, so this
+# six-slot shelf read as four offers.  Both frames are retained verbatim.
+LIVE_SHELF_FRAME = ROOT / 'evidence/runtime/pi-20261012-123906/frame-0064.json'
+LIVE_SHELF_COINS = 1647
+LIVE_SHELF_NAMES = ["Replace Gregor's Skill", 'Melted Paraffin', 'Thorny Path',
+                    'Wobbling Keg', 'Resolution', 'UPS System']
+LIVE_SHELF_PRICES = [77, 150, 160, 211, 207, 156]
+
+
+def live_shelf_page():
+    """The 12:39 shelf as the reader sees it: size plus its OCR tokens."""
+    if not LIVE_SHELF_FRAME.exists():
+        pytest.skip('retained live shop evidence is not present')
+    record = json.loads(LIVE_SHELF_FRAME.read_text(encoding='utf-8'))
+    records = [Text(token['text'], tuple(token['box']), token['score'])
+               for token in record['ocr']]
+    return records, tuple(record.get('size') or (1920, 1080))
 
 
 def shop_page():
@@ -139,6 +159,47 @@ def test_an_offer_without_a_price_is_not_bought_on_a_guessed_number():
     found = offers(stripped, size)
     assert all(offer.price != 147 for offer in found)
     assert len(found) == 5
+
+
+@pytest.mark.parametrize('text,value', [
+    (' 77', 77), ('①211', 211), ('158', 158), ('45', 45), ('1200', 1200),
+    ('①②211', 211), ('Oracle', None), ('Lv. 60', None), ('3%', None), ('12345', None)])
+def test_the_pages_own_coin_mark_is_not_part_of_a_price(text, value):
+    assert price_value(text) == value
+
+
+def test_a_faint_number_is_a_price_but_a_faint_title_is_not():
+    # One-sided on purpose: the page's price mark and the reader's confidence are
+    # different things.  A shelf that gains a card because its name was read badly
+    # would offer a purchase the page never printed.
+    records, size = shop_page()
+    faint_number = Text('211', (1586, 458, 70, 36), .85)
+    faint_title = Text('Wobbling Keg', (1556, 494, 142, 32), .85)
+    kept = shelf_tokens(records + [faint_number, faint_title])
+    assert faint_number in kept
+    assert faint_title not in kept
+    assert Text('211', (1586, 458, 70, 36), .79) not in shelf_tokens(
+        records + [Text('211', (1586, 458, 70, 36), .79)])
+
+
+def test_the_live_shelf_that_broke_the_refresh_reads_all_six_offers():
+    # The run of 12:39 read this shelf as four offers, stored a four-row pending
+    # shelf, and then refused its own successor.  Both badges the reader dropped
+    # are real cards: ' 77' scored .835 and '①211' scored .874.
+    records, size = live_shelf_page()
+    found = offers(shelf_tokens(records), size)
+    assert [offer.name for offer in found] == LIVE_SHELF_NAMES
+    assert [offer.price for offer in found] == LIVE_SHELF_PRICES
+    assert currency(records, size) == LIVE_SHELF_COINS
+
+
+def test_the_plain_confidence_floor_is_what_dropped_them():
+    # Keep the failure legible: without the price-badge exception the very same
+    # frame reads short, which is exactly what the stored 12:39 run contains.
+    records, size = live_shelf_page()
+    plain = offers([token for token in records if token.score >= .9], size)
+    assert [offer.name for offer in plain] == ['Melted Paraffin', 'Thorny Path',
+                                               'Resolution', 'UPS System']
 
 
 def test_a_shop_frame_is_scaled_to_its_own_resolution():

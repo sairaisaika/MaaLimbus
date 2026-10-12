@@ -1583,3 +1583,39 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   was installed into dist, no controller was started, no input was sent, no private
   budget/ledger/config was written, and no commit was made.
 
+## Continuation: October12 installed GUI Start enters the node panel, and the shelf floor
+
+- The repaired source was installed through `tools/make_local_app.py` (backup
+  `dist/MaaLimbus.backup-8ae0cd0ac09d4ee3bb7e7380651e7ba6`) and a real GUI Start
+  at 12:39:06 local produced `pi-20261012-123906`. It **entered the node panel**
+  (scene `NODE_PANEL`, title `Emotional Indolence`, enter box `[1672,784,118,57]`),
+  which the previous install never reached: `pi-20261012-112240` held only MAP and
+  UNKNOWN over 948 events and zero panels. Two live MAP clicks
+  (`[1067,736,40,40]`, `[1450,110,40,40]`) genuinely changed the page, and the run
+  walked MAP → event choice → a four-state skill check → node panel → `GIFT_GET`
+  → shop in 32 steps / 31 clicks before stopping on its own.
+- The `E.G.O Gift GET!` notice was cleared on the real device at 16:40:24 UTC
+  (`the_gift_get_notice_is_cleared_with_its_own_confirm`, target
+  `[922,774,136,45]`, the measured `GIFT_GET_CONFIRM_BOX`). That proves the notice
+  path in the loop; the purchase-bound `reserve_overlay_acknowledgement` stays
+  unexercised because no purchase occurred to bind it to. The first shop refresh
+  reconciled normally (`shop_receipt_verified kind=refresh`, cost 15). The run
+  stopped on its **second** refresh with `Fresh refresh currency delta and complete
+  changed shelf not proven`.
+- Root cause was the shelf reader, not the rule: `_shelf` filtered OCR tokens at
+  `score >= .9`, and a card's `@77` price token scores .835 while a sibling read
+  `①211` at .874, so one unchanged six-slot shelf read as four offers before the
+  refresh and five after. The coin delta itself was exact (1647 → 1617 for a cost
+  of 30). Fixed one-sidedly in `src/maalimbus/shop_vision.py`: `PRICE_GLYPH_PATTERN`
+  + `price_value()` accept a leading coin mark, `shelf_tokens()` keeps any token at
+  `score >= .8` that parses as a price while names still need `.9`, and the three
+  shelf call sites (`shop_vision` callers, `shop_transaction._shelf`,
+  `runner.py` `shop_offers`) now pass through it. The refresh-cost reader was left
+  at `.9` deliberately: both live costs read clean ('30' .997989, '45' .999201).
+- Evidence: `tests/test_shop_vision.py` gained the live six-offer pair and
+  `tests/test_shop_transaction.py` gained
+  `test_the_live_refresh_pair_reserves_and_reconciles`, both guarded by
+  `pytest.skip` when the gitignored `evidence/runtime/` pair is absent. Whole suite
+  `1416 passed, 1 skipped` in 76.11 s; `tests/test_runner.py`'s shop expectation was
+  widened from two names to the full six the live shelf really shows.
+
