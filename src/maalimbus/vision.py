@@ -2,6 +2,12 @@
 import re
 from dataclasses import dataclass
 
+# The band the shop's own purchase question puts its cancel/confirm pair in: the
+# shop reader (maalimbus.shop_vision) measured it when it learned to answer that
+# question, so the scene veto and the plan target read the same box.
+from .shop_vision import CANCEL_ROI as PURCHASE_CANCEL_ROI
+from .shop_vision import CONFIRM_ROI as PURCHASE_CONFIRM_ROI
+
 
 @dataclass(frozen=True)
 class Text:
@@ -253,7 +259,22 @@ def classify(records, locale, size):
     if (find(records, locale.get('leave_shop_question', r'(?!)'), (.40, .40, .60, .56), size, .85)
         and find(records, locale['gift_confirm'], (.55, .63, .67, .74), size, .85)):
         return 'SHOP_LEAVE'
-    # The Shop node hands back a shop instead of a battle. Leave is the only input
+    # Buying an offer asks back as well, and unlike the leave question this project
+    # does not know its wording yet, so the question is named by the pair the shelf
+    # never shows on its own -- one Confirm beside one Cancel over the middle of the
+    # offers -- with the shop's own tab and Leave still readable behind it.  Both shop
+    # labels are required for that reason: every other dialog in the run carries the
+    # same pair over a page that is not a shop, and those pages are named further
+    # down.  Naming the question is what keeps the shop plan from sending a second
+    # purchase (or a refresh, or Leave) behind it: its plan then sends only the
+    # Confirm it read off the frame.
+    # Live evidence pending: the first purchase this project sends is that frame.
+    if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
+        and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)
+        and find(records, locale['gift_confirm'], PURCHASE_CONFIRM_ROI, size, .9)
+        and find(records, locale['cancel'], PURCHASE_CANCEL_ROI, size, .9)):
+        return 'SHOP_PURCHASE'
+    # The Shop node hands back a shop instead of a battle.  Leave is the only input
     # this project sends there: the module budget is 0, so nothing is bought.
     # Live evidence evidence/runtime/window-20261006-042123/frame-0001.json.
     if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)

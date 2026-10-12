@@ -1368,3 +1368,69 @@ def test_unknown_dialog_without_a_close_refuses_instead_of_confirming():
     plan=plan_step('UNKNOWN_DIALOG',controls={})
     assert plan['action']==RECORD
     assert plan['reason']=='unknown_dialog_close_not_anchored'
+
+
+SHOP_CONTROLS = dict(CONTROLS, **{'shop.leave_button': [1622, 945, 150, 53]})
+BUY = {'box': [1101, 585, 120, 90], 'name': 'Prejudice', 'price': 152, 'index': 6}
+REFRESH = {'box': [1478, 168, 86, 28], 'cost': 15}
+CONFIRM = [1040, 760, 120, 34]
+
+
+def test_shop_buys_the_offer_the_page_printed_for_the_plan():
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':1008,'buy':BUY,'refresh':None,'confirm':None,
+                         'reason':'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'})
+    assert plan['action']==CLICK and plan['target']==BUY['box']
+    assert plan['reason']=='buying_the_gift_the_gift_plan_asked_for'
+    assert plan['detail']=={'name':'Prejudice','price':152,'currency':1008}
+
+
+def test_shop_answers_the_purchase_question_before_buying_anything_else():
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':1008,'buy':BUY,'refresh':REFRESH,'confirm':CONFIRM,
+                         'reason':'x'})
+    assert plan['action']==CLICK and plan['target']==CONFIRM
+    assert plan['reason']=='confirming_the_purchase_the_shop_asked_about'
+
+
+def test_shop_refreshes_only_when_no_offer_matches_and_the_visit_may_pay():
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':1008,'buy':None,'refresh':REFRESH,'confirm':None,
+                         'reason':'no_offer_matches_the_gift_plan'})
+    assert plan['action']==CLICK and plan['target']==REFRESH['box']
+    assert plan['reason']=='refreshing_the_shelf_for_the_gift_the_plan_wants'
+    assert plan['detail']=={'cost':15,'currency':1008}
+
+
+def test_shop_leaves_when_the_page_offers_nothing_the_plan_may_spend_on():
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':1008,'buy':None,'refresh':None,'confirm':None,
+                         'reason':'every_offer_the_plan_asked_for_costs_more_than_the_shop_holds'})
+    assert plan['action']==CLICK and plan['target']==[1622, 945, 150, 53]
+    assert plan['reason']=='leaving_the_shop_is_the_only_budget_safe_input'
+    assert plan_step('SHOP',controls=SHOP_CONTROLS)['target']==[1622, 945, 150, 53]
+
+
+def test_shop_without_an_anchored_leave_stays_put():
+    plan=plan_step('SHOP',controls={})
+    assert plan['action']==RECORD and plan['reason']=='shop_leave_button_not_anchored'
+
+
+def test_the_purchase_question_answers_its_own_confirm_and_nothing_else():
+    # The question is its own page (maalimbus.vision): it may only ever receive the
+    # Confirm read off its own frame.  A buy or a refresh offered alongside it is not
+    # sent behind the question, and a question whose Confirm could not be read is
+    # recorded instead of clicked -- both would otherwise spend a purchase twice or
+    # cancel one nobody asked to cancel.
+    question={'currency':1008,'buy':BUY,'refresh':REFRESH,'confirm':CONFIRM,'reason':'x'}
+    plan=plan_step('SHOP_PURCHASE',controls=SHOP_CONTROLS,shop=question)
+    assert plan['action']==CLICK and plan['target']==CONFIRM
+    assert plan['reason']=='confirming_the_purchase_the_shop_asked_about'
+    assert successor_ok(plan,'SHOP') and successor_ok(plan,'SHOP_PURCHASE')
+    unread=dict(question, confirm=None)
+    plan=plan_step('SHOP_PURCHASE',controls=SHOP_CONTROLS,shop=unread)
+    assert plan['action']==RECORD
+    assert plan['reason']=='the_shop_asked_about_a_purchase_and_its_confirm_was_not_read'
+    plan=plan_step('SHOP_PURCHASE',controls=SHOP_CONTROLS)
+    assert plan['action']==RECORD
+    assert plan['reason']=='the_shop_asked_about_a_purchase_and_its_confirm_was_not_read'

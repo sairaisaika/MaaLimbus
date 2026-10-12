@@ -1422,3 +1422,38 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   decisions remain open. The shop plan still leaves without buying and the shop
   page has no offer anchors; semantic_labels is consumed by the offline
   collection tool only and live frames still report neural_sinners status off.
+
+## Continuation: October12 shop buying and shelf refresh
+
+- The user reported that the loop enters the shop and buys nothing. The shelf is
+  now read offline in src/maalimbus/shop_vision.py: offers pairs a price box with
+  the name box centred under it, click_box puts the art centre 58 px above the
+  price box top, and refreshes returns both Refresh buttons with their costs. On
+  the real shelf frame evidence/runtime/window-20261012-024300/frame-0173.json it
+  reads currency 1008 and the six live offers (Replace Heathcliff's Skill 77,
+  Uncapped Defibrilator 147, Polarization 158, Scalpel 155, Curriculum Vitae 155,
+  Prejudice 152) with Refresh 15 and Keyword Refresh 90.
+- Buying spends the in-run currency only. The module budget gate in
+  src/maalimbus/budget.py covers Modules/Eenkephalin and is untouched, so the old
+  note that left the shop as the only budget-safe input no longer applies to
+  shelf purchases. Buying is gated by the gift plan instead: wanted_offers filters
+  the shelf through gift_plan.wanted, so only names the plan asked for can be
+  bought.
+- src/maalimbus/window.py plan_step now answers a shop page with, in order, the
+  purchase question's own Confirm, a planned offer, a plain shelf refresh bounded
+  by settings.shop_refreshes (default 2, --shop-refreshes), and finally Leave.
+  runner.shop_state reads the shelf each step, books purchases in shop_bought,
+  counts refreshes, and never buys the same name twice in one run.
+- The purchase question is its own named page. vision names SHOP_PURCHASE when the
+  shop and leave labels are present and a Confirm and a Cancel sit in the dialog
+  bands; on that page the only input the plan may send is the Confirm it read from
+  the frame, and an unreadable Confirm records instead of clicking again.
+- 1013 tests pass with one skip (13 new shop_vision cases, 8 runner cases, 5 plan
+  cases, one vision naming case). Two live gaps remain: the purchase dialog's own
+  geometry has not been seen (its bands are the superset the leave, gift-warning
+  and reset dialogs already sit inside), and the run that was to take the shop
+  evidence stopped one page earlier on a floor gift pick, where
+  floor_gifts.parse_trial refuses a trial whose text is not fully numeric grammar
+  ('floor_gift_enemy_trial_unknown', evidence/runtime/window-20261012-034813
+  frame-0079.png). That strictness is deliberate: rank() prices the pick from the
+  trial, so an unreadable trial is a stop rather than a guess.

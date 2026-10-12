@@ -57,6 +57,8 @@ from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_sta
                             gift_cards, initial_gift_box, keyword_panel_point,
                             select_ready)
 from .run_wiring import earned_its_payout, expire, reconcile, settle
+from .shop_vision import currency as shop_currency, offers as shop_offers
+from .shop_vision import wanted_offers
 from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
 from .vision import Text, inset_box
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
@@ -149,7 +151,8 @@ def _defaults():
         'steps': 1, 'rounds': 3, 'unknown_rounds': 30, 'battle_rounds': 8,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
-        'gift_search': 'refuse', 'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
+        'gift_search': 'refuse', 'shop_refreshes': 2,
+        'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
         'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
         'graces': '1,3,5,6,8', 'map_points': '', 'flow': None, 'flow_timeout': None,
@@ -838,6 +841,84 @@ def team_state(record, controls):
             'numbers': assignment_numbers(records, boxes, size)}
 
 
+def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2):
+    """What the shop page offers and the one input a shop visit may spend.
+
+    A shop is spent from by reading its own page: every offer prints its name and
+    its price, so the target is the card the page printed rather than a coordinate
+    somebody guessed.  The answer carries, in the order a plan may use them:
+
+    * ``confirm`` -- the Confirm of the shop's own purchase dialog, when one is up,
+    * ``buy`` -- the first offer the gift plan asked for that the shop's currency
+      covers, and which this run has not already paid for,
+    * ``refresh`` -- the plain Refresh button, while a shop visit still has refreshes
+      left and the currency covers one twice over (a refresh must never be able to
+      eat the price of a gift the plan wants),
+    * ``reason`` -- why none of the above is offered.
+    """
+    if record.get('scene') not in ('SHOP', 'SHOP_PURCHASE') or not record.get('ocr'):
+        return None
+    from .shop_vision import purchase_confirm_target, refreshes as shop_refreshes
+    size = record.get('size') or (1920, 1080)
+    records = [Text(item['text'], tuple(item['box']), item['score'])
+               for item in record['ocr']]
+    question = record.get('scene') == 'SHOP_PURCHASE'
+    found = shop_offers(records, size)
+    cash = shop_currency(records, size)
+    wanted_offers_now = wanted_offers(found, wanted, bought)
+    buy = None
+    refresh = None
+    # On the shop's own purchase question the only readable input is its own Confirm:
+    # buying, refreshing or leaving behind it would spend or cancel a purchase nobody
+    # asked for, so no other answer is offered there.
+    confirm = purchase_confirm_target(records, size, require_offers=not question)
+    if question:
+        reason = ('the_shop_asked_about_a_purchase_and_its_confirm_is_the_only_input'
+                  if confirm else
+                  'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read')
+        return {'currency': cash, 'buy': None, 'refresh': None, 'confirm': confirm,
+                'reason': reason, 'wanted': list(wanted),
+                'offers': [{'index': offer.index, 'name': offer.name,
+                            'price': offer.price,
+                            'click': list(offer.click) if offer.click else None}
+                           for offer in found]}
+    if not found:
+        reason = 'shop_offers_not_read'
+    elif cash is None:
+        reason = 'shop_currency_not_read'
+    else:
+        affordable = [offer for offer in wanted_offers_now
+                      if offer.price is not None and offer.price <= cash]
+        if affordable:
+            offer = affordable[0]
+            buy = {'box': list(offer.click), 'name': offer.name, 'price': offer.price,
+                   'index': offer.index}
+            reason = 'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'
+        elif wanted_offers_now:
+            reason = 'every_offer_the_plan_asked_for_costs_more_than_the_shop_holds'
+        elif not wanted_offers(found, wanted):
+            reason = 'no_offer_matches_the_gift_plan'
+        else:
+            reason = 'every_offer_the_gift_plan_asked_for_was_already_bought'
+        buttons = shop_refreshes(records, size)
+        plain = buttons.get('regular')
+        worth_it = (not affordable
+                    and bool(list(wanted))
+                    and refreshes_used < refresh_limit
+                    and plain is not None and plain.box is not None
+                    and plain.cost is not None and cash is not None
+                    and cash >= 2 * plain.cost)
+        if worth_it:
+            refresh = {'box': list(plain.box), 'cost': plain.cost,
+                       'reason': 'no_offer_matches_the_gift_plan_yet'}
+    return {'currency': cash, 'buy': buy, 'refresh': refresh,
+            'confirm': purchase_confirm_target(records, size), 'reason': reason,
+            'wanted': list(wanted),
+            'offers': [{'index': offer.index, 'name': offer.name, 'price': offer.price,
+                        'click': list(offer.click) if offer.click else None}
+                       for offer in found]}
+
+
 def reward_state(record):
     """The encounter reward page's pick counter, as ``{'chosen': n, 'required': m}``."""
     return counter_state(record)
@@ -1372,6 +1453,25 @@ class MirrorRunner:
                           sent=bool(settings.defeat_accept))
         else:
             state['defeat_row_sent'] = False
+        shop = None
+        if page not in ('SHOP', 'SHOP_PURCHASE'):
+            # A shop visit's own budget: leaving the page ends the visit, so the
+            # refreshes a visit is allowed start over on the next shop.  The shop's
+            # own purchase question counts as the same visit: leaving the shelf is
+            # what ends it.
+            state['shop_refreshes'] = 0
+        else:
+            shop = shop_state(record, wanted_gifts(state['gift_plan'],
+                                                   settings.gift_keyword, fallback=()),
+                              bought=[entry['name'] for entry in state['shop_bought']],
+                              refreshes_used=state['shop_refreshes'],
+                              refresh_limit=settings.shop_refreshes)
+            self.note('shop_offers', currency=shop['currency'] if shop else None,
+                      reason=shop['reason'] if shop else 'shop_page_not_read',
+                      buy=shop['buy'] if shop else None,
+                      refresh=shop['refresh'] if shop else None,
+                      confirm=shop['confirm'] if shop else None,
+                      offers=shop['offers'] if shop else [])
         reward = reward_state(record) if page == 'REWARD_CARD' else None
         gift, cards = None, None
         floor_offers=None
@@ -1675,6 +1775,7 @@ class MirrorRunner:
                          team=team, reward=reward, gift=gift, cards=cards,
                          graces=graces, initial=initial, check=check, defeat=defeat,
                          search={'mode': settings.gift_search},
+                         shop=shop,
                          bonus={'spend': state['run_settled_itself']})
         if page=='UNKNOWN_DIALOG' and self.floor_gift_transaction is not None:
             from .floor_gift_transaction import refusal_confirm_target
@@ -1690,7 +1791,7 @@ class MirrorRunner:
                  'reward': reward, 'gift': gift, 'cards': cards, 'graces': graces,
                  'initial': initial, 'search': {'mode': settings.gift_search},
                  'battle_assignment':settings.battle_assignment,
-                 'check': check, 'defeat': defeat,
+                 'check': check, 'defeat': defeat, 'shop': shop,
                  'bonus': {'spend': state['run_settled_itself']},
                  'arrows': arrows, 'candidates': candidates}
         if plan['action'] not in ('click', SWIPE, NODE) or settings.observe_only:
@@ -1788,6 +1889,22 @@ class MirrorRunner:
                       reason=plan['reason'], point=list(point), delay_ms=delay)
             self.device.click(*point)
         self.artifacts['clicks_sent'] += 1
+        if plan.get('reason') == 'buying_the_gift_the_gift_plan_asked_for':
+            # The price is booked as spent the moment the click goes out: a purchase
+            # the shop answers with its own question is still a purchase this run has
+            # committed the currency to, and the next shop frame must not offer it
+            # again after a refresh brings the same name back.
+            bought = dict((plan.get('detail') or {}), step=state['step'],
+                          frame=frame_file(directory).name, point=None if point is None else list(point))
+            state['shop_bought'].append(bought)
+            self.note('shop_purchase_sent', gift=bought.get('name'), price=bought.get('price'),
+                      currency=bought.get('currency'), point=bought['point'])
+        elif plan.get('reason') == 'refreshing_the_shelf_for_the_gift_the_plan_wants':
+            state['shop_refreshes'] += 1
+            self.note('shop_shelf_refreshed', cost=(plan.get('detail') or {}).get('cost'),
+                      refreshes_used=state['shop_refreshes'])
+        elif plan.get('reason') == 'confirming_the_purchase_the_shop_asked_about':
+            self.note('shop_purchase_confirmed', point=None if point is None else list(point))
         if page == 'MAP' and plan.get('target') is not None:
             # Whether or not the click opened anything, that spot has had its turn:
             # live run build/window-run76.json opened the same gift tray eight times
@@ -2278,6 +2395,7 @@ def _fresh_state(settings, store=None):
             'map_progress': MapProgress(), 'floor_now': None, 'map_attempts': 0,
             'page_attempts': 0, 'gift_picks': 0, 'initial_picked': 0,
             'swallowed_attempts': 0, 'grace_read_attempts': 0, 'deployment_read_attempts': 0,
+            'shop_bought': [], 'shop_refreshes': 0,
             'repeated_plans': {}, 'guard_page': None, 'claim_steps': 0,
             'team_slot_picked': None, 'defeat_row_sent': False, 'defeat_attempts': 0,
             'tutorial_cards': set(), 'grace_wanted': grace_wanted, 'grace_bought': set(),
@@ -2435,6 +2553,8 @@ def build_parser(defaults=None):
     parser.add_argument('--gift-search', choices=('refuse', 'select'),
                         default=defaults['gift_search'],
                         help='what to do on the gift-search page')
+    parser.add_argument('--shop-refreshes', type=int, default=defaults['shop_refreshes'],
+                        help='how many plain shelf refreshes one shop visit may pay for')
     parser.add_argument('--loop-guard', type=int, default=defaults['loop_guard'],
                         help='how many times one plan may repeat before stopping')
     parser.add_argument('--claim-tries', type=int, default=defaults['claim_tries'],

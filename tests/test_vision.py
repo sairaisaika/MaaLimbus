@@ -249,6 +249,26 @@ def test_the_shop_node_is_named_by_its_title_and_leave_button():
     assert classify(asking, words, (1920, 1080)) == 'SHOP_LEAVE'
 
 
+def test_the_shops_purchase_question_is_named_over_the_shelf_it_covers():
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    # The purchase question is not in the locale yet: the first purchase this project
+    # sends is the frame that names it.  Until then it is named the way the leave
+    # question is -- by the pair the shelf never shows on its own, with the shop's own
+    # labels still readable behind it -- because a page that let the shop plan run
+    # behind it would send a second purchase, a refresh or Leave.
+    shelf = [Text('Shop', (334, 154, 98, 54), .99),
+             Text('Leave', (1622, 945, 150, 53), 1.0),
+             Text('Prejudice', (1118, 726, 160, 26), .99),
+             Text('152', (1124, 688, 60, 30), .99)]
+    assert classify(shelf, words, (1920, 1080)) == 'SHOP'
+    asking = shelf + [Text('Confirm', (1116, 722, 110, 34), 1.0),
+                      Text('X Cancel', (706, 720, 138, 36), .94)]
+    assert classify(asking, words, (1920, 1080)) == 'SHOP_PURCHASE'
+    # The same pair over anything that is not a shop is some other page's question:
+    # every dialog in the run carries a Confirm beside a Cancel.
+    assert classify(asking[2:], words, (1920, 1080)) != 'SHOP_PURCHASE'
+
+
 def test_the_cutscene_is_named_by_its_skip_button():
     words = json.loads((LOCALES / 'en/locale.json').read_text())
     # Live proof: evidence/runtime/window-20261006-044556/frame-0023.json is the

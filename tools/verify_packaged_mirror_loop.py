@@ -42,6 +42,9 @@ def main():
     parser.add_argument('--authorize', default='')
     parser.add_argument('--steps', type=int, default=12)
     parser.add_argument('--seconds', type=float, default=240.0)
+    parser.add_argument('--gift-plan', default='assets/resource/base/gift-plan.json')
+    parser.add_argument('--gift-keyword', default='bleed')
+    parser.add_argument('--shop-refreshes', type=int, default=2)
     parser.add_argument('--observe-only', action='store_true')
     args = parser.parse_args()
     app = args.app.resolve()
@@ -104,7 +107,8 @@ def main():
                 parameters = dict(observe_only=bool(args.observe_only), steps=args.steps,
                                   interval=4.0, rounds=3, unknown_rounds=6, map_tries=4,
                                   claim_tries=3, battle_rounds=8, defeat_tries=1,
-                                  gift_plan='assets/resource/base/gift-plan.json',
+                                  gift_plan=args.gift_plan, gift_keyword=args.gift_keyword,
+                                  shop_refreshes=args.shop_refreshes,
                                   run_store='config/user-run-ledger.json', team=5, directory='')
                 override = {'MirrorLoop': {'timeout': int(args.seconds * 1000),
                                            'custom_action_param': parameters}}

@@ -138,6 +138,10 @@ def build_parser():
                         help='what to do on the optional E.G.O Gift Search page: the '
                              'player asked for it to be refused, which spends no '
                              'starlight; "select" instead leaves through Select')
+    parser.add_argument('--shop-refreshes', type=int, default=2,
+                        help='how many plain shelf refreshes one mirror-shop visit may '
+                             'pay for while no offer matches the gift plan: the shop is '
+                             'spent from with the run\'s own currency, never Modules')
     parser.add_argument('--loop-guard', type=int, default=3,
                         help='stop after the same page/action/target plan passed this many '
                              'times in one visit to one page: a misleading overlay once '

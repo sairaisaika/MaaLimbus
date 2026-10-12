@@ -42,7 +42,8 @@ accepted here:
  "team": 5, "rounds": 3, "battle_rounds": 8, "unknown_rounds": 30, "map_tries": 8,
  "claim_tries": 6, "defeat_tries": 2, "defeat_accept": false, "graces": "1,3,5,6,8",
  "grace_budget": 60, "gift_keyword": "bleed", "gift_search": "refuse",
- "gift_plan": "assets/resource/base/gift-plan.json", "observe_only": false,
+ "gift_plan": "assets/resource/base/gift-plan.json", "shop_refreshes": 2,
+ "observe_only": false,
  "stop_page": null, "budget": 5400}
 ```
 

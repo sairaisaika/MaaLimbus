@@ -111,7 +111,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
-              battle_assignment='win_rate'):
+              shop=None, battle_assignment='win_rate'):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -123,7 +123,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       candidate_index=candidate_index, nodes=nodes, arrows=arrows,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
                       initial=initial, search=search, check=check, defeat=defeat,
-                      bonus=bonus, difficulty=difficulty,battle_assignment=battle_assignment)
+                      bonus=bonus, difficulty=difficulty, shop=shop,
+                      battle_assignment=battle_assignment)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -139,7 +140,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
-               battle_assignment='win_rate'):
+               shop=None, battle_assignment='win_rate'):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -149,7 +150,9 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     recognition and click box; ``team`` carries the pre-battle page's per-card
     participation badges; ``reward`` carries the encounter reward page's pick
     counter (``{'chosen': n, 'required': m}``); ``check`` carries the skill check's
-    chosen slot (``{'slot': n, 'tier': t, 'box': [x, y, w, h]}``).
+    chosen slot (``{'slot': n, 'tier': t, 'box': [x, y, w, h]}``); ``shop`` carries
+    the offers read off the shop page (``{'currency': n, 'offers': [...],
+    'buy': {'box': ..., 'name': ..., 'price': n} | None}``).
     """
     controls = controls or {}
     nodes = dict(PAGE_NODES, **(nodes or {}))
@@ -551,11 +554,39 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                              'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
                              'GIFT_PICK', 'REWARD_CARD', 'WINDOW_RESET', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
-    if page == 'SHOP':
-        # Spending is out of budget (module budget is 0/pending), so Leave is the
-        # only input this project sends in a shop: it returns to the map with the
-        # cost untouched. Refresh/Heal/Enhance/Fuse/Sell and every gift card are
-        # deliberately left unanchored so no plan can ever land on them.
+    if page in ('SHOP', 'SHOP_PURCHASE'):
+        # The shop is paid for with the run's own currency, never with Modules, so
+        # buying here cannot touch the budget the module gate guards.  What the page
+        # offers is read off the frame (maalimbus.shop_vision): the plan first answers
+        # the shop's own purchase question when one is up, then buys an offer the gift
+        # plan asked for and the shop covers, then refreshes the shelf while the visit
+        # still has refreshes and the currency covers one twice over.  Otherwise Leave
+        # is the only input this project sends: Heal/Enhance/Fuse/Sell and the keyword
+        # refresh are deliberately left unanchored so no plan can land on them.
+        confirm = (shop or {}).get('confirm')
+        if confirm:
+            return _plan(page, CLICK, target=confirm,
+                         expect=('SHOP', 'SHOP_PURCHASE', 'MAP', 'UNKNOWN'),
+                         reason='confirming_the_purchase_the_shop_asked_about')
+        if page == 'SHOP_PURCHASE':
+            # A purchase question is up and its Confirm was not read: buying, refreshing
+            # or leaving behind it would spend or cancel a purchase nobody asked for, so
+            # the frame is recorded instead of clicked.
+            return _refuse(page, 'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read')
+        buy = (shop or {}).get('buy')
+        if buy:
+            return _plan(page, CLICK, target=buy['box'],
+                         expect=('SHOP_PURCHASE', 'SHOP', 'MAP', 'UNKNOWN'),
+                         reason='buying_the_gift_the_gift_plan_asked_for',
+                         detail={'name': buy.get('name'), 'price': buy.get('price'),
+                                 'currency': (shop or {}).get('currency')})
+        refresh = (shop or {}).get('refresh')
+        if refresh and refresh.get('box'):
+            return _plan(page, CLICK, target=refresh['box'],
+                         expect=('SHOP', 'SHOP_PURCHASE', 'UNKNOWN'),
+                         reason='refreshing_the_shelf_for_the_gift_the_plan_wants',
+                         detail={'cost': refresh.get('cost'),
+                                 'currency': (shop or {}).get('currency')})
         box = controls.get('shop.leave_button')
         if box is None:
             return _refuse(page, 'shop_leave_button_not_anchored')

@@ -685,3 +685,145 @@ def test_a_battle_frame_whose_observation_records_nothing_stops(tmp_path, monkey
     with pytest.raises(RuntimeError, match='battle observation node recorded no page'):
         MaaObserver(object(), tmp_path).observe()
     assert calls == ['WindowMapObserve', 'WindowBattleObserve', 'WindowBattleObserve']
+
+
+SHOP_DIR = ROOT / 'evidence/runtime/window-20261012-024300'
+SHOP_FRAME = SHOP_DIR / 'frame-0173.json'
+SHOP_REASON_BUY = 'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'
+SHOP_REASON_NONE = 'no_offer_matches_the_gift_plan'
+SHOP_REASON_BOUGHT = 'every_offer_the_gift_plan_asked_for_was_already_bought'
+
+
+def shop_page():
+    """The live shop page as the loop reads it."""
+    if not SHOP_FRAME.exists():
+        pytest.skip('retained live shop evidence is not present')
+    return json.loads(SHOP_FRAME.read_text(encoding='utf-8'))
+
+
+def shop_window(tmp_path, record):
+    """A one-step window sitting on the shop page, with the run's own store."""
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    image = archived(SHOP_FRAME)
+    device = FakeDevice([image, image, image])
+    observer = FrameObserver(tmp_path, [record, record, record])
+    notes = Notes()
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    return runner, device, notes
+
+
+def test_the_shop_page_is_read_for_the_one_offer_the_plan_asked_for():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    state = shop_state(page, wanted=['Prejudice'])
+    assert state['currency'] == 1008
+    assert state['buy']['name'] == 'Prejudice' and state['buy']['price'] == 152
+    assert state['buy']['box'] == [1101, 585, 120, 90]
+    assert state['reason'] == SHOP_REASON_BUY
+    assert state['confirm'] is None, 'the shop itself is not a purchase question'
+    assert [offer['name'] for offer in state['offers']][:2] == ['Replace Heathciffs Skill',
+                                                                'Uncapped Defibrilator']
+
+
+def test_a_plan_the_shelf_does_not_hold_buys_nothing_and_may_refresh():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    state = shop_state(page, wanted=['Wound Clerid'])
+    assert state['buy'] is None and state['reason'] == SHOP_REASON_NONE
+    # The shelf prints a plain Refresh for 15 and the page holds 1008, so one refresh
+    # is worth taking; it is the only input a shop visit may spend beyond a purchase.
+    assert state['refresh']['cost'] == 15
+    assert state['refresh']['reason'] == 'no_offer_matches_the_gift_plan_yet'
+    again = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2)
+    assert again['refresh'] is None, 'a visit pays for no more refreshes than it is allowed'
+    # A page whose currency token was not read cannot price a refresh against the
+    # reserve, so it offers none: the shelf is refreshed only when it is paid for.
+    unread = dict(page, ocr=[token for token in page['ocr']
+                             if token['text'].strip() != '1008'])
+    poor = shop_state(unread, wanted=['Wound Clerid'])
+    assert poor['currency'] is None and poor['refresh'] is None
+    assert poor['reason'] == 'shop_currency_not_read'
+
+
+def test_a_plan_with_no_names_never_refreshes_the_shelf():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    state = shop_state(page, wanted=[])
+    assert state['buy'] is None and state['refresh'] is None
+    assert state['reason'] == SHOP_REASON_NONE
+
+
+def test_an_offer_this_run_already_paid_for_is_not_paid_for_again():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    state = shop_state(page, wanted=['Prejudice'], bought=['Prejudice'])
+    assert state['buy'] is None and state['reason'] == SHOP_REASON_BOUGHT
+
+
+def test_the_shop_page_is_not_read_when_the_page_is_not_a_shop():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    page = dict(page, scene='MAP')
+    assert shop_state(page, wanted=['Prejudice']) is None
+
+
+def test_the_purchase_question_offers_only_the_confirm_it_printed():
+    from maalimbus.runner import shop_state
+    page = dict(shop_page(), scene='SHOP_PURCHASE',
+                ocr=shop_page()['ocr'] + [{'text': 'Confirm', 'box': [1116, 722, 110, 34],
+                                           'score': 1.0},
+                                          {'text': 'X Cancel', 'box': [706, 720, 138, 36],
+                                           'score': .94}])
+    state = shop_state(page, wanted=['Prejudice'])
+    assert state['confirm'] == [1116, 722, 110, 34]
+    assert state['buy'] is None and state['refresh'] is None
+    assert state['reason'] == 'the_shop_asked_about_a_purchase_and_its_confirm_is_the_only_input'
+    # A question whose Confirm the frame did not carry is not answered at all: the
+    # plan records it instead of buying, refreshing or leaving behind the question.
+    unread = dict(page, ocr=[token for token in page['ocr'] if token['text'] != 'Confirm'])
+    unread = dict(unread, ocr=[token for token in unread['ocr'] if token['text'] != 'X Cancel'])
+    bare = shop_state(unread, wanted=['Prejudice'])
+    assert bare['confirm'] is None and bare['buy'] is None and bare['refresh'] is None
+    assert bare['reason'] == 'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read'
+
+
+def test_a_bought_gift_is_booked_when_the_click_goes_out(tmp_path):
+    """The purchase is recorded before its answer arrives, so it cannot be paid twice."""
+    runner, device, notes = shop_window(tmp_path, shop_page())
+    runner.state['gift_plan'] = {'teams': {'bleed': ['Prejudice']}, 'default': []}
+    runner.run(steps=1, interval=0.0, round_limit=1)
+    sent = [details for event, details in notes.events if event == 'shop_purchase_sent']
+    assert len(sent) == 1
+    assert sent[0]['gift'] == 'Prejudice' and sent[0]['price'] == 152
+    booked = runner.state['shop_bought']
+    assert [(row['name'], row['price'], row['currency'], row['step']) for row in booked] \
+        == [('Prejudice', 152, 1008, 0)]
+    assert booked[0]['frame'].endswith('.json')
+    page_notes = [details for event, details in notes.events if event == 'shop_offers']
+    assert page_notes and page_notes[0]['buy']['name'] == 'Prejudice'
+
+
+def test_a_refresh_is_booked_against_the_visit_that_paid_for_it(tmp_path):
+    runner, device, notes = shop_window(tmp_path, shop_page())
+    runner.state['gift_plan'] = {'teams': {'bleed': ['Wound Clerid']}, 'default': []}
+    runner.run(steps=1, interval=0.0, round_limit=1)
+    assert runner.state['shop_refreshes'] == 1
+    assert [details for event, details in notes.events if event == 'shop_shelf_refreshed']
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents[0]['reason'] == 'refreshing_the_shelf_for_the_gift_the_plan_wants'
+
+
+def test_a_shop_visit_that_spent_its_refreshes_leaves_instead(tmp_path):
+    runner, device, notes = shop_window(tmp_path, shop_page())
+    runner.settings.shop_refreshes = 0
+    runner.state['gift_plan'] = {'teams': {'bleed': ['Wound Clerid']}, 'default': []}
+    runner.run(steps=1, interval=0.0, round_limit=1)
+    assert runner.state['shop_refreshes'] == 0
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents[0]['reason'] == 'leaving_the_shop_is_the_only_budget_safe_input'
