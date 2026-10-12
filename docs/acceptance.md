@@ -1417,3 +1417,36 @@ Still required for a shop receipt: the actual purchase dialog and its Confirm, t
 coin-delta receipt on the returning shelf, the named `E.G.O Gift GET!`
 acknowledgment, skill replacement, and the full run through to floor5, the reward
 and HOME. No purchase, private budget change or Release occurred.
+
+## October12 live battle spine and the renamed duplicate gift
+
+- Install `22ceaa6` (backup `dist/MaaLimbus.backup-42c89ed8c3424c70b21a7f2dc80c0b68`)
+  produced `pi-20261012-135557` from a real GUI Start. It left the map and walked
+  `MAP → NODE_PANEL → PRE_BATTLE_TEAM → DEPLOYMENT → BATTLE_HUD → BATTLE_RESULT →
+  GIFT_GET`, i.e. it entered, fought and **won a live battle**, submitting the saved
+  participant order without Clear Selection. Prior installs never reached
+  `NODE_PANEL` at all.
+- The run stopped itself with `reason=floor_gift_receipt_successor_not_proven`,
+  `steps=32`, `clicks_sent=31`, `passed=false`. The shop-refresh reason from the
+  previous run does not recur.
+- Cause: the floor gift pick included a card banded `Owned` ("Portable Battery
+  Socket"). The game answered the two picks with `Prejudice` and then with a
+  different gift under its own name, `Faint Vestige`, on the second `E.G.O Gift
+  GET!` notice. Requiring the successor notice to name a remaining pick made that
+  receipt unattributable.
+- Acceptance criterion for this stage: a substituted notice must be **recorded, not
+  guessed**. `floor_gift_transaction.observe_receipt` stores
+  `d['substitutions']` entries (`expected`, `printed`, `expected_owned`, proof) and
+  the runner journals `floor_gift_receipt_substituted` with `input_sent=false`; the
+  substituted name is bound to the next unclaimed pick by `receipt_intent`. A
+  repeated identical notice or a stray notice after both picks is still refused.
+- An already-landed confirm is recovered from evidence, never replayed:
+  `retained_notice_name()` hash-checks the booked frame's PNG and
+  `runner._resolve_floor_receipt` books it against the fresh successor, journaling
+  `floor_gift_receipt_recovered`.
+- Retained evidence: `evidence/runtime/pi-20261012-135557/frame-0084.*` and
+  `frame-0085.*` (gitignored, guarded by `pytest.skip`). Suite `1423 passed,
+  1 skipped`.
+- Still required: a full floor 2→5 run, the shop purchase with the GET-overlay
+  acknowledgement bound to a real purchase, the report assembly above the identity
+  teacher, and the 12-slot missing/measured team semantics.

@@ -1619,3 +1619,45 @@ See docs/acceptance.md. No live dungeon completion has been verified yet.
   `1416 passed, 1 skipped` in 76.11 s; `tests/test_runner.py`'s shop expectation was
   widened from two names to the full six the live shelf really shows.
 
+
+## Continuation: October12 live battle spine and the renamed duplicate gift
+
+- The shelf-floor repair was installed (backup
+  `dist/MaaLimbus.backup-42c89ed8c3424c70b21a7f2dc80c0b68`, built from `22ceaa6`)
+  and a real GUI Start at 13:55:57 local produced `pi-20261012-135557`. The run
+  finally left the map: shop pending reconciled, shop left, MAP → `NODE_PANEL` →
+  `PRE_BATTLE_TEAM` → `DEPLOYMENT` → **`BATTLE_HUD` (15 observations) → battle won**
+  → `BATTLE_RESULT` → `GIFT_GET`. That is the first live battle this repository has
+  ever completed, and the saved team order was submitted without Clear Selection.
+- It then stopped at 18:02:19 UTC on `steps=32 clicks_sent=31` with
+  `Fresh refresh currency delta and complete changed shelf not proven` **gone**, and
+  a new reason: `floor_gift_receipt_successor_not_proven` in
+  `src/maalimbus/floor_gift_transaction.py` `observe_receipt`.
+- Root cause is a real game behaviour, not a reader fault. The pick screen offered
+  four cards and one of them ("Portable Battery Socket") carried the `Owned` band.
+  The run picked that duplicate as its second pick, and the game answered the two
+  picks with two notices: `Prejudice`, then a **different gift printed under its own
+  name, `Faint Vestige`**. The transaction required the successor notice to name a
+  *remaining selected* gift, so the substituted name read as an unattributable
+  receipt and the run stopped rather than guess.
+- The fix keeps the frame and drops the refusal. `observe_receipt` now accepts a
+  `GIFT_GET` successor that prints a name which is neither the notice just booked
+  nor a remaining pick, records it as a labelled substitution
+  (`d['substitutions']`, with `expected`, `printed`, `expected_owned` and the proof
+  frame), carries `granted` into the new pending, and lets `receipt_intent` bind the
+  printed name back to the next unclaimed pick. `runner.py` journals
+  `floor_gift_receipt_substituted` with `input_sent=false`, so the mismatch lands in
+  `events.jsonl` as evidence the learning step can test instead of vanishing.
+  `intent(..., owned=...)` now records which picks were known duplicates.
+- An outstanding receipt whose confirm already landed is now recovered instead of
+  stopping: `retained_notice_name()` re-reads the booked notice's own frame with a
+  PNG/`image_sha256` check and `runner._resolve_floor_receipt` books it from that
+  retained frame plus the fresh successor, journaling `floor_gift_receipt_recovered`.
+  No input is re-sent. Repeated identical notices and stray notices after every pick
+  is receipted are still refused.
+- Evidence: `evidence/runtime/pi-20261012-135557/frame-0084.*` + `frame-0085.*`
+  retained (gitignored) and
+  `build/deepseek-continuation-20261012/_probe_floor_receipt_recovery.py` replays the
+  real store copy end to end without touching it. `tests/test_floor_gifts.py` gained
+  the labelled-substitution, repeated-notice, stray-notice, retained-name and
+  changed-image tests. Whole suite `1423 passed, 1 skipped` in 85.83 s.

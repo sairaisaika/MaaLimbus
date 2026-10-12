@@ -27,19 +27,24 @@ class FloorGiftTransaction:
             history = (d.get('history',[])+[d]) if d else []
             if d: history[-1] = {k:v for k,v in d.items() if k!='history'}
             d = dict(scope=scope,offer=signature,required=count['required'],
-                     selected=[],pending=None,commit_sent=False,receipts=[],
-                     completed=False,proofs=[str(proof)],history=history)
+                     selected=[],picked_owned={},pending=None,commit_sent=False,receipts=[],
+                     substitutions=[],completed=False,proofs=[str(proof)],history=history)
             self.data=d
             write_json(self.path,d)
         if d['pending'] or d['commit_sent'] or d['completed'] or count['required']!=d['required'] or count['chosen']!=len(d['selected']):
             raise ValueError('floor_gift_pending_commit_or_counter_mismatch')
         return d
 
-    def intent(self, title, count, proof):
+    def intent(self, title, count, proof, *, owned=False):
         d=self.data
         if d['pending'] or d['commit_sent'] or title in d['selected'] or count['chosen']!=len(d['selected']):
             raise ValueError('floor_gift_selection_would_repeat')
         d['pending']=dict(kind='pick',title=title,before=count['chosen'],proof=str(proof))
+        # A gift the run already owns cannot be granted twice: the game answers such a
+        # pick with a different gift under its own name (live: 'Portable Battery Socket'
+        # came back as 'Faint Vestige').  The flag is kept so the receipt stage can label
+        # the substitution instead of refusing a notice the game really printed.
+        d.setdefault('picked_owned',{})[title]=bool(owned)
         path=Path(proof)
         if path.is_file() and path.with_suffix('.png').is_file():
             d['pending'].update(before_json_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -123,9 +128,16 @@ class FloorGiftTransaction:
         d=self.data;p=d.get('pending')
         expected=[n for n in d['selected'] if same_name(n,title)]
         seen=[r['title'] for r in d['receipts']]
+        printed=(p or {}).get('granted')
+        if not expected and printed and same_name(printed,title):
+            # The notice prints the name the game substituted for the next unclaimed
+            # pick; the pick itself is still the one this run chose.
+            unclaimed=[n for n in d['selected'] if n not in seen]
+            if len(unclaimed)==1:expected=unclaimed
         if not d['commit_sent'] or not p or p['kind']!='commit' or len(expected)!=1 or expected[0] in seen:
             raise ValueError('floor_gift_receipt_unknown_repeated_or_pending')
         d['pending']=dict(kind='receipt',title=expected[0],proof=str(proof))
+        if title and not same_name(title,expected[0]):d['pending']['printed']=title
         write_json(self.path,d)
 
     def observe_receipt(self, page, title, proof, *, next_free_offer=None, next_reward_offer=None):
@@ -134,7 +146,18 @@ class FloorGiftTransaction:
         if not p or p['kind']!='receipt':raise ValueError('floor_gift_receipt_intent_missing')
         seen=[r['title'] for r in d['receipts']]+[p['title']]
         remaining=[n for n in d['selected'] if n not in seen]
-        next_receipt=(page=='GIFT_GET' and any(same_name(title,n) for n in remaining))
+        granted=(title or '').strip() or None
+        next_pick=remaining[0] if remaining else None
+        next_receipt=(page=='GIFT_GET' and any(same_name(granted,n) for n in remaining))
+        # A gift this run already owns cannot be granted twice: the game answers that
+        # pick with a different gift printed under its own name (live: the owned
+        # 'Portable Battery Socket' came back as 'Faint Vestige').  That notice is the
+        # real successor of the pick just confirmed, so it is retained as a labelled
+        # observation -- which pick it answers, what the page printed, and whether the
+        # pick was a known duplicate -- instead of stopping the run on a name mismatch.
+        substituted=(page=='GIFT_GET' and granted is not None and next_pick is not None
+            and not same_name(granted,p['title'])
+            and not any(same_name(granted,n) for n in remaining))
         free_successor=(not remaining and page=='GIFT_PICK' and next_free_offer
             and next_free_offer.get('count')=={'chosen':0,'required':1}
             and next_free_offer.get('source') in ('single_free_select_button','three_free_select_button')
@@ -143,14 +166,24 @@ class FloorGiftTransaction:
             and next_reward_offer.get('count')=={'chosen':0,'required':1}
             and next_reward_offer.get('title')=='Select Encounter Reward Card')
         final_successor=(not remaining and page in ('THEME_PACKS','MAP')) or bool(free_successor or reward_successor)
-        if not (next_receipt or final_successor):
+        if not (next_receipt or final_successor or substituted):
             raise ValueError('floor_gift_receipt_successor_not_proven')
-        d['receipts'].append(dict(title=p['title'],receipt=p['proof'],successor=str(proof)))
+        label=None
+        if substituted:
+            label=dict(expected=next_pick,printed=granted,
+                       expected_owned=bool((d.get('picked_owned') or {}).get(next_pick)),
+                       proof=str(proof))
+            d.setdefault('substitutions',[]).append(label)
+        record=dict(title=p['title'],receipt=p['proof'],successor=str(proof))
+        if p.get('printed'):record['printed']=p['printed']
+        d['receipts'].append(record)
         d['completed']=final_successor
         if free_successor:d['next_free_offer']=next_free_offer
         if reward_successor:d['next_reward_offer']=next_reward_offer
         d['pending']=None if final_successor else dict(kind='commit',proof=str(proof))
+        if substituted:d['pending']['granted']=granted
         write_json(self.path,d)
+        return label
 
 
 def refusal_confirm_target(record):
@@ -163,6 +196,27 @@ def refusal_confirm_target(record):
     confirm=find(records,r'^Confirm$',(.55,.65,.66,.72),size,.9)
     if len(question)!=1 or len(cancel)!=1 or len(confirm)!=1:return None
     return list(confirm[0].box)
+
+
+def retained_notice_name(proof, evidence_root=None):
+    """Gift name a retained GIFT_GET proof frame printed, hash-checked.
+
+    Recovery reads what the retained frame actually said; it never re-sends input.
+    '' when the frame is present but printed no name.
+    """
+    from .initial_gifts import receipt_name
+    from .vision import Text
+    path=Path(proof)
+    if evidence_root is not None and not path.resolve().is_relative_to(Path(evidence_root).resolve()):
+        raise ValueError('floor_gift_retained_notice_outside_evidence')
+    if not path.is_file():raise ValueError('floor_gift_retained_notice_missing')
+    record=read_json(path);png=path.with_suffix('.png')
+    if record.get('scene')!='GIFT_GET' or not png.is_file():
+        raise ValueError('floor_gift_retained_notice_page_not_proven')
+    if hashlib.sha256(png.read_bytes()).hexdigest()!=record.get('image_sha256'):
+        raise ValueError('floor_gift_retained_notice_image_changed')
+    return receipt_name([Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])],
+                        record.get('size') or (1920,1080)) or ''
 
 
 def adopt_legacy_single_pick(transaction, result_path, evidence_root, scope, catalog):

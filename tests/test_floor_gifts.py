@@ -166,3 +166,82 @@ def test_floor_two_successor_identity_does_not_claim_mode():
     from maalimbus.window import plan_step
     plan=plan_step('THEME_PACKS',difficulty=None,controls={'theme_packs.pack_01':[1,1,30,30]})
     assert plan['action'] not in ('click','swipe')
+
+
+NOTICE=ROOT/'evidence/runtime/pi-20261012-135557'
+
+
+def _committed_two_pick_transaction(tmp_path,name='substituted.json'):
+    """The retained real flow: one adopted pick, a second pick, then Select."""
+    from maalimbus.floor_gift_transaction import adopt_legacy_single_pick
+    catalog=GiftCatalog(ROOT/'assets/resource/base')
+    tx=FloorGiftTransaction(tmp_path/name)
+    adopt_legacy_single_pick(tx,FRAME.parent/'result.json',ROOT/'evidence',
+                             'd7c1499436f647208adc50860692a5c2',catalog)
+    offers,_=observe(words(),(1920,1080),catalog)
+    tx.intent('Golden Urn',dict(chosen=1,required=2),'second',owned=True)
+    tx.observe_pick(offers,dict(chosen=2,required=2),'selected')
+    tx.commit('commit')
+    return tx
+
+
+def test_a_duplicate_pick_that_came_back_renamed_is_labelled_not_refused(tmp_path):
+    """Live: the owned 'Portable Battery Socket' was answered with 'Faint Vestige'."""
+    tx=_committed_two_pick_transaction(tmp_path)
+    tx.receipt_intent('Dimensional Recycle Bin','first')
+    label=tx.observe_receipt('GIFT_GET','Faint Vestige','renamed-successor')
+    assert label==dict(expected='Golden Urn',printed='Faint Vestige',expected_owned=True,
+                       proof='renamed-successor')
+    assert tx.data['substitutions']==[label]
+    assert [r['title'] for r in tx.data['receipts']]==['Dimensional Recycle Bin']
+    assert not tx.data['completed']
+    assert tx.data['pending']==dict(kind='commit',proof='renamed-successor',granted='Faint Vestige')
+    # The renamed notice is the next pick's receipt, and it is still the run's own pick.
+    tx.receipt_intent('Faint Vestige','renamed-intent')
+    assert tx.data['pending']==dict(kind='receipt',title='Golden Urn',proof='renamed-intent',
+                                    printed='Faint Vestige')
+    tx.observe_receipt('MAP',None,'left')
+    assert tx.data['completed'] and tx.data['pending'] is None
+    assert [r['title'] for r in tx.data['receipts']]==['Dimensional Recycle Bin','Golden Urn']
+    assert tx.data['receipts'][1]['printed']=='Faint Vestige'
+
+
+def test_the_same_notice_coming_back_twice_is_still_refused(tmp_path):
+    tx=_committed_two_pick_transaction(tmp_path)
+    tx.receipt_intent('Dimensional Recycle Bin','first')
+    with pytest.raises(ValueError,match='successor_not_proven'):
+        tx.observe_receipt('GIFT_GET','Dimensional Recycle Bin','unchanged')
+
+
+def test_a_stray_notice_after_every_pick_is_receipted_is_refused(tmp_path):
+    tx=_committed_two_pick_transaction(tmp_path)
+    tx.receipt_intent('Dimensional Recycle Bin','first')
+    tx.observe_receipt('GIFT_GET','Golden Urn','next')
+    tx.receipt_intent('Golden Urn','second')
+    with pytest.raises(ValueError,match='successor_not_proven'):
+        tx.observe_receipt('GIFT_GET','Faint Vestige','stray')
+
+
+def test_the_live_renamed_notice_pair_reads_from_its_retained_frames():
+    frame=NOTICE/'frame-0084.json'
+    if not frame.exists():pytest.skip('retained live floor-gift notice evidence is not present')
+    from maalimbus.floor_gift_transaction import retained_notice_name
+    from maalimbus.initial_gifts import receipt_name
+    assert retained_notice_name(frame,evidence_root=ROOT/'evidence/runtime')=='Prejudice'
+    data=json.loads((NOTICE/'frame-0085.json').read_text())
+    assert receipt_name([Text(r['text'],tuple(r['box']),r['score']) for r in data['ocr']],
+                        data['size'])=='Faint Vestige'
+    with pytest.raises(ValueError,match='outside_evidence'):
+        retained_notice_name(frame,evidence_root=ROOT/'evidence/runtime/pi-20261012-123906')
+
+
+def test_a_retained_notice_whose_image_changed_is_refused(tmp_path):
+    frame=NOTICE/'frame-0084.json'
+    if not frame.exists():pytest.skip('retained live floor-gift notice evidence is not present')
+    from maalimbus.floor_gift_transaction import retained_notice_name
+    copy=tmp_path/'frame-0084.json';copy.write_text(frame.read_text())
+    image=tmp_path/'frame-0084.png';image.write_bytes((NOTICE/'frame-0084.png').read_bytes())
+    assert retained_notice_name(copy,evidence_root=tmp_path)=='Prejudice'
+    image.write_bytes(image.read_bytes()+b'\x00')
+    with pytest.raises(ValueError,match='image_changed'):
+        retained_notice_name(copy,evidence_root=tmp_path)
