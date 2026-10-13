@@ -1935,9 +1935,22 @@ class MirrorRunner:
                     return self._result(page,None,False,stopped,done=True)
                 state['initial_receipt']=dict(title=expected,proof=str(frame_file(directory)))
         if page=='DUNGEON_TEAM' and self.store is not None and not settings.observe_only and not state.get('entry_reconciled'):
+            previous_scope=self.run_id
             reconcile(self.store,page=page,proof=frame_file(directory))
             self.run_id=self.store.start()
             team['wanted']=self.store.team_slot
+            self.result['run_ledger']=dict(path=str(self.store.path),run=self.run_id,
+                                          team=self.store.team_slot,rotation=self.store.data['rotation'])
+            if previous_scope!=self.run_id:
+                # These files are named by scope. Preserve the old run's pending
+                # evidence; never book the next run into an old shop/review file.
+                from .shop_transaction import ShopTransaction
+                from .unknown_exploration import Exploration
+                self.shop_transaction=ShopTransaction(self.store.path.parent/f'user-shop-{self.run_id}.json')
+                self.exploration=Exploration(self.store.path.parent/f'user-exploration-{self.run_id}.json',
+                    self.store.path.parent.parent/'build/learning-review/transitions',self.run_id)
+                self.note('mirror_run_scope_changed',previous=previous_scope,current=self.run_id,
+                          team=self.store.team_slot,rotation=self.store.data['rotation'],old_evidence_preserved=True)
             state['entry_reconciled']=True
             state['run_settled_itself']=False
             if self.grace_transaction is not None:

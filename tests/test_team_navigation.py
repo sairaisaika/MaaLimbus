@@ -57,3 +57,32 @@ def test_entry_frame_calls_global_reconcile_without_prior_shop_branch(tmp_path,m
     result=instance.step()
     assert calls==['DUNGEON_TEAM'] and result['reason']=='entry_regression_checked'
     assert not device.clicks and not device.swipes and store.data['active']['id']==scope
+
+def test_new_entry_rebinds_scope_files_and_result_without_claiming_previous_success(tmp_path,monkeypatch):
+    from maalimbus.runner import MirrorRunner,FakeDevice,FrameObserver,REGISTRY
+    from maalimbus.storage import RunStore,write_json
+    import maalimbus.runner as module
+    import cv2
+    frame=Path(__file__).resolve().parents[1]/'dist/MaaLimbus/evidence/runtime/pi-20261013-000909/frame-0005.json'
+    if not frame.exists():pytest.skip('local entry frame not retained')
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path))
+    store=RunStore(tmp_path/'user-run-ledger.json',[SimpleNamespace(slot=7),SimpleNamespace(slot=3)])
+    previous=store.start();store.data['active'].update(phase='entered',floors=[1,2,3,4])
+    write_json(store.path,store.data)
+    old_shop=tmp_path/f'user-shop-{previous}.json'
+    write_json(old_shop,dict(version=1,scope=previous,current_visit='old',
+                            visits={'old':dict(refreshes=0,closed=True)},bought=[],pending=None))
+    old_bytes=old_shop.read_bytes()
+    result=dict(run_ledger=dict(run=previous,team=7,rotation=0))
+    monkeypatch.setattr(module,'plan_step',lambda page,**kw:dict(page=page,action='record',
+        target=None,expect=[],reason='scope_regression_checked'))
+    device=FakeDevice([cv2.imread(str(frame.with_suffix('.png')))])
+    instance=MirrorRunner(device,settings=dict(rounds=1,interval=0),directory=tmp_path/'frames',
+        observer=FrameObserver(tmp_path/'frames',[str(frame)]),registry=json.loads(REGISTRY.read_text()),
+        store=store,run_id=previous,result=result)
+    instance.step();current=store.data['active']['id']
+    assert current!=previous and result['run_ledger']['run']==current
+    assert instance.shop_transaction.path.name==f'user-shop-{current}.json'
+    assert old_shop.read_bytes()==old_bytes and store.data['completed_runs']==0
+    assert store.data['abandoned'][-1]['floors']==[1,2,3,4]
+    assert not device.clicks and not device.swipes
