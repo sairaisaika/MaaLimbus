@@ -1845,3 +1845,21 @@ This is a source test result, not complete game or production-value acceptance.
   findings. Document local-user paths redacted; public-source export refuses
   detected private text before ZIP creation and excludes local policies/logs.
   Screenshots, datasets and existing Git history have not all been privacy-reviewed.
+
+## Continuation: October13 local wiki diagrams and manual rotation policy
+
+- User chose success-only automatic rotation plus an explicit manual skip, and confirms
+  the previous gameplay clear. Preserve that report separately from missing independent
+  payout/return bookkeeping; do not mutate the active scope or pretend it failed.
+- Added twenty paired feature-local diagrams, stable coverage links and an index guard.
+  Browser parses 92/92; actual preview exposes every chapter, readable scroll and fit.
+- Idle-only skip source panel/launcher/RunStore request journaling is implemented with
+  controller exclusion, stale-cursor refusal and idempotent request IDs; no receipt,
+  budget or completed counter changes. TypeScript passed; native Rust build, installation
+  and actual GUI action remain open. Do not replace the running paused GUI for docs.
+- Retained-frame Runner tests prove fixed/rotation targets1/2 override stale team7;
+  sidebar tests cover return from lower rows and independent header before Confirm.
+  Actual product offscreen Swipe acceptance still needs a resumed authorized test.
+- Python full snapshot1623 passed/1 permission skip; later wiki/skip focused40 passed.
+  Latest source/wiki changes are not installed. Remaining game pipeline, learning
+  production quality and public updater obligations stay open.

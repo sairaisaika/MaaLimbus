@@ -523,3 +523,33 @@ erDiagram
 
 `AGENTS.md`、`PROJECT.md`（约定）、`docs/design.md`、`config/` 全部 17 个 JSON、`assets/interface.json`、`assets/resource/base/anchors.json`、`assets/resource/base/pipeline/mirror.json`、`assets/resource/base/pipeline/sinner-neural.json`、`assets/resource/{en,jp}/locale.json`、`assets/resource/base/budget.json`、`assets/resource/base/gift-plan.json`、`assets/i18n/{zh_cn,en_us,ja_jp}.json`、`src/maalimbus/vision.py`、`src/maalimbus/window.py`、`src/maalimbus/runner.py`、`src/maalimbus/storage.py`、`src/maalimbus/run_wiring.py`、`src/maalimbus/learning_dataset.py`、`src/maalimbus/floor_gift_transaction.py`、`src/maalimbus/grace_transaction.py`、`src/maalimbus/initial_transaction.py`、`src/maalimbus/deployment_transaction.py`、`src/maalimbus/theme_transaction.py`、`src/maalimbus/reward_claim_transaction.py`、`src/maalimbus/shop_transaction.py`、`src/maalimbus/reward_task.py`、`src/maalimbus/shop_outcomes.py`、`agent/recognition.py`、`tools/run_ledger.py`。
 </details>
+<a id="feature-5-5"></a>
+
+## 5.5 学习数据的引用与复核关系
+
+这是跨私有 JSON 制品的逻辑引用模型，不是数据库物理表，也不声称自动维护外键。箭头含义由关系名限定，approved 后还需训练入口核 hash、scope、数据拆分及独立评估；不是复核一次就可生产输入。购买价值数据还需要同局延迟结果。
+
+```mermaid
+erDiagram
+  RUN_SCOPE ||--o{ FRAME_PROOF : binds
+  FRAME_PROOF ||--o{ LABEL_PROPOSAL : supports
+  LABEL_PROPOSAL ||--o| HUMAN_REVIEW : awaits
+  HUMAN_REVIEW ||--o{ REVIEWED_SAMPLE : approves_or_corrects
+  DATASET_MANIFEST ||--o{ REVIEWED_SAMPLE : enumerates_hashes
+  DATASET_MANIFEST ||--o{ MODEL_CARD : binds_training_split
+  MODEL_CARD ||--o{ NATIVE_EVALUATION : binds_model_hash
+  MODEL_CARD ||--o{ SHADOW_REPORT : identifies_model
+  FRAME_PROOF ||--o{ SHADOW_REPORT : identifies_pixels
+  LABEL_PROPOSAL {
+    string proposed_label
+    boolean training_eligible
+    boolean input_authorized
+  }
+  HUMAN_REVIEW {
+    string status
+    boolean approved
+    string corrected_label
+  }
+```
+
+源码落点：`src/maalimbus/unknown_exploration.py:1`; `src/maalimbus/learning_dataset.py:1`; `src/maalimbus/shop_value_training.py:422`; `src/maalimbus/neural_shadow.py:98`.

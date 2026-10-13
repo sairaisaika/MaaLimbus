@@ -151,7 +151,7 @@ def main(argv=None) -> int:
         by_language[language] = by_language.get(language, 0) + 1
         by_type[block['type']] = by_type.get(block['type'], 0) + 1
 
-    out = Path(arguments.out)
+    out = Path(arguments.out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(render(blocks), encoding='utf-8')
 

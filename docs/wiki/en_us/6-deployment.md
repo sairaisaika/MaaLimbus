@@ -496,6 +496,38 @@ These facts must be stated plainly, or readers will overestimate the maturity of
 5. The `application_root` in `build-info.json` is the staging path from assembly time and goes stale once the
    package is replaced.
 
+
+<a id="feature-6-4-5"></a>
+
+### 6.4.5 Update transaction and failure rollback
+
+Isolated offline newer-candidate stage/install, private preservation, cache and rollback have evidence; these do not establish public GitHub delivery or an actual GUI restart version. An unsupported release tag cannot install. The current GUI remains running and this documentation change does not replace dist.
+
+```mermaid
+sequenceDiagram
+  participant C as Startup or manual check / 启动或手动检查
+  participant H as GitHub/cache
+  participant S as Stage verifier / 暂存校验
+  participant I as Installer / 安装器
+  participant A as Application files / 应用文件
+  C->>H: ETag or deadline-bound request / ETag 或限时请求
+  H-->>C: Metadata, cached result or rate-limit / 元数据缓存或限流
+  C->>C: Require valid newer semver / 核合法较新版本
+  C->>S: Download bounded asset, verify archive / 有界下载并核归档
+  S-->>C: Verified candidate, not installed proof / 合法候选，不是已安装证明
+  C->>I: Install only after application/controller exit / 应用与控制器退出后安装
+  I->>A: Backup and preserve private configuration / 备份并保留私有配置
+  I->>A: Swap and run installed Agent self-test / 替换并自检已安装 Agent
+  alt Post-swap verification fails / 替换后失败
+    I->>A: Restore backup / 恢复备份
+  else Verification passes / 核验通过
+    I-->>C: Installed result / 安装结果
+  end
+  Note over C,A: Public delivery and actual GUI restart need separate evidence / 公开分发与真实 GUI 重启另验
+```
+
+Source boundaries: `src/maalimbus/startup_update.py:1`; `src/maalimbus/update_stage.py:1`; `src/maalimbus/update_install.py:1`.
+
 ## 6.5 Unverified / To Confirm
 
 | Item | Current state | Action needed |
@@ -513,3 +545,23 @@ These facts must be stated plainly, or readers will overestimate the maturity of
 Public-source export checks local user paths and literal player IDs before opening the ZIP. Errors expose only filename, line and category, never matched values. Local .local.json learning policies, logs and jsonl files are excluded from source archives. Current document home-user paths have been redacted.
 
 This gate covers current text only, not screenshots, model datasets, existing Git history or older releases. Private config/evidence/build remain excluded; final public-package inventories and account-bearing images need separate review.
+
+<a id="feature-6-7"></a>
+
+## 6.7 Package provenance and private-data exclusion
+
+Text scanning does not audit every image, training artifact or historical Git commit. Five native DLL byte checks, 86 copyright records and Python notices have concrete gates; complete transitive corresponding source, static linkage and artwork distribution remain open. Private learning-review bundles are not public source assets.
+
+```mermaid
+flowchart TD
+  A["Pinned source and runtime inputs / 固定源码与运行时输入"] --> B["Validate native bytes and notices / 核原生字节与许可文本"]
+  B --> C["Collect Python wheel and interpreter licenses / 留 Python wheel 与解释器许可"]
+  C --> D["Assemble explicit public file inventory / 装配明确公开文件清单"]
+  D --> E["Exclude config, evidence, local policies and logs / 排除配置证据本地策略日志"]
+  E --> F["Scan current public text for private values / 扫当前公开文本隐私项"]
+  F -->|clean| G["Build ZIP and hash manifest / 构建 ZIP 与哈希清单"]
+  F -->|finding| H["Report category, no raw value; refuse export / 仅报类别不回显值，拒绝导出"]
+  G --> I["Candidate validation, not full rights audit / 候选验证，不是完整权利审计"]
+```
+
+Source boundaries: `tools/build_windows_package.py:1`; `src/maalimbus/public_privacy.py:1`; `tools/native_dependency_notices.py:1`.

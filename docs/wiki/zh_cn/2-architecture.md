@@ -46,6 +46,9 @@ flowchart LR
   RES -.->|加载数据| FW
   RES -.->|读取目录与策略| REC
   BIZ -->|校验后读写| STORE
+  HELPER["独立 Launcher helper 进程：更新 / 手动轮换"]
+  UI -->|Tauri scoped command| HELPER
+  HELPER -->|锁保护的账本命令，无游戏输入| STORE
   CTL -->|Win32 或 ADB，选定一种| GAME
 ```
 
@@ -53,11 +56,11 @@ flowchart LR
 
 | 层 | 归谁所有 | 职责 | 落点 | 边界 |
 | --- | --- | --- | --- | --- |
-| Client | 本项目自有扩展（上游 MaaFramework 没有这一层） | 任务勾选、任务设置编辑、更新面板 | `desktop/mxu/TeamBuildEditor.tsx`、`desktop/mxu/teamOrder.ts`、`desktop/mxu/SoftwareUpdatePanel.tsx`、`desktop/mxu/limbus_update.rs` | 只写 PI 协议面，不直接发游戏输入 |
+| Client | 本项目自有扩展（上游 MaaFramework 没有这一层） | 任务勾选、任务设置编辑、更新面板 | `desktop/mxu/TeamBuildEditor.tsx`、`desktop/mxu/teamOrder.ts`、`desktop/mxu/SoftwareUpdatePanel.tsx`、`desktop/mxu/limbus_update.rs` | 写 PI 配置及受锁保护的私有轮换命令，不直接发游戏输入 |
 | Resource | 本项目 | 控制器/任务/选项声明、锚点、流水线节点、本地化 | `assets/interface.json:2`（`interface_version: 2`）、`assets/resource/base/anchors.json`、`assets/resource/base/pipeline/mirror.json`、`assets/i18n/` | 只声明，不含判定逻辑 |
 | Tasker | 上游 MaaFramework `v5.12.2` | 截图、识别、图调度、输入换算、超时 | `maafw/`（`pyproject.toml` 钉 `maafw==5.12.2`，见 `docs/maaframework-conformance.md:11`） | 不做业务判断；坐标换算在 `ControllerAgent::preproc_touch_point`（`docs/maaframework-conformance.md:37-48`） |
 | Agent | 本项目 | 自定义识别与自定义动作，把页面转成结构化证据 | `agent/main.py:48-69`、`agent/recognition.py:100`、`agent/recognition.py:1473` | 不自己建第二个 controller |
-| 业务（`src/maalimbus/`） | 本项目 | 页面→动作规划、账本、事务、离线学习 | `src/maalimbus/runner.py:1`（95 个模块） | 不认识 Maa，也不认识 ADB |
+| 业务（`src/maalimbus/`） | 本项目 | 页面→动作规划、账本、事务、离线学习 | `src/maalimbus/runner.py:1`（95 个模块） | 规划/事务为纯逻辑；runner 适配器与 neural_shadow 仍调用 Maa，目录并非全纯业务 |
 | Controller | MaaFramework + 本项目选型 | 唯一的真实设备所有权 | `src/maalimbus/windows_controller.py:9`、`src/maalimbus/adb_device.py:1` | 同一时刻只允许一个 controller（`src/maalimbus/controller_lease.py:1`） |
 
 ### 端到端链路
@@ -65,7 +68,7 @@ flowchart LR
 1. MXU 按 `assets/interface.json:103` 的 `task` 表把用户勾选变成一次任务，`task.entry` 指向一个 pipeline 入口节点（如 `mirror_loop` → `MirrorTask`）。
 2. MaaFramework Tasker 加载 `assets/resource/base/pipeline/mirror.json`，命中需要自定义识别/动作的节点时回调 Agent 进程。
 3. `agent/main.py:48-69` 注册的 1 个 custom recognition + 15 个 custom action 被框架按名字调用（`limbus_scene`、`limbus_mirror_loop`、`limbus_map_observe`、……）。
-4. 动作内部调用 `src/maalimbus/` 的纯业务层。`MirrorLoopAction`（`agent/recognition.py:1473`）就是整条闭环：它把 PI 的 controller 包成 `runner.MaaDevice`，把 `AgentTasker` 包成 `runner.MaaObserver`，然后交给 `runner.MirrorRunner`（`agent/recognition.py:1509-1522`）。
+4. 动作内部调用 `src/maalimbus/` 的业务逻辑与 Maa 适配器。`MirrorLoopAction`（`agent/recognition.py:1473`）就是整条闭环：它把 PI 的 controller 包成 `runner.MaaDevice`，把 `AgentTasker` 包成 `runner.MaaObserver`，然后交给 `runner.MirrorRunner`（`agent/recognition.py:1509-1522`）。
 5. 业务层的每一个输入都通过 `MaaDevice` 的 `post_click` / `post_swipe` 回到 PI 自己的 controller，不新建设备通道（`docs/agent-loop.md:105-107`）。
 
 > 关键约束：**输入只有一个出口**。`src/maalimbus/runner.py:251` 的 `Device` Protocol 与 `:550` 的 `Observer` Protocol 是业务层与设备之间唯一的两个缝。这也是它能离线测试的原因——`FrameObserver`（`:566`）重放归档帧，`FakeDevice`（`:386`）记录发出去的输入，于是 `tests/test_runner.py` 用真实归档证据驱动真实循环而完全不接设备。

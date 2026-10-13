@@ -114,6 +114,30 @@ Evidence output is always of two kinds: `Journal` (`agent/recognition.py:76`) ap
 - **Termination conditions**: success = the foreground is independently confirmed (one of the three reasons above); reject = the controller is not ADB, another unfinished launch transaction exists, or the identity preflight fails; stop = 5 rounds still do not prove the foreground (`pending=True`).
 - **Evidence produced**: `game_launch_intent` / `game_open_observed` events + `user-open-game-transaction.json` + `agent-result.json`.
 
+
+<a id="feature-4-2-1"></a>
+
+### 4.2.1 Launch intent and foreground confirmation
+
+This covers the implemented open-game task, not relogin or closing another game. It is not invoked during the current pause. Complete live cold-launch acceptance remains open.
+
+```mermaid
+flowchart TD
+  A["OpenGameTask"] --> B{"Win32 or ADB?"}
+  B -->|Win32| C["Verify existing game identity / 核已有游戏身份"]
+  C --> D["Return, no relaunch / 返回，不重启"]
+  B -->|ADB| E{"Limbus already foreground? / 已是 Limbus 前台？"}
+  E -->|yes| D
+  E -->|no| F{"Unresolved launch intent? / 已有未结启动意图？"}
+  F -->|yes| G["Preserve pending; no second launch / 保留意图，不二次启动"]
+  F -->|no| H["Persist intent, Maa post_start_app / 保存意图，再原生启动"]
+  H --> I["Up to five independent foreground checks / 最多五次独立前台检查"]
+  I -->|proven| D
+  I -->|unproven| G
+```
+
+Source boundaries: `src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1` (`MainTaskAction.run`).
+
 ## 4.3 `mirror`: Automatic Mirror Dungeon
 
 - **Trigger entry**: `MirrorTask` (`assets/resource/base/pipeline/mirror.json:5284`), with 10 options (`assets/interface.json:117-128`); UI text at `assets/i18n/zh_cn.json:77-78`.
@@ -190,6 +214,210 @@ flowchart TD
 
 (Only the `window-20261012-214803` step has been walked live: the 3093 -> 2993 revive receipt. The whole route driven by one planner run is still on the unverified list, see 7.3.)
 
+
+<a id="feature-4-3-2"></a>
+
+### 4.3.2 Entry and bidirectional team-list search
+
+RunStore supplies the queue target; the currently selected game team does not override settings. A target above the viewport causes a downward finger swipe to return toward Team1/Team2. Two unchanged semantic lists reverse once, then block with evidence. The search spans loop steps and exits when found; twelve is a ceiling. Numbered slots 1–40 are supported; renamed slots require mapping. Live offscreen Team1/Team2 testing awaits resume.
+
+```mermaid
+sequenceDiagram
+  participant R as MirrorRunner
+  participant L as RunStore
+  participant V as Fresh team OCR / 新队伍观测
+  participant M as Maa controller
+  R->>L: reconcile fresh DUNGEON_TEAM / 核新入场页面
+  R->>L: start if absent, read team_slot / 新建局或取当前队伍
+  R->>R: Rebind result, shop and exploration scope / 绑定新局结果与事务路径
+  loop At most 12 list attempts / 最多十二次列表尝试
+    R->>V: Read current sidebar rows and header / 读本次列表与标题
+    alt Target offscreen / 目标不在屏内
+      R->>R: Persist direction, row signature and attempt / 保存方向与尝试数
+      R->>M: Sidebar-only Swipe / 只滑动左侧列表
+      M-->>V: Independent fresh frame / 独立新帧
+    else Unique target row visible / 唯一目标可见
+      R->>M: Click current row box / 点击当前行
+      M-->>V: Independently selected top header / 独立选中标题
+    end
+  end
+  R->>L: entry_intent only for verified target / 核对目标后保存入场意图
+  R->>M: Confirm once / 确认一次
+  M-->>R: Warning or entry successor / 警告页或入场后继
+  R->>L: entry_observed after independent successor / 后继证明后记账
+```
+
+Source boundaries: `src/maalimbus/run_wiring.py:156` (`reconcile`); `src/maalimbus/team_navigation.py:1` (`browse`, `prepare`); `src/maalimbus/runner.py:1` (`MirrorRunner.step`).
+
+
+<a id="feature-4-3-3"></a>
+
+### 4.3.3 Encounter deployment: reuse, correction and submission
+
+Reuse requires printed deployment badges matching the saved sequence, not grid positions or a full participant count. Clear only a proven conflicting order. Capacity changes require independent unavailable-card evidence. Same-run revive receipts survive transaction preparation so a later encounter does not repay them.
+
+```mermaid
+flowchart TD
+  A["Fresh PRE_BATTLE_TEAM / 新出战页"] --> B["Read printed order badges and capacity / 读印刷顺序徽章及人数"]
+  B --> C["Validate unavailable-card proof / 核不可用卡片证据"]
+  C --> D{"Saved order fully carried? / 已沿用完整保存顺序？"}
+  D -->|yes| E["No Clear Selection; submit once / 不清空，直接提交一次"]
+  D -->|no| F{"Order contradicted or only uncertain? / 确定冲突还是只不确定？"}
+  F -->|contradicted| G["Persist clear intent; verify zero / 保存清空意图并核归零"]
+  F -->|empty selection| I
+  F -->|uncertain| H["Collect missing order evidence / 补顺序观测，不猜清空"]
+  G --> I["Pick saved sequence with count successors / 按保存序列选，逐次核人数"]
+  I --> E
+  E --> J["Independent battle successor / 独立战斗后继"]
+```
+
+Source boundaries: `src/maalimbus/deployment_transaction.py:5` (`prepare`, `intent`, `observe`); `src/maalimbus/team_vision.py:1` (`assignment_numbers`, `carries_saved_order`).
+
+
+<a id="feature-4-3-4"></a>
+
+### 4.3.4 Floor gifts: selection, receipts and recovery
+
+Each edge is a guarded transaction transition, not an assumption that a click succeeded. GIFT_GET, GIFT_PICK, REWARD_CARD, THEME_PACKS and MAP are successor families; exact names, next offers or final completion conditions are still required. Recovery and immediate settling share the reader and never replay GET acknowledgement. Owned-gift substitutions retain expected/printed names.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Picking
+  Picking --> PickPending: persist pick intent before input
+  PickPending --> Picking: exact same offer and counter plus one
+  Picking --> CommitPending: required selections; Select once
+  CommitPending --> ReceiptPending: full named GET; persist ack intent
+  ReceiptPending --> CommitPending: next named notice independently proven
+  ReceiptPending --> Completed: final successor independently proven
+  ReceiptPending --> ReceiptPending: missing successor; observe only, no replay
+  PickPending --> PickPending: unknown counter; preserve pending
+  Completed --> [*]
+```
+
+Source boundaries: `src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:1` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
+
+
+<a id="feature-4-3-5"></a>
+
+### 4.3.5 Initial gifts, search and floor themes
+
+Starlight has a separate same-run visible-cost and budget gate; this diagram grants no spending. Initial named GET receipts, search-refusal confirmation and theme swipes are separate transactions and cannot replay merely because the next page is slow. This summarizes stages, not live acceptance of every search branch.
+
+```mermaid
+flowchart TD
+  A["Verified entry successor / 入场后继"] --> B["Select saved keyword group / 选保存体系组"]
+  B --> C["Pick named gifts with counter proof / 按名称选礼物并核计数"]
+  C --> D["Select once and named GET receipts / Select 一次及具名 GET 回执"]
+  D --> E{"Gift Search policy / 礼物搜索策略"}
+  E -->|refuse| F["Refuse once, full matching confirmation / Refuse 一次并核完整确认问句"]
+  E -->|saved| G["Use saved search policy / 使用保存搜索策略"]
+  F --> H["Fresh theme offers / 新主题 offer"]
+  G --> H
+  H --> I["Preferred and avoided weights / 偏好与规避权重"]
+  I --> J["Persist theme intent then Swipe once / 先记主题意图再 Swipe 一次"]
+  J --> K{"Independent MAP floor and pack match? / 独立地图楼层与主题一致？"}
+  K -->|yes| L["Resolve theme; enter route loop / 结主题事务并进入路线循环"]
+  K -->|no| M["Observe pending successor; no second Swipe / 核待定后继，不重拖"]
+```
+
+Source boundaries: `src/maalimbus/initial_gifts.py:1`; `src/maalimbus/initial_transaction.py:1`; `src/maalimbus/theme_transaction.py:5` (`intent`, `observe`).
+
+
+<a id="feature-4-3-6"></a>
+
+### 4.3.6 Battle assignment and actual progress
+
+The saved option resolves to a concrete mode before this diagram. Individual skill-order editing and model-controlled assignment remain incomplete. Alternating HUD/UNKNOWN is not proof of battle progress; stalls retain the observed boundary. START commits a turn only.
+
+```mermaid
+flowchart TD
+  A["BATTLE HUD or planning / 战斗 HUD 或配卡页"] --> B{"Assignment mode / 配卡模式"}
+  B -->|observe| C["Record only; even START causes no input / 只记录，有 START 也不输入"]
+  B -->|win_rate| D["Independent Win Rate control / 独立 Win Rate 控件"]
+  B -->|damage| E["Independent Damage control / 独立 Damage 控件"]
+  D --> F["Assign then verify planning successor / 配卡并核规划后继"]
+  E --> F
+  E -->|missing| G["No Win Rate fallback / 不降级为 Win Rate"]
+  F --> H["Visible START submits this turn / 可见 START 提交本回合"]
+  H --> I["Wait on fresh turn progress / 等独立回合进度"]
+  I -->|next planning| A
+  I -->|unchanged within bound| G
+  I -->|result observed| J["Read outcome, not click-as-victory / 读取结果，不以点击当胜利"]
+```
+
+Source boundaries: `src/maalimbus/window.py:110` (`plan_step`); `src/maalimbus/battle_vision.py:1`; `src/maalimbus/runner.py:1`.
+
+
+<a id="feature-4-3-7"></a>
+
+### 4.3.7 Routes and events are different decisions
+
+A geometric node hit does not prove panel arrival. Unknown navigation, enemy trials and event choices have different policies; 3.7 return probes do not generalize to arbitrary Accept/Confirm. Missing policies can still block with evidence. Predicted story rewards are not acquired receipts.
+
+```mermaid
+flowchart TD
+  A["Verified MAP header / 已核地图标题"] --> B["Geometric reachable candidates / 几何可达候选"]
+  B --> C["Route preference and exclusions / 路线偏好与排除"]
+  C --> D["Click candidate; independently require NODE_PANEL / 点候选并独立核节点面板"]
+  D --> E["Enter panel with its own control / 使用面板自己的进入控件"]
+  E --> F{"Battle or event? / 战斗还是事件？"}
+  F -->|battle| G["Deployment then battle loop / 编队后战斗循环"]
+  F -->|event| H["Read story, choices and check controls / 读事件文本选项与检定控件"]
+  H --> I{"Existing event policy? / 已有事件策略？"}
+  I -->|yes| J["One choice or skill-check input / 一次选择或检定输入"]
+  I -->|no| K["Bounded authorized exploration and review / 已授权范围内探索并待审"]
+  J --> L["Independent result then reward or map / 独立结果，再奖励或地图"]
+  K --> L
+```
+
+Source boundaries: `src/maalimbus/map_vision.py:1`; `src/maalimbus/event_vision.py:1`; `src/maalimbus/mirror_learning_policy.py:1`; `src/maalimbus/runner.py:1`.
+
+
+<a id="feature-4-3-8"></a>
+
+### 4.3.8 Purchase and refresh settle separately
+
+A Purchase dialog is still an offer, not a charge: deducted currency is not required on that page. Card, confirmation, GET and shelf receipt settle separately. The bought card may remain with its own Purchased badge or disappear. Refresh requires a complete independently changed shelf, not a guess from OCR counts. In-run coins are separate from Modules/Lunacy. Rules, economy priorities and refresh caps control execution; 3.9 models only preview scores.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Shelf
+  Shelf --> CardIntent: title, price, coins and reserve proven
+  CardIntent --> ConfirmIntent: independent matching Purchase question
+  ConfirmIntent --> OverlayIntent: GET notice, own Confirm once
+  OverlayIntent --> Shelf: exact delta and own Purchased badge or complete disappearance
+  CardIntent --> Shelf: independently unchanged shelf and coins, unspent intent
+  Shelf --> RefreshIntent: visible cost, reserve, visit limit, persist attempt
+  RefreshIntent --> Shelf: exact delta and complete changed shelf proven
+  ConfirmIntent --> ConfirmIntent: uncertain successor, never pay twice
+  RefreshIntent --> RefreshIntent: uncertain successor, never refresh twice
+```
+
+Source boundaries: `src/maalimbus/shop_transaction.py:147` (`ShopTransaction`); `src/maalimbus/shop_vision.py:1`; `src/maalimbus/shop_settings.py:1`; `src/maalimbus/shop_value_shadow.py:7`.
+
+
+<a id="feature-4-3-9"></a>
+
+### 4.3.9 Catalogue, account box and automatic formation
+
+The public catalogue does not contain account ownership; unobserved does not mean unowned. Mixed-system selection uses OR matching and ranks level before keyword coverage. A sinner detail-view round trip is not a complete box scan. Complete system-matched E.G.O equipping and live successors need separate acceptance; this diagram does not claim automatic equipment for every account.
+
+```mermaid
+flowchart TD
+  A["Revisioned public catalogue / 带版本公共图鉴"] --> C["Exact normalized identity index / 精确归一化人格索引"]
+  B["Observed owned-only account page / 实际仅已有人格页"] --> D["Sinner header and filter proof / 罪人标题及筛选证明"]
+  D --> E["Observed titles, level and evidence / 观测名称等级与证据"]
+  C --> F["Reconcile by sinner and unique alias / 按罪人及唯一别名对账"]
+  E --> F
+  F --> G["Owned matches and unresolved rows / 已有匹配与未解记录"]
+  G --> H{"Complete inventory or descending-level proof? / 全量或等级降序已核？"}
+  H -->|yes| I["Owned selectable system match, highest level / 已有可选体系匹配，等级优先"]
+  H -->|no| J["Do not claim highest owned identity / 不声称已选账户最高人格"]
+  I --> K["Actual equip and EGO successor required / 实际装配与 EGO 后继仍需证明"]
+```
+
+Source boundaries: `src/maalimbus/owned_inventory.py:1` (`build_index`, `reconcile_titles`); `src/maalimbus/sinner_collection.py:1`; `src/maalimbus/auto_formation.py:17` (`choose_identity`).
+
 ## 4.4 `experience`: Automatic Experience Stage
 
 - **Trigger entry**: `ExperienceTask` (`assets/resource/base/pipeline/mirror.json:5295`), option `experience_team` (`assets/interface.json:136-138`); UI text at `assets/i18n/zh_cn.json:79-80`, which states plainly that "stage selection, combat and cost verification are not supported yet".
@@ -197,6 +425,35 @@ flowchart TD
 - **Step-by-step business actions (navigation part)**: `target(record)` (`src/maalimbus/lux_task.py:45`) recognizes only two pages: `HOME`'s three independently readable widgets Window / Sinners / Inventory plus a unique `Drive`, and `DRIVE`'s `Luxcavation`; past `DRIVE` there is no independently verified next stop.
 - **Termination conditions**: reject = an unfinished mirror run (`active_mirror_run_blocks_lux_navigation`), an illegal choice, or an existing intent belonging to another task/team; stop = the session ended or the input bound was exceeded, and `lux_task.execute` returns `lux_navigation_successor_requires_verification` after successfully clicking Drive (`src/maalimbus/lux_task.py:127-128`), which **does not count as pass**.
 - **Evidence produced**: `lux-menu-home-input.json` / `lux-menu-drive-input.json` input reports, `user-lux-task-transaction.json` intent file, `lux_navigation_stopped` event, `agent-result.json`.
+
+
+<a id="feature-4-4-1"></a>
+
+### 4.4.1 Shared Experience and Thread menu chain
+
+Both tasks share execution, differing in task key and saved team. Preparation gates precede configuration writes and device creation; execution checks Mirror exclusion again. Reaching the menu boundary is not farming completion: stage choice, cost, battle and receipts remain open.
+
+```mermaid
+sequenceDiagram
+  participant A as MainTaskAction
+  participant L as Mirror and Lux state / 镜牢与 Lux 状态
+  participant P as Saved profiles / 保存编队
+  participant M as Maa observation and input
+  A->>L: prepare: exclude active Mirror and conflicting intent
+  L-->>A: Validated task and team / 已核任务队伍
+  A->>P: Resolve saved team, save only changed defaults
+  A->>M: Observe HOME / 观测主页
+  A->>L: Persist HOME before JSON and PNG hashes
+  A->>M: Click independently recognized Drive
+  M-->>A: Fresh DRIVE control and hashes
+  A->>L: Validate both proofs then resolve HOME intent
+  A->>L: Persist separate DRIVE intent
+  A->>M: Click independently recognized Luxcavation
+  M-->>A: Stage page requires verification / 关卡页仍需验证
+  Note over A,M: At most two menu inputs, no farming or consumption / 最多两次菜单输入，不刷本或消费
+```
+
+Source boundaries: `src/maalimbus/lux_task.py:11` (`check_run`, `prepare`, `execute`).
 
 ## 4.5 `thread`: Automatic Thread Stage
 
@@ -214,6 +471,38 @@ flowchart TD
 - **Termination conditions**: success = `finish` passes the receipt chain and the independent HOME verification, returning `mirror_payout_and_home_verified` (`src/maalimbus/reward_task.py:68`); reject = there is no verified complete mirror run, returning `completed_mirror_run_required` (`:97-99`); stop = the page/successor is unproven, the input bound is exhausted, or the device was interrupted (`:115`, `:129-132`).
 - **Evidence produced**: `reward-<action>-input.json` input reports, `user-reward-claim-transaction.json` transaction, `user-run-ledger.json` ledger events, `reward_task_stopped` event, `agent-result.json`.
 
+
+<a id="feature-4-6-1"></a>
+
+### 4.6.1 Payout and bookkeeping-only recovery
+
+An unapproved budget preserves the offer; a previous run cap is not reused. Amounts and Pass values come from actual pages, not fixed 250/81 constants. Clear, reward acquisition, return and rotation are separate facts. Missing payout/return evidence neither disproves a clear nor permits inventing the completion chain. This task supports Mirror payout only, not mail/daily claims.
+
+```mermaid
+sequenceDiagram
+  participant E as Rewards executor / 领奖执行
+  participant T as Scoped reward transaction / 本局领奖事务
+  participant M as Maa controller
+  participant A as Readonly receipt audit / 只读回执审计
+  participant L as RunStore
+  E->>T: Require verified five floors and scoped budget
+  loop claim, confirm, receipt, pass / 各输入阶段
+    E->>M: Read fresh cost, question or receipt control
+    E->>T: Persist action intent before input
+    E->>M: One input, then independent successor
+    M-->>T: Scoped input report and retained frame
+  end
+  M-->>E: Independently observed HOME
+  E->>A: Four reports, actual amounts and JSON/PNG hashes
+  A-->>E: Full chain proven / 完整链已证明
+  E->>T: Persist bookkeeping HOME before ledger change
+  E->>L: reward_received then entry_returned, rotate once
+  E->>T: Mark transaction completed
+  Note over E,L: If final write fails, recover exact archived events without input or rotation / 最后写失败只核归档恢复，不再输入或轮换
+```
+
+Source boundaries: `src/maalimbus/reward_task.py:27` (`finish`, `execute`); `src/maalimbus/reward_receipt_audit.py:1`; `src/maalimbus/storage.py:247` (`RunStore.record`).
+
 ## 4.7 `stamina`: Stamina Exchange (Not Implemented)
 
 - **Trigger entry**: `StaminaTask` (`assets/resource/base/pipeline/mirror.json:5328`), no option; UI text at `assets/i18n/zh_cn.json:85-86`: "in-budget stamina exchange recognition is still in development; it currently saves the scene and stops, without spending".
@@ -224,7 +513,28 @@ flowchart TD
 
 ---
 
+
+<a id="feature-4-7-1"></a>
+
+### 4.7.1 Actual boundaries of unfinished tasks
+
+Dashed edges mark gaps, not executable transitions. Existing budget helpers or independent task entries do not complete these workflows; the diagram separates planned capabilities from the running pipeline.
+
+```mermaid
+flowchart LR
+  A["StaminaTask"] --> B["Observe and retain frame / 观测留帧"]
+  B --> C["task_page_policy_not_implemented; zero input / 页策略未实现，零输入"]
+  D["RewardsTask"] --> E["Implemented Mirror payout only / 仅已实现镜牢领奖"]
+  E -. "not implemented / 未实现" .-> F["Mail and daily claim / 邮件及每日奖励"]
+  G["Experience or Thread"] --> H["Shared menu navigation / 共享菜单导航"]
+  H -. "not implemented / 未实现" .-> I["Stage, costs, farming and receipt / 关卡成本刷本到账"]
+```
+
+Source boundaries: `agent/recognition.py:1` (`MainTaskAction.run`); `src/maalimbus/lux_task.py:65`; `src/maalimbus/reward_task.py:72`.
+
 ## 4.8 Unverified / To Be Confirmed
+
+Updated boundary (2026-10-13): older “GUI dispatch unverified” rows below are historical snapshots. Actual GUI Start reached DUNGEON_TEAM, warning, stars and initial gifts, proving entry execution, not a full run or live offscreen Team1/Team2 search. The user confirms the previous clear; incomplete independent payout/return bookkeeping remains a separate gap.
 
 Every anchor this chapter opened and confirmed appears as a `path:line` above. The following are **not** independently verified here and are listed honestly:
 
@@ -245,3 +555,27 @@ Entry reconciliation must run before selecting the next team. The shop receipt h
 Team targeting uses independent OCR of the current sidebar rows, never stale screen positions. Offscreen targets trigger bounded vertical Swipes inside the sidebar. Two unchanged semantic lists reverse the direction; at most twelve attempts are allowed. A separate top-header reading must confirm the team before Confirm. Numbered TEAMS #1–#40 captions are supported; custom names still require a verified slot mapping and are not guessed from names or row positions. Attempts persist in private user-team-navigation.json.
 
 The actual failed frame passes isolated reconciliation regression; installed-product and GUI continuation require separate validation.
+
+<a id="feature-4-10"></a>
+
+## 4.10 Rotation policy and manual skip
+
+The chosen policy is rotation after successful payout plus a separate manual skip, not automatic rotation on abandonment. Existing point_at supports explicit idle-team targeting; the dedicated panel, launcher command and idempotent ledger operation now exist in source. They are not rebuilt/installed/GUI accepted, so the diagram does not claim an installed button. The user confirms the previous clear; incomplete harness records are stated separately. Fixed Team1/Team2 and queue targets require the full MainTask-to-Runner-to-list path.
+
+```mermaid
+flowchart TD
+  A["Start request / 启动请求"] --> B{"Active run? / 已有当前局？"}
+  B -->|yes| C["Keep that run team and scope / 保留该局队伍及 scope"]
+  B -->|no| D["Read queue cursor or fixed team / 读队列游标或固定队伍"]
+  C --> E{"Clear, reward and return all proven? / 通关领奖返回全部已核？"}
+  E -->|yes| F["Archive receipt; advance once / 归档回执，前进一次"]
+  E -->|no| G["Retain facts; abandon keeps cursor / 保留事实，弃局不自动换队"]
+  D --> H["Bounded sidebar selection / 有界列表选队"]
+  F --> D
+  G --> I["Manual skip request / 手动跳过请求"]
+  I --> J{"No active run or controller? / 无当前局及活动控制器？"}
+  J -->|yes| K["Explicit next-team change; not completion / 明确换下一队，不计完成"]
+  J -->|no| L["Refuse change during a run / 局内拒绝改队"]
+```
+
+Source boundaries: `src/maalimbus/storage.py:151` (`point_at`, `abandon`, `record`); `src/maalimbus/task_preferences.py:1`; `src/maalimbus/team_navigation.py:1`.

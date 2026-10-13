@@ -42,6 +42,29 @@ def test_the_current_wiki_has_zero_problems():
     assert verify.check_wiki(WIKI, ROOT)['problems'] == []
 
 
+def test_feature_index_rejects_missing_local_anchor(wiki_copy):
+    page=wiki_copy/'zh_cn/4-business-flows.md'
+    page.write_text(page.read_text(encoding='utf-8').replace('id="feature-4-3-2"','id="missing-feature"'),encoding='utf-8')
+    assert any('[COVERAGE]' in p and 'feature-4-3-2' in p for p in verify.check_wiki(wiki_copy)['problems'])
+
+
+def test_local_feature_cannot_disappear_from_the_coverage_index(wiki_copy):
+    page=wiki_copy/'README.md'
+    lines=page.read_text(encoding='utf-8').splitlines()
+    page.write_text('\n'.join(line for line in lines if '#feature-3-8' not in line),encoding='utf-8')
+    assert any('[COVERAGE]' in p and 'feature-3-8' in p for p in verify.check_wiki(wiki_copy)['problems'])
+
+
+def test_a_later_diagram_cannot_mask_a_removed_feature_diagram(wiki_copy):
+    import re
+    page=wiki_copy/'zh_cn/3-runtime.md';body=page.read_text(encoding='utf-8')
+    start=body.index('<a id="feature-3-1-5">')
+    end=body.index('## 3.2 ',start)
+    body=body[:start]+re.sub(r'```mermaid\n.*?```','',body[start:end],flags=re.S)+body[end:]
+    page.write_text(body,encoding='utf-8')
+    assert any('[COVERAGE]' in p and 'has no local diagram' in p for p in verify.check_wiki(wiki_copy)['problems'])
+
+
 def test_the_six_promised_diagram_kinds_are_covered():
     result = verify.check_wiki(WIKI, ROOT)
     missing = set(verify.REQUIRED_DIAGRAMS) - set(result['diagram_types'])

@@ -288,3 +288,38 @@ class RunStore:
         write_json(self.path, data)
         self.data = data
         return True
+
+    def skip_current(self, request_id, *, expected_rotation):
+        """Explicit idle skip; never a clear, reward or automatic abandonment policy.
+
+        A retained request ID makes a retry after a lost response idempotent. The
+        expected cursor prevents a stale settings panel from skipping a new team.
+        Caller must hold the controller lease and validate task/payout state.
+        """
+        if (not isinstance(request_id, str) or len(request_id) != 32
+                or any(c not in '0123456789abcdef' for c in request_id)):
+            raise ValueError('Invalid manual skip request')
+        try:
+            int(request_id, 16)
+        except ValueError:
+            raise ValueError('Invalid manual skip request') from None
+        for row in self.data.get('manual_skips', []):
+            if row['request_id'] == request_id:
+                return dict(row, repeated=True)
+        if self.data['active'] is not None:
+            raise ValueError('Finish or abandon the active run before skipping its team')
+        if type(expected_rotation) is not int or expected_rotation != self.data['rotation']:
+            raise ValueError('Rotation changed; refresh the displayed team before skipping')
+        if len(self.slots) < 2:
+            raise ValueError('Single-team mode has no next rotation team')
+        data = copy.deepcopy(self.data)
+        after = (expected_rotation + 1) % len(self.slots)
+        row = dict(request_id=request_id, before=expected_rotation, after=after,
+                   previous_team=self.team_slot, next_team=self.slots[after],
+                   reason='explicit_manual_skip', counts_as_completion=False)
+        data.setdefault('manual_skips', []).append(row)
+        data['manual_skips'] = data['manual_skips'][-50:]
+        data['rotation'] = after
+        write_json(self.path, data)
+        self.data = data
+        return dict(row, repeated=False)

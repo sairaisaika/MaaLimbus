@@ -125,3 +125,36 @@ Serve over HTTP on purpose: a `file://` document cannot import the mermaid ES mo
 Mermaid 是绘图语法，不决定工程图类型。flowchart 语法可承载组件图或部署图，但必须按该图的模型元素与连线语义绘制。布局上下位置本身不表示设计层级或调用先后。
 
 Mermaid is a drawing syntax, not the engineering model. A flowchart renderer can draw components or deployment nodes only when its elements and relationships follow that model. Vertical layout alone does not mean layering or temporal order.
+
+## 分层图覆盖索引 / Feature diagram coverage
+
+总架构与总流程用于导航，局部图用于解释具体守卫、交互、数据或失败恢复。以下链接不代表功能实机全验收；每段正文分别写明实现、保留帧验证与实机缺口。没有图的简单参数/纯函数按文字和源码索引解释，避免为画图而画图。
+
+Overview diagrams are navigation; local diagrams explain specific guards, interactions, data and recovery. Links below do not claim complete live acceptance. Each section distinguishes implementation, retained evidence and live gaps. Simple parameters and pure functions need prose/source references rather than a diagram for every function.
+
+| 功能 / Feature | 中文局部图 | English local view |
+| --- | --- | --- |
+| 识别、浮层与新观测 / Recognition, overlays and fresh observation | [3.1.5](zh_cn/3-runtime.md#feature-3-1-5) | [3.1.5](en_us/3-runtime.md#feature-3-1-5) |
+| 未知页探索与待审标签 / Unknown-page exploration and proposed labels | [3.7](zh_cn/3-runtime.md#feature-3-7) | [3.7](en_us/3-runtime.md#feature-3-7) |
+| 罪人模型、独立教师与上线边界 / Sinner model, independent teacher and promotion boundary | [3.8](zh_cn/3-runtime.md#feature-3-8) | [3.8](en_us/3-runtime.md#feature-3-8) |
+| 购买价值学习与规则执行的分界 / Purchase-value learning versus rule execution | [3.9](zh_cn/3-runtime.md#feature-3-9) | [3.9](en_us/3-runtime.md#feature-3-9) |
+| 启动意图与前台确认 / Launch intent and foreground confirmation | [4.2.1](zh_cn/4-business-flows.md#feature-4-2-1) | [4.2.1](en_us/4-business-flows.md#feature-4-2-1) |
+| 入场与列表上下查找 / Entry and bidirectional team-list search | [4.3.2](zh_cn/4-business-flows.md#feature-4-3-2) | [4.3.2](en_us/4-business-flows.md#feature-4-3-2) |
+| 每场部署：复用、修正与提交 / Encounter deployment: reuse, correction and submission | [4.3.3](zh_cn/4-business-flows.md#feature-4-3-3) | [4.3.3](en_us/4-business-flows.md#feature-4-3-3) |
+| 楼层礼物选择、到账与恢复 / Floor gifts: selection, receipts and recovery | [4.3.4](zh_cn/4-business-flows.md#feature-4-3-4) | [4.3.4](en_us/4-business-flows.md#feature-4-3-4) |
+| 初始礼物、搜索与楼层主题 / Initial gifts, search and floor themes | [4.3.5](zh_cn/4-business-flows.md#feature-4-3-5) | [4.3.5](en_us/4-business-flows.md#feature-4-3-5) |
+| 战斗配卡与真实进度 / Battle assignment and actual progress | [4.3.6](zh_cn/4-business-flows.md#feature-4-3-6) | [4.3.6](en_us/4-business-flows.md#feature-4-3-6) |
+| 路线与事件是不同决策 / Routes and events are different decisions | [4.3.7](zh_cn/4-business-flows.md#feature-4-3-7) | [4.3.7](en_us/4-business-flows.md#feature-4-3-7) |
+| 经验与纺锤共享的菜单链 / Shared Experience and Thread menu chain | [4.4.1](zh_cn/4-business-flows.md#feature-4-4-1) | [4.4.1](en_us/4-business-flows.md#feature-4-4-1) |
+| 领奖与只记账恢复 / Payout and bookkeeping-only recovery | [4.6.1](zh_cn/4-business-flows.md#feature-4-6-1) | [4.6.1](en_us/4-business-flows.md#feature-4-6-1) |
+| 未完成任务的真实边界 / Actual boundaries of unfinished tasks | [4.7.1](zh_cn/4-business-flows.md#feature-4-7-1) | [4.7.1](en_us/4-business-flows.md#feature-4-7-1) |
+| 轮换政策与手动跳过 / Rotation policy and manual skip | [4.10](zh_cn/4-business-flows.md#feature-4-10) | [4.10](en_us/4-business-flows.md#feature-4-10) |
+| 更新事务与失败回滚 / Update transaction and failure rollback | [6.4.5](zh_cn/6-deployment.md#feature-6-4-5) | [6.4.5](en_us/6-deployment.md#feature-6-4-5) |
+| 发布包证据与私有数据隔离 / Package provenance and private-data exclusion | [6.7](zh_cn/6-deployment.md#feature-6-7) | [6.7](en_us/6-deployment.md#feature-6-7) |
+| 学习数据的引用与复核关系 / Learning data references and review relationships | [5.5](zh_cn/5-state-and-data.md#feature-5-5) | [5.5](en_us/5-state-and-data.md#feature-5-5) |
+| 购物与刷新分别结算 / Purchase and refresh settle separately | [4.3.8](zh_cn/4-business-flows.md#feature-4-3-8) | [4.3.8](en_us/4-business-flows.md#feature-4-3-8) |
+| 图鉴、账户 box 与自动编队 / Catalogue, account box and automatic formation | [4.3.9](zh_cn/4-business-flows.md#feature-4-3-9) | [4.3.9](en_us/4-business-flows.md#feature-4-3-9) |
+
+新增功能或修复改变状态/交互时，审查对应局部图及双语段落；不能只改总览。Mermaid 解析通过只证明语法，覆盖索引只证明可找到说明，二者都不等于游戏 pipeline 通关。
+
+When a feature or fix changes interactions/states, review its local diagram and paired prose, not only the overview. Mermaid parsing verifies syntax and this map verifies discoverability; neither proves a complete gameplay pipeline.

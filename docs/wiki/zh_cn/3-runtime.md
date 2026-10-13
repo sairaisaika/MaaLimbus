@@ -101,6 +101,30 @@
 
 ---
 
+
+<a id="feature-3-1-5"></a>
+
+### 3.1.5 识别、浮层与新观测
+
+scene、page、浮层和观测新鲜度是四个不同判断。无新分析事件不是未知页面，不能回用上一次日志当点击后继；有画面但页面未知，才进入 3.7 的探索分支。浮层返回只使用独立读到的控件，不用底层页面的按钮。
+
+```mermaid
+flowchart TD
+  A["Maa screenshot / Maa 截图"] --> B["Native OCR + anchors / 原生识别与锚点"]
+  B --> C["scene + observed controls / 本帧页面与控件"]
+  C --> D{"Verified overlay? / 已证明浮层？"}
+  D -->|yes| E["Overlay owns the next action / 浮层控件优先"]
+  D -->|no| F["Resolve page and policy / 解析页面策略"]
+  E --> F
+  F --> G{"Fresh analysis event? / 本次有新分析事件？"}
+  G -->|yes| H["Plan using this observation / 使用本次观测规划"]
+  G -->|no| I["Bounded observation retry / 有界重跑观测"]
+  I -->|still absent| J["Report missing observation / 明确报告无观测"]
+  I -->|fresh event| H
+```
+
+源码落点：`src/maalimbus/runner.py:1` (`MaaObserver.observe`, `resolve_scene`); `src/maalimbus/overlay_dismissal.py:1`; `agent/recognition.py:1`.
+
 ## 3.2 决策与执行
 
 ### 3.2.1 `plan_step` 的单输入契约
@@ -446,3 +470,76 @@ sequenceDiagram
 - `tools/window_step.py`（第二个前端）已打开：`--help` 能跑、开关与授权门禁都已核对（见 3.5），但**没有实际驱动过一次**，所以「能跑」只到命令行解析这一层，不是端到端验收。
 - `MirrorLoopAction` 返回值中 `passed` 的完整赋值路径未逐行验收（见 3.3.2）。
 - `src/maalimbus/map_vision.py` 之外的同目录视觉模块只依据 `agent/recognition.py:20-43` 的 import 列表列出，正文未逐个打开。
+<a id="feature-3-7"></a>
+
+## 3.7 未知页探索与待审标签
+
+未知并非一律停止。当前探索只允许原生证明的导航控件和地图视口拖动，每个未解决片段最多三种候选；拖动画面改变不能单独证明打开了节点。支付、领奖、退出局和已有 pending 不由探索绕过。proposal、前后 JSON/PNG、trace.log、review.json 在同一私有目录；继续任务不等于自动批准标签或批准生产模型。
+
+```mermaid
+flowchart TD
+  A["Observed unknown page / 已观测未知页"] --> B{"Existing pending transaction or victory? / 有未结事务或已胜利？"}
+  B -->|yes| C["Reconcile original intent; no probe / 先核原意图，不试探"]
+  B -->|no| D{"Independent Back, Close or map pan? / 有独立返回控件或地图拖动？"}
+  D -->|no| E["Wait within observation budget / 预算内等待"]
+  D -->|yes| F{"Unused candidate, fewer than 3? / 未试候选且少于三次？"}
+  F -->|no| G["Keep evidence and report blocked / 保留证据并报告阻塞"]
+  F -->|yes| H["Persist intent + before hashes / 先保存意图及前帧哈希"]
+  H --> I["One bounded Maa input / 一次有界 Maa 输入"]
+  I --> J["Independent successor / 独立后继观测"]
+  J --> K["Bundle before, after, trace, proposal, review / 统一证据与待审标签包"]
+  K --> L{"Known successor proven? / 已证明可识别后继？"}
+  L -->|yes| M["Continue normal task / 继续正常任务"]
+  L -->|no| F
+  K -.-> N["Human review; not ground truth / 人工复核，尚非真值"]
+```
+
+源码落点：`src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:1` (`_explore_unknown`).
+
+
+<a id="feature-3-8"></a>
+
+## 3.8 罪人模型、独立教师与上线边界
+
+真实 ONNX 已训练并接到 MaaFramework 原生影子推理；不能再写成“没有模型”。当前质量门禁未通过，production_enabled/input_authorized 为 false。十二槽教师独立读卡片与印刷 order badge，网格位置不等于部署序号。模型预测、教师候选、人工认可标签必须分开，不能让模型用自己的预测给自己验收。
+
+```mermaid
+sequenceDiagram
+  participant R as Recognition / 识别
+  participant N as Maa NeuralNetworkDetect
+  participant T as Independent teacher / 独立教师
+  participant B as Private review bundle / 私有复核包
+  participant P as Planner / 规划器
+  R->>N: Hash-bound ONNX and verified ROIs / 哈希绑定模型与区域
+  N-->>R: Shadow classes, boxes and scores / 影子类别框与分数
+  R->>T: Same frame pixels, OCR and order badges / 同帧像素与徽章
+  T-->>R: Resolved and unknown slots / 已核与未知槽位
+  R->>B: Record disagreement and label proposal / 记录分歧和候选标签
+  R->>P: Proven native observations / 已证明的原生观测
+  Note over N,P: Shadow prediction does not authorize input / 影子预测不批准输入
+  Note over B: Human review and independent quality gates remain / 人工复核及独立质量门禁仍需通过
+```
+
+源码落点：`src/maalimbus/neural_shadow.py:98` (`verified_model`, `observe`); `src/maalimbus/pre_battle_identity.py:1`; `src/maalimbus/learning_dataset.py:1`.
+
+
+<a id="feature-3-9"></a>
+
+## 3.9 购买价值学习与规则执行的分界
+
+已接离线训练与影子预览，但当前真实样本不足，不能称神经网络正在决定购物。未买的商品不是负样本，支付成功也不是收益标签；必须关联同 scope 的后续结果。候选缺失或无效时沿用规则，手动经济饰品权重和预算仍是执行依据。影子函数保持原排序。
+
+```mermaid
+flowchart LR
+  A["Verified purchase and delayed same-run outcome / 实证购买与同局后续结果"] --> B["Human reviewed episodes / 人工复核片段"]
+  B --> C{"At least 10 independent episodes? / 至少十个独立片段？"}
+  C -->|no| D["Readiness report, no trained candidate / 就绪报告，不训练候选"]
+  C -->|yes| E["Split by run scope, train and evaluate / 按局划分训练评估"]
+  E --> F["Candidate weights and model card / 候选权重及模型卡"]
+  F --> G["Hash-bound shadow score preview / 哈希绑定影子评分"]
+  G -.-> H["Log comparisons only / 仅记录比较"]
+  I["Player rules, priorities and budgets / 玩家规则、优先级与预算"] --> J["Actual purchase planner / 实际购买规划"]
+  G -. "does not reorder / 不改变排序" .-> J
+```
+
+源码落点：`src/maalimbus/shop_value_training.py:422` (`verify_episode_evidence`, `load_reviewed_episodes`, `split_by_scope`); `src/maalimbus/shop_value_shadow.py:7` (`rank_preview`).

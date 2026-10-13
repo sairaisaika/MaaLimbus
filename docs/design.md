@@ -442,3 +442,19 @@ Each input persists separate PNG/JSON hashes and report identity before touch.
 Reconciliation checks original evidence bytes before clearing the known pending
 navigation; the fresh Drive page and next preflight must independently match.
 The invocation never exceeds two menu inputs and does not infer a Lux stage.
+
+## Manual rotation is separate from successful completion
+
+The selected policy remains: advance automatically only after verified clear, reward
+and return. Abandonment does not advance. The explicit manual skip action requires
+no active run, completed payout state, rotation mode, a free controller lease and an
+expected cursor. A retained request ID makes a lost-response retry idempotent. Only
+rotation and a manual_skips audit row change; no floor, victory, reward, budget,
+completion counter or archived receipt is synthesized. The GUI and launcher command
+are source additions until rebuilt, installed and visibly accepted.
+
+Wiki diagrams must be local to the feature they explain where interaction, branching,
+state, data or recovery warrants a diagram. Overview views route readers to these
+sections. The coverage index and syntax parser do not establish functional or live
+gameplay acceptance. Neural inference belongs to Maa native recognition; independent
+teachers, review bundles and offline training are project-owned learning services.

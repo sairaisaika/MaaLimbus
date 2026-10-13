@@ -37,6 +37,58 @@ def test_ambiguous_or_unread_list_does_not_confirm_or_click_static_coordinates()
         team=dict(wanted=2,selected=7,visible_rows=[],navigation=p))
     assert plan['action']=='record'
 
+@pytest.mark.parametrize('wanted',[1,2])
+def test_scroll_back_to_first_teams_then_click_and_confirm_independent_header(wanted):
+    state={}
+    for numbers in ([7,8],[4,5],[1,2]):
+        rows=[row(n,470+i*55) for i,n in enumerate(numbers)]
+        location=browse(rows,(1920,1080),wanted,state)
+        selected=7
+        plan=plan_step('DUNGEON_TEAM',team=dict(wanted=wanted,selected=selected,
+            visible_rows=location['rows'],visible_target=location.get('target'),navigation=location))
+        if wanted not in numbers:
+            assert plan['action']=='swipe' and location['direction']=='up'
+            assert plan['to'][1]>plan['target'][1]
+        else:
+            assert plan['action']=='click' and plan['target']==list(rows[numbers.index(wanted)].box)
+    confirm=[1110,970,190,40]
+    plan=plan_step('DUNGEON_TEAM',controls={'team.confirm_button':confirm},
+                   team=dict(wanted=wanted,selected=wanted))
+    assert plan['action']=='click' and plan['target']==confirm
+
+@pytest.mark.parametrize('mode,target',[('single',1),('single',2),('rotation',1),('rotation',2)])
+def test_runner_uses_ledger_team_and_current_sidebar_in_actual_entry_step(tmp_path,monkeypatch,mode,target):
+    from maalimbus.runner import MirrorRunner,FakeDevice,FrameObserver,REGISTRY
+    from maalimbus.storage import RunStore
+    import maalimbus.runner as module
+    import cv2
+    retained=Path(__file__).resolve().parents[1]/'dist/MaaLimbus/evidence/runtime/pi-20261013-000909/frame-0005.json'
+    if not retained.exists():pytest.skip('actual entry frame not retained')
+    original=json.loads(retained.read_text(encoding='utf-8'))
+    # Preserve the actual page's anchors; replace only sidebar rows. No game controller.
+    record=json.loads(json.dumps(original))
+    record['ocr']=[r for r in record['ocr'] if not (r['box'][0]<300 and 420<=r['box'][1]<=880)]
+    record['ocr'] += [dict(text=r.text,box=list(r.box),score=r.score) for r in (row(7),row(8,580))]
+    source=tmp_path/'source.json';source.write_text(json.dumps(record),encoding='utf-8')
+    source.with_suffix('.png').write_bytes(retained.with_suffix('.png').read_bytes())
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path))
+    slots=[target] if mode=='single' else [7,target,3]
+    store=RunStore(tmp_path/'user-run-ledger.json',[SimpleNamespace(slot=s) for s in slots])
+    store.data['rotation']=0 if mode=='single' else 1
+    scope=store.start();seen=[];planner=module.plan_step
+    def capture(page,**kw):
+        seen.append((kw['team'],planner(page,**kw)))
+        return dict(page=page,action='record',target=None,expect=[],reason='captured_entry_plan')
+    monkeypatch.setattr(module,'plan_step',capture)
+    device=FakeDevice([cv2.imread(str(source.with_suffix('.png')))])
+    instance=MirrorRunner(device,settings=dict(team=7,rounds=1,interval=0),directory=tmp_path/'frames',
+        observer=FrameObserver(tmp_path/'frames',[str(source)]),registry=json.loads(REGISTRY.read_text()),
+        store=store,run_id=scope)
+    instance.step()
+    assert seen[-1][0]['wanted']==target and seen[-1][1]['action']=='swipe'
+    assert seen[-1][1]['to'][1]>seen[-1][1]['target'][1]
+    assert not device.clicks and not device.swipes
+
 def test_entry_frame_calls_global_reconcile_without_prior_shop_branch(tmp_path,monkeypatch):
     from maalimbus.runner import MirrorRunner,FakeDevice,FrameObserver,REGISTRY
     import cv2

@@ -523,3 +523,33 @@ This chapter covers **the structure of the state files**, not the semantics of t
 
 `AGENTS.md`, `PROJECT.md` (conventions), `docs/design.md`, all 17 JSON files under `config/`, `assets/interface.json`, `assets/resource/base/anchors.json`, `assets/resource/base/pipeline/mirror.json`, `assets/resource/base/pipeline/sinner-neural.json`, `assets/resource/{en,jp}/locale.json`, `assets/resource/base/budget.json`, `assets/resource/base/gift-plan.json`, `assets/i18n/{zh_cn,en_us,ja_jp}.json`, `src/maalimbus/vision.py`, `src/maalimbus/window.py`, `src/maalimbus/runner.py`, `src/maalimbus/storage.py`, `src/maalimbus/run_wiring.py`, `src/maalimbus/learning_dataset.py`, `src/maalimbus/floor_gift_transaction.py`, `src/maalimbus/grace_transaction.py`, `src/maalimbus/initial_transaction.py`, `src/maalimbus/deployment_transaction.py`, `src/maalimbus/theme_transaction.py`, `src/maalimbus/reward_claim_transaction.py`, `src/maalimbus/shop_transaction.py`, `src/maalimbus/reward_task.py`, `src/maalimbus/shop_outcomes.py`, `agent/recognition.py`, `tools/run_ledger.py`.
 </details>
+<a id="feature-5-5"></a>
+
+## 5.5 Learning data references and review relationships
+
+This is a logical reference model across private JSON artifacts, not physical database tables or automatically enforced foreign keys. Approval still requires hash/scope checks, training split validation and independent evaluation; one review does not authorize production input. Purchase-value samples additionally require same-run delayed outcomes.
+
+```mermaid
+erDiagram
+  RUN_SCOPE ||--o{ FRAME_PROOF : binds
+  FRAME_PROOF ||--o{ LABEL_PROPOSAL : supports
+  LABEL_PROPOSAL ||--o| HUMAN_REVIEW : awaits
+  HUMAN_REVIEW ||--o{ REVIEWED_SAMPLE : approves_or_corrects
+  DATASET_MANIFEST ||--o{ REVIEWED_SAMPLE : enumerates_hashes
+  DATASET_MANIFEST ||--o{ MODEL_CARD : binds_training_split
+  MODEL_CARD ||--o{ NATIVE_EVALUATION : binds_model_hash
+  MODEL_CARD ||--o{ SHADOW_REPORT : identifies_model
+  FRAME_PROOF ||--o{ SHADOW_REPORT : identifies_pixels
+  LABEL_PROPOSAL {
+    string proposed_label
+    boolean training_eligible
+    boolean input_authorized
+  }
+  HUMAN_REVIEW {
+    string status
+    boolean approved
+    string corrected_label
+  }
+```
+
+Source boundaries: `src/maalimbus/unknown_exploration.py:1`; `src/maalimbus/learning_dataset.py:1`; `src/maalimbus/shop_value_training.py:422`; `src/maalimbus/neural_shadow.py:98`.

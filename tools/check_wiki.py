@@ -322,6 +322,34 @@ def check_wiki(wiki: Path = None, root: Path = None) -> dict:
             problems.append('[DIAGRAM] no %s block on the site (the %s diagram)'
                             % (kind, meaning))
 
+    # Feature coverage is a navigable index, not a numerical claim of completeness.
+    # An indexed local view must exist, contain its own diagram, and have a twin.
+    readme = wiki / 'README.md'
+    index = readme.read_text(encoding='utf-8') if readme.exists() else ''
+    links = set(re.findall(r'\]\(((?:zh_cn|en_us)/[^)#]+\.md)#(feature-[\w-]+)\)', index))
+    declared = set()
+    for language in LANGUAGES:
+        for page in (wiki/language).glob('*.md'):
+            body=page.read_text(encoding='utf-8')
+            anchors=list(re.finditer(r'<a id="(feature-[\w-]+)"></a>',body))
+            for i,anchor in enumerate(anchors):
+                key=(language+'/'+page.name,anchor.group(1));declared.add(key)
+                if key not in links:
+                    problems.append('[COVERAGE] local view absent from README: %s#%s' % key)
+                section=body[anchor.end():anchors[i+1].start() if i+1<len(anchors) else len(body)]
+                headings=list(re.finditer(r'^#{1,3} ',section,re.M))
+                if len(headings)>1:
+                    section=section[:headings[1].start()]
+                if '```mermaid\n' not in section:
+                    problems.append('[COVERAGE] indexed feature has no local diagram: %s#%s' % key)
+    for key in sorted(links-declared):
+        problems.append('[COVERAGE] index points at a missing local view: %s#%s' % key)
+    for page,anchor in sorted(declared):
+        language,name=page.split('/',1)
+        other=LANGUAGES[1] if language==LANGUAGES[0] else LANGUAGES[0]
+        if (other+'/'+name,anchor) not in declared:
+            problems.append('[COVERAGE] local view has no language twin: %s#%s' % (page,anchor))
+
     return {'problems': problems, 'files': len(files), 'languages': present,
             'diagram_types': diagram_types, 'pages': pages}
 

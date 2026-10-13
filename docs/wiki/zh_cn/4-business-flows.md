@@ -114,6 +114,30 @@ flowchart TD
 - **终止条件**：成功＝前台被独立确认（上述三种 reason 之一）；拒绝＝控制器不是 ADB、存在别的未完成启动事务、或身份预检失败；停止＝5 轮仍未证明前台（`pending=True`）。
 - **产出证据**：`game_launch_intent` / `game_open_observed` 事件 + `user-open-game-transaction.json` + `agent-result.json`。
 
+
+<a id="feature-4-2-1"></a>
+
+### 4.2.1 启动意图与前台确认
+
+此图只覆盖实际实现的打开游戏任务，不包含重新登录或关闭别的游戏。当前暂停期间不调用此路径。冷启动完整实机验收仍开放。
+
+```mermaid
+flowchart TD
+  A["OpenGameTask"] --> B{"Win32 or ADB?"}
+  B -->|Win32| C["Verify existing game identity / 核已有游戏身份"]
+  C --> D["Return, no relaunch / 返回，不重启"]
+  B -->|ADB| E{"Limbus already foreground? / 已是 Limbus 前台？"}
+  E -->|yes| D
+  E -->|no| F{"Unresolved launch intent? / 已有未结启动意图？"}
+  F -->|yes| G["Preserve pending; no second launch / 保留意图，不二次启动"]
+  F -->|no| H["Persist intent, Maa post_start_app / 保存意图，再原生启动"]
+  H --> I["Up to five independent foreground checks / 最多五次独立前台检查"]
+  I -->|proven| D
+  I -->|unproven| G
+```
+
+源码落点：`src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1` (`MainTaskAction.run`).
+
 ## 4.3 `mirror`：自动镜牢
 
 - **触发入口**：`MirrorTask`（`assets/resource/base/pipeline/mirror.json:5284`），10 个 option（`assets/interface.json:117-128`）；文案见 `assets/i18n/zh_cn.json:77-78`。
@@ -190,6 +214,210 @@ flowchart TD
 
 （实机走通的只有 `window-20261012-214803` 那一步：3093 → 2993 的复活收据；整条路由由一次 planner 运行跑完仍在待验收清单里，见 7.3。）
 
+
+<a id="feature-4-3-2"></a>
+
+### 4.3.2 入场与列表上下查找
+
+队列值由 RunStore 驱动，不从当前屏幕已选队伍反推设置。目标在上方时手指向下滑回 Team1/Team2；两次列表语义不变只反向一次，之后停并记录。图中的查找块可能由多次循环 step 完成，命中目标后退出搜索，不是强制执行十二次。默认编号 1–40 支持，重命名槽位仍需独立映射。实机 Team1/Team2 跨屏回滑尚待暂停解除后的产品入口测试。
+
+```mermaid
+sequenceDiagram
+  participant R as MirrorRunner
+  participant L as RunStore
+  participant V as Fresh team OCR / 新队伍观测
+  participant M as Maa controller
+  R->>L: reconcile fresh DUNGEON_TEAM / 核新入场页面
+  R->>L: start if absent, read team_slot / 新建局或取当前队伍
+  R->>R: Rebind result, shop and exploration scope / 绑定新局结果与事务路径
+  loop At most 12 list attempts / 最多十二次列表尝试
+    R->>V: Read current sidebar rows and header / 读本次列表与标题
+    alt Target offscreen / 目标不在屏内
+      R->>R: Persist direction, row signature and attempt / 保存方向与尝试数
+      R->>M: Sidebar-only Swipe / 只滑动左侧列表
+      M-->>V: Independent fresh frame / 独立新帧
+    else Unique target row visible / 唯一目标可见
+      R->>M: Click current row box / 点击当前行
+      M-->>V: Independently selected top header / 独立选中标题
+    end
+  end
+  R->>L: entry_intent only for verified target / 核对目标后保存入场意图
+  R->>M: Confirm once / 确认一次
+  M-->>R: Warning or entry successor / 警告页或入场后继
+  R->>L: entry_observed after independent successor / 后继证明后记账
+```
+
+源码落点：`src/maalimbus/run_wiring.py:156` (`reconcile`); `src/maalimbus/team_navigation.py:1` (`browse`, `prepare`); `src/maalimbus/runner.py:1` (`MirrorRunner.step`).
+
+
+<a id="feature-4-3-3"></a>
+
+### 4.3.3 每场部署：复用、修正与提交
+
+复用的依据是卡片印刷部署序号与保存顺序一致，不能用网格位置或人数满了代替。明确不同顺序才清空；人数变化与不可用卡片单独证明。复活回执在同局事务重建时保留，不会因新战斗重复花钱。
+
+```mermaid
+flowchart TD
+  A["Fresh PRE_BATTLE_TEAM / 新出战页"] --> B["Read printed order badges and capacity / 读印刷顺序徽章及人数"]
+  B --> C["Validate unavailable-card proof / 核不可用卡片证据"]
+  C --> D{"Saved order fully carried? / 已沿用完整保存顺序？"}
+  D -->|yes| E["No Clear Selection; submit once / 不清空，直接提交一次"]
+  D -->|no| F{"Order contradicted or only uncertain? / 确定冲突还是只不确定？"}
+  F -->|contradicted| G["Persist clear intent; verify zero / 保存清空意图并核归零"]
+  F -->|empty selection| I
+  F -->|uncertain| H["Collect missing order evidence / 补顺序观测，不猜清空"]
+  G --> I["Pick saved sequence with count successors / 按保存序列选，逐次核人数"]
+  I --> E
+  E --> J["Independent battle successor / 独立战斗后继"]
+```
+
+源码落点：`src/maalimbus/deployment_transaction.py:5` (`prepare`, `intent`, `observe`); `src/maalimbus/team_vision.py:1` (`assignment_numbers`, `carries_saved_order`).
+
+
+<a id="feature-4-3-4"></a>
+
+### 4.3.4 楼层礼物选择、到账与恢复
+
+状态图的每条边是事务守卫，不是点击成功的假定。GIFT_GET、GIFT_PICK、REWARD_CARD、THEME_PACKS、MAP 只是后继家族；仍须对应完整标题、下一份 offer 或最终完成条件。恢复与即时结算共用后继读取器，恢复不重发 GET 确认。已拥有礼物替换记录 expected/printed，不伪造原礼物到账。
+
+```mermaid
+stateDiagram-v2
+  [*] --> Picking
+  Picking --> PickPending: persist pick intent before input
+  PickPending --> Picking: exact same offer and counter plus one
+  Picking --> CommitPending: required selections; Select once
+  CommitPending --> ReceiptPending: full named GET; persist ack intent
+  ReceiptPending --> CommitPending: next named notice independently proven
+  ReceiptPending --> Completed: final successor independently proven
+  ReceiptPending --> ReceiptPending: missing successor; observe only, no replay
+  PickPending --> PickPending: unknown counter; preserve pending
+  Completed --> [*]
+```
+
+源码落点：`src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:1` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
+
+
+<a id="feature-4-3-5"></a>
+
+### 4.3.5 初始礼物、搜索与楼层主题
+
+星光消费另受本局可见成本与预算门禁约束，图不授予消费。初始礼物 GET 回执、搜索 Refuse 确认和主题 Swipe 是三个独立事务，不能因页面稍慢而重放上一动作。图概括阶段，不代表所有搜索分支已有实机验收。
+
+```mermaid
+flowchart TD
+  A["Verified entry successor / 入场后继"] --> B["Select saved keyword group / 选保存体系组"]
+  B --> C["Pick named gifts with counter proof / 按名称选礼物并核计数"]
+  C --> D["Select once and named GET receipts / Select 一次及具名 GET 回执"]
+  D --> E{"Gift Search policy / 礼物搜索策略"}
+  E -->|refuse| F["Refuse once, full matching confirmation / Refuse 一次并核完整确认问句"]
+  E -->|saved| G["Use saved search policy / 使用保存搜索策略"]
+  F --> H["Fresh theme offers / 新主题 offer"]
+  G --> H
+  H --> I["Preferred and avoided weights / 偏好与规避权重"]
+  I --> J["Persist theme intent then Swipe once / 先记主题意图再 Swipe 一次"]
+  J --> K{"Independent MAP floor and pack match? / 独立地图楼层与主题一致？"}
+  K -->|yes| L["Resolve theme; enter route loop / 结主题事务并进入路线循环"]
+  K -->|no| M["Observe pending successor; no second Swipe / 核待定后继，不重拖"]
+```
+
+源码落点：`src/maalimbus/initial_gifts.py:1`; `src/maalimbus/initial_transaction.py:1`; `src/maalimbus/theme_transaction.py:5` (`intent`, `observe`).
+
+
+<a id="feature-4-3-6"></a>
+
+### 4.3.6 战斗配卡与真实进度
+
+saved 配置先解析为保存的具体模式；图从解析后开始。技能逐卡顺序编辑与模型直接配卡尚未完成。HUD 与 UNKNOWN 来回不等于战斗前进，进度停滞需记录具体边界；START 只提交当前回合。
+
+```mermaid
+flowchart TD
+  A["BATTLE HUD or planning / 战斗 HUD 或配卡页"] --> B{"Assignment mode / 配卡模式"}
+  B -->|observe| C["Record only; even START causes no input / 只记录，有 START 也不输入"]
+  B -->|win_rate| D["Independent Win Rate control / 独立 Win Rate 控件"]
+  B -->|damage| E["Independent Damage control / 独立 Damage 控件"]
+  D --> F["Assign then verify planning successor / 配卡并核规划后继"]
+  E --> F
+  E -->|missing| G["No Win Rate fallback / 不降级为 Win Rate"]
+  F --> H["Visible START submits this turn / 可见 START 提交本回合"]
+  H --> I["Wait on fresh turn progress / 等独立回合进度"]
+  I -->|next planning| A
+  I -->|unchanged within bound| G
+  I -->|result observed| J["Read outcome, not click-as-victory / 读取结果，不以点击当胜利"]
+```
+
+源码落点：`src/maalimbus/window.py:110` (`plan_step`); `src/maalimbus/battle_vision.py:1`; `src/maalimbus/runner.py:1`.
+
+
+<a id="feature-4-3-7"></a>
+
+### 4.3.7 路线与事件是不同决策
+
+节点几何命中并不证明进入面板。未知导航、未知敌方试炼与未知事件选择有各自策略，3.7 的返回探测不能泛化为任意 Accept/Confirm；没有匹配策略时仍可能保留现场停止。不能把故事文本猜出的收益当实际到账。
+
+```mermaid
+flowchart TD
+  A["Verified MAP header / 已核地图标题"] --> B["Geometric reachable candidates / 几何可达候选"]
+  B --> C["Route preference and exclusions / 路线偏好与排除"]
+  C --> D["Click candidate; independently require NODE_PANEL / 点候选并独立核节点面板"]
+  D --> E["Enter panel with its own control / 使用面板自己的进入控件"]
+  E --> F{"Battle or event? / 战斗还是事件？"}
+  F -->|battle| G["Deployment then battle loop / 编队后战斗循环"]
+  F -->|event| H["Read story, choices and check controls / 读事件文本选项与检定控件"]
+  H --> I{"Existing event policy? / 已有事件策略？"}
+  I -->|yes| J["One choice or skill-check input / 一次选择或检定输入"]
+  I -->|no| K["Bounded authorized exploration and review / 已授权范围内探索并待审"]
+  J --> L["Independent result then reward or map / 独立结果，再奖励或地图"]
+  K --> L
+```
+
+源码落点：`src/maalimbus/map_vision.py:1`; `src/maalimbus/event_vision.py:1`; `src/maalimbus/mirror_learning_policy.py:1`; `src/maalimbus/runner.py:1`.
+
+
+<a id="feature-4-3-8"></a>
+
+### 4.3.8 购物与刷新分别结算
+
+Purchase 弹窗报价尚未消费，不能在此页要求钱已扣完。card/confirm/GET/货架到账分别结算；卡片可能留在货架并显示自己的 Purchased 标记，也可能消失。刷新读数必须证明完整新货架，不能靠 OCR 数量变化猜已经成功。局内 coins 与 Modules/Lunacy 预算分开。静态硬规则、经济优先级和刷新上限控制当前行为，3.9 的模型仅作影子预览。
+
+```mermaid
+stateDiagram-v2
+  [*] --> Shelf
+  Shelf --> CardIntent: title, price, coins and reserve proven
+  CardIntent --> ConfirmIntent: independent matching Purchase question
+  ConfirmIntent --> OverlayIntent: GET notice, own Confirm once
+  OverlayIntent --> Shelf: exact delta and own Purchased badge or complete disappearance
+  CardIntent --> Shelf: independently unchanged shelf and coins, unspent intent
+  Shelf --> RefreshIntent: visible cost, reserve, visit limit, persist attempt
+  RefreshIntent --> Shelf: exact delta and complete changed shelf proven
+  ConfirmIntent --> ConfirmIntent: uncertain successor, never pay twice
+  RefreshIntent --> RefreshIntent: uncertain successor, never refresh twice
+```
+
+源码落点：`src/maalimbus/shop_transaction.py:147` (`ShopTransaction`); `src/maalimbus/shop_vision.py:1`; `src/maalimbus/shop_settings.py:1`; `src/maalimbus/shop_value_shadow.py:7`.
+
+
+<a id="feature-4-3-9"></a>
+
+### 4.3.9 图鉴、账户 box 与自动编队
+
+公共图鉴不包含账户 ownership；未观测不等于没有。选择器的混合体系是 OR 匹配，等级先于匹配体系数量。点击 sinner 的详情往返不能冒称已经扫描完整 box。体系 E.G.O 全量装配与实际后继仍须单独验收，此图不是已完成每个账户自动装备的证明。
+
+```mermaid
+flowchart TD
+  A["Revisioned public catalogue / 带版本公共图鉴"] --> C["Exact normalized identity index / 精确归一化人格索引"]
+  B["Observed owned-only account page / 实际仅已有人格页"] --> D["Sinner header and filter proof / 罪人标题及筛选证明"]
+  D --> E["Observed titles, level and evidence / 观测名称等级与证据"]
+  C --> F["Reconcile by sinner and unique alias / 按罪人及唯一别名对账"]
+  E --> F
+  F --> G["Owned matches and unresolved rows / 已有匹配与未解记录"]
+  G --> H{"Complete inventory or descending-level proof? / 全量或等级降序已核？"}
+  H -->|yes| I["Owned selectable system match, highest level / 已有可选体系匹配，等级优先"]
+  H -->|no| J["Do not claim highest owned identity / 不声称已选账户最高人格"]
+  I --> K["Actual equip and EGO successor required / 实际装配与 EGO 后继仍需证明"]
+```
+
+源码落点：`src/maalimbus/owned_inventory.py:1` (`build_index`, `reconcile_titles`); `src/maalimbus/sinner_collection.py:1`; `src/maalimbus/auto_formation.py:17` (`choose_identity`).
+
 ## 4.4 `experience`：自动经验本
 
 - **触发入口**：`ExperienceTask`（`assets/resource/base/pipeline/mirror.json:5295`），option `experience_team`（`assets/interface.json:136-138`）；文案见 `assets/i18n/zh_cn.json:79-80`，其中明确「关卡选择、战斗及消耗验证尚未支持」。
@@ -197,6 +425,35 @@ flowchart TD
 - **逐步业务动作（导航部分）**：`target(record)`（`src/maalimbus/lux_task.py:45`）只认两种页面：`HOME` 上独立可读的 Window / Sinners / Inventory 三个控件 + 唯一的 `Drive`，以及 `DRIVE` 上的 `Luxcavation`；到 `DRIVE` 之后没有已独立验证的下一站。
 - **终止条件**：拒绝＝有未完成镜牢（`active_mirror_run_blocks_lux_navigation`）、选择非法、既有意图属于别的任务/队伍；停止＝会话结束或超出输入界，`lux_task.execute` 在成功点到 Drive 之后返回 `lux_navigation_successor_requires_verification`（`src/maalimbus/lux_task.py:127-128`），**不算通过**。
 - **产出证据**：`lux-menu-home-input.json` / `lux-menu-drive-input.json` 输入报告、`user-lux-task-transaction.json` 意图文件、`lux_navigation_stopped` 事件、`agent-result.json`。
+
+
+<a id="feature-4-4-1"></a>
+
+### 4.4.1 经验与纺锤共享的菜单链
+
+两个任务共享实现，只在任务键和保存队伍不同。准备门禁在写配置与创建设备之前；执行再核镜牢排斥。成功走到菜单边界不是刷经验/纺锤完成，stage 选择、成本、战斗与到账仍未实现验收。
+
+```mermaid
+sequenceDiagram
+  participant A as MainTaskAction
+  participant L as Mirror and Lux state / 镜牢与 Lux 状态
+  participant P as Saved profiles / 保存编队
+  participant M as Maa observation and input
+  A->>L: prepare: exclude active Mirror and conflicting intent
+  L-->>A: Validated task and team / 已核任务队伍
+  A->>P: Resolve saved team, save only changed defaults
+  A->>M: Observe HOME / 观测主页
+  A->>L: Persist HOME before JSON and PNG hashes
+  A->>M: Click independently recognized Drive
+  M-->>A: Fresh DRIVE control and hashes
+  A->>L: Validate both proofs then resolve HOME intent
+  A->>L: Persist separate DRIVE intent
+  A->>M: Click independently recognized Luxcavation
+  M-->>A: Stage page requires verification / 关卡页仍需验证
+  Note over A,M: At most two menu inputs, no farming or consumption / 最多两次菜单输入，不刷本或消费
+```
+
+源码落点：`src/maalimbus/lux_task.py:11` (`check_run`, `prepare`, `execute`).
 
 ## 4.5 `thread`：自动纺锤本
 
@@ -214,6 +471,38 @@ flowchart TD
 - **终止条件**：成功＝`finish` 通过回执链与 HOME 独立验证，返回 `mirror_payout_and_home_verified`（`src/maalimbus/reward_task.py:68`）；拒绝＝没有已验证的完整镜牢运行，返回 `completed_mirror_run_required`（`:97-99`）；停止＝页面/后继未被证明、输入界耗尽或设备中断（`:115`、`:129-132`）。
 - **产出证据**：`reward-<action>-input.json` 输入报告、`user-reward-claim-transaction.json` 事务、`user-run-ledger.json` 账本事件、`reward_task_stopped` 事件、`agent-result.json`。
 
+
+<a id="feature-4-6-1"></a>
+
+### 4.6.1 领奖与只记账恢复
+
+未授权预算保留报价页，不能借用上一局预算。确认金额和 Pass 数值来自实际页面，不固定 250/81。通关、奖励到账、返回与轮换分别记账；已通关但领奖/返回证据缺失，不能推断没通关，也不能伪造完成链。此任务当前只实现 Mirror 子流程，不含邮件/每日奖励。
+
+```mermaid
+sequenceDiagram
+  participant E as Rewards executor / 领奖执行
+  participant T as Scoped reward transaction / 本局领奖事务
+  participant M as Maa controller
+  participant A as Readonly receipt audit / 只读回执审计
+  participant L as RunStore
+  E->>T: Require verified five floors and scoped budget
+  loop claim, confirm, receipt, pass / 各输入阶段
+    E->>M: Read fresh cost, question or receipt control
+    E->>T: Persist action intent before input
+    E->>M: One input, then independent successor
+    M-->>T: Scoped input report and retained frame
+  end
+  M-->>E: Independently observed HOME
+  E->>A: Four reports, actual amounts and JSON/PNG hashes
+  A-->>E: Full chain proven / 完整链已证明
+  E->>T: Persist bookkeeping HOME before ledger change
+  E->>L: reward_received then entry_returned, rotate once
+  E->>T: Mark transaction completed
+  Note over E,L: If final write fails, recover exact archived events without input or rotation / 最后写失败只核归档恢复，不再输入或轮换
+```
+
+源码落点：`src/maalimbus/reward_task.py:27` (`finish`, `execute`); `src/maalimbus/reward_receipt_audit.py:1`; `src/maalimbus/storage.py:247` (`RunStore.record`).
+
 ## 4.7 `stamina`：体力兑换（未实现）
 
 - **触发入口**：`StaminaTask`（`assets/resource/base/pipeline/mirror.json:5328`），无 option；文案见 `assets/i18n/zh_cn.json:85-86`：「预算内体力兑换识别尚在开发，当前保存现场后停止，不消费」。
@@ -224,7 +513,28 @@ flowchart TD
 
 ---
 
+
+<a id="feature-4-7-1"></a>
+
+### 4.7.1 未完成任务的真实边界
+
+虚线表示缺口，不是执行边。预算基础或独立入口存在不等于这些业务已完成；图保留边界，避免把想做的能力画成已经运行的 pipeline。
+
+```mermaid
+flowchart LR
+  A["StaminaTask"] --> B["Observe and retain frame / 观测留帧"]
+  B --> C["task_page_policy_not_implemented; zero input / 页策略未实现，零输入"]
+  D["RewardsTask"] --> E["Implemented Mirror payout only / 仅已实现镜牢领奖"]
+  E -. "not implemented / 未实现" .-> F["Mail and daily claim / 邮件及每日奖励"]
+  G["Experience or Thread"] --> H["Shared menu navigation / 共享菜单导航"]
+  H -. "not implemented / 未实现" .-> I["Stage, costs, farming and receipt / 关卡成本刷本到账"]
+```
+
+源码落点：`agent/recognition.py:1` (`MainTaskAction.run`); `src/maalimbus/lux_task.py:65`; `src/maalimbus/reward_task.py:72`.
+
 ## 4.8 未验收 / 待核实清单
+
+更新边界（2026-10-13）：下列旧记录的“GUI 未派发”是当时快照。实际 GUI Start 已走过 DUNGEON_TEAM、警告、星光与初始礼物，证明入口已执行，但未证明整局和 Team1/Team2 实机跨屏滑动。用户确认上局通关；独立领奖/返回记账不全仍是另一项缺口。
 
 本章已经逐条打开确认的锚点见上文每处 `路径:行号`。以下内容本章**没有**独立验证，如实列出：
 
@@ -245,3 +555,27 @@ flowchart TD
 队伍定位使用当前侧栏的独立 OCR 行，不用旧屏幕坐标。目标不在可见列表时只在侧栏内有界上下 Swipe；两次语义列表不变则换方向，最多十二次尝试。找到目标后仍须顶部标题独立证明选队成功，才能 Confirm。默认 TEAMS #1–#40 的编号可读；自定义队名仍需要经验证的槽位映射，不能把名字或列表位置猜成编号。导航尝试保存在私有 user-team-navigation.json。
 
 本轮已用真实失败帧在隔离状态中证明 reconcile 不再异常；实际成品更新与 GUI 再启动仍须另行验证。
+
+<a id="feature-4-10"></a>
+
+## 4.10 轮换政策与手动跳过
+
+用户已选“成功领奖后轮换，另加手动跳过”，不是弃局自动轮换。当前 point_at 可在无 active 时手动定位已保存队伍；专用跳过按钮、launcher 命令及幂等 ledger 操作已新增源码；尚未重建/安装/GUI 验收，不能当已安装按钮。上把通关由用户确认；脚本保留记录不足时单独注明，不能将其称为游戏未过。Team1、Team2 固定与轮换目标需经过 MainTask→Runner→列表定位的完整路径测试。
+
+```mermaid
+flowchart TD
+  A["Start request / 启动请求"] --> B{"Active run? / 已有当前局？"}
+  B -->|yes| C["Keep that run team and scope / 保留该局队伍及 scope"]
+  B -->|no| D["Read queue cursor or fixed team / 读队列游标或固定队伍"]
+  C --> E{"Clear, reward and return all proven? / 通关领奖返回全部已核？"}
+  E -->|yes| F["Archive receipt; advance once / 归档回执，前进一次"]
+  E -->|no| G["Retain facts; abandon keeps cursor / 保留事实，弃局不自动换队"]
+  D --> H["Bounded sidebar selection / 有界列表选队"]
+  F --> D
+  G --> I["Manual skip request / 手动跳过请求"]
+  I --> J{"No active run or controller? / 无当前局及活动控制器？"}
+  J -->|yes| K["Explicit next-team change; not completion / 明确换下一队，不计完成"]
+  J -->|no| L["Refuse change during a run / 局内拒绝改队"]
+```
+
+源码落点：`src/maalimbus/storage.py:151` (`point_at`, `abandon`, `record`); `src/maalimbus/task_preferences.py:1`; `src/maalimbus/team_navigation.py:1`.

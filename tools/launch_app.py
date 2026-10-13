@@ -1,5 +1,6 @@
 """Copy the updater outside the app, update while closed, then open native MXU."""
 import argparse
+import json
 import os
 from pathlib import Path
 import shutil
@@ -20,8 +21,44 @@ def main():
     parser.add_argument('--app', type=Path)
     parser.add_argument('--parent', type=int)
     parser.add_argument('--check-only', action='store_true')
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument('--rotation-status', action='store_true')
+    actions.add_argument('--skip-team', metavar='REQUEST_ID')
+    parser.add_argument('--expected-rotation', type=int)
     args = parser.parse_args()
     executable = plain_path(sys.executable)
+    if args.rotation_status or args.skip_team is not None:
+        if args.check_only or args.parent:
+            parser.error('Rotation management cannot run an update or launch')
+        if args.app is None and not getattr(sys, 'frozen', False):
+            parser.error('Source rotation management requires --app')
+        from maalimbus.runtime_paths import data_directory
+        from maalimbus.storage import RunStore, read_json
+        from maalimbus.task_preferences import TaskPreferences
+        app = plain_path(args.app or executable.parents[1])
+        config = data_directory(app)
+        # Direct constructor: never reuse a cached lease owned by gameplay.
+        lease = ControllerLease(config/'controller.lock')
+        try:
+            preferences = TaskPreferences(config)
+            value = preferences.lux_defaults()['mirror']
+            store = RunStore(config/'user-run-ledger.json',
+                [p for slot in value['teams'] for p in preferences.profiles.load() if p.slot == slot])
+            claim = config/'user-reward-claim-transaction.json'
+            tx = read_json(claim) if claim.exists() else {}
+            payout_pending = bool(tx and (not tx.get('completed') or tx.get('pending')))
+            if args.skip_team is not None:
+                if value['team_mode'] != 'rotation' or payout_pending:
+                    raise ValueError('Rotation mode with completed payout state is required')
+                result = store.skip_current(args.skip_team, expected_rotation=args.expected_rotation)
+            else:
+                result = dict(rotation=store.data['rotation'], team=store.team_slot,
+                              mode=value['team_mode'], active=store.data['active'] is not None,
+                              payout_pending=payout_pending)
+            print(json.dumps(result))
+        finally:
+            lease.close()
+        return
     if args.check_only:
         if args.app is None and not getattr(sys,'frozen',False):
             parser.error('Source check requires --app')

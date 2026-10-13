@@ -417,6 +417,38 @@ flowchart TD
 4. `docs/deployment.md`（75 行）**不是**部署文档。它讲的是游戏内「出战顺序」Prepare deployment 任务；真正的打包文档是 `docs/windows-package.md`（83 行）。命名容易误导，跨页引用时请以文件名而非直觉为准。
 5. `build-info.json` 的 `application_root` 是装配时刻的 staging 路径，包被替换后会陈旧。
 
+
+<a id="feature-6-4-5"></a>
+
+### 6.4.5 更新事务与失败回滚
+
+较新离线 candidate 的 stage/install、配置保留、缓存与回滚已有隔离实证；不能替代公开 GitHub 下载或实际 GUI 重启版本证明。unsupported_release_tag 不会继续安装。当前 GUI 活跃且游戏暂停，本次文档工作不替换 dist。
+
+```mermaid
+sequenceDiagram
+  participant C as Startup or manual check / 启动或手动检查
+  participant H as GitHub/cache
+  participant S as Stage verifier / 暂存校验
+  participant I as Installer / 安装器
+  participant A as Application files / 应用文件
+  C->>H: ETag or deadline-bound request / ETag 或限时请求
+  H-->>C: Metadata, cached result or rate-limit / 元数据缓存或限流
+  C->>C: Require valid newer semver / 核合法较新版本
+  C->>S: Download bounded asset, verify archive / 有界下载并核归档
+  S-->>C: Verified candidate, not installed proof / 合法候选，不是已安装证明
+  C->>I: Install only after application/controller exit / 应用与控制器退出后安装
+  I->>A: Backup and preserve private configuration / 备份并保留私有配置
+  I->>A: Swap and run installed Agent self-test / 替换并自检已安装 Agent
+  alt Post-swap verification fails / 替换后失败
+    I->>A: Restore backup / 恢复备份
+  else Verification passes / 核验通过
+    I-->>C: Installed result / 安装结果
+  end
+  Note over C,A: Public delivery and actual GUI restart need separate evidence / 公开分发与真实 GUI 重启另验
+```
+
+源码落点：`src/maalimbus/startup_update.py:1`; `src/maalimbus/update_stage.py:1`; `src/maalimbus/update_install.py:1`.
+
 ## 6.5 未验收 / 待核实清单
 
 | 事项 | 现状 | 需要的动作 |
@@ -434,3 +466,23 @@ flowchart TD
 公开源码导出在写 ZIP 前检查本机用户路径和字面玩家 ID，错误只报告文件名、行号、类别，不回显匹配值；本地学习策略 .local.json、日志和 jsonl 不进入源码归档。已脱敏当前文档中的本机用户路径。
 
 此门禁只检查当前文本；不宣称截图、模型训练集、已有 Git 历史或旧发布包已经全部清理。私有 config/evidence/build 仍必须排除，公开包还需检查实际文件清单和截图是否包含账号信息。
+
+<a id="feature-6-7"></a>
+
+## 6.7 发布包证据与私有数据隔离
+
+文本扫描不覆盖全部图片、模型训练数据或既有 Git 历史。原生五 DLL 字节、86 copyright 与 Python notice 有具体门禁，但完整传递依赖对应源码、静态链接与 artwork 分发仍开放。私有学习复核包不能随代码打包公开。
+
+```mermaid
+flowchart TD
+  A["Pinned source and runtime inputs / 固定源码与运行时输入"] --> B["Validate native bytes and notices / 核原生字节与许可文本"]
+  B --> C["Collect Python wheel and interpreter licenses / 留 Python wheel 与解释器许可"]
+  C --> D["Assemble explicit public file inventory / 装配明确公开文件清单"]
+  D --> E["Exclude config, evidence, local policies and logs / 排除配置证据本地策略日志"]
+  E --> F["Scan current public text for private values / 扫当前公开文本隐私项"]
+  F -->|clean| G["Build ZIP and hash manifest / 构建 ZIP 与哈希清单"]
+  F -->|finding| H["Report category, no raw value; refuse export / 仅报类别不回显值，拒绝导出"]
+  G --> I["Candidate validation, not full rights audit / 候选验证，不是完整权利审计"]
+```
+
+源码落点：`tools/build_windows_package.py:1`; `src/maalimbus/public_privacy.py:1`; `tools/native_dependency_notices.py:1`.

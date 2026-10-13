@@ -162,17 +162,17 @@ flowchart BT
 | GET 浮层确认**已**接进 runner | `src/maalimbus/runner.py:1744` 在商店页调 `ShopTransaction.reserve_overlay_acknowledgement`（`src/maalimbus/shop_transaction.py:347`）；`docs/acceptance.md:12-29` 的 `wired_in_runner=false` 是当时的记录，已被代码推翻 | 原先担心的「真实购买以 `shop_receipt_successor_not_proven` 安全停机」不再是必然，实机 2026-10-12 的购买链条（4.3.1）走的正是这条 | `src/maalimbus/runner.py:1744`；`src/maalimbus/shop_transaction.py:347` |
 | 实机购买 + 货架 receipt | 「live Purchase」与「货架 receipt」已于 2026-10-12 实机走通（见 4.3.1；`docs/shop-revive.md` 记录复活那一笔 3093→2993）；保留帧 0239 的离线重放仍是另一条独立证据；「GET 确认、GUI 续跑、五层整局」**仍未**证明 | 花钱与回执已有一条实机链路，「一局跑完」仍缺 | `docs/acceptance.md:1573-1581`（原文）；本页 4.3.1 |
 | 战斗 HUD 的第二种版式没有可证的开始控件 | 实测同一场战斗存在两种 HUD：START 可见的那种由 `battle_vision.start_button` 取到转盘；另一种（Win Rate 标题左移到 x≈1484、整簇左移约 290px）既没有 START、转盘也是暗的，`start_box=None`，窗口于是在 8 轮无进展后按设计以 `battle_progress_stalled` 停窗（`src/maalimbus/runner.py:1627`） | 碰上这种版式的战斗无法自动推进，只能停窗等人 | `src/maalimbus/battle_vision.py:1`；实测 `tools/window_step.py --observe-page` 在同一画面复现 `turn=7 start_box=null` |
-| 十二位身份报告未进实机 journal | 装配逻辑已完成；安装态 app 早于接线，故实机 journal 里没有 `pre_battle_identity_report` | 读卡链路只有离线/保留帧证据 | `docs/acceptance.md:1491-1493` |
-| 神经识别（sinner detector） | 数据集 **0** 个 reviewed real box，`readiness false`，模型未训练、生产检测关闭；实机 NN shadow 每帧 11 个预测框，`quality/input flags false` | 识别仍完全依赖 OCR + anchor；不许用模型置信度代替胜利/奖励判定 | `docs/acceptance.md:59-63`；`docs/acceptance.md:1601-1604`；`docs/learning.md:13`（"no accepted real sinner-card box labels"） |
+| 十二槽身份教师 | 源码与当前安装包含身份教师及按帧去重日志；完整账户和独立质量仍未验收 | 网格槽位与印刷部署徽章分开，影子预测不是教师真值 | `src/maalimbus/pre_battle_identity.py:1`；`src/maalimbus/runner.py:1` |
+| 神经识别（sinner detector） | 已有真实训练 ONNX 和 Maa 原生影子推理；独立生产质量未通过，quality/production/input flags 为 false | 影子预测不控制输入；独立教师、人工复核和跨局验证仍需完善，参见 3.8 | `src/maalimbus/neural_shadow.py:98`；`docs/acceptance.md:1601-1604` |
 | 日本语识别 | 日语原生标签与更新/设备区块有保留证据，但「不证明日语游戏识别或 GUI 任务执行」 | 日服部署不可验收 | `docs/acceptance.md:104-106` |
 | 账号对账 | 129 exact owned matches / 78 unresolved observations，「still partial」；缺失的 JP 别名与 system row、空布尔量是显式 unknown | 库存状态可能不完整 | `docs/acceptance.md:36-37` |
-| team 选择映射 | 出战位点那一格与实际带进游戏的队伍尚未用证据钉死，`DUNGEON_TEAM` 的 slot→保存队映射缺 anchor + 测试 | 可能带错队伍进场 | `docs/handover-2026-10-08.md:124-125` |
+| 队伍选择与回滑 | 独立标题和当前 sidebar 行定位已接 Runner；Team1/Team2 固定与轮换保留帧测试通过 | 真实产品入口跨屏滑回 Team1/Team2 尚未验收，不用单测代替 | `src/maalimbus/team_navigation.py:1`；`tests/test_team_navigation.py:1` |
 | 自更新 | `tools/check_update.py` 已能条件请求并暂存到 `build/updates`，缺的是**带资产的 GitHub release** | 用户收不到更新 | `docs/handover-2026-10-08.md:133-136` |
-| Windows 打包 | `tools/build_windows_package.py` 需要三份上游 zip，本机只有解压产物 | 无法从当前机器出包 | `docs/handover-2026-10-08.md:139` |
-| 困难镜牢与桌面打包 | 「Full hard dungeon and desktop packaging remain unverified」 | 困难模式与桌面分发未验收 | `PROJECT.md:1428` |
+| Windows 打包 | v0.1.2 候选实际构建及隔离新版安装已有证据；旧候选不含全部后续修复 | 最新源码重建、公开分发和重启仍需分别验收，构建成功不是发布验收 | `tools/build_windows_package.py:1`；`docs/wiki/zh_cn/6-deployment.md:1` |
+| 完整镜牢与桌面分发 | 早期 Hard5 通关、领奖历史及实际候选构建保留；当前最新 pipeline 仍需完整连续产品实测 | 不抹掉历史通关，不以旧成功替代新代码验收 | `docs/wiki/zh_cn/4-business-flows.md:1`；`tools/build_windows_package.py:1` |
 | 每日 / Lux / 体力任务执行策略 | 「Four daily/lux/stamina task execution policies are still unfinished」；`CurrentTeam7 paid5/weekly0` 的 receipt 仍未见到 | 日常任务链路不可自动执行 | `docs/acceptance.md:152-154` |
 | Lux stage / farm / receipt 与 GUI dispatch | 源码改动未安装，「Lux stage/farm/receipt and GUI dispatch remain unverified」 | Lux 流程未验收 | `docs/acceptance.md:96-97` |
-| GUI 任务派发与公开更新安装 | 「GUI task dispatch and public update installation remain unverified」 | 不构成 GUI 任务可执行的证据 | `docs/acceptance.md:125-126` |
+| GUI 派发与公开更新 | 实际 GUI Start 已执行入场与初始阶段；公开新版下载/安装/重启仍开放 | 派发入口可运行不等于整局自动完成 | `docs/wiki/zh_cn/4-business-flows.md:1`；`src/maalimbus/startup_update.py:1` |
 | MaaFramework 一致性覆盖范围 | 未做 PI/MXU 实跑（只读接口未驱动）；工具包自动探测耗时未测；33 个从任务入口不可达的节点是「报告而非删除」；未使用的协议特性不做任何断言 | 协议符合性只在「本项目已用到的字段」上成立 | `docs/maaframework-conformance.md:136-144` |
 | 文档与代码的数值漂移 | `docs/maaframework-conformance.md:110` 记 `mirror.json` 有 `89 nodes`，实测顶层节点数为 **792**；`docs/handover-2026-10-08.md:129` 写 `tests/test_pipeline_spec.py` 有 17 条，实测 **9** 条 | 旧文档的绝对数字不可直接引用 | `docs/maaframework-conformance.md:110-111`；`docs/handover-2026-10-08.md:129`；实测 `python -c "import json;print(len(json.load(open('assets/resource/base/pipeline/mirror.json',encoding='utf-8'))))"` → `792`；`Select-String -Path tests/test_pipeline_spec.py -Pattern '^def test_'` → 9 行 |
 | 套件与真实实例的资源竞争 | 真实 app 运行时，`tests/test_controller_lease.py` 与 `tests/test_update_install.py` 会因 `%LOCALAPPDATA%/MaaLimbus/controller.lock` 报 `PermissionError [Errno 13]` | 本机套件结果需要人工区分环境失败与代码缺陷 | `docs/acceptance.md:1484-1490` |

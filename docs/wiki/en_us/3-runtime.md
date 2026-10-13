@@ -101,6 +101,30 @@ Every key in the `jp` table is written as a `japanese-pattern|english-pattern` a
 
 ---
 
+
+<a id="feature-3-1-5"></a>
+
+### 3.1.5 Recognition, overlays and fresh observation
+
+Scene, resolved page, overlay ownership and freshness are separate checks. No new analysis event is not an unknown page: the last journal entry cannot stand in for a post-input observation. An observed but unclassified frame enters 3.7. Overlay dismissal uses its own observed control.
+
+```mermaid
+flowchart TD
+  A["Maa screenshot / Maa 截图"] --> B["Native OCR + anchors / 原生识别与锚点"]
+  B --> C["scene + observed controls / 本帧页面与控件"]
+  C --> D{"Verified overlay? / 已证明浮层？"}
+  D -->|yes| E["Overlay owns the next action / 浮层控件优先"]
+  D -->|no| F["Resolve page and policy / 解析页面策略"]
+  E --> F
+  F --> G{"Fresh analysis event? / 本次有新分析事件？"}
+  G -->|yes| H["Plan using this observation / 使用本次观测规划"]
+  G -->|no| I["Bounded observation retry / 有界重跑观测"]
+  I -->|still absent| J["Report missing observation / 明确报告无观测"]
+  I -->|fresh event| H
+```
+
+Source boundaries: `src/maalimbus/runner.py:1` (`MaaObserver.observe`, `resolve_scene`); `src/maalimbus/overlay_dismissal.py:1`; `agent/recognition.py:1`.
+
 ## 3.2 Decision and execution
 
 ### 3.2.1 The single-input contract of `plan_step`
@@ -446,3 +470,76 @@ Start with the evidence directory of this run, then read the **stop reason strin
 - `tools/window_step.py` (the second frontend) has been opened: `--help` runs and its flags plus authorization gate were checked (see 3.5), but **it was never actually driven**, so its usability reaches only as far as command-line parsing, not end-to-end acceptance.
 - The full assignment path of `passed` in `MirrorLoopAction`'s return value was not traced line by line (see 3.3.2).
 - Vision modules other than `src/maalimbus/map_vision.py` are listed only from the import list at `agent/recognition.py:20-43`; their bodies were not opened one by one.
+<a id="feature-3-7"></a>
+
+## 3.7 Unknown-page exploration and proposed labels
+
+Unknown does not always mean stop. Current exploration permits independently recognized navigation and bounded map viewport pans, up to three candidates per unresolved episode. Pixel movement alone does not prove node arrival. Spending, payout, run exit and existing pending intents are excluded. Before/after JSON/PNG, trace.log, proposal and review.json share a private bundle. Continuing the task neither approves labels nor promotes a production model.
+
+```mermaid
+flowchart TD
+  A["Observed unknown page / 已观测未知页"] --> B{"Existing pending transaction or victory? / 有未结事务或已胜利？"}
+  B -->|yes| C["Reconcile original intent; no probe / 先核原意图，不试探"]
+  B -->|no| D{"Independent Back, Close or map pan? / 有独立返回控件或地图拖动？"}
+  D -->|no| E["Wait within observation budget / 预算内等待"]
+  D -->|yes| F{"Unused candidate, fewer than 3? / 未试候选且少于三次？"}
+  F -->|no| G["Keep evidence and report blocked / 保留证据并报告阻塞"]
+  F -->|yes| H["Persist intent + before hashes / 先保存意图及前帧哈希"]
+  H --> I["One bounded Maa input / 一次有界 Maa 输入"]
+  I --> J["Independent successor / 独立后继观测"]
+  J --> K["Bundle before, after, trace, proposal, review / 统一证据与待审标签包"]
+  K --> L{"Known successor proven? / 已证明可识别后继？"}
+  L -->|yes| M["Continue normal task / 继续正常任务"]
+  L -->|no| F
+  K -.-> N["Human review; not ground truth / 人工复核，尚非真值"]
+```
+
+Source boundaries: `src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:1` (`_explore_unknown`).
+
+
+<a id="feature-3-8"></a>
+
+## 3.8 Sinner model, independent teacher and promotion boundary
+
+A real trained ONNX is wired into native MaaFramework shadow inference; describing it as absent is obsolete. Current quality gates have not passed and production_enabled/input_authorized remain false. The twelve-slot teacher independently reads cards and printed order badges; grid position is not deployment order. Predictions, teacher proposals and approved labels remain distinct to avoid self-validation.
+
+```mermaid
+sequenceDiagram
+  participant R as Recognition / 识别
+  participant N as Maa NeuralNetworkDetect
+  participant T as Independent teacher / 独立教师
+  participant B as Private review bundle / 私有复核包
+  participant P as Planner / 规划器
+  R->>N: Hash-bound ONNX and verified ROIs / 哈希绑定模型与区域
+  N-->>R: Shadow classes, boxes and scores / 影子类别框与分数
+  R->>T: Same frame pixels, OCR and order badges / 同帧像素与徽章
+  T-->>R: Resolved and unknown slots / 已核与未知槽位
+  R->>B: Record disagreement and label proposal / 记录分歧和候选标签
+  R->>P: Proven native observations / 已证明的原生观测
+  Note over N,P: Shadow prediction does not authorize input / 影子预测不批准输入
+  Note over B: Human review and independent quality gates remain / 人工复核及独立质量门禁仍需通过
+```
+
+Source boundaries: `src/maalimbus/neural_shadow.py:98` (`verified_model`, `observe`); `src/maalimbus/pre_battle_identity.py:1`; `src/maalimbus/learning_dataset.py:1`.
+
+
+<a id="feature-3-9"></a>
+
+## 3.9 Purchase-value learning versus rule execution
+
+Offline training and shadow previews are connected, but real reviewed data is insufficient for a claim of neural shopping control. Unbought offers are not negative examples and payment success is not a benefit label; delayed outcomes must belong to the same scope. Missing/invalid candidates fall back to rules. Manual economy priorities and budgets still control execution; shadow preserves rule order.
+
+```mermaid
+flowchart LR
+  A["Verified purchase and delayed same-run outcome / 实证购买与同局后续结果"] --> B["Human reviewed episodes / 人工复核片段"]
+  B --> C{"At least 10 independent episodes? / 至少十个独立片段？"}
+  C -->|no| D["Readiness report, no trained candidate / 就绪报告，不训练候选"]
+  C -->|yes| E["Split by run scope, train and evaluate / 按局划分训练评估"]
+  E --> F["Candidate weights and model card / 候选权重及模型卡"]
+  F --> G["Hash-bound shadow score preview / 哈希绑定影子评分"]
+  G -.-> H["Log comparisons only / 仅记录比较"]
+  I["Player rules, priorities and budgets / 玩家规则、优先级与预算"] --> J["Actual purchase planner / 实际购买规划"]
+  G -. "does not reorder / 不改变排序" .-> J
+```
+
+Source boundaries: `src/maalimbus/shop_value_training.py:422` (`verify_episode_evidence`, `load_reviewed_episodes`, `split_by_scope`); `src/maalimbus/shop_value_shadow.py:7` (`rank_preview`).

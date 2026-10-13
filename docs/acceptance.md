@@ -1618,3 +1618,33 @@ dial. Full current-run completion still requires installed GUI continuation.
 Idle source verification after these changes: 1528 passed, 1 skipped
 (Windows symlink privilege), 98.33 s; build/shop-value-deployment-full-tests.txt.
 This is a source test result, not complete game or production-value acceptance.
+
+## October13 feature-local wiki coverage and idle manual rotation
+
+- Added twenty localized feature diagrams per language beside implementation sections:
+  recognition/overlays/freshness, bounded unknown probes, independent sinner teachers,
+  shop value shadow, launch, entry/sidebar lookup, deployment reuse, floor gift receipt
+  recovery, initial/search/theme transactions, turns, events/routes, shop settlement,
+  account reconciliation, Lux menus, payout/bookkeeping, unsupported task boundaries,
+  manual rotation, updater rollback, package privacy and learning data references.
+  README indexes every local view; the checker rejects missing links, twins or diagrams.
+- Actual Mermaid browser parse: 92/92. Parsing is syntax evidence, not gameplay proof.
+  Preview now groups all views and supports readable-size scrolling versus whole-view
+  fit. Existing trained ONNX shadow is documented separately from production approval.
+- Source manual skip panel routes through a launcher command holding the canonical
+  controller lease; active runs/pending payouts/single mode/stale cursors refuse.
+  Atomic manual_skips retain request IDs, do not fabricate completion, and retries
+  cannot advance twice. No real private ledger/budget changed and no gameplay input.
+- Team1/Team2: retained actual entry frame + isolated single/rotation Runner handoff
+  selects each ledger target rather than stale settings.team=7. Multi-view sidebar
+  test scrolls from 7/8 through 4/5 to 1/2, targets the fresh row, and requires the
+  selected header before Confirm. Live offscreen scrolling remains unverified.
+- Full Python snapshot: 1623 passed, 1 Windows symlink skip, 118.26 s,
+  build/wiki-rotation-full-tests-20261013.txt. Subsequent checker regressions plus
+  manual rotation: 40 passed (19.91 s); final combined wiki/manual/Team1/Team2
+  focused run: 52 passed (23.29 s). Final documentation checker has zero problems.
+  Modified pinned MXU source TypeScript tsc --noEmit passed. Rust/native rebuild,
+  installed new panel and real GUI skip action are not verified.
+- User confirms the previous run cleared. This is retained separately from incomplete
+  harness payout/return records; no history is rewritten to invent a receipt. User
+  chose success-only automatic rotation plus explicit manual skip. Gameplay stays paused.

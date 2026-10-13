@@ -25,14 +25,23 @@ def patch(source):
               <section id="section-devices" className="space-y-3 scroll-mt-6"><h2 className="text-lg font-semibold">{language.startsWith('zh')?'设备连接':language.startsWith('ja')?'デバイス接続':'Device connections'}</h2><ConnectionPanel /></section>
             </>}
             {/* 通用设置 */}''',1)
+    if './RotationPanel' not in s:
+        s=s.replace("import { TeamBuildEditor } from './TeamBuildEditor';", "import { TeamBuildEditor } from './TeamBuildEditor';\nimport { RotationPanel } from './RotationPanel';",1)
+        needle="<><SoftwareUpdatePanel />"
+        if needle not in s:raise ValueError('Pinned MXU rotation panel hook changed')
+        s=s.replace(needle,"<><RotationPanel /><SoftwareUpdatePanel />",1)
     p.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/TeamBuildEditor.tsx',source/'src/components/TeamBuildEditor.tsx')
     shutil.copyfile(ROOT/'desktop/mxu/teamOrder.ts',source/'src/utils/teamOrder.ts')
     shutil.copyfile(ROOT/'desktop/mxu/SoftwareUpdatePanel.tsx',source/'src/components/SoftwareUpdatePanel.tsx')
+    shutil.copyfile(ROOT/'desktop/mxu/RotationPanel.tsx',source/'src/components/RotationPanel.tsx')
     rust=source/'src-tauri/src/lib.rs';s=rust.read_text(encoding='utf8')
     if 'mod limbus_update;' not in s:
         s=s.replace('pub mod commands;', 'pub mod commands;\nmod limbus_update;',1)
         s=s.replace('tauri::generate_handler![','tauri::generate_handler![\n            limbus_update::limbus_project_update_check,',1)
+        rust.write_text(s,encoding='utf8')
+    if 'limbus_update::limbus_rotation_manage,' not in s:
+        s=s.replace('tauri::generate_handler![','tauri::generate_handler![\n            limbus_update::limbus_rotation_manage,',1)
         rust.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/limbus_update.rs',source/'src-tauri/src/limbus_update.rs')
     # MaaLimbus settings and ADB do not need administrator privileges. The
