@@ -36,6 +36,32 @@ The six nodes live in the same Pipeline file and **look identical**: `recognitio
 
 The Agent side registers exactly one custom action: `agent/main.py:69 AgentServer.register_custom_action('limbus_main_task',MainTaskAction(recognition))`. All business logic sits in `run()` of `agent/recognition.py:1556 class MainTaskAction` (`agent/recognition.py:1563`).
 
+**Business-process view (Mirror):** This diagram shows business decisions and outcomes; function calls are not business steps.
+
+```mermaid
+flowchart TD
+  START["Start automatic Mirror"] --> RESUME{"An existing run can resume?"}
+  RESUME -->|yes| CURRENT["Resume current run"]
+  RESUME -->|no| TEAM["Locate saved rotation team"]
+  TEAM --> VERIFY["Independently verify team and order"]
+  VERIFY --> INITIAL["Set graces and initial gifts"]
+  INITIAL --> MAP["Floor map"]
+  CURRENT --> MAP
+  MAP --> SHOP["Budgeted shopping or refresh"]
+  SHOP --> MAP
+  MAP --> ENCOUNTER["Battles and events"]
+  ENCOUNTER --> FLOOR{"Floor completion proven?"}
+  FLOOR -->|next floor| MAP
+  FLOOR -->|floor 5| WIN["Five-floor victory evidence"]
+  WIN --> BUDGET{"Explicit scoped payout budget?"}
+  BUDGET -->|yes| PAY["Payment and actual receipt validation"]
+  PAY --> RETURN["Return, archive, then rotate"]
+  RETURN --> TEAM
+  BUDGET -->|no| HOLD["Preserve state and review evidence"]
+  VERIFY -->|unproven after bounded attempts| HOLD
+  PAY -->|receipt pending| HOLD
+```
+
 ```mermaid
 flowchart TD
   U["Client MXU: six main tasks<br/>assets/interface.json:103-167"] --> N["six delivery stubs<br/>pipeline/mirror.json:5273-5338"]
@@ -97,7 +123,7 @@ Evidence output is always of two kinds: `Journal` (`agent/recognition.py:76`) ap
   3. `mirror_starlight.collect` (`src/maalimbus/mirror_starlight.py:74`) → `apply` (`:17`): source and budget of the Starlight rules.
   4. Read the `MirrorLoop` node's `custom_action_param`, then layer on the initial keywords, gift search, step cap and deployment assignment from `mirror_task_options.collect` (`src/maalimbus/mirror_task_options.py:5`).
   5. Use `shop_settings.FIELDS` (`src/maalimbus/shop_settings.py:45`) to overlay the three nodes `MirrorShopPolicy` / `MirrorShopRefreshLimit` / `MirrorShopCoinReserve` item by item into the parameters (`agent/recognition.py:1607-1610`); the resolution logic is `src/maalimbus/shop_settings.py:134 resolve_shop_settings` and `:282 collect`.
-  6. Hand over to `MirrorLoopAction.run` (`agent/recognition.py:1473`, `:1494`): create the directory, read parameters and budget (`:1496-1499`, default 5400 seconds, `agent/recognition.py:1270`), assemble `runner.MaaDevice` (`:1509`) and `runner.MaaObserver` (`:1510`), then build `runner.MirrorRunner` (`:1257`, `:1518`) and call `run(steps, interval, round_limit, deadline)` (`src/maalimbus/runner.py:2691`).
+  6. Hand over to `MirrorLoopAction.run` (`agent/recognition.py:1473`, `:1494`): create the directory, read parameters and budget (`:1496-1499`, default 5400 seconds, `agent/recognition.py:1270`), assemble `runner.MaaDevice` (`:1509`) and `runner.MaaObserver` (`:1510`), then build `runner.MirrorRunner` (`:1257`, `:1518`) and call `run(steps, interval, round_limit, deadline)` (`src/maalimbus/runner.py:2845`).
   7. Inside the loop, each step's decision reads a set of independent policy pieces: `src/maalimbus/mirror_learning_policy.py:1304 strategy_score`, `:587 plan_route`, `:779 shop_plan`, `:931 skill_replacement`, `:432 gift_utility`; `src/maalimbus/route_plan.py:108 plan_route`, `src/maalimbus/gift_plan.py:15 load`, `src/maalimbus/shop_priority.py:5 load`, `src/maalimbus/auto_formation.py:17 choose_identity`, `src/maalimbus/budget.py:66 plan_spend`.
 - **Step-by-step sequence**:
 
@@ -116,7 +142,7 @@ sequenceDiagram
   Agent->>Agent: mirror_preferences / mirror_starlight persisted
   Agent->>Agent: read MirrorLoop node + task options + shop FIELDS
   Agent->>Runner: MirrorLoopAction.run (recognition.py:1612)
-  Runner->>Ctrl: observe / one_shot_click (runner.py:2691)
+  Runner->>Ctrl: observe / one_shot_click (runner.py:2845)
   Ctrl-->>Runner: page record + frame-NNNN written
   Runner-->>Agent: loop summary passed / reason
   Agent->>Tasker: journal.record + write_loop_result (recognition.py:1638-1640)
@@ -124,6 +150,45 @@ sequenceDiagram
 
 - **Termination conditions** (`agent/recognition.py:1528-1553`): success = loop summary `passed=true`; stop = this round's budget exhausted or a device job timed out, recorded as `loop_deadline_exceeded`; failure = the loop raised, recorded as `mirror_loop_error` (with traceback) returning `passed=False, reason='mirror_loop_failed'`.
 - **Evidence produced**: `mirror_loop_start` / `mirror_loop_stopped` / `mirror_loop_error` events, `agent-result.json` and a human-readable run log.
+
+### 4.3.1 The inputs of one shop visit (including the dead-slot revive)
+
+The shop page (`SHOP`) is not a page you glance at and leave: `src/maalimbus/window.py:594-652` allows exactly one input per shop frame, in a fixed order.
+
+1. **Before buying anything, look for a dead slot.** `saved_order` / `unavailable` in `config/user-deployment-transaction.json` plus `shop_revive.key_losses(..., positions=KEY_POSITIONS=7)` (`src/maalimbus/shop_revive.py:269`) yield "the dead cards whose saved slot is among the first seven"; when that is not empty and the shop prints `Heal Sinner` (`shop_revive.py:85`, the service box inside `SERVICE_X=(180,660)` × `SERVICE_Y=(540,800)`, `:33-34`), that service is clicked first — `window.py:623`, `expect=(ANY,)`, `advance=True`, because the dialog it opens states what happens next on its own.
+2. **Each of the dialog's three steps is proven by its own words.** `HEAL_SINNERS` (`vision.py:266-269`: the title **and** three numbered rows) → its own third row (`window.py:999`) → `REVIVE_PICK` (`vision.py:286-288`: `Select the Sinner to revive.` plus the title) → the dead portrait first (`shop_revive.slot_box(card)`, `BAR_FIRST_CENTER=112` + `BAR_PITCH=115`, `:180-187`), then the state button the dialog changes to (`window.py:583`) → `REVIVE_DONE` (`vision.py:283-285`: `… revived, returns to battle.` plus `Leave`) → its own `Leave` (`window.py:566`) back to the shop. Any step without its own words is refused right there (`_refuse`), never guessed.
+3. **A revive spends money, so what is recorded is a receipt, not a click.** Planning writes `state['revive_receipt']=dict(card, cost, coins_before)`; back on the shop page, `deployment_transaction.book_revive` (`src/maalimbus/deployment_transaction.py:73`) is called — and `revives` written — only when `coins_before - current coins == cost`, otherwise `shop_revive_receipt_not_proven` is recorded. Live evidence `window-20261012-214803`: 3093 → 2993, `cost=100`, `card=6` (Hong Lu).
+4. **The remaining inputs follow a fixed priority.** A card the gift plan wants, or one the visit must buy because it would otherwise carry out more than the cap (a `window.py:633` click, with the reason string `buying_the_gift_the_gift_plan_asked_for` / `spending_the_coins_this_visit_would_carry_out_on_the_shelf`) → a refresh (`window.py:643`, bounded by the refresh limit and the coin reserve) → leaving (`window.py:651`). A completed purchase is written at `shop_transaction.py:458` and a refresh receipt at `:478`; the confusable title matching is D14 in chapter 2.3.
+
+The shape of those four steps — every hop gated by the words its own page prints, with no words meaning stop:
+
+```mermaid
+flowchart TD
+    SHOP["SHOP frame: one input"]
+    SHOP --> DEAD{"a dead slot among<br/>the first seven saved?<br/>shop_revive.key_losses<br/>shop_revive.py:269"}
+    DEAD -- "yes, and the shop prints Heal Sinner" --> SERVICE["click Heal Sinner<br/>window.py:623<br/>expect=(ANY,) / advance=True"]
+    SERVICE --> MODAL["HEAL_SINNERS frame<br/>vision.py:266-269"]
+    MODAL --> THIRD["click its own third row<br/>window.py:999"]
+    THIRD --> PICK["REVIVE_PICK frame<br/>vision.py:286-288"]
+    PICK --> SLOT["click the dead portrait slot_box(card)<br/>BAR_FIRST_CENTER=112 + BAR_PITCH=115"]
+    SLOT --> BUTTON["click the state button the dialog turns to<br/>window.py:583"]
+    BUTTON --> DONE["REVIVE_DONE frame<br/>vision.py:283-285"]
+    DONE --> LEAVE["click its own Leave<br/>window.py:566"]
+    LEAVE --> RECEIPT{"coins_before - current coins == cost ?"}
+    RECEIPT -- yes --> BOOK["book_revive writes revives<br/>deployment_transaction.py:73"]
+    RECEIPT -- no --> UNPROVEN["shop_revive_receipt_not_proven<br/>nothing booked, nothing guessed"]
+    BOOK --> SHOP
+    UNPROVEN --> SHOP
+    DEAD -- no --> WANT{"a card the gift plan wants,<br/>or one this visit would carry<br/>out above the cap?"}
+    WANT -- yes --> BUY["buy: SHOP_PURCHASE -> GIFT_GET<br/>window.py:633 / booked shop_transaction.py:458"]
+    WANT -- no --> REFRESH{"a refresh still allowed?<br/>window.py:643"}
+    REFRESH -- yes --> SHELF["refresh the shelf<br/>receipt shop_transaction.py:478"]
+    REFRESH -- no --> OUT["leave: SHOP_LEAVE<br/>window.py:651"]
+    BUY --> SHOP
+    SHELF --> SHOP
+```
+
+(Only the `window-20261012-214803` step has been walked live: the 3093 -> 2993 revive receipt. The whole route driven by one planner run is still on the unverified list, see 7.3.)
 
 ## 4.4 `experience`: Automatic Experience Stage
 
@@ -171,3 +236,12 @@ Every anchor this chapter opened and confirmed appears as a `path:line` above. T
 - **Policy-piece internals not line-checked**: the `mirror_learning_policy.py` / `route_plan.py` / `gift_plan.py` / `shop_priority.py` / `auto_formation.py` / `budget.py` listed in 4.3 had only their top-level symbols and line numbers checked, not their full implementations read line by line.
 - **Evidence directory prefix**: the default prefix from `loop_directory` is `pi-` (`agent/recognition.py:1345-1346`); this chapter did not compare the actual `evidence/runtime/` directory listing on every machine, and only cites paths already registered in `docs/acceptance.md`.
 - **`InputPreflight`'s `win32` branch internals**: only the entry to window uniqueness and identity checking was read (`agent/recognition.py:1230-1239`); the later verification details and the `input_helpers` report format are not unfolded.
+
+
+## 4.9 Rotation selection and bounded list search
+
+Entry reconciliation must run before selecting the next team. The shop receipt helper is now named shop_reconcile so it does not shadow entry reconcile.
+
+Team targeting uses independent OCR of the current sidebar rows, never stale screen positions. Offscreen targets trigger bounded vertical Swipes inside the sidebar. Two unchanged semantic lists reverse the direction; at most twelve attempts are allowed. A separate top-header reading must confirm the team before Confirm. Numbered TEAMS #1–#40 captions are supported; custom names still require a verified slot mapping and are not guessed from names or row positions. Attempts persist in private user-team-navigation.json.
+
+The actual failed frame passes isolated reconciliation regression; installed-product and GUI continuation require separate validation.

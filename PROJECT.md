@@ -818,7 +818,7 @@ then budgeted Enkephalin conversion/refill, mail and daily missions. English/Jap
 - **下一步**：agent 侧的 `MirrorLoop` custom action 与随包发布的观察节点正在做（后台），落地后 `assets/interface.json` 里已经写好的 `mirror_loop`／`team_build` 两个任务与 `team_keywords`／`team_keywords_extra`／`team_build_name`／`run_team` 四个选项才会指向真实节点（**这些 `assets/interface.json`＋`assets/i18n/*` 的改动还没提交**，避免 HEAD 指向不存在的节点）。
 
 ## Latest continuation: 2026-10-08 02:40 local (journal UTC 06:40)
-- **桌面上有一个能直接启动脚本的快捷方式**：`tools/start-mirror.ps1`（`tools/start-mirror.cmd` 只是包一层，`tools/install_desktop_shortcut.ps1` 负责装）⇒ `C:\Users\wh_li\OneDrive\桌面\MaaLimbus 镜牢.lnk` → `tools/start-mirror.cmd` → `window_step.py`，参数在 `$TaskSettings` 里改（默认 binary 自动发现 `build\*` 下最新的 `maafw`、adb 回退 MuMu 的 `nx_main\adb.exe`、`--address 127.0.0.1:16416`、`--steps 400`、`--graces 1,3,5,6,8`、`--gift-keyword charge`、`--run-store config/user-run-ledger.json`），`config/user-launch.json`（私人、忽略）可以同名覆盖。启动前会 `adb connect` 并确认 `get-state = device`、读 `build/map-probe-authorization.json` 的 nonce，并**先用 `--observe-page` 零输入读一次 `scene`**：如果已经在镜牢里就跳过菜单流程，不会重复入场。控制台同时写进 `build/mirror-console-<时间>.log`，结束打印 exit code 与日志路径；`-DryRun` 只打印命令（已验证）。
+- **桌面上有一个能直接启动脚本的快捷方式**：`tools/start-mirror.ps1`（`tools/start-mirror.cmd` 只是包一层，`tools/install_desktop_shortcut.ps1` 负责装）⇒ `C:\Users\<user>\OneDrive\桌面\MaaLimbus 镜牢.lnk` → `tools/start-mirror.cmd` → `window_step.py`，参数在 `$TaskSettings` 里改（默认 binary 自动发现 `build\*` 下最新的 `maafw`、adb 回退 MuMu 的 `nx_main\adb.exe`、`--address 127.0.0.1:16416`、`--steps 400`、`--graces 1,3,5,6,8`、`--gift-keyword charge`、`--run-store config/user-run-ledger.json`），`config/user-launch.json`（私人、忽略）可以同名覆盖。启动前会 `adb connect` 并确认 `get-state = device`、读 `build/map-probe-authorization.json` 的 nonce，并**先用 `--observe-page` 零输入读一次 `scene`**：如果已经在镜牢里就跳过菜单流程，不会重复入场。控制台同时写进 `build/mirror-console-<时间>.log`，结束打印 exit code 与日志路径；`-DryRun` 只打印命令（已验证）。
 - **轮换现在可以瞄准**：`RunStore.point_at(slot)`（`src/maalimbus/storage.py`）只改 `rotation`，active 未结算时拒绝（`Finish or abandon the active run before moving the rotation`），slot 不在轮换里也拒绝；`tools/run_ledger.py point --slot N` 是它的入口，测试 `tests/test_run_store.py::test_the_player_can_aim_the_next_entry_at_a_named_team`。
 - **队伍档 slot 2 改成用户点的充能＋震动队**：`config/user-team-profiles.json` 的 keywords 从 `Poise+Tremor` 换成 `Charge+Tremor`，出战顺序写成 `Don Quixote, Ryoshu, Rodion, Yi Sang, Heathcliff, Faust, Gregor, Meursault, Ishmael, Sinclair, Outis, Hong Lu`（即用户给的 3,4,9,1,7,2,12，红露排最后）。
 - **按用户要求核对了 MaaFramework 的技术指标（m15982），并因此发现并修掉一个真缺陷**：结论与新文件 `docs/maaframework-conformance.md` 记全（证据是 v5.12.2 tag 的源码/手册，留档在 `build/maafw-v5.12.2/`）。
@@ -1824,3 +1824,24 @@ dial. Full current-run completion still requires installed GUI continuation.
 Idle source verification after these changes: 1528 passed, 1 skipped
 (Windows symlink privilege), 98.33 s; build/shop-value-deployment-full-tests.txt.
 This is a source test result, not complete game or production-value acceptance.
+
+
+## Continuation: October 13 entry reconciliation, list browsing and wiki semantics
+
+- Real installed `pi-20261013-000909` stopped after two inputs on DUNGEON_TEAM:
+  a shop-local variable shadowed the imported run-wiring reconcile. Renamed to
+  shop_reconcile; the actual failed frame passes isolated zero-input regression.
+- Offscreen numbered team targets now get bounded sidebar-only swipes and current
+  OCR row targeting, with independent selected-header verification (1-40).
+  Custom team names require a verified slot mapping; no ordinal/name guess.
+- Current source: 1608 tests passed, 1 Windows symlink privilege skip, 115.31 s.
+  This is not GUI/game completion. New product installation remains a separate gate.
+- Paired wiki component/deployment diagrams now show actual boundaries and
+  interfaces. Business activities and logical data cardinalities are separate;
+  intent-before-input and shop refresh transitions corrected. Actual browser
+  Mermaid parser accepted 52/52 blocks before the final field-name correction;
+  structural checker reports zero problems after the correction.
+- Current public-text scan: 854 files, zero remaining local-home-path/literal UID
+  findings. Document local-user paths redacted; public-source export refuses
+  detected private text before ZIP creation and excludes local policies/logs.
+  Screenshots, datasets and existing Git history have not all been privacy-reviewed.

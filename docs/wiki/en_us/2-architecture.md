@@ -8,7 +8,7 @@ The entry point above is `index.md`. This chapter states only what can be read o
 
 Sub-pages of this chapter (linked only from the sections below — the index never links them):
 
-- [2.2 Module Map](2.2-modules.md) — the 92 Python modules, clustered, each with its responsibility
+- [2.2 Module Map](2.2-modules.md) — the 93 Python modules, clustered, each with its responsibility
 - [2.3 Design Decisions](2.3-decisions.md) — the full rationale and code for the 12 key decisions
 
 ---
@@ -18,48 +18,35 @@ Sub-pages of this chapter (linked only from the sections below — the index nev
 ### Figure 2-1 Layered architecture
 
 ```mermaid
-flowchart TD
-    subgraph L5["Client layer — this project's own extension"]
-        MXU["MXU client<br/>desktop/mxu/<br/>TeamBuildEditor.tsx · limbus_update.rs"]
-        PIV2["ProjectInterface V2 surface<br/>assets/interface.json<br/>4 controllers · 6 tasks"]
-        MXU -->|"pick tasks and a controller"| PIV2
-    end
-
-    subgraph L4["Resource layer"]
-        RESBASE["assets/resource/base/<br/>anchors.json · pipeline/mirror.json<br/>pipeline/sinner-neural.json"]
-        RESLOC["assets/resource/&lt;locale&gt;/<br/>locale.json · pipeline/locale.json<br/>en · jp"]
-        I18N["assets/i18n/<br/>en_us.json · ja_jp.json · zh_cn.json"]
-    end
-    PIV2 --> RESBASE
-    PIV2 --> RESLOC
-    PIV2 --> I18N
-
-    subgraph L3["Tasker layer — upstream MaaFramework (maafw/, version 5.12.2)"]
-        POST["tasker.post_task<br/>ControllerAgent screenshot scaling + touch coordinate conversion"]
-        RUNP["Context.run_task<br/>runs a pipeline node synchronously inside a callback"]
-    end
-    PIV2 -->|"task.entry names the entry node"| POST
-
-    subgraph L2["Agent layer"]
-        MAINS["agent/main.py<br/>AgentServer.register_*"]
-        RECOG["agent/recognition.py<br/>LimbusRecognition · MirrorLoopAction"]
-        BIZ["src/maalimbus/ business layer (92 modules)<br/>runner.py · window.py · run_wiring.py<br/>map_vision.py · storage.py · …"]
-        MAINS --> RECOG
-        RECOG --> BIZ
-    end
-    POST -->|"custom_recognition / custom_action"| MAINS
-    BIZ -->|"MaaObserver via AgentTasker.post_task"| RUNP
-    RUNP -->|"limbus_map_observe / limbus_battle_observe"| RECOG
-
-    subgraph L1["Controller layer"]
-        WCTL["src/maalimbus/windows_controller.py<br/>reads the PI Win32 profile"]
-        ADBD["src/maalimbus/adb_device.py<br/>Toolkit.find_adb_devices"]
-        DEVICE["LimbusCompany window<br/>or a MuMu / ADB device"]
-    end
-    PIV2 -->|"PI_CONTROLLER"| WCTL
-    WCTL --> DEVICE
-    ADBD --> DEVICE
-    BIZ -->|"MaaDevice.post_click / post_swipe"| DEVICE
+flowchart LR
+  subgraph CLIENT["Component boundary: MXU client process"]
+    UI["Task and settings UI"]
+    PI["ProjectInterface V2 task configuration"]
+    FW["MaaFramework Tasker / Resource"]
+    CTL["Single Controller instance"]
+    UI -->|Submit task| FW
+    PI -.->|Configure entry and resources| FW
+    FW -->|Screenshot and input interface| CTL
+  end
+  subgraph AGENT["Component boundary: Python Agent process"]
+    SERVER["AgentServer callback registration and IPC"]
+    REC["LimbusRecognition native recognition adapter"]
+    BIZ["MirrorRunner / page policies / transactions"]
+    BRIDGE["Borrowed Context: MaaObserver / MaaDevice"]
+    SERVER -->|Invoke recognition callback| REC
+    SERVER -->|Invoke action| BIZ
+    BIZ -->|Call interface| BRIDGE
+  end
+  RES["Resource files: pipelines / images / catalogues / models"]
+  STORE["Private configuration, ledger and evidence files"]
+  GAME["Game window or MuMu Android game"]
+  FW <-->|Agent IPC protocol| SERVER
+  BRIDGE -->|Context.run_task / controller.post_*| FW
+  REC -->|Context.run_recognition_direct| FW
+  RES -.->|Load data| FW
+  RES -.->|Read catalogues and policies| REC
+  BIZ -->|Validated reads and writes| STORE
+  CTL -->|Selected Win32 or ADB interface| GAME
 ```
 
 ### Table 2-1 Layer responsibilities and landing points
@@ -70,7 +57,7 @@ flowchart TD
 | Resource | this project | controller/task/option declarations, anchors, pipeline nodes, localization | `assets/interface.json:2` (`interface_version: 2`), `assets/resource/base/anchors.json`, `assets/resource/base/pipeline/mirror.json`, `assets/i18n/` | declarations only, no decision logic |
 | Tasker | upstream MaaFramework `v5.12.2` | screenshots, recognition, graph scheduling, input conversion, timeouts | `maafw/` (`pyproject.toml` pins `maafw==5.12.2`, see `docs/maaframework-conformance.md:11`) | no business judgement; the coordinate conversion lives in `ControllerAgent::preproc_touch_point` (`docs/maaframework-conformance.md:37-48`) |
 | Agent | this project | custom recognition and custom actions; turns a page into structured evidence | `agent/main.py:48-69`, `agent/recognition.py:100`, `agent/recognition.py:1473` | never builds a second controller |
-| Business (`src/maalimbus/`) | this project | page→action planning, ledger, transactions, offline learning | `src/maalimbus/runner.py:1` (92 modules) | knows neither Maa nor ADB |
+| Business (`src/maalimbus/`) | this project | page→action planning, ledger, transactions, offline learning | `src/maalimbus/runner.py:1` (95 modules) | knows neither Maa nor ADB |
 | Controller | MaaFramework + this project's choice | the single real device ownership | `src/maalimbus/windows_controller.py:9`, `src/maalimbus/adb_device.py:1` | only one controller at a time (`src/maalimbus/controller_lease.py:1`) |
 
 ### The end-to-end chain
@@ -81,7 +68,7 @@ flowchart TD
 4. The action calls into the pure business layer under `src/maalimbus/`. `MirrorLoopAction` (`agent/recognition.py:1473`) *is* the whole loop: it wraps the PI's controller as `runner.MaaDevice`, wraps `AgentTasker` as `runner.MaaObserver`, and hands both to `runner.MirrorRunner` (`agent/recognition.py:1509-1522`).
 5. Every input the business layer sends goes back through `MaaDevice`'s `post_click` / `post_swipe` onto the PI's own controller. No second device channel is created (`docs/agent-loop.md:105-107`).
 
-> The load-bearing constraint: **there is exactly one input exit**. The `Device` Protocol at `src/maalimbus/runner.py:250` and the `Observer` Protocol at `:549` are the only two seams between the business layer and a device. That is also why the loop is offline-testable — `FrameObserver` (`:565`) replays archived frames and `FakeDevice` (`:385`) records what was sent, so `tests/test_runner.py` drives the real loop over real archived evidence with no device attached.
+> The load-bearing constraint: **there is exactly one input exit**. The `Device` Protocol at `src/maalimbus/runner.py:251` and the `Observer` Protocol at `:550` are the only two seams between the business layer and a device. That is also why the loop is offline-testable — `FrameObserver` (`:566`) replays archived frames and `FakeDevice` (`:386`) records what was sent, so `tests/test_runner.py` drives the real loop over real archived evidence with no device attached.
 
 ### Three external dependencies and their licences
 
@@ -95,7 +82,7 @@ flowchart TD
 
 ## 2.2 Module map
 
-`src/maalimbus/` holds **92 `.py` files** (including `__init__.py`). Each module's responsibility is declared by that module's own docstring on line 1 — the full listing, module by module, is in [2.2 Module Map](2.2-modules.md).
+`src/maalimbus/` holds **93 `.py` files** (including `__init__.py`). Each module's responsibility is declared by that module's own docstring on line 1 — the full listing, module by module, is in [2.2 Module Map](2.2-modules.md).
 
 ### Figure 2-2 Module dependency graph (from measured imports)
 
@@ -122,6 +109,7 @@ flowchart TD
         MAPV["map_vision.py<br/>map identity and bounded route reading"]
         BATTLEV["battle_vision.py"]
         SHOPV["shop_vision.py"]
+    SHOPREV["shop_revive.py<br/>service / options / slot box / state button"]
         GCAT["gift_vision.py<br/>GiftCatalog"]
         TEAMV["team_vision.py<br/>team_row / card_states"]
         THEMEV["theme_vision.py<br/>ThemeCatalog"]
@@ -148,6 +136,8 @@ flowchart TD
     RUNNER --> MAPV
     RUNNER --> BATTLEV
     RUNNER --> SHOPV
+    RUNNER --> SHOPREV
+    SHOPREV --> SHOPV
     RUNNER --> GCAT
     RUNNER --> TEAMV
     RUNNER --> THEMEV
@@ -169,7 +159,7 @@ flowchart TD
     SHOPTXN --> STORAGE
 ```
 
-Every edge above is grounded in: `src/maalimbus/runner.py:46-72` (the module-level import block), `src/maalimbus/map_vision.py:16-17`, `src/maalimbus/storage.py:12`, `agent/recognition.py:20-43`.
+Every edge above is grounded in: `src/maalimbus/runner.py:46-72` (the module-level import block), `src/maalimbus/map_vision.py:16-17`, `src/maalimbus/storage.py:12`, `agent/recognition.py:20-43`, `src/maalimbus/runner.py:1862` (a function-local import of `shop_revive`) and `src/maalimbus/shop_revive.py:20` (it depends only on the `shop_vision` reading helpers).
 
 ### Ten clusters and their size
 
@@ -177,7 +167,7 @@ Every edge above is grounded in: `src/maalimbus/runner.py:46-72` (the module-lev
 | --- | --- | --- | --- |
 | Orchestration and driving | 7 | walk a whole dungeon, and book what must be booked | `runner.py:1`, `run_wiring.py:1` |
 | Decisions and policy (pure) | 10 | compute "what is the next single input" without touching a device | `window.py:1`, `policies.py`, `route_plan.py:1` |
-| Vision / page reading | 29 | turn one frame into decidable evidence | `vision.py:1`, `map_vision.py:1`, `anchors.py:1` |
+| Vision / page reading | 30 | turn one frame into decidable evidence | `vision.py:1`, `map_vision.py:1`, `anchors.py:1` |
 | Durability | 9 | persist before input; paths decoupled from cwd | `storage.py:1`, `runtime_paths.py:1` |
 | Task execution | 7 | independent task entries (rewards, Lux, shop) | `reward_task.py:1`, `lux_task.py:1` |
 | Settings and migration | 9 | read/write user preferences, seed from older builds | `global_settings.py:1`, `task_preferences.py:1` |
@@ -194,7 +184,7 @@ Every edge above is grounded in: `src/maalimbus/runner.py:46-72` (the module-lev
 | Template match | `src/maalimbus/anchors.py:132` `check_template(...)` | a pinned bitmap plus a threshold | `gift_vision.py`, `battle_counter_native.py` |
 | Geometry | `src/maalimbus/anchors.py:159` `check_geometry(...)` | normalized ROIs and their size relations | `theme_vision.py`, `star_vision.py` |
 
-The anchor registry lives in `assets/resource/base/anchors.json` (`src/maalimbus/runner.py:225` points `REGISTRY` at it); `anchors.validate()` (`src/maalimbus/anchors.py:31`) checks its shape at load time and `anchors.evaluate()` (`:192`) evaluates anchor by anchor at run time.
+The anchor registry lives in `assets/resource/base/anchors.json` (`src/maalimbus/runner.py:226` points `REGISTRY` at it); `anchors.validate()` (`src/maalimbus/anchors.py:31`) checks its shape at load time and `anchors.evaluate()` (`:192`) evaluates anchor by anchor at run time.
 
 ---
 
@@ -209,7 +199,7 @@ Table 2-2 is the overview with each decision's compressed reason; the full deriv
 | D1 | Maa owns screenshots/input and bounded Pipeline scheduling; all judgement is pure Python | keeps decisions offline-reproducible and unit-testable | `PROJECT.md:1338`, `docs/runner.md:3-14` |
 | D2 | The loop is a library; page and input are injected | the loop was locked inside a CLI — untestable and unreusable by the app | `docs/runner.md:5-14`, `src/maalimbus/runner.py:1-31` |
 | D3 | At most one input per page; refuse when no control is proven | a stray click throws away a run that is already half done | `src/maalimbus/window.py:13-19`, `window.py:106` |
-| D4 | There is a blacklist of controls that must never be clicked | some controls are useful page identity but clicking them loses the run | `src/maalimbus/window.py:42-63`, `window.py:128-135` |
+| D4 | There is a blacklist of controls that must never be clicked | some controls are useful page identity but clicking them loses the run | `src/maalimbus/window.py:50-63`, `window.py:128-135` |
 | D5 | Persist the intent before input (reserve-before-input) | a crash/restart must not replay or enlarge a budget | `src/maalimbus/storage.py:126`, `run_wiring.py:81` |
 | D6 | The ledger accepts only what a page actually proves | an out-of-order or unproven event is refused by the ledger | `src/maalimbus/run_wiring.py:41-79` |
 | D7 | Settling never treats an *input* as a *receipt* | a click is not a payout | `src/maalimbus/run_wiring.py:68-73`, `docs/design.md:358-371` |
@@ -234,16 +224,16 @@ flowchart LR
     end
 
     subgraph READ["Read-only judgement"]
-        SCENE["resolve_scene<br/>runner.py:837"]
+        SCENE["resolve_scene<br/>runner.py:838"]
         OVL["resolve_overlay<br/>window.py:79"]
-        CAND["candidates_of / check_of<br/>runner.py:742 / 765"]
+        CAND["candidates_of / check_of<br/>runner.py:743 / 766"]
         PLAN["window.plan_step<br/>window.py:110"]
         SCENE --> OVL --> PLAN
         REC --> CAND --> PLAN
     end
 
     subgraph WRITE["Input and persistence"]
-        DEV["Device.click / swipe<br/>runner.py:250"]
+        DEV["Device.click / swipe<br/>runner.py:251"]
         FRAME["store_frame<br/>frame-NNNN.png/.json"]
         JRN["events.jsonl"]
         LEDGER["RunStore.record<br/>storage.py:126"]
@@ -264,15 +254,15 @@ flowchart LR
 
 | Data | Written where | Written by | Anchor |
 | --- | --- | --- | --- |
-| Per-page PNG + JSON record | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:496` |
+| Per-page PNG + JSON record | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:497` |
 | Run journal (machine-readable) | `<run_dir>/events.jsonl` | `Journal.record` / `MirrorRunner.note()` | `agent/recognition.py:76`, `runner.py:1351` |
 | Run summary | `<run_dir>/agent-result.json` | `MirrorLoopAction.run` on the way out | `agent/recognition.py:1547-1548` |
 | Human-readable log | a text report for the same run | `event_log.report()` | `src/maalimbus/event_log.py:130` |
 | Completion events (ordered, evidence-backed) | the run ledger | `RunStore.record()` | `src/maalimbus/storage.py:126` |
 | Team rotation | the run ledger | `RunLedger.complete()` | `src/maalimbus/policies.py:140-148` |
 | Teams and preferences | 17 files under `config/` incl. `user-team-profiles.json` | `ProfileStore` | `src/maalimbus/storage.py:69` |
-| Anchors and templates | `assets/resource/base/anchors.json` | maintained in the repo; read-only at run time | `src/maalimbus/runner.py:225` |
-| Map probe authorization | `build/map-probe-authorization.json` | read-only check by `runner.authorized(nonce)` | `src/maalimbus/runner.py:224`, `:237` |
+| Anchors and templates | `assets/resource/base/anchors.json` | maintained in the repo; read-only at run time | `src/maalimbus/runner.py:226` |
+| Map probe authorization | `build/map-probe-authorization.json` | read-only check by `runner.authorized(nonce)` | `src/maalimbus/runner.py:226`, `:238` |
 
 The `run_dir` resolution priority is written down in `docs/agent-loop.md:68-69`: `custom_action_param["directory"]` → the `MAALIMBUS_RUN_DIR` environment variable → `evidence/runtime/pi-<YYYYmmdd-HHMMSS>` under the application root; a relative path is resolved against the application root.
 

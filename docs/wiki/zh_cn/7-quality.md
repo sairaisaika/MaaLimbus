@@ -159,8 +159,9 @@ flowchart BT
 |---|---|---|---|
 | 五层镜牢循环（full five-floor loop） | pipeline 里没有实现镜牢本体五层循环，`dist/MaaLimbus` 只有入口链（`MirrorHard` 链）能跑；打包信息把它列为 pending 第一条 | MXU 里点 `mirror_loop` 任务无法走完整局，GUI 端到端不可验收 | `docs/handover-2026-10-08.md:130-132`；`dist/MaaLimbus/build-info.json:11-15`（`pending` = `MXU UI validation`、`live input postcondition`、`full five-floor loop`） |
 | 地图节点身份（map-identity blocker） | `pi-20261012-112240` 自行结束于 `reason=unexpected_successor steps=17 clicks_sent=17 passed=false`，454 次观测全部 `route.reason=current_position_not_proven verified_clear=false`，floor2 从未推进 | 运行停在 MAP 阶段，未触及战斗/商店/floor3/通关 | `docs/acceptance.md:3-10` |
-| GET 浮层确认未接进 runner | `ShopTransaction.reserve_overlay_acknowledgement` 已实现并被测试覆盖，但 `wired_in_runner=false` | 真实购买会以 `shop_receipt_successor_not_proven` 安全停机 | `docs/acceptance.md:12-29`（关键句 `:26-29`） |
-| 实机购买 + 货架 receipt | 保留帧 0239 可离线重放为 `SHOP_PURCHASE`，但「live Purchase、GET 确认、货架 receipt、GUI 续跑、五层整局」未被证明 | 花钱行为与回执链条未经实机验收 | `docs/acceptance.md:1573-1581` |
+| GET 浮层确认**已**接进 runner | `src/maalimbus/runner.py:1744` 在商店页调 `ShopTransaction.reserve_overlay_acknowledgement`（`src/maalimbus/shop_transaction.py:347`）；`docs/acceptance.md:12-29` 的 `wired_in_runner=false` 是当时的记录，已被代码推翻 | 原先担心的「真实购买以 `shop_receipt_successor_not_proven` 安全停机」不再是必然，实机 2026-10-12 的购买链条（4.3.1）走的正是这条 | `src/maalimbus/runner.py:1744`；`src/maalimbus/shop_transaction.py:347` |
+| 实机购买 + 货架 receipt | 「live Purchase」与「货架 receipt」已于 2026-10-12 实机走通（见 4.3.1；`docs/shop-revive.md` 记录复活那一笔 3093→2993）；保留帧 0239 的离线重放仍是另一条独立证据；「GET 确认、GUI 续跑、五层整局」**仍未**证明 | 花钱与回执已有一条实机链路，「一局跑完」仍缺 | `docs/acceptance.md:1573-1581`（原文）；本页 4.3.1 |
+| 战斗 HUD 的第二种版式没有可证的开始控件 | 实测同一场战斗存在两种 HUD：START 可见的那种由 `battle_vision.start_button` 取到转盘；另一种（Win Rate 标题左移到 x≈1484、整簇左移约 290px）既没有 START、转盘也是暗的，`start_box=None`，窗口于是在 8 轮无进展后按设计以 `battle_progress_stalled` 停窗（`src/maalimbus/runner.py:1627`） | 碰上这种版式的战斗无法自动推进，只能停窗等人 | `src/maalimbus/battle_vision.py:1`；实测 `tools/window_step.py --observe-page` 在同一画面复现 `turn=7 start_box=null` |
 | 十二位身份报告未进实机 journal | 装配逻辑已完成；安装态 app 早于接线，故实机 journal 里没有 `pre_battle_identity_report` | 读卡链路只有离线/保留帧证据 | `docs/acceptance.md:1491-1493` |
 | 神经识别（sinner detector） | 数据集 **0** 个 reviewed real box，`readiness false`，模型未训练、生产检测关闭；实机 NN shadow 每帧 11 个预测框，`quality/input flags false` | 识别仍完全依赖 OCR + anchor；不许用模型置信度代替胜利/奖励判定 | `docs/acceptance.md:59-63`；`docs/acceptance.md:1601-1604`；`docs/learning.md:13`（"no accepted real sinner-card box labels"） |
 | 日本语识别 | 日语原生标签与更新/设备区块有保留证据，但「不证明日语游戏识别或 GUI 任务执行」 | 日服部署不可验收 | `docs/acceptance.md:104-106` |
@@ -182,7 +183,7 @@ flowchart BT
 上表刻意区分了三种状态，写作时不要混为一谈：
 
 1. **已实现但未接线**（例：GET 浮层确认，`docs/acceptance.md:26-28` 的 `wired_in_runner=false`）。
-2. **离线可重放但未在实机跑通**（例：保留帧 0239 的 SHOP_PURCHASE，`docs/acceptance.md:1573-1581`）。
+2. **离线可重放但未在实机跑通**（例：十二位身份报告只有离线证据，`docs/acceptance.md:1491-1493`；保留帧 0239 的 SHOP_PURCHASE 原本也属这一类，2026-10-12 已被实机补上，见 4.3.1）。
 3. **源码已改但未安装**（例：Lux 准备排除的改动，`docs/acceptance.md:96-97` 与 `:113`）。
 
 `docs/acceptance.md:139` 与 `:158` 还显示另一类状态：**安装态验收通过但分发链未通过**（「Main interaction, desktop new-version restart and public Release download are not accepted by that observation」）。

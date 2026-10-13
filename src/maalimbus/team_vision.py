@@ -13,7 +13,7 @@ CARD_COUNT = 12
 
 def selected_saved_team(records, size):
     """Read the selected loadout's header, never its separate Preset number."""
-    pattern=r'^\s*TEAMS\s*#\s*([1-7])\s*$'
+    pattern=r'^\s*TEAMS\s*#\s*([1-9]|[1-3][0-9]|40)\s*$'
     hits=find(records,pattern,(.16,.13,.42,.22),size,.9)
     if len(hits)!=1:return None
     return int(re.fullmatch(pattern,hits[0].text,re.I).group(1))

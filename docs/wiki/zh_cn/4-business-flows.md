@@ -36,6 +36,32 @@ ProjectInterface 声明六个主任务（`assets/interface.json:103-167`），�
 
 Agent 侧只注册了一个自定义动作：`agent/main.py:69 AgentServer.register_custom_action('limbus_main_task',MainTaskAction(recognition))`。业务全在 `agent/recognition.py:1556 class MainTaskAction` 的 `run()`（`agent/recognition.py:1563`）里。
 
+**业务流程视图（镜牢）：** 此图只表达业务决策和结果，不把函数调用当作业务步骤。
+
+```mermaid
+flowchart TD
+  START["用户启动自动镜牢"] --> RESUME{"已有可继续的镜牢？"}
+  RESUME -->|yes| CURRENT["恢复当前局"]
+  RESUME -->|no| TEAM["按保存轮换定位队伍"]
+  TEAM --> VERIFY["独立核对队名与编队"]
+  VERIFY --> INITIAL["配置星光与初始礼物"]
+  INITIAL --> MAP["楼层地图"]
+  CURRENT --> MAP
+  MAP --> SHOP["按预算购物或刷新"]
+  SHOP --> MAP
+  MAP --> ENCOUNTER["战斗与事件"]
+  ENCOUNTER --> FLOOR{"真实楼层完成？"}
+  FLOOR -->|next floor| MAP
+  FLOOR -->|floor 5| WIN["五层胜利实证"]
+  WIN --> BUDGET{"本局明确领奖预算？"}
+  BUDGET -->|yes| PAY["付款与实际收据验证"]
+  PAY --> RETURN["返回与归档，再轮换"]
+  RETURN --> TEAM
+  BUDGET -->|no| HOLD["保留现场与待审证据"]
+  VERIFY -->|unproven after bounded attempts| HOLD
+  PAY -->|receipt pending| HOLD
+```
+
 ```mermaid
 flowchart TD
   U["Client MXU: 六个主任务<br/>assets/interface.json:103-167"] --> N["六个投递桩<br/>pipeline/mirror.json:5273-5338"]
@@ -97,7 +123,7 @@ flowchart TD
   3. `mirror_starlight.collect`（`src/maalimbus/mirror_starlight.py:74`）→ `apply`（`:17`）：星光规则来源与预算。
   4. 读 `MirrorLoop` 节点的 `custom_action_param`，再叠加 `mirror_task_options.collect`（`src/maalimbus/mirror_task_options.py:5`）得到的初始关键词、礼物搜索、步数上限、出战指派。
   5. 用 `shop_settings.FIELDS`（`src/maalimbus/shop_settings.py:45`）把 `MirrorShopPolicy` / `MirrorShopRefreshLimit` / `MirrorShopCoinReserve` 三个节点逐项覆盖进参数（`agent/recognition.py:1607-1610`）；解析逻辑在 `src/maalimbus/shop_settings.py:134 resolve_shop_settings` 与 `:282 collect`。
-  6. 交给 `MirrorLoopAction.run`（`agent/recognition.py:1473`、`:1494`）：建目录、读参数与预算（`:1496-1499`，默认 5400 秒，`agent/recognition.py:1270`），组装 `runner.MaaDevice`（`:1509`）与 `runner.MaaObserver`（`:1510`），再建 `runner.MirrorRunner`（`:1257`、`:1518`）并调 `run(steps, interval, round_limit, deadline)`（`src/maalimbus/runner.py:2691`）。
+  6. 交给 `MirrorLoopAction.run`（`agent/recognition.py:1473`、`:1494`）：建目录、读参数与预算（`:1496-1499`，默认 5400 秒，`agent/recognition.py:1270`），组装 `runner.MaaDevice`（`:1509`）与 `runner.MaaObserver`（`:1510`），再建 `runner.MirrorRunner`（`:1257`、`:1518`）并调 `run(steps, interval, round_limit, deadline)`（`src/maalimbus/runner.py:2845`）。
   7. 循环内部每步决策读的是一组独立的策略件：`src/maalimbus/mirror_learning_policy.py:1304 strategy_score`、`:587 plan_route`、`:779 shop_plan`、`:931 skill_replacement`、`:432 gift_utility`；`src/maalimbus/route_plan.py:108 plan_route`、`src/maalimbus/gift_plan.py:15 load`、`src/maalimbus/shop_priority.py:5 load`、`src/maalimbus/auto_formation.py:17 choose_identity`、`src/maalimbus/budget.py:66 plan_spend`。
 - **逐步时序**：
 
@@ -116,7 +142,7 @@ sequenceDiagram
   Agent->>Agent: mirror_preferences / mirror_starlight 落盘
   Agent->>Agent: 读 MirrorLoop 节点 + 任务选项 + shop FIELDS
   Agent->>Runner: MirrorLoopAction.run (recognition.py:1612)
-  Runner->>Ctrl: observe / one_shot_click (runner.py:2691)
+  Runner->>Ctrl: observe / one_shot_click (runner.py:2845)
   Ctrl-->>Runner: 页面记录 + 落盘 frame-NNNN
   Runner-->>Agent: 循环摘要 passed / reason
   Agent->>Tasker: journal.record + write_loop_result (recognition.py:1638-1640)
@@ -124,6 +150,45 @@ sequenceDiagram
 
 - **终止条件**（`agent/recognition.py:1528-1553`）：成功＝循环摘要 `passed=true`；停止＝本轮预算耗尽或设备作业超时，记 `loop_deadline_exceeded`；失败＝循环抛异常，记 `mirror_loop_error`（带 traceback）并返回 `passed=False, reason='mirror_loop_failed'`。
 - **产出证据**：`mirror_loop_start` / `mirror_loop_stopped` / `mirror_loop_error` 事件，`agent-result.json` 与人类可读运行日志。
+
+### 4.3.1 一次商店访问的输入（含死位复活）
+
+商店页（`SHOP`）不是「看一眼就走」的页面：`src/maalimbus/window.py:594-652` 对一个商店帧只允许一个输入，顺序固定。
+
+1. **买之前先看有没有死位。** `config/user-deployment-transaction.json` 的 `saved_order` / `unavailable` 加上 `shop_revive.key_losses(..., positions=KEY_POSITIONS=7)`（`src/maalimbus/shop_revive.py:269`）给出「前七个存档位里死掉的卡」；非空且店里印着 `Heal Sinner`（`shop_revive.py:85`，服务框在 `SERVICE_X=(180,660)` × `SERVICE_Y=(540,800)`，`:33-34`）就先点这颗服务——`window.py:623`，`expect=(ANY,)`、`advance=True`，因为弹窗自己会说明下面发生什么。
+2. **弹窗的三步各自由自己的文字证明。** `HEAL_SINNERS`（`vision.py:266-269`：标题 **且** 三个编号行）→ 点它自己的第三行（`window.py:999`）→ `REVIVE_PICK`（`vision.py:286-288`：`Select the Sinner to revive.` + 标题）→ 先点死位头像（`shop_revive.slot_box(card)`，`BAR_FIRST_CENTER=112` + `BAR_PITCH=115`，`:180-187`）再点弹窗换出来的状态按钮（`window.py:583`）→ `REVIVE_DONE`（`vision.py:283-285`：`… revived, returns to battle.` + `Leave`）→ 点它自己的 `Leave`（`window.py:566`）回到商店。哪一步没有自己的字，就在那一步拒绝（`_refuse`），不猜。
+3. **复活是花钱，所以记的是收据不是点击。** 规划时写下 `state['revive_receipt']=dict(card, cost, coins_before)`；回到商店页后只有 `coins_before - 当前币值 == cost` 才调 `deployment_transaction.book_revive`（`src/maalimbus/deployment_transaction.py:73`）写进 `revives`，否则记 `shop_revive_receipt_not_proven`。实机判据 `window-20261012-214803`：3093 → 2993，`cost=100`，`card=6`（Hong Lu）。
+4. **其余输入按固定优先级。** 货架上 gift plan 想要的卡，或「这次会带出上限以上的钱」必须花掉的卡（`window.py:633`，原因串 `buying_the_gift_the_gift_plan_asked_for` / `spending_the_coins_this_visit_would_carry_out_on_the_shelf`）→ 刷新（`window.py:643`，受刷新次数与储备金约束）→ 离店（`window.py:651`）。买成的记账在 `shop_transaction.py:458`，刷新回执在 `:478`；卡片标题的混淆字比对见 2.3 的 D14。
+
+上面四步的形状（每一跳都由它自己那一页印的字把关，没有字就停）：
+
+```mermaid
+flowchart TD
+    SHOP["SHOP 帧：一个输入"]
+    SHOP --> DEAD{"前七个存档位里有死位？<br/>shop_revive.key_losses<br/>shop_revive.py:269"}
+    DEAD -- "有，且店里印着 Heal Sinner" --> SERVICE["点 Heal Sinner<br/>window.py:623<br/>expect=(ANY,) / advance=True"]
+    SERVICE --> MODAL["HEAL_SINNERS 帧<br/>vision.py:266-269"]
+    MODAL --> THIRD["点它自己的第三行<br/>window.py:999"]
+    THIRD --> PICK["REVIVE_PICK 帧<br/>vision.py:286-288"]
+    PICK --> SLOT["点死位头像 slot_box(card)<br/>BAR_FIRST_CENTER=112 + BAR_PITCH=115"]
+    SLOT --> BUTTON["点弹窗换出的状态按钮<br/>window.py:583"]
+    BUTTON --> DONE["REVIVE_DONE 帧<br/>vision.py:283-285"]
+    DONE --> LEAVE["点它自己的 Leave<br/>window.py:566"]
+    LEAVE --> RECEIPT{"coins_before - 当前币值 == cost ?"}
+    RECEIPT -- 是 --> BOOK["book_revive 写进 revives<br/>deployment_transaction.py:73"]
+    RECEIPT -- 否 --> UNPROVEN["shop_revive_receipt_not_proven<br/>不记账，也不猜"]
+    BOOK --> SHOP
+    UNPROVEN --> SHOP
+    DEAD -- 没有 --> WANT{"货架上有 gift plan 想要的卡，<br/>或这次会带出超过上限的钱？"}
+    WANT -- 有 --> BUY["买：SHOP_PURCHASE → GIFT_GET<br/>window.py:633 / 记账 shop_transaction.py:458"]
+    WANT -- 没有 --> REFRESH{"还允许刷新？<br/>window.py:643"}
+    REFRESH -- 能 --> SHELF["刷新货架<br/>回执 shop_transaction.py:478"]
+    REFRESH -- 不能 --> OUT["离店：SHOP_LEAVE<br/>window.py:651"]
+    BUY --> SHOP
+    SHELF --> SHOP
+```
+
+（实机走通的只有 `window-20261012-214803` 那一步：3093 → 2993 的复活收据；整条路由由一次 planner 运行跑完仍在待验收清单里，见 7.3。）
 
 ## 4.4 `experience`：自动经验本
 
@@ -171,3 +236,12 @@ sequenceDiagram
 - **策略件的内部行为未逐行核对**：4.3 里列出的 `mirror_learning_policy.py` / `route_plan.py` / `gift_plan.py` / `shop_priority.py` / `auto_formation.py` / `budget.py` 只核对了顶层符号与其行号，没有逐行读完整实现细节。
 - **证据目录前缀**：`loop_directory` 的默认前缀是 `pi-`（`agent/recognition.py:1345-1346`）；本章没有逐台机器比对 `evidence/runtime/` 下实际目录清单，只引用了 `docs/acceptance.md` 里已登记的路径。
 - **`InputPreflight` 的 `win32` 分支内部**：只读到窗口唯一性与身份校验入口（`agent/recognition.py:1230-1239`），后续校验细节与 `input_helpers` 报告格式未展开。
+
+
+## 4.9 轮换选队与有界列表搜索
+
+加载下一队前必须先进行账本 reconcile；商店回执的局部调用现命名 shop_reconcile，避免遮蔽入场 reconcile。
+
+队伍定位使用当前侧栏的独立 OCR 行，不用旧屏幕坐标。目标不在可见列表时只在侧栏内有界上下 Swipe；两次语义列表不变则换方向，最多十二次尝试。找到目标后仍须顶部标题独立证明选队成功，才能 Confirm。默认 TEAMS #1–#40 的编号可读；自定义队名仍需要经验证的槽位映射，不能把名字或列表位置猜成编号。导航尝试保存在私有 user-team-navigation.json。
+
+本轮已用真实失败帧在隔离状态中证明 reconcile 不再异常；实际成品更新与 GUI 再启动仍须另行验证。

@@ -49,7 +49,7 @@
 
 - **没有已验收的发布包**，且「启动进程、任务返回成功和离线测试通过均不代表镜牢通关」（`README.md:31-32`）。一次英语困难五层链路（含领奖与保存队伍轮换再入场）有 MuMu 实机证据（`README.md:23`、`README.md:25`），但任意布局、版本与长期无人值守都未被承诺。
 - **仍缺三件实证**：一次 journal 里带 `pre_battle_identity_report` 的实机运行、绑定真实购买的 GET 覆盖层确认、以及完整的 2→5 层运行（`PROJECT.md:75-77`）。
-- **商店 GET 覆盖层**离线已读通并实现 `ShopTransaction.reserve_overlay_acknowledgement`（`docs/acceptance.md:19-24`），但 runner 还没调用它（`docs/acceptance.md:26-28` 的 `wired_in_runner=false`），所以真实购买仍会以 `shop_receipt_successor_not_proven` 安全停止。**黑盒学习**只有 2 样本/2 episode 的数据准备，`training_ready=False`、`model_trained=False`、`production=False`（`docs/acceptance.md:160`）。
+- **商店 GET 覆盖层**离线已读通并实现 `ShopTransaction.reserve_overlay_acknowledgement`；`docs/acceptance.md:26-28` 当时记的 `wired_in_runner=false` 已被代码推翻——`src/maalimbus/runner.py:1744` 现在就在商店页调它，实机 2026-10-12 的购买链条（4.3.1）走的正是这条（原先「真实购买必以 `shop_receipt_successor_not_proven` 停止」的说法随之作废）。**黑盒学习**只有 2 样本/2 episode 的数据准备，`training_ready=False`、`model_trained=False`、`production=False`（`docs/acceptance.md:160`）。
 
 **证据落点**：运行证据在 `evidence/runtime/<任务名>-<yyyymmdd-hhmmss>/`，启动记录在 `build/native-launch*.json`，日志在 `build/native-live.*.log`（`README.md:64`）。本仓库当前该形态的运行目录为 918 个（本地目录计数，2026-10-12；数量会随运行增长）。
 
@@ -76,7 +76,7 @@ flowchart TB
   RUN["src/maalimbus/runner.py<br/>187332 B，本仓库最大模块"]:::shared
   PLAN["src/maalimbus/window.py:110 plan_step(page, ...)<br/>实现体 window.py:139 _plan_step(...)"]:::shared
   ANCH["assets/resource/base/anchors.json（3369 行）<br/>pages + 三种锚点 kind: ocr / template / geometry"]:::shared
-  VIS["src/maalimbus/vision.py find()<br/>src/maalimbus/ 共 92 个 .py"]:::shared
+  VIS["src/maalimbus/vision.py find()<br/>src/maalimbus/ 共 93 个 .py"]:::shared
   CTL["Controller 层<br/>windows_controller.py:9 controller_profile()<br/>adb_device.py:26 discover() · adb_device.py:46 input_policy()"]:::shared
   GAME(["Limbus Company 客户端"]):::shared
   CFG["config/ 17 个用户态文件<br/>user-run-ledger.json · user-*-transaction.json"]:::shared
@@ -123,7 +123,7 @@ flowchart TB
 | anchor | 锚点 | 一条可机器复检的识别断言，只有三种 kind：`ocr` 正则、`template` 模板、`geometry` 单帧几何 | `src/maalimbus/anchors.py:1-9`（三种 kind 的定义与「绝不猜」原则）；`assets/resource/base/anchors.json:5` 指向离线复检工具 `tools/verify_anchors.py` |
 | scene | 场景标签 | 记录在观察/帧证据里的页面名，用来把一条证据绑回具体画面 | `src/maalimbus/event_log.py:102-103`（接受 `scene_before`）、`src/maalimbus/event_log.py:143-144`（打印 `page: {scene}`）；消费侧 `src/maalimbus/floor_gift_transaction.py:77` |
 | intent | 输入意图 | 一次「已经发出的输入」的持久记录：输入前先落盘，崩溃/重启后据此拒绝重复输入 | `src/maalimbus/floor_gift_transaction.py:47 def intent(self, title, count, proof, *, owned=False)`；`src/maalimbus/game_launch.py:1`（durable intent） |
-| pending transaction | 未决事务 | 输入已发出但后置条件尚未被证明的状态；未证明就不允许再次输入 | `src/maalimbus/floor_gift_transaction.py:1`（「未知后置条件绝不允许再次输入」）；`src/maalimbus/theme_transaction.py:4`；`src/maalimbus/shop_transaction.py:295 def _pending(...)` |
+| pending transaction | 未决事务 | 输入已发出但后置条件尚未被证明的状态；未证明就不允许再次输入 | `src/maalimbus/floor_gift_transaction.py:1`（「未知后置条件绝不允许再次输入」）；`src/maalimbus/theme_transaction.py:4`；`src/maalimbus/shop_transaction.py:319 def _pending(...)` |
 | run ledger | 运行账本 | 一次镜牢运行的事件账本；`RunStore` 拒绝乱序或没有证据的事件 | `src/maalimbus/run_wiring.py:1-18`（哪个页面证明哪个完成事件）、`run_wiring.py:156 def reconcile(...)`；`src/maalimbus/storage.py:126 class RunStore`；落盘 `config/user-run-ledger.json` |
 | locale overlay | 本地化覆盖层 | 按语言覆盖的识别文本/资源层，en 与 jp 各一份，叠加在 base 之上 | `assets/resource/en/locale.json`、`assets/resource/jp/locale.json`、`assets/resource/{en,jp}/pipeline/locale.json`；消费侧 `src/maalimbus/battle_vision.py:14 def planning_anchors(image, catalog, locale='en')` |
 | budget | 预算闸门 | 任何消费 Enkephalin/Module 前的离线闸门；预算为 0 时一切请求只拒绝、不点击 | `src/maalimbus/budget.py:1-6`（「绝不对游戏说话，先问闸门再决定是否输入」）；`assets/resource/base/budget.json:3-7`（`status: "pending"`、`module_budget: 0`） |
@@ -151,7 +151,7 @@ flowchart TD
   TASKER --> K1["dist/MaaLimbus/maafw/<br/>v5.12.2 原生二进制"]
 
   AGENTL --> A1["agent/main.py:20 main()<br/>main.py:48-55 注册"]
-  A1 --> A2["src/maalimbus/ 92 个 .py<br/>runner.py · window.py:110 plan_step"]
+  A1 --> A2["src/maalimbus/ 93 个 .py<br/>runner.py · window.py:110 plan_step"]
   R1 --> P1["page 页面"]
   P1 --> K2["anchor 锚点<br/>ocr / template / geometry"]
   P1 --> S1["scene 场景标签<br/>event_log.py:102-103"]

@@ -66,6 +66,7 @@ The wiki chapters cite `PROJECT.md`, `docs/design.md`, `docs/acceptance.md` and 
 | 架构契约与决策 / Architecture contract and decisions | [`docs/post-battle-ownership.md`](../post-battle-ownership.md) — 战后路径归 pipeline 还是归 driver；**给奖励卡、层礼、商店、下一层或入场返回加节点之前先读**。 |
 | 原生控制与 MXU 配置 / Native control and MXU configuration | [`docs/native-control.md`](../native-control.md) — 原生客户端与窗口控制、四种控制方式；[`docs/task-settings.md`](../task-settings.md) — 任务与已保存队伍的设置项；[`docs/theme-packs.md`](../theme-packs.md) — 主题包选择任务（尚未接通地图与五层循环）。 |
 | 商店设置 / Shop settings | [`docs/shop-settings.md`](../shop-settings.md) — 决定一次商店访问如何被限界、携带上限与解析器的三项镜牢设置。 |
+| 商店的死位复活 / The shop's revive of a dead key slot | [`docs/shop-revive.md`](../shop-revive.md) — `Heal Sinner` 三步弹窗（三选项 → 选中罪人 → 复活通告）各自的文字证明、弹窗右下角那颗换词按钮、以及「按币值差记账」的收据契约。 |
 | 打包与分发 / Packaging and distribution | [`docs/windows-package.md`](../windows-package.md) — Windows 开发包的实际构成与它的未验收边界。 |
 | 更新链 / Update chain | [`docs/update-staging.md`](../update-staging.md) — `tools/check_update.py --stage` 的下载与暂存语义；[`docs/startup-updater.md`](../startup-updater.md) — 桌面快捷方式启动器的自更新流程。 |
 | 框架一致性 / Framework conformance | [`docs/maaframework-conformance.md`](../maaframework-conformance.md) — 与 MaaFramework 上游协议的逐项对照**及其缺口段**，是「哪些协议特性本项目根本没断言」的集中来源。 |
@@ -108,3 +109,19 @@ python -m http.server 8791 --bind 127.0.0.1
 ```
 
 Serve over HTTP on purpose: a `file://` document cannot import the mermaid ES module, and it fails **silently** — the page sits on "parsing" with no result.
+
+
+## 图的工程语义 / Engineering semantics of diagrams
+
+| 图 / Diagram | 模型元素与连线语义 / Elements and relationships | wiki 落点 / Location |
+| --- | --- | --- |
+| 架构 / Architecture | 组件、责任边界、依赖和接口；不表达时间先后 / Components, responsibility boundaries, dependencies and interfaces; no timeline | 2-architecture.md |
+| 流程 / Business process | 业务动作、判断、循环、完成与保留现场 / Activities, decisions, loops and outcomes | 4-business-flows.md |
+| 时序 / Sequence | 参与者生命线、按时间的调用与响应；输入前记录意图、输入后核后继 / Lifelines, ordered calls and responses; intent before input, successor afterwards | 3-runtime.md |
+| 数据模型 / Data model | 逻辑实体、属性、引用及基数；文件字段盘点另外标注，非数据库物理表 / Logical entities, attributes, references and cardinalities; JSON inventories are separate | 5-state-and-data.md |
+| 部署 / Deployment | 主机、进程或运行环境、部署制品、通信协议；构建流程另图 / Hosts, processes/environments, artifacts and transport links; builds are separate | 6-deployment.md |
+| 状态 / State machine | 状态、事件或守卫、迁移；pending 是状态，不是自动重试许可 / States, events/guards and transitions; pending is not retry permission | 5-state-and-data.md |
+
+Mermaid 是绘图语法，不决定工程图类型。flowchart 语法可承载组件图或部署图，但必须按该图的模型元素与连线语义绘制。布局上下位置本身不表示设计层级或调用先后。
+
+Mermaid is a drawing syntax, not the engineering model. A flowchart renderer can draw components or deployment nodes only when its elements and relationships follow that model. Vertical layout alone does not mean layering or temporal order.

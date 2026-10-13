@@ -8,7 +8,7 @@
 
 本章的子页（只在对应小节处链接，索引页不链接它们）：
 
-- [2.2 模块地图](2.2-modules.md) —— 92 个 Python 模块的聚类与逐个职责
+- [2.2 模块地图](2.2-modules.md) —— 93 个 Python 模块的聚类与逐个职责
 - [2.3 决策详录](2.3-decisions.md) —— 12 条关键设计决策的完整理由与代码
 
 ---
@@ -18,48 +18,35 @@
 ### 图 2-1 分层总架构图
 
 ```mermaid
-flowchart TD
-    subgraph L5["Client 层 — 本项目自有扩展"]
-        MXU["MXU 客户端<br/>desktop/mxu/<br/>TeamBuildEditor.tsx · limbus_update.rs"]
-        PIV2["ProjectInterface V2 协议面<br/>assets/interface.json<br/>4 个 controller · 6 个 task"]
-        MXU -->|"勾选任务与控制器"| PIV2
-    end
-
-    subgraph L4["Resource 层"]
-        RESBASE["assets/resource/base/<br/>anchors.json · pipeline/mirror.json<br/>pipeline/sinner-neural.json"]
-        RESLOC["assets/resource/&lt;locale&gt;/<br/>locale.json · pipeline/locale.json<br/>en · jp"]
-        I18N["assets/i18n/<br/>en_us.json · ja_jp.json · zh_cn.json"]
-    end
-    PIV2 --> RESBASE
-    PIV2 --> RESLOC
-    PIV2 --> I18N
-
-    subgraph L3["Tasker 层 — 上游 MaaFramework（maafw/，版本 5.12.2）"]
-        POST["tasker.post_task<br/>ControllerAgent 截图缩放 + 输入坐标换算"]
-        RUNP["Context.run_task<br/>回调内同步执行 pipeline 节点"]
-    end
-    PIV2 -->|"task.entry 指定入口节点"| POST
-
-    subgraph L2["Agent 层"]
-        MAINS["agent/main.py<br/>AgentServer.register_*"]
-        RECOG["agent/recognition.py<br/>LimbusRecognition · MirrorLoopAction"]
-        BIZ["src/maalimbus/ 业务层（92 个模块）<br/>runner.py · window.py · run_wiring.py<br/>map_vision.py · storage.py · …"]
-        MAINS --> RECOG
-        RECOG --> BIZ
-    end
-    POST -->|"custom_recognition / custom_action"| MAINS
-    BIZ -->|"MaaObserver 走 AgentTasker.post_task"| RUNP
-    RUNP -->|"limbus_map_observe / limbus_battle_observe"| RECOG
-
-    subgraph L1["Controller 层"]
-        WCTL["src/maalimbus/windows_controller.py<br/>读 PI 的 Win32 profile"]
-        ADBD["src/maalimbus/adb_device.py<br/>Toolkit.find_adb_devices"]
-        DEVICE["LimbusCompany 窗口<br/>或 MuMu / ADB 设备"]
-    end
-    PIV2 -->|"PI_CONTROLLER"| WCTL
-    WCTL --> DEVICE
-    ADBD --> DEVICE
-    BIZ -->|"MaaDevice.post_click / post_swipe"| DEVICE
+flowchart LR
+  subgraph CLIENT["组件边界：MXU 客户端进程"]
+    UI["任务与设置界面"]
+    PI["ProjectInterface V2 任务配置"]
+    FW["MaaFramework Tasker / Resource"]
+    CTL["唯一 Controller 实例"]
+    UI -->|提交任务| FW
+    PI -.->|配置入口与资源| FW
+    FW -->|截图与输入接口| CTL
+  end
+  subgraph AGENT["组件边界：Python Agent 进程"]
+    SERVER["AgentServer 回调注册与 IPC"]
+    REC["LimbusRecognition 原生识别适配"]
+    BIZ["MirrorRunner / 页面策略 / 事务"]
+    BRIDGE["借用 Context 的 MaaObserver / MaaDevice"]
+    SERVER -->|调用回调| REC
+    SERVER -->|调用动作| BIZ
+    BIZ -->|调用接口| BRIDGE
+  end
+  RES["资源文件：pipeline / 图像 / 词表 / 模型"]
+  STORE["私有配置、账本与证据文件"]
+  GAME["游戏窗口或 MuMu Android 游戏"]
+  FW <-->|Agent IPC 协议| SERVER
+  BRIDGE -->|Context.run_task / controller.post_*| FW
+  REC -->|Context.run_recognition_direct| FW
+  RES -.->|加载数据| FW
+  RES -.->|读取目录与策略| REC
+  BIZ -->|校验后读写| STORE
+  CTL -->|Win32 或 ADB，选定一种| GAME
 ```
 
 ### 表 2-1 分层职责与落点
@@ -70,7 +57,7 @@ flowchart TD
 | Resource | 本项目 | 控制器/任务/选项声明、锚点、流水线节点、本地化 | `assets/interface.json:2`（`interface_version: 2`）、`assets/resource/base/anchors.json`、`assets/resource/base/pipeline/mirror.json`、`assets/i18n/` | 只声明，不含判定逻辑 |
 | Tasker | 上游 MaaFramework `v5.12.2` | 截图、识别、图调度、输入换算、超时 | `maafw/`（`pyproject.toml` 钉 `maafw==5.12.2`，见 `docs/maaframework-conformance.md:11`） | 不做业务判断；坐标换算在 `ControllerAgent::preproc_touch_point`（`docs/maaframework-conformance.md:37-48`） |
 | Agent | 本项目 | 自定义识别与自定义动作，把页面转成结构化证据 | `agent/main.py:48-69`、`agent/recognition.py:100`、`agent/recognition.py:1473` | 不自己建第二个 controller |
-| 业务（`src/maalimbus/`） | 本项目 | 页面→动作规划、账本、事务、离线学习 | `src/maalimbus/runner.py:1`（92 个模块） | 不认识 Maa，也不认识 ADB |
+| 业务（`src/maalimbus/`） | 本项目 | 页面→动作规划、账本、事务、离线学习 | `src/maalimbus/runner.py:1`（95 个模块） | 不认识 Maa，也不认识 ADB |
 | Controller | MaaFramework + 本项目选型 | 唯一的真实设备所有权 | `src/maalimbus/windows_controller.py:9`、`src/maalimbus/adb_device.py:1` | 同一时刻只允许一个 controller（`src/maalimbus/controller_lease.py:1`） |
 
 ### 端到端链路
@@ -81,7 +68,7 @@ flowchart TD
 4. 动作内部调用 `src/maalimbus/` 的纯业务层。`MirrorLoopAction`（`agent/recognition.py:1473`）就是整条闭环：它把 PI 的 controller 包成 `runner.MaaDevice`，把 `AgentTasker` 包成 `runner.MaaObserver`，然后交给 `runner.MirrorRunner`（`agent/recognition.py:1509-1522`）。
 5. 业务层的每一个输入都通过 `MaaDevice` 的 `post_click` / `post_swipe` 回到 PI 自己的 controller，不新建设备通道（`docs/agent-loop.md:105-107`）。
 
-> 关键约束：**输入只有一个出口**。`src/maalimbus/runner.py:250` 的 `Device` Protocol 与 `:549` 的 `Observer` Protocol 是业务层与设备之间唯一的两个缝。这也是它能离线测试的原因——`FrameObserver`（`:565`）重放归档帧，`FakeDevice`（`:385`）记录发出去的输入，于是 `tests/test_runner.py` 用真实归档证据驱动真实循环而完全不接设备。
+> 关键约束：**输入只有一个出口**。`src/maalimbus/runner.py:251` 的 `Device` Protocol 与 `:550` 的 `Observer` Protocol 是业务层与设备之间唯一的两个缝。这也是它能离线测试的原因——`FrameObserver`（`:566`）重放归档帧，`FakeDevice`（`:386`）记录发出去的输入，于是 `tests/test_runner.py` 用真实归档证据驱动真实循环而完全不接设备。
 
 ### 三个外部依赖与它们的许可
 
@@ -95,7 +82,7 @@ flowchart TD
 
 ## 2.2 模块地图
 
-`src/maalimbus/` 共 **92 个 `.py`**（含 `__init__.py`）。每个模块的职责都由它自己的模块 docstring 在第 1 行声明——完整清单与逐个职责见 [2.2 模块地图](2.2-modules.md)。
+`src/maalimbus/` 共 **95 个 `.py`**（含 `__init__.py`）。每个模块的职责都由它自己的模块 docstring 在第 1 行声明——完整清单与逐个职责见 [2.2 模块地图](2.2-modules.md)。
 
 ### 图 2-2 模块依赖图（按实测 import 关系）
 
@@ -122,6 +109,7 @@ flowchart TD
         MAPV["map_vision.py<br/>地图身份与有界路线读数"]
         BATTLEV["battle_vision.py"]
         SHOPV["shop_vision.py"]
+    SHOPREV["shop_revive.py<br/>服务按钮 / 选项 / 位框 / 状态按钮"]
         GCAT["gift_vision.py<br/>GiftCatalog"]
         TEAMV["team_vision.py<br/>team_row / card_states"]
         THEMEV["theme_vision.py<br/>ThemeCatalog"]
@@ -148,6 +136,8 @@ flowchart TD
     RUNNER --> MAPV
     RUNNER --> BATTLEV
     RUNNER --> SHOPV
+    RUNNER --> SHOPREV
+    SHOPREV --> SHOPV
     RUNNER --> GCAT
     RUNNER --> TEAMV
     RUNNER --> THEMEV
@@ -169,7 +159,7 @@ flowchart TD
     SHOPTXN --> STORAGE
 ```
 
-图中每一根边的依据：`src/maalimbus/runner.py:46-72`（模块级 import 块）、`src/maalimbus/map_vision.py:16-17`、`src/maalimbus/storage.py:12`、`agent/recognition.py:20-43`。
+图中每一根边的依据：`src/maalimbus/runner.py:46-72`（模块级 import 块）、`src/maalimbus/map_vision.py:16-17`、`src/maalimbus/storage.py:12`、`agent/recognition.py:20-43`、`src/maalimbus/runner.py:1862`（函数内 import `shop_revive`）与 `src/maalimbus/shop_revive.py:20`（它只依赖 `shop_vision` 的读数助手）。
 
 ### 十个簇与它们的规模
 
@@ -177,7 +167,7 @@ flowchart TD
 | --- | --- | --- | --- |
 | 编排与驱动 | 7 | 把一局游戏走完，并把该记的记下来 | `runner.py:1`、`run_wiring.py:1` |
 | 决策与策略（纯函数） | 10 | 只算「下一步该做什么」，不碰设备 | `window.py:1`、`policies.py`、`route_plan.py:1` |
-| 视觉 / 页面读取 | 25 | 把一帧变成可判定的证据 | `vision.py:1`、`map_vision.py:1`、`anchors.py:1` |
+| 视觉 / 页面读取 | 30 | 把一帧变成可判定的证据 | `vision.py:1`、`map_vision.py:1`、`anchors.py:1` |
 | 持久层 | 9 | 先落盘再输入，路径与 cwd 解耦 | `storage.py:1`、`runtime_paths.py:1` |
 | 任务执行 | 7 | 独立任务入口（奖励、Lux、商店） | `reward_task.py:1`、`lux_task.py:1` |
 | 设置与迁移 | 9 | 用户偏好的读写与从旧 build 播种 | `global_settings.py:1`、`task_preferences.py:1` |
@@ -194,7 +184,7 @@ flowchart TD
 | 模板匹配 | `src/maalimbus/anchors.py:132` `check_template(...)` | 钉住的位图 + 阈值 | `gift_vision.py`、`battle_counter_native.py` |
 | 几何 | `src/maalimbus/anchors.py:159` `check_geometry(...)` | 归一化 ROI 与尺寸关系 | `theme_vision.py`、`star_vision.py` |
 
-锚点注册表由 `assets/resource/base/anchors.json` 承载（`src/maalimbus/runner.py:225` 把 `REGISTRY` 指向它），`anchors.validate()`（`src/maalimbus/anchors.py:31`）在加载时先校验结构，`anchors.evaluate()`（`:192`）在运行时逐锚点求值。
+锚点注册表由 `assets/resource/base/anchors.json` 承载（`src/maalimbus/runner.py:226` 把 `REGISTRY` 指向它），`anchors.validate()`（`src/maalimbus/anchors.py:31`）在加载时先校验结构，`anchors.evaluate()`（`:192`）在运行时逐锚点求值。
 
 ---
 
@@ -209,7 +199,7 @@ flowchart TD
 | D1 | Maa 只负责截图/输入与有界 Pipeline 调度，业务逻辑全在纯 Python | 让判定可离线复现、可单测 | `PROJECT.md:1338`、`docs/runner.md:3-14` |
 | D2 | 循环做成库，页面与输入注入 | 循环原先锁死在 CLI 里，无法测试也无法被 App 复用 | `docs/runner.md:5-14`、`src/maalimbus/runner.py:1-31` |
 | D3 | 一页最多一个输入，没有可靠控件就拒绝 | 误点会丢掉一个已经打了一半的运行 | `src/maalimbus/window.py:13-19`、`window.py:106` |
-| D4 | 存在一张永远不会被点的控件黑名单 | 有些控件是可用的页面标识，但点了就丢运行 | `src/maalimbus/window.py:42-63`、`window.py:128-135` |
+| D4 | 存在一张永远不会被点的控件黑名单 | 有些控件是可用的页面标识，但点了就丢运行 | `src/maalimbus/window.py:50-63`、`window.py:128-135` |
 | D5 | 输入前先持久化意图（reserve-before-input） | 崩溃/重启后不得重放或扩大预算 | `src/maalimbus/storage.py:126`、`run_wiring.py:81` |
 | D6 | 账本只接受页面真正证明的事件 | 事件乱序或无证据时账本会拒收 | `src/maalimbus/run_wiring.py:41-79` |
 | D7 | 结算永远不把「输入」当作「收款」 | 点击不是收据 | `src/maalimbus/run_wiring.py:68-73`、`docs/design.md:358-371` |
@@ -234,16 +224,16 @@ flowchart LR
     end
 
     subgraph READ["只读判定"]
-        SCENE["resolve_scene<br/>runner.py:837"]
+        SCENE["resolve_scene<br/>runner.py:838"]
         OVL["resolve_overlay<br/>window.py:79"]
-        CAND["candidates_of / check_of<br/>runner.py:742 / 765"]
+        CAND["candidates_of / check_of<br/>runner.py:743 / 766"]
         PLAN["window.plan_step<br/>window.py:110"]
         SCENE --> OVL --> PLAN
         REC --> CAND --> PLAN
     end
 
     subgraph WRITE["输入与落盘"]
-        DEV["Device.click / swipe<br/>runner.py:250"]
+        DEV["Device.click / swipe<br/>runner.py:251"]
         FRAME["store_frame<br/>frame-NNNN.png/.json"]
         JRN["events.jsonl"]
         LEDGER["RunStore.record<br/>storage.py:126"]
@@ -264,15 +254,15 @@ flowchart LR
 
 | 数据 | 写在哪里 | 谁写 | 锚点 |
 | --- | --- | --- | --- |
-| 每页 PNG + JSON 记录 | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:496` |
+| 每页 PNG + JSON 记录 | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:497` |
 | 运行日志（机器读） | `<run_dir>/events.jsonl` | `Journal.record` / `MirrorRunner.note()` | `agent/recognition.py:76`、`runner.py:1351` |
 | 运行摘要 | `<run_dir>/agent-result.json` | `MirrorLoopAction.run` 收尾 | `agent/recognition.py:1547-1548` |
 | 人读日志 | 同次运行的文本报告 | `event_log.report()` | `src/maalimbus/event_log.py:130` |
 | 完成事件（有序、有证据） | 运行账本 | `RunStore.record()` | `src/maalimbus/storage.py:126` |
 | 队伍轮换 | 运行账本 | `RunLedger.complete()` | `src/maalimbus/policies.py:140-148` |
 | 队伍与偏好 | `config/user-team-profiles.json` 等 17 份 | `ProfileStore` | `src/maalimbus/storage.py:69` |
-| 锚点与模板 | `assets/resource/base/anchors.json` | 仓库维护，运行时只读 | `src/maalimbus/runner.py:225` |
-| 地图探测授权 | `build/map-probe-authorization.json` | `runner.authorized(nonce)` 只读校验 | `src/maalimbus/runner.py:224`、`:237` |
+| 锚点与模板 | `assets/resource/base/anchors.json` | 仓库维护，运行时只读 | `src/maalimbus/runner.py:226` |
+| 地图探测授权 | `build/map-probe-authorization.json` | `runner.authorized(nonce)` 只读校验 | `src/maalimbus/runner.py:226`、`:238` |
 
 `run_dir` 的解析优先级写在 `docs/agent-loop.md:68-69`：`custom_action_param["directory"]` → 环境变量 `MAALIMBUS_RUN_DIR` → 应用根下的 `evidence/runtime/pi-<YYYYmmdd-HHMMSS>`；相对路径按应用根解析。
 

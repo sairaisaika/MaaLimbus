@@ -809,7 +809,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # at x≈150 and Confirm [1632,853,170,52] with Starlight Bonus 107).
         wanted = (team or {}).get('wanted')
         chosen = (team or {}).get('selected')
-        slot = controls.get('team.slot_%02d' % wanted) if wanted else None
+        slot=((team or {}).get('visible_target') if 'visible_rows' in (team or {})
+              else controls.get('team.slot_%02d' % wanted) if wanted else None)
+        navigation=(team or {}).get('navigation') or {}
+        if chosen!=wanted and slot is None and navigation.get('start'):
+            return _plan(page,SWIPE,target=navigation['start'],to=navigation['to'],duration=600,
+                         expect=('DUNGEON_TEAM',),reason='scrolling_visible_team_list_for_saved_slot',
+                         detail={'slot':wanted,'direction':navigation['direction'],'attempt':navigation['attempt']})
+        if chosen!=wanted and navigation.get('reason'):
+            return _refuse(page,navigation['reason'])
         if slot is not None and chosen != wanted:
             return _plan(page, CLICK, target=slot, expect=(ANY,), advance=True,
                          reason='dungeon_team_slot_is_selected_for_the_rotation',

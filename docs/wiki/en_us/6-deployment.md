@@ -48,47 +48,32 @@ Things that do **not** exist in the measured package — do not assume them on t
 ### 6.1.2 Deployment Graph
 
 ```mermaid
-flowchart TB
-  subgraph HOST["Host Windows · D:/fgoa/MaaLimbus"]
-    SRC["source tree<br/>src/maalimbus/ 92 .py<br/>agent/main.py<br/>tools/ build and verify scripts"]
-    BUILDDIR["build/<br/>windows-package-32hex/<br/>local-app-yyyymmddHHMMSS/<br/>launcher-32hex/"]
-    HOSTCFG["config/ user-state files<br/>user-launch.json<br/>user-update-state.json<br/>mxu-MaaLimbus.json"]
-    HOSTEV["evidence/runtime/<br/>window-yyyymmdd-hhmmss/<br/>pi-yyyymmdd-hhmmss/"]
-    WORK["dist/ working dirs<br/>.maalimbus-launcher-32hex/<br/>.maalimbus-startup/launcher.lock<br/>MaaLimbus.backup-32hex/"]
+flowchart LR
+  subgraph WINDOWS["Device node: Windows host"]
+    subgraph MXUP["Execution environment: MXU process"]
+      MXU["Artifact: MaaLimbus.exe"]
+      DLL["Loaded libraries: MaaFramework / Win32 / ADB"]
+    end
+    subgraph AP["Execution environment: Agent child process"]
+      AG["Artifact: MaaLimbusAgent.exe + _internal"]
+    end
+    FILES["Portable files: interface.json / assets"]
+    PRIVATE["Private data directory: config / evidence / build"]
+    LAUNCHER["Updater process: MaaLimbusLauncher.exe"]
+    WIN["Optional execution environment: native Windows Limbus"]
+    subgraph EMULATOR["Optional execution environment: MuMu emulator"]
+      ANDROID["Android guest: Limbus Company app"]
+    end
+    MXU <-->|Local Agent IPC| AG
+    MXU -->|Read| FILES
+    AG -->|Read| FILES
+    AG -->|Read/write evidence and transactions| PRIVATE
+    DLL -->|Win32 control interface| WIN
+    DLL -->|ADB transport interface| ANDROID
+    LAUNCHER -->|Validated normal launch| MXU
   end
-  subgraph PKG["portable package dist/MaaLimbus/"]
-    EXE["MaaLimbus.exe<br/>MXU client"]
-    IFJ["interface.json<br/>PI V2 project definition"]
-    LCH["launcher/MaaLimbusLauncher.exe"]
-    AGT["agent/MaaLimbusAgent.exe"]
-    RUNB["runner/MaaLimbusRunner.exe<br/>release packages only"]
-    MAAFW["maafw/ (19 files + 2 dirs)<br/>MaaFramework.dll / MaaPiCli.exe<br/>MaaWin32ControlUnit.dll<br/>MaaAdbControlUnit.dll"]
-    AST["assets/<br/>resource/base/pipeline/*.json<br/>i18n/en_us, ja_jp, zh_cn"]
-    BI["build-info.json"]
-    PCFG["config/ · evidence/ · build/<br/>private run data"]
-  end
-  subgraph EXT["External dependencies / system"]
-    GAME["LimbusCompany game process<br/>window class UnityWndClass"]
-    MUMU["MuMu emulator + adb"]
-    GH["GitHub Releases<br/>sairaisaika/MaaLimbus"]
-  end
-  SRC -- assembly scripts --> BUILDDIR
-  BUILDDIR -- assemble --> PKG
-  EXE -- reads --> IFJ
-  IFJ -- child_exec --> AGT
-  EXE -- starts PI V2 runtime --> MAAFW
-  MAAFW -- MaaWin32ControlUnit --> GAME
-  MAAFW -- MaaAdbControlUnit --> MUMU
-  AGT -- Library.open(ROOT/maafw) --> MAAFW
-  EXE -- writes --> PCFG
-  AGT -- writes --> PCFG
-  MAAFW -- loads resources --> AST
-  LCH -- launches after update --> EXE
-  LCH -- runtime bootstrap --> WORK
-  RUNB -- source-tree CLI path --> AGT
-  EXE -- checks latest version --> GH
-  HOSTCFG -.- PCFG
-  HOSTEV -.- PCFG
+  RELEASE["External service: GitHub Releases"]
+  LAUNCHER -->|HTTPS metadata and archives| RELEASE
 ```
 
 ### 6.1.3 Who Assembles Each Top-Level Item
@@ -521,3 +506,10 @@ These facts must be stated plainly, or readers will overestimate the maturity of
 | `dist/` working-directory growth | 36 backups + 5 launcher directories | Define a retention policy (backups are rollback evidence and must not be deleted blindly) |
 | Release-vs-development package differences | Confirmed via source anchors | If distributing externally, re-run both 6.4.3 verifications against the release package |
 | The name `docs/deployment.md` | Mismatched with this chapter's subject | Consider renaming to `docs/battle-deployment.md` to reduce cross-page mis-references |
+
+
+## 6.6 Public-output privacy boundary
+
+Public-source export checks local user paths and literal player IDs before opening the ZIP. Errors expose only filename, line and category, never matched values. Local .local.json learning policies, logs and jsonl files are excluded from source archives. Current document home-user paths have been redacted.
+
+This gate covers current text only, not screenshots, model datasets, existing Git history or older releases. Private config/evidence/build remain excluded; final public-package inventories and account-bearing images need separate review.

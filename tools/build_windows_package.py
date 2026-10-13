@@ -18,6 +18,7 @@ from native_dependency_notices import collect as collect_native_notices
 from maalimbus.archives import extract_checked
 from maalimbus.release_package import export_assets
 from maalimbus.mxu_distribution import validate_artifact
+from maalimbus.public_privacy import public_file,require_public
 ARCHIVES = {
     'mxu': ('825A62AF7A344A7A47ADCA09D1414128E6F53A222A11CDF456F08D2E83D31724',
             'https://github.com/MistEO/MXU/releases/download/v2.7.1/MXU-win-x86_64-v2.7.1.zip'),
@@ -66,13 +67,12 @@ def verify(path, expected):
 
 def copy_public_sources(output):
     # Explicit public roots: never copy build/config/evidence or a previous install.
+    paths=[path for name in ('src','agent','tools','tests','docs','assets','desktop','THIRD_PARTY_NOTICES')
+           for path in sorted((ROOT/name).rglob('*')) if public_file(path)]
+    paths.extend(ROOT/name for name in ('README.md','README_en.md','LICENSE','pyproject.toml','PROJECT.md','.gitignore'))
+    require_public(paths)
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
-        for name in ('src', 'agent', 'tools', 'tests', 'docs', 'assets', 'desktop', 'THIRD_PARTY_NOTICES'):
-            for path in sorted((ROOT/name).rglob('*')):
-                if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
-                    archive.write(path, path.relative_to(ROOT).as_posix())
-        for name in ('README.md', 'README_en.md', 'LICENSE', 'pyproject.toml', 'PROJECT.md', '.gitignore'):
-            archive.write(ROOT/name, name)
+        for path in paths:archive.write(path,path.relative_to(ROOT).as_posix())
 
 
 def freeze(entry, name, work):

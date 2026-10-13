@@ -38,47 +38,32 @@
 ### 6.1.2 部署图
 
 ```mermaid
-flowchart TB
-  subgraph HOST["宿主机 Windows · D:/fgoa/MaaLimbus"]
-    SRC["源码树<br/>src/maalimbus/ 92 个 .py<br/>agent/main.py<br/>tools/ 构建与验证脚本"]
-    BUILDDIR["build/<br/>windows-package-32hex/<br/>local-app-yyyymmddHHMMSS/<br/>launcher-32hex/"]
-    HOSTCFG["config/ 用户态文件<br/>user-launch.json<br/>user-update-state.json<br/>mxu-MaaLimbus.json"]
-    HOSTEV["evidence/runtime/<br/>window-yyyymmdd-hhmmss/<br/>pi-yyyymmdd-hhmmss/"]
-    WORK["dist/ 工作目录族<br/>.maalimbus-launcher-32hex/<br/>.maalimbus-startup/launcher.lock<br/>MaaLimbus.backup-32hex/"]
+flowchart LR
+  subgraph WINDOWS["设备节点：Windows 主机"]
+    subgraph MXUP["执行环境：MXU 进程"]
+      MXU["部署制品：MaaLimbus.exe"]
+      DLL["加载的库：MaaFramework / Win32 / ADB"]
+    end
+    subgraph AP["执行环境：Agent 子进程"]
+      AG["部署制品：MaaLimbusAgent.exe + _internal"]
+    end
+    FILES["便携包文件：interface.json / assets"]
+    PRIVATE["私有数据目录：config / evidence / build"]
+    LAUNCHER["更新启动器进程：MaaLimbusLauncher.exe"]
+    WIN["可选执行环境：Windows 原生 Limbus 游戏"]
+    subgraph EMULATOR["可选执行环境：MuMu 模拟器"]
+      ANDROID["Android 客体：Limbus Company 应用"]
+    end
+    MXU <-->|本机 Agent IPC| AG
+    MXU -->|读取| FILES
+    AG -->|读取| FILES
+    AG -->|读写证据和事务| PRIVATE
+    DLL -->|Win32 控制接口| WIN
+    DLL -->|ADB 传输接口| ANDROID
+    LAUNCHER -->|校验后正常启动| MXU
   end
-  subgraph PKG["便携包 dist/MaaLimbus/"]
-    EXE["MaaLimbus.exe<br/>MXU 客户端"]
-    IFJ["interface.json<br/>PI V2 项目定义"]
-    LCH["launcher/MaaLimbusLauncher.exe"]
-    AGT["agent/MaaLimbusAgent.exe"]
-    RUNB["runner/MaaLimbusRunner.exe<br/>仅发布包存在"]
-    MAAFW["maafw/ (19 文件 + 2 目录)<br/>MaaFramework.dll / MaaPiCli.exe<br/>MaaWin32ControlUnit.dll<br/>MaaAdbControlUnit.dll"]
-    AST["assets/<br/>resource/base/pipeline/*.json<br/>i18n/en_us, ja_jp, zh_cn"]
-    BI["build-info.json"]
-    PCFG["config/ · evidence/ · build/<br/>私有运行数据"]
-  end
-  subgraph EXT["外部依赖 / 系统"]
-    GAME["LimbusCompany 游戏进程<br/>窗口类 UnityWndClass"]
-    MUMU["MuMu 模拟器 + adb"]
-    GH["GitHub Releases<br/>sairaisaika/MaaLimbus"]
-  end
-  SRC -- 装配脚本 --> BUILDDIR
-  BUILDDIR -- 装配 --> PKG
-  EXE -- 读取 --> IFJ
-  IFJ -- child_exec --> AGT
-  EXE -- 拉起 PI V2 运行时 --> MAAFW
-  MAAFW -- MaaWin32ControlUnit --> GAME
-  MAAFW -- MaaAdbControlUnit --> MUMU
-  AGT -- Library.open(ROOT/maafw) --> MAAFW
-  EXE -- 写 --> PCFG
-  AGT -- 写 --> PCFG
-  MAAFW -- 载入资源 --> AST
-  LCH -- 更新完成后拉起 --> EXE
-  LCH -- 运行期 bootstrap --> WORK
-  RUNB -- 源码树 CLI 路径 --> AGT
-  EXE -- 检查最新版本 --> GH
-  HOSTCFG -.- PCFG
-  HOSTEV -.- PCFG
+  RELEASE["外部服务：GitHub Releases"]
+  LAUNCHER -->|HTTPS 元数据与归档| RELEASE
 ```
 
 ### 6.1.3 每个顶层项由谁装配
@@ -442,3 +427,10 @@ flowchart TD
 | `dist/` 工作目录膨胀 | 36 个 backup + 5 个 launcher 目录 | 明确保留策略（备份是回滚凭据，不可盲删） |
 | 发布包与开发包的差异 | 已由源码锚点确认 | 若对外分发，需在发布包上重跑 6.4.3 的两份验证 |
 | `docs/deployment.md` 的命名 | 与本章主题不符 | 考虑改名为 `docs/battle-deployment.md` 以减少跨页误引用 |
+
+
+## 6.6 公开输出隐私边界
+
+公开源码导出在写 ZIP 前检查本机用户路径和字面玩家 ID，错误只报告文件名、行号、类别，不回显匹配值；本地学习策略 .local.json、日志和 jsonl 不进入源码归档。已脱敏当前文档中的本机用户路径。
+
+此门禁只检查当前文本；不宣称截图、模型训练集、已有 Git 历史或旧发布包已经全部清理。私有 config/evidence/build 仍必须排除，公开包还需检查实际文件清单和截图是否包含账号信息。

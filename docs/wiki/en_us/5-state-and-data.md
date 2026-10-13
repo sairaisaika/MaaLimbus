@@ -18,10 +18,10 @@ The `page` the driver acts on is not a hand-written enum. It is the `scene` fiel
 
 | Layer | Location | Output |
 | --- | --- | --- |
-| ① full-screen OCR + classification | `agent/recognition.py:140` `LimbusRecognition.observe()` takes full-screen OCR, `agent/recognition.py:168` calls `scene = classify(records, self.locale, size)`; `classify` is defined at `src/maalimbus/vision.py:63` | 45 page constants, falling back to `UNKNOWN` (`src/maalimbus/vision.py:439`) |
+| ① full-screen OCR + classification | `agent/recognition.py:140` `LimbusRecognition.observe()` takes full-screen OCR, `agent/recognition.py:168` calls `scene = classify(records, self.locale, size)`; `classify` is defined at `src/maalimbus/vision.py:63` | 45 page constants, falling back to `UNKNOWN` (`src/maalimbus/vision.py:473`) |
 | ② local re-reads and standalone-page probes | `agent/recognition.py:169-201` re-reads the map header, `:202-209` the battle `TURN`, `:210-222` `HARD`; while `UNKNOWN`, standalone controls promote the page to `INITIAL_GIFTS` (`agent/recognition.py:223-224`), `STAR_GRACES` (`:225-226`), `DEPLOYMENT` (`:227-228`) | the corrected `scene` |
 | ③ observation events | `limbus_map_observe` → `agent/recognition.py:1130` `MapObservation` writes `map_observed` (`agent/recognition.py:1146`); battle frames are written by `limbus_battle_observe` (`agent/recognition.py:1184`) | the `scene` field inside the observation record |
-| ④ driver-side renaming | `src/maalimbus/runner.py:837` `resolve_scene()`: when `scene == 'UNKNOWN'` and the skill-check prompt reads `commence`, it promotes to `EVENT_CHECK` (`src/maalimbus/runner.py:844-845`); then `src/maalimbus/window.py:79` `resolve_overlay()` runs | the final `page` |
+| ④ driver-side renaming | `src/maalimbus/runner.py:838` `resolve_scene()`: when `scene == 'UNKNOWN'` and the skill-check prompt reads `commence`, it promotes to `EVENT_CHECK` (`src/maalimbus/runner.py:846`); then `src/maalimbus/window.py:79` `resolve_overlay()` runs | the final `page` |
 
 `resolve_overlay` (`src/maalimbus/window.py:79`) is the single place where **a later-decided overlay beats an earlier-decided page**: when the tutorial overlay matches, it returns `TUTORIAL` (`src/maalimbus/window.py:88`) whatever is underneath.
 
@@ -29,44 +29,53 @@ The evidence behind a decision is itself registered in `assets/resource/base/anc
 
 Two facts that are easy to get wrong:
 
-- **`BEFORE_ENTRY` is not a recognised page.** `src/maalimbus/window.py:339` puts it in the same branch as `MIRROR_ENTRY` (`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`), and `assets/resource/base/anchors.json` carries a `before_entry` page; but it is not among the 47 `return` constants of `vision.classify`, and `agent/recognition.py` never produces it. It exists purely as a compatibility synonym branch.
+- **`BEFORE_ENTRY` is not a recognised page.** `src/maalimbus/window.py:339` puts it in the same branch as `MIRROR_ENTRY` (`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`), and `assets/resource/base/anchors.json` carries a `before_entry` page; but it is not among the 50 `return` constants of `vision.classify`, and `agent/recognition.py` never produces it. It exists purely as a compatibility synonym branch.
 - **The reviewed labels in `learning_dataset.py` are not runtime page names.** `src/maalimbus/learning_dataset.py:7` `LABELS` has only 11 entries (`STAR_GRACES`, `THEME_PACKS`, `MAP`, `PRE_BATTLE_TEAM`, `BATTLE_HUD`, `GIFT_PICK`, `GIFT_GET`, `EVENT_CHOICE`, `SHOP`, `RUN_COMPLETE`, `UNKNOWN`); it is a human label set for a future learned classifier, and the file says so itself: "Explicit reviewed page label required; OCR scene is not ground truth" (`src/maalimbus/learning_dataset.py:29`). It is neither the runtime page set nor a settlement-page list beyond `RUN_COMPLETE`.
 
 ### 5.1.2 The page state diagram
 
-State names are the page constants from the code; each edge label is the only permitted input plus the line that produces it. Inside the diagrams the `src/maalimbus/` prefix is dropped for readability: `window.py:169` means `src/maalimbus/window.py:169`, and likewise `vision.py:439`, `storage.py:177`, `deployment_transaction.py:55`, `run_wiring.py:142`; prose outside the diagrams always gives the full path.
+State names are the page constants from the code; each edge label is the only permitted input plus the line that produces it. Inside the diagrams the `src/maalimbus/` prefix is dropped for readability: `window.py:169` means `src/maalimbus/window.py:169`, and likewise `vision.py:473`, `storage.py:177`, `deployment_transaction.py:55`, `run_wiring.py:142`; prose outside the diagrams always gives the full path.
+
+State nodes represent persistent page states; edge labels name an input or independent successor observation. UNKNOWN is recognition uncertainty, not an automatic home-navigation action. Unproven budgets or successors preserve pending transactions.
 
 ```mermaid
 stateDiagram-v2
     %% —— Entry leg: from the lobby to the mirror dungeon door ——
     [*] --> UNKNOWN
-    UNKNOWN --> HOME : re-read the lobby vision.py:439
+    UNKNOWN --> HOME : re-read the lobby vision.py:473
     HOME --> DRIVE : tap the bottom Drive nav window.py:169
-    HOME --> MIRROR_ENTRY : already at the mirror entrance window.py:169
     DRIVE --> MIRROR_ENTRY : one tap inside the mirror-menu box window.py:176
     MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348
     ENTRY_CONFIRM --> DUNGEON_TEAM : Enter window.py:364
     ENTRY_CONFIRM --> RESUME_DIALOG : a run is already in progress window.py:364
     RESUME_DIALOG --> STAR_GRACES : Resume window.py:372
-    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:829
-    LEVEL_WARNING --> STAR_GRACES : continue with the rotated team window.py:807
-    DUNGEON_TEAM --> STAR_GRACES : no warning needed window.py:829
+    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:881
+    LEVEL_WARNING --> STAR_GRACES : continue with the rotated team window.py:859
+    DUNGEON_TEAM --> STAR_GRACES : no warning needed window.py:881
 
     %% —— Opening configuration: starlight -> initial gifts -> theme pack ——
-    STAR_GRACES --> STAR_CONFIRM : Enter window.py:709
-    STAR_CONFIRM --> STAR_GRACES : nothing bought, back to selection window.py:785
-    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:795
-    INITIAL_GIFTS --> THEME_PACKS : Select window.py:777
-    INITIAL_GIFTS --> GIFT_GET : gift popup window.py:777
+    STAR_GRACES --> STAR_CONFIRM : Enter window.py:761
+    STAR_CONFIRM --> STAR_GRACES : nothing bought, back to selection window.py:836
+    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:847
+    INITIAL_GIFTS --> THEME_PACKS : Select window.py:829
+    INITIAL_GIFTS --> GIFT_GET : gift popup window.py:829
     THEME_PACKS --> MAP : pull the theme pack down window.py:409
 
     %% —— Inside a floor: the map is the only hub ——
     MAP --> NODE_PANEL : tap a node window.py:531
     NODE_PANEL --> PRE_BATTLE_TEAM : Enter window.py:552
-    NODE_PANEL --> SHOP_PURCHASE : shop price dialog window.py:568
-    NODE_PANEL --> GIFT_GET : gift pickup popup window.py:568
-    SHOP_PURCHASE --> SHOP_LEAVE : leave after buying window.py:600
-    SHOP_LEAVE --> MAP : Confirm leaving window.py:608
+    NODE_PANEL --> SHOP : the node is a shop window.py:552
+    NODE_PANEL --> GIFT_PICK : the node is a gift window.py:552
+    SHOP_LEAVE --> MAP : Confirm leaving window.py:659
+    SHOP --> HEAL_SINNERS : a dead key Sinner window.py:623
+    HEAL_SINNERS --> REVIVE_PICK : its own third row window.py:999
+    REVIVE_PICK --> REVIVE_PICK : its own portrait window.py:589
+    REVIVE_PICK --> REVIVE_DONE : its own Select button window.py:583
+    REVIVE_DONE --> SHOP : its own Leave window.py:566
+    SHOP --> SHOP_PURCHASE : the card on the shelf window.py:633
+    SHOP --> SHOP : Refresh then independently verify the new shelf
+    SHOP --> SHOP_LEAVE : no budget-safe input left window.py:651
+    SHOP_PURCHASE --> GIFT_GET : its own Confirm window.py:608
     MAP --> SHOP : the node is a shop window.py:531
     MAP --> EVENT_CHOICE : the node is an event window.py:531
     MAP --> CUTSCENE : the node is an abnormality cutscene window.py:531
@@ -82,26 +91,26 @@ stateDiagram-v2
     CUTSCENE --> MAP : SKIP window.py:441
     EVENT_RESULT --> EVENT_RESULT_READY : story done window.py:424
     EVENT_RESULT_READY --> EVENT_RESULT_READY : its own Continue window.py:430
-    GIFT_PICK --> GIFT_WARNING : gifts still remain window.py:674
-    GIFT_WARNING --> GIFT_PICK : Cancel keeps the remaining picks window.py:635
-    GIFT_PICK --> GIFT_GET : Select window.py:684
-    GIFT_GET --> MAP : its own Confirm window.py:624
-    GIFT_GET --> GIFT_SEARCH : a search is required window.py:624
-    GIFT_SEARCH --> GIFT_SEARCH_FORGO : give up the search window.py:732
-    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:753
-    REWARD_CARD --> MAP : pick a card, then Confirm window.py:903
-    EGO_GIFT_POPUP --> MAP : Confirm window.py:743
+    GIFT_PICK --> GIFT_WARNING : gifts still remain window.py:692
+    GIFT_WARNING --> GIFT_PICK : Cancel keeps the remaining picks window.py:686
+    GIFT_PICK --> GIFT_GET : Select window.py:736
+    GIFT_GET --> MAP : its own Confirm window.py:676
+    GIFT_GET --> GIFT_SEARCH : a search is required window.py:676
+    GIFT_SEARCH --> GIFT_SEARCH_FORGO : give up the search window.py:784
+    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:805
+    REWARD_CARD --> MAP : pick a card, then Confirm window.py:954
+    EGO_GIFT_POPUP --> MAP : Confirm window.py:795
 
     %% —— Combat leg ——
-    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:868
-    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:868
-    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:881
-    BATTLE_HUD --> BATTLE_TIP : skill tooltip overlay window.py:927
-    BATTLE_TIP --> BATTLE_HUD : Start commits the turn window.py:932
-    BATTLE_HUD --> BATTLE_RESULT : the killing blow lands window.py:927
-    BATTLE_RESULT --> BATTLE_VICTORY : Confirm clears the result window.py:286
-    BATTLE_RESULT --> MAP : back to the map window.py:328
-    BATTLE_TIP --> DEFEAT : party wipe window.py:927
+    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:920
+    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:920
+    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:932
+    BATTLE_HUD --> BATTLE_TIP : skill tooltip overlay window.py:979
+    BATTLE_TIP --> BATTLE_HUD : Start commits the turn window.py:967
+    BATTLE_HUD --> BATTLE_RESULT : the killing blow lands window.py:979
+    BATTLE_RESULT --> BATTLE_VICTORY : Confirm clears the result mirror.json:1420
+    BATTLE_RESULT --> MAP : back to the map mirror.json:1420
+    BATTLE_TIP --> DEFEAT : party wipe window.py:967
     DEFEAT --> BATTLE_DEFEAT : party-wipe dialog window.py:321
     BATTLE_DEFEAT --> BATTLE_HUD : Retry Stage window.py:308
 
@@ -113,11 +122,12 @@ stateDiagram-v2
     RUN_REWARD_BONUS --> DUNGEON_TEAM : Confirm, load the next team window.py:240
 ```
 
-Three things to take from this diagram:
+Four things to take from this diagram:
 
 1. **`MAP` is the only hub.** The map page has exactly one proven forward input (`map_node_click_is_the_only_proven_forward_input`, `src/maalimbus/window.py:531`), and every in-floor page is entered and left through it.
 2. **`[*]` is not the real start state.** The driver is started by an external task on an unknown page, so the first frame is usually `UNKNOWN`, and `HOME`/`DRIVE` are what walk it back to a known position.
 3. **`RUN_REWARD_*` is an input receipt, not proof of payout.** The Confirm inputs on `RUN_REWARD_CONFIRM` and `RUN_REWARD_BONUS` deliberately record no ledger event at all (`src/maalimbus/run_wiring.py:68-73`); actual payout is proven by a separate receipt transaction (see 5.2).
+4. **The arrows come in two kinds, and only the second kind is guaranteed by a line number.** Wherever a page's branch holds a `_plan(...)`, that line is the only allowed input and the arrow is exactly its `expect=(...)`; but `MIRROR_ENTRY→ENTRY_CONFIRM`, `ENTRY_CONFIRM→RESUME_DIALOG`, `EVENT_CHOICE→EVENT_CHECK`, `EVENT_CHECK→EVENT_CHECK_RESULT`, `CUTSCENE→MAP` and `BATTLE_HUD→BATTLE_TIP` are **page sequences** seen on the device, and their target is not in that line's `expect` (the plan allows only itself or a more conservative successor, so the extra hop is recorded as `unexpected_successor` and retried once). `BATTLE_RESULT` goes further: `window.py:328` only `_refuse`s on that page and hands the settle to the pipeline's `PostBattleObserve` (`assets/resource/base/pipeline/mirror.json:1420`; ownership in `docs/post-battle-ownership.md`).
 
 ### 5.1.3 Pages with exactly one safe input
 
@@ -137,9 +147,9 @@ Two further examples of the same "only one safe direction" rule: `WINDOW_RESET` 
 <details>
 <summary>5.1 evidence index</summary>
 
-- Full page constants: `src/maalimbus/vision.py:63-439` (47 `return`s).
+- Full page constants: `src/maalimbus/vision.py:65-473` (50 `return`s).
 - Page-decision supplements: `agent/recognition.py:140-228`.
-- Driver-side renaming and overlays: `src/maalimbus/runner.py:837`, `src/maalimbus/window.py:79-88`.
+- Driver-side renaming and overlays: `src/maalimbus/runner.py:838`, `src/maalimbus/window.py:79-88`.
 - Inputs and successors per page: `src/maalimbus/window.py:139-953` (`_plan_step`).
 - Anchor registry: `assets/resource/base/anchors.json`; offline re-check: `tools/verify_anchors.py`.
 </details>
@@ -172,10 +182,10 @@ The real fields of the seven files and their actual `pending` values:
 | `config/user-floor-gift-transaction.json` | `{kind:'pick'}`, `{kind:'commit'}`, `{kind:'refuse_owned'}`, `{kind:'receipt'}` | `src/maalimbus/floor_gift_transaction.py:51`, `:103`, `:113`, `:148` |
 | `config/user-grace-transaction.json` | `{card, cost, before, proof}` | `src/maalimbus/grace_transaction.py:109`, confirm `:113-117` |
 | `config/user-initial-transaction.json` | `{row, title, before, capacity, proof}` | `src/maalimbus/initial_transaction.py:20`, confirm `:22-27` |
-| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:57`, confirm `:58-63` |
+| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:57`, confirm `:58-63`; it also holds `saved_order` / `unavailable` and the revive receipts `revives` (read at `:69`, booked at `:73`) |
 | `config/user-theme-transaction.json` | `{floor, name, proof}` | `src/maalimbus/theme_transaction.py:11`, confirm `:12-17` (adds `map_proof` on confirmation) |
 | `config/user-reward-claim-transaction.json` | the strings `'reserved'` → `'claim'` → `'confirm'` (not a dict) | `src/maalimbus/reward_claim_transaction.py:66`, `:74` |
-| `config/user-shop-<scope>.json` | `{kind:'purchase'\|'refresh', stage:'card_intent'\|'confirm_intent'\|'overlay_intent'\|'refresh_intent', ...}` | `src/maalimbus/shop_transaction.py:262`, `:289`, `:319`, `:359` |
+| `config/user-shop-<scope>.json` | `{kind:'purchase'\|'refresh', stage:'card_intent'\|'confirm_intent'\|'overlay_intent'\|'refresh_intent', ...}` | `src/maalimbus/shop_transaction.py:286`, `:313`, `:343`, `:383`; a completed purchase is written to `bought` (`:458`) and a refresh receipt to `refresh_receipts` (`:478`), and title matching goes through `_same_title` (`:52`, confusable table `_CONFUSABLE` `:44`) |
 
 Three shape differences read off the real data that must not be assumed away:
 
@@ -201,7 +211,7 @@ Three shape differences read off the real data that must not be assumed away:
 stateDiagram-v2
     [*] --> no_active
     no_active --> preparing : start creates active with a uuid storage.py:177
-    preparing --> entry_pending : entry_intent records the frame before Enter runner.py:2198
+    preparing --> entry_pending : entry_intent records the frame before Enter runner.py:2356
     entry_pending --> entry_pending : entry_warning_intent records the level-warning frame storage.py:213
     entry_pending --> entered : entry_observed accepts only four successor pages storage.py:199
     entered --> entered : record floor_clear must be 1..5 in order storage.py:259
@@ -219,8 +229,8 @@ The four phase values (`active.phase`) and their writers:
 | `phase` | written by | precondition |
 | --- | --- | --- |
 | `preparing` | `RunStore.start()` (`src/maalimbus/storage.py:177`) | only when there is no active run |
-| `entry_pending` | `RunStore.entry_intent()` (`src/maalimbus/storage.py:186`), called at `src/maalimbus/runner.py:2198` | requires the sha256 of the frame before Enter |
-| `entry_pending` (warning added) | `RunStore.entry_warning_intent()` (`src/maalimbus/storage.py:213`), called at `src/maalimbus/runner.py:2200` | allowed only once per phase |
+| `entry_pending` | `RunStore.entry_intent()` (`src/maalimbus/storage.py:186`), called at `src/maalimbus/runner.py:2356` | requires the sha256 of the frame before Enter |
+| `entry_pending` (warning added) | `RunStore.entry_warning_intent()` (`src/maalimbus/storage.py:213`), called at `src/maalimbus/runner.py:2358` | allowed only once per phase |
 | `entered` | `RunStore.entry_observed()` (`src/maalimbus/storage.py:199`), called at `src/maalimbus/runner.py:1464` | the successor page must be one of `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` |
 
 The three paths that advance (or roll back) the rotation all live in `src/maalimbus/run_wiring.py`:
@@ -242,6 +252,41 @@ The rotation changes through three explicit entry points only; editing `rotation
 ## 5.4 The data model
 
 Entity names are file names without the extension; the `<scope>` in `user-shop-<scope>` and `user-exploration-<scope>` is that run's `active.id`, so one file per run exists on disk (current instance: `config/user-shop-f855ac82c2b1429aae9c747a122213b8.json`). Attributes list **only keys that really exist in the current file**.
+
+**Logical data model:** The diagram models saved-team, run, event and evidence references with cardinalities. These are not physical database tables or database-enforced foreign keys. A historical run may lack a current saved profile, so that end is optional. Subsequent file diagrams are JSON field inventories.
+
+```mermaid
+erDiagram
+    SAVED_TEAM o|--o{ RUN : "slot reference"
+    RUN ||--o{ RUN_EVENT : "contains"
+    RUN_EVENT }o--|| FRAME_EVIDENCE : "proof reference"
+    SAVED_TEAM {
+        int slot "profile identity"
+        string name
+        array deployment
+        array keywords
+    }
+    RUN {
+        string id "run scope"
+        int team "saved slot reference"
+        array floors
+        bool victory
+        bool reward
+        object events
+    }
+    RUN_EVENT {
+        string event_key "map key; idempotency within run"
+        string kind
+        int floor "optional"
+        string evidence
+        string sha256
+    }
+    FRAME_EVIDENCE {
+        string path "private relative locator preferred"
+        string sha256 "evidence file digest"
+        string image_sha256 "frame JSON field"
+    }
+```
 
 ```mermaid
 erDiagram
@@ -285,8 +330,11 @@ erDiagram
     user-deployment-transaction {
         string scope
         array order
+        array saved_order
+        array unavailable
         array sequence
         object pending
+        array revives
         bool submitted
     }
     user-floor-gift-transaction {
@@ -353,6 +401,7 @@ erDiagram
         string scope
         object visits
         array bought
+        array unspent_intents
         object pending
         string current_visit
     }

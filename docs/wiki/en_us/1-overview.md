@@ -49,7 +49,7 @@ Three further standards you must know:
 
 - **There is no accepted release package**, and "the process started, the task returned success, the offline tests passed" does not mean a Mirror Dungeon clear (`README.md:31-32`). One English Hard five-floor chain (including reward claim and saved-team rotation reentry) has real MuMu evidence (`README.md:23`, `README.md:25`), but arbitrary layouts, versions and long unattended farming are not promised.
 - **Three proofs are still missing**: a live run whose journal carries `pre_battle_identity_report`, a GET-overlay acknowledgement bound to a real purchase, and a full floor 2→5 run (`PROJECT.md:75-77`).
-- **The shop GET overlay** has been read offline and `ShopTransaction.reserve_overlay_acknowledgement` is implemented (`docs/acceptance.md:19-24`), but the runner does not call it yet (`docs/acceptance.md:26-28`, `wired_in_runner=false`), so a real purchase still stops safely with `shop_receipt_successor_not_proven`. **Black-box learning** has only 2 samples / 2 episodes of data preparation, with `training_ready=False`, `model_trained=False`, `production=False` (`docs/acceptance.md:160`).
+- **The shop GET overlay** has been read offline and `ShopTransaction.reserve_overlay_acknowledgement` is implemented; the `wired_in_runner=false` that `docs/acceptance.md:26-28` recorded at the time has since been overturned by the code — `src/maalimbus/runner.py:1744` calls it on the shop page today, and the live 2026-10-12 purchase chain (4.3.1) runs through it (the older claim that a real purchase must stop with `shop_receipt_successor_not_proven` no longer holds). **Black-box learning** has only 2 samples / 2 episodes of data preparation, with `training_ready=False`, `model_trained=False`, `production=False` (`docs/acceptance.md:160`).
 
 **Where the evidence lives**: run evidence under `evidence/runtime/<task>-<yyyymmdd-hhmmss>/`, launch records in `build/native-launch*.json`, logs in `build/native-live.*.log` (`README.md:64`). This repository currently holds 918 run directories of that shape (local directory count, 2026-10-12; the number grows with every run).
 
@@ -76,7 +76,7 @@ flowchart TB
   RUN["src/maalimbus/runner.py<br/>187332 B, the largest module in the repo"]:::shared
   PLAN["src/maalimbus/window.py:110 plan_step(page, ...)<br/>body at window.py:139 _plan_step(...)"]:::shared
   ANCH["assets/resource/base/anchors.json (3369 lines)<br/>pages + anchor kinds: ocr / template / geometry"]:::shared
-  VIS["src/maalimbus/vision.py find()<br/>src/maalimbus/ holds 92 .py files"]:::shared
+  VIS["src/maalimbus/vision.py find()<br/>src/maalimbus/ holds 93 .py files"]:::shared
   CTL["Controller layer<br/>windows_controller.py:9 controller_profile()<br/>adb_device.py:26 discover() · adb_device.py:46 input_policy()"]:::shared
   GAME(["Limbus Company client"]):::shared
   CFG["config/ — 17 private user-state files<br/>user-run-ledger.json · user-*-transaction.json"]:::shared
@@ -123,7 +123,7 @@ Upstream splits the system into Controller / Resource / Tasker / Agent. MaaLimbu
 | anchor | 锚点 | One machine-recheckable recognition assertion; only three kinds: `ocr` regex, `template` template, `geometry` single-frame geometry | `src/maalimbus/anchors.py:1-9` (the three kinds and the "never guesses" rule); `assets/resource/base/anchors.json:5` points at the offline re-check tool `tools/verify_anchors.py` |
 | scene | 场景标签 | The page name recorded inside observation/frame evidence, binding evidence back to a concrete screen | `src/maalimbus/event_log.py:102-103` (accepts `scene_before`), `src/maalimbus/event_log.py:143-144` (prints `page: {scene}`); consumer `src/maalimbus/floor_gift_transaction.py:77` |
 | intent | 输入意图 | A durable record of an input that has already been sent: written before the input so a crash/restart can refuse to repeat it | `src/maalimbus/floor_gift_transaction.py:47 def intent(self, title, count, proof, *, owned=False)`; `src/maalimbus/game_launch.py:1` (durable intent) |
-| pending transaction | 未决事务 | Input sent but its postcondition not yet proven; while unproven no further input is allowed | `src/maalimbus/floor_gift_transaction.py:1` ("an unknown postcondition never allows another input"); `src/maalimbus/theme_transaction.py:4`; `src/maalimbus/shop_transaction.py:295 def _pending(...)` |
+| pending transaction | 未决事务 | Input sent but its postcondition not yet proven; while unproven no further input is allowed | `src/maalimbus/floor_gift_transaction.py:1` ("an unknown postcondition never allows another input"); `src/maalimbus/theme_transaction.py:4`; `src/maalimbus/shop_transaction.py:319 def _pending(...)` |
 | run ledger | 运行账本 | The event ledger of one Mirror run; `RunStore` refuses out-of-order or unevidenced events | `src/maalimbus/run_wiring.py:1-18` (which page proves which completion event), `run_wiring.py:156 def reconcile(...)`; `src/maalimbus/storage.py:126 class RunStore`; on disk `config/user-run-ledger.json` |
 | locale overlay | 本地化覆盖层 | A per-language overlay of recognition text/resources, one for en and one for jp, layered over base | `assets/resource/en/locale.json`, `assets/resource/jp/locale.json`, `assets/resource/{en,jp}/pipeline/locale.json`; consumer `src/maalimbus/battle_vision.py:14 def planning_anchors(image, catalog, locale='en')` |
 | budget | 预算闸门 | The offline gate before spending any Enkephalin/Module; at zero budget every request is refused instead of clicked | `src/maalimbus/budget.py:1-6` ("never talks to the game; a caller asks it first"); `assets/resource/base/budget.json:3-7` (`status: "pending"`, `module_budget: 0`) |
@@ -151,7 +151,7 @@ flowchart TD
   TASKER --> K1["dist/MaaLimbus/maafw/<br/>v5.12.2 native binary"]
 
   AGENTL --> A1["agent/main.py:20 main()<br/>main.py:48-55 registrations"]
-  A1 --> A2["src/maalimbus/ 92 .py files<br/>runner.py · window.py:110 plan_step"]
+  A1 --> A2["src/maalimbus/ 93 .py files<br/>runner.py · window.py:110 plan_step"]
   R1 --> P1["page 页面"]
   P1 --> K2["anchor 锚点<br/>ocr / template / geometry"]
   P1 --> S1["scene 场景标签<br/>event_log.py:102-103"]

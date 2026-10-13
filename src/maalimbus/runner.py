@@ -1681,9 +1681,9 @@ class MirrorRunner:
                     raise ValueError('shop_transaction_scope_missing')
                 d=shop_tx.data
                 if d and d.get('pending') and page=='SHOP':
-                    reconcile=(shop_tx.reconcile_purchase if d['pending']['kind']=='purchase' else shop_tx.reconcile_refresh)
+                    shop_reconcile=(shop_tx.reconcile_purchase if d['pending']['kind']=='purchase' else shop_tx.reconcile_refresh)
                     kind=d['pending']['kind']
-                    reconcile(self.run_id,d['current_visit'],frame_file(directory))
+                    shop_reconcile(self.run_id,d['current_visit'],frame_file(directory))
                     self.note('shop_receipt_verified',kind=kind,input_sent=False)
                 d=shop_tx.data
                 if page=='SHOP':
@@ -1937,11 +1937,19 @@ class MirrorRunner:
         if page=='DUNGEON_TEAM' and self.store is not None and not settings.observe_only and not state.get('entry_reconciled'):
             reconcile(self.store,page=page,proof=frame_file(directory))
             self.run_id=self.store.start()
+            team['wanted']=self.store.team_slot
             state['entry_reconciled']=True
             state['run_settled_itself']=False
             if self.grace_transaction is not None:
                 self.grace_transaction.begin(self.run_id,state['grace_wanted'],settings.grace_budget,
                                              frame_file(directory))
+        if page=='DUNGEON_TEAM' and team and team['selected']!=team['wanted']:
+            from .team_navigation import prepare
+            rows=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            location=prepare((self.store.path.parent if self.store else directory)/'user-team-navigation.json',
+                             self.run_id,rows,record.get('size') or (1920,1080),team['wanted'])
+            team.update(visible_rows=location.get('rows',[]),visible_target=location.get('target'),navigation=location)
+            self.note('team_list_search',wanted=team['wanted'],selected=team['selected'],navigation=location)
         graces = None
         transaction=self.grace_transaction
         if page in ('STAR_GRACES','STAR_CONFIRM') and transaction is not None:

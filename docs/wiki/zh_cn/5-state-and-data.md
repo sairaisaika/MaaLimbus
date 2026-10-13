@@ -18,10 +18,10 @@
 
 | 层 | 位置 | 产出 |
 | --- | --- | --- |
-| ① 全屏 OCR + 分类 | `agent/recognition.py:140` `LimbusRecognition.observe()` 取整屏 OCR，`agent/recognition.py:168` 调 `scene = classify(records, self.locale, size)`；`classify` 定义在 `src/maalimbus/vision.py:63` | 45 个页面常量，兜底 `UNKNOWN`（`src/maalimbus/vision.py:439`） |
+| ① 全屏 OCR + 分类 | `agent/recognition.py:140` `LimbusRecognition.observe()` 取整屏 OCR，`agent/recognition.py:168` 调 `scene = classify(records, self.locale, size)`；`classify` 定义在 `src/maalimbus/vision.py:63` | 45 个页面常量，兜底 `UNKNOWN`（`src/maalimbus/vision.py:473`） |
 | ② 局部复读与独立页探针 | `agent/recognition.py:169-201` 地图页头复读、`:202-209` 战斗 `TURN`、`:210-222` `HARD`；`UNKNOWN` 时再用独立控件把页面升为 `INITIAL_GIFTS`（`agent/recognition.py:223-224`）、`STAR_GRACES`（`:225-226`）、`DEPLOYMENT`（`:227-228`） | 修正后的 `scene` |
 | ③ 观测事件落地 | `limbus_map_observe` → `agent/recognition.py:1130` `MapObservation` 写 `map_observed`（`agent/recognition.py:1146`）；战斗帧由 `limbus_battle_observe` 写 `battle_observed`（`agent/recognition.py:1184`） | 观战记录里的 `scene` 字段 |
-| ④ 驱动侧改名 | `src/maalimbus/runner.py:837` `resolve_scene()`：`scene == 'UNKNOWN'` 且检定提示词读到 `commence` 时升为 `EVENT_CHECK`（`src/maalimbus/runner.py:844-845`）；随后交 `src/maalimbus/window.py:79` `resolve_overlay()` | 最终 `page` |
+| ④ 驱动侧改名 | `src/maalimbus/runner.py:838` `resolve_scene()`：`scene == 'UNKNOWN'` 且检定提示词读到 `commence` 时升为 `EVENT_CHECK`（`src/maalimbus/runner.py:846`）；随后交 `src/maalimbus/window.py:79` `resolve_overlay()` | 最终 `page` |
 
 `resolve_overlay`（`src/maalimbus/window.py:79`）是唯一一处「**后判定的覆盖层压过先判定的页面**」：命中教学浮层时无论底下是什么页都返回 `TUTORIAL`（`src/maalimbus/window.py:88`）。
 
@@ -29,44 +29,53 @@
 
 两条容易踩的事实：
 
-- **`BEFORE_ENTRY` 不是识别出来的页面。** `src/maalimbus/window.py:339` 把它和 `MIRROR_ENTRY` 放在同一个分支（`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`），`assets/resource/base/anchors.json` 里也有 `before_entry` 页面；但 `vision.classify` 的 47 个 `return` 常量里没有它，`agent/recognition.py` 也不会产出它。它是兼容用的同义分支。
+- **`BEFORE_ENTRY` 不是识别出来的页面。** `src/maalimbus/window.py:339` 把它和 `MIRROR_ENTRY` 放在同一个分支（`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`），`assets/resource/base/anchors.json` 里也有 `before_entry` 页面；但 `vision.classify` 的 50 个 `return` 常量里没有它，`agent/recognition.py` 也不会产出它。它是兼容用的同义分支。
 - **`learning_dataset.py` 的 reviewed 标签不是运行时的页面名。** `src/maalimbus/learning_dataset.py:7` 的 `LABELS` 只有 11 个（`STAR_GRACES`、`THEME_PACKS`、`MAP`、`PRE_BATTLE_TEAM`、`BATTLE_HUD`、`GIFT_PICK`、`GIFT_GET`、`EVENT_CHOICE`、`SHOP`、`RUN_COMPLETE`、`UNKNOWN`），是给以后的学习型分类器准备的人工标签集，文件自己也写明「Explicit reviewed page label required; OCR scene is not ground truth」（`src/maalimbus/learning_dataset.py:29`）。它既不是运行时的页面全集，也不含 `RUN_COMPLETE` 之外的结算页。
 
 ### 5.1.2 页面状态图
 
-状态名就是代码里的页面常量；箭头上的文字是「唯一被允许的输入」加上产它的那行代码。图内为了可读省略了 `src/maalimbus/` 前缀：`window.py:169` 即 `src/maalimbus/window.py:169`，`vision.py:439`、`storage.py:177`、`deployment_transaction.py:55`、`run_wiring.py:142` 同理；图外的正文一律写完整路径。
+状态名就是代码里的页面常量；箭头上的文字是「唯一被允许的输入」加上产它的那行代码。图内为了可读省略了 `src/maalimbus/` 前缀：`window.py:169` 即 `src/maalimbus/window.py:169`，`vision.py:473`、`storage.py:177`、`deployment_transaction.py:55`、`run_wiring.py:142` 同理；图外的正文一律写完整路径。
+
+状态图的节点是持久的页面状态；边标签表示输入或独立后继观察。UNKNOWN 是识别状态，不表示自动回大厅。预算与完整后继未证明时保留 pending，不跳过事务。
 
 ```mermaid
 stateDiagram-v2
     %% —— 入口段：从大厅走到镜牢门口 ——
     [*] --> UNKNOWN
-    UNKNOWN --> HOME : 回大厅重读 vision.py:439
+    UNKNOWN --> HOME : 回大厅重读 vision.py:473
     HOME --> DRIVE : 点底部 Drive 导航 window.py:169
-    HOME --> MIRROR_ENTRY : 已在镜牢入口 window.py:169
     DRIVE --> MIRROR_ENTRY : 镜牢菜单识别框内点一次 window.py:176
     MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348
     ENTRY_CONFIRM --> DUNGEON_TEAM : Enter window.py:364
     ENTRY_CONFIRM --> RESUME_DIALOG : 本局已在进行中 window.py:364
     RESUME_DIALOG --> STAR_GRACES : Resume window.py:372
-    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:829
-    LEVEL_WARNING --> STAR_GRACES : 用轮换队继续 window.py:807
-    DUNGEON_TEAM --> STAR_GRACES : 无需警告 window.py:829
+    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:881
+    LEVEL_WARNING --> STAR_GRACES : 用轮换队继续 window.py:859
+    DUNGEON_TEAM --> STAR_GRACES : 无需警告 window.py:881
 
     %% —— 开局配置段：星光 → 初始礼物 → 主题包 ——
-    STAR_GRACES --> STAR_CONFIRM : Enter window.py:709
-    STAR_CONFIRM --> STAR_GRACES : 未买满则退回选择 window.py:785
-    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:795
-    INITIAL_GIFTS --> THEME_PACKS : Select window.py:777
-    INITIAL_GIFTS --> GIFT_GET : 拿到礼物窗口 window.py:777
+    STAR_GRACES --> STAR_CONFIRM : Enter window.py:761
+    STAR_CONFIRM --> STAR_GRACES : 未买满则退回选择 window.py:836
+    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:847
+    INITIAL_GIFTS --> THEME_PACKS : Select window.py:829
+    INITIAL_GIFTS --> GIFT_GET : 拿到礼物窗口 window.py:829
     THEME_PACKS --> MAP : 把主题包往下 Pull window.py:409
 
     %% —— 楼层内：地图是唯一枢纽 ——
     MAP --> NODE_PANEL : 点节点 window.py:531
     NODE_PANEL --> PRE_BATTLE_TEAM : Enter window.py:552
-    NODE_PANEL --> SHOP_PURCHASE : 商店问价窗口 window.py:568
-    NODE_PANEL --> GIFT_GET : 拾取礼物弹窗 window.py:568
-    SHOP_PURCHASE --> SHOP_LEAVE : 买完离店 window.py:600
-    SHOP_LEAVE --> MAP : Confirm 离店 window.py:608
+    NODE_PANEL --> SHOP : 节点是商店 window.py:552
+    NODE_PANEL --> GIFT_PICK : 节点是礼物 window.py:552
+    SHOP_LEAVE --> MAP : Confirm 离店 window.py:659
+    SHOP --> HEAL_SINNERS : 死位罪人 window.py:623
+    HEAL_SINNERS --> REVIVE_PICK : 自己的第三行 window.py:999
+    REVIVE_PICK --> REVIVE_PICK : 自己的罪人头像 window.py:589
+    REVIVE_PICK --> REVIVE_DONE : 自己的 Select 按钮 window.py:583
+    REVIVE_DONE --> SHOP : 自己的 Leave window.py:566
+    SHOP --> SHOP_PURCHASE : 货架上的卡 window.py:633
+    SHOP --> SHOP : 刷新后独立核对新货架
+    SHOP --> SHOP_LEAVE : 没有预算安全的输入了 window.py:651
+    SHOP_PURCHASE --> GIFT_GET : 自己的 Confirm window.py:608
     MAP --> SHOP : 节点是商店 window.py:531
     MAP --> EVENT_CHOICE : 节点是事件 window.py:531
     MAP --> CUTSCENE : 节点是异想体过场 window.py:531
@@ -82,26 +91,26 @@ stateDiagram-v2
     CUTSCENE --> MAP : SKIP window.py:441
     EVENT_RESULT --> EVENT_RESULT_READY : 剧情走完 window.py:424
     EVENT_RESULT_READY --> EVENT_RESULT_READY : 自己的 Continue window.py:430
-    GIFT_PICK --> GIFT_WARNING : 还有剩余礼物 window.py:674
-    GIFT_WARNING --> GIFT_PICK : Cancel 保住剩余选择 window.py:635
-    GIFT_PICK --> GIFT_GET : Select window.py:684
-    GIFT_GET --> MAP : 自己的 Confirm window.py:624
-    GIFT_GET --> GIFT_SEARCH : 需要搜索 window.py:624
-    GIFT_SEARCH --> GIFT_SEARCH_FORGO : 放弃搜索 window.py:732
-    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:753
-    REWARD_CARD --> MAP : 先选卡再 Confirm window.py:903
-    EGO_GIFT_POPUP --> MAP : Confirm window.py:743
+    GIFT_PICK --> GIFT_WARNING : 还有剩余礼物 window.py:692
+    GIFT_WARNING --> GIFT_PICK : Cancel 保住剩余选择 window.py:686
+    GIFT_PICK --> GIFT_GET : Select window.py:736
+    GIFT_GET --> MAP : 自己的 Confirm window.py:676
+    GIFT_GET --> GIFT_SEARCH : 需要搜索 window.py:676
+    GIFT_SEARCH --> GIFT_SEARCH_FORGO : 放弃搜索 window.py:784
+    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:805
+    REWARD_CARD --> MAP : 先选卡再 Confirm window.py:954
+    EGO_GIFT_POPUP --> MAP : Confirm window.py:795
 
     %% —— 战斗段 ——
-    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:868
-    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:868
-    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:881
-    BATTLE_HUD --> BATTLE_TIP : 技能说明浮层 window.py:927
-    BATTLE_TIP --> BATTLE_HUD : Start 提交本回合 window.py:932
-    BATTLE_HUD --> BATTLE_RESULT : 打出致命一击 window.py:927
-    BATTLE_RESULT --> BATTLE_VICTORY : Confirm 清掉结算 window.py:286
-    BATTLE_RESULT --> MAP : 回到地图 window.py:328
-    BATTLE_TIP --> DEFEAT : 团灭 window.py:927
+    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:920
+    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:920
+    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:932
+    BATTLE_HUD --> BATTLE_TIP : 技能说明浮层 window.py:979
+    BATTLE_TIP --> BATTLE_HUD : Start 提交本回合 window.py:967
+    BATTLE_HUD --> BATTLE_RESULT : 打出致命一击 window.py:979
+    BATTLE_RESULT --> BATTLE_VICTORY : Confirm 清掉结算 mirror.json:1420
+    BATTLE_RESULT --> MAP : 回到地图 mirror.json:1420
+    BATTLE_TIP --> DEFEAT : 团灭 window.py:967
     DEFEAT --> BATTLE_DEFEAT : 团灭对话框 window.py:321
     BATTLE_DEFEAT --> BATTLE_HUD : Retry Stage window.py:308
 
@@ -113,11 +122,12 @@ stateDiagram-v2
     RUN_REWARD_BONUS --> DUNGEON_TEAM : Confirm，回到入口载入下一队 window.py:240
 ```
 
-读这张图的三个要点：
+读这张图的四个要点：
 
 1. **`MAP` 是唯一枢纽。** 地图页只有一个被证明过的前向输入（`map_node_click_is_the_only_proven_forward_input`，`src/maalimbus/window.py:531`），所有楼层内页面都从它进出。
 2. **`[*]` 不是开局时的真实状态。** 驱动是被外部任务在某一个不确定的页面上启动的，所以第一帧通常是 `UNKNOWN`，靠 `HOME`/`DRIVE` 回到已知位置。
 3. **`RUN_REWARD_*` 只是输入回执，不是到账证据。** `RUN_REWARD_CONFIRM` 与 `RUN_REWARD_BONUS` 的 Confirm 在账本里刻意不记任何事件（`src/maalimbus/run_wiring.py:68-73`），真正的到账由独立回执事务证明（见 5.2）。
+4. **箭头分两类，行号只保证第二类。** 只要该页的分支里有一次 `_plan(...)`，那行就是「唯一被允许的输入」，箭头本身也等于它的 `expect=(...)`；而 `MIRROR_ENTRY→ENTRY_CONFIRM`、`ENTRY_CONFIRM→RESUME_DIALOG`、`EVENT_CHOICE→EVENT_CHECK`、`EVENT_CHECK→EVENT_CHECK_RESULT`、`CUTSCENE→MAP`、`BATTLE_HUD→BATTLE_TIP` 这几条是实机跑出来的**页面顺序**，它们的目标不在那一行的 `expect` 里（计划只允许自身或更保守的后继，多出来的一跳会被记成 `unexpected_successor` 并重试一次）。`BATTLE_RESULT` 更彻底：`window.py:328` 在那一页只 `_refuse`，把结算推给 pipeline 的 `PostBattleObserve`（`assets/resource/base/pipeline/mirror.json:1420`，归属见 `docs/post-battle-ownership.md`）。
 
 ### 5.1.3 只有一种安全输入的页面
 
@@ -137,9 +147,9 @@ stateDiagram-v2
 <details>
 <summary>5.1 证据索引</summary>
 
-- 页面常量全集：`src/maalimbus/vision.py:63-439`（47 个 `return`）。
+- 页面常量全集：`src/maalimbus/vision.py:65-473`（50 个 `return`）。
 - 页面判定补充：`agent/recognition.py:140-228`。
-- 驱动侧改名与覆盖层：`src/maalimbus/runner.py:837`、`src/maalimbus/window.py:79-88`。
+- 驱动侧改名与覆盖层：`src/maalimbus/runner.py:838`、`src/maalimbus/window.py:79-88`。
 - 每个页面的输入与后继：`src/maalimbus/window.py:139-953`（`_plan_step`）。
 - 锚点注册表：`assets/resource/base/anchors.json`；离线复检：`tools/verify_anchors.py`。
 </details>
@@ -172,10 +182,10 @@ stateDiagram-v2
 | `config/user-floor-gift-transaction.json` | `{kind:'pick'}`, `{kind:'commit'}`, `{kind:'refuse_owned'}`, `{kind:'receipt'}` | `src/maalimbus/floor_gift_transaction.py:51`、`:103`、`:113`、`:148` |
 | `config/user-grace-transaction.json` | `{card, cost, before, proof}` | `src/maalimbus/grace_transaction.py:109`，确认 `:113-117` |
 | `config/user-initial-transaction.json` | `{row, title, before, capacity, proof}` | `src/maalimbus/initial_transaction.py:20`，确认 `:22-27` |
-| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:57`，确认 `:58-63` |
+| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:57`，确认 `:58-63`；另存 `saved_order` / `unavailable` 与复活收据 `revives`（`:69` 读、`:73` 记账） |
 | `config/user-theme-transaction.json` | `{floor, name, proof}` | `src/maalimbus/theme_transaction.py:11`，确认 `:12-17`（确认时追加 `map_proof`） |
 | `config/user-reward-claim-transaction.json` | 字符串 `'reserved'` → `'claim'` → `'confirm'`（不是 dict） | `src/maalimbus/reward_claim_transaction.py:66`、`:74` |
-| `config/user-shop-<scope>.json` | `{kind:'purchase'\|'refresh', stage:'card_intent'\|'confirm_intent'\|'overlay_intent'\|'refresh_intent', ...}` | `src/maalimbus/shop_transaction.py:262`、`:289`、`:319`、`:359` |
+| `config/user-shop-<scope>.json` | `{kind:'purchase'\|'refresh', stage:'card_intent'\|'confirm_intent'\|'overlay_intent'\|'refresh_intent', ...}` | `src/maalimbus/shop_transaction.py:286`、`:313`、`:343`、`:383`；买成写 `bought`（`:458`）、刷新回执写 `refresh_receipts`（`:478`），标题比对走 `_same_title`（`:52`，混淆字表 `_CONFUSABLE` `:44`） |
 
 三条从真实数据里读出来的形状差异，写代码或读账本时不能想当然：
 
@@ -201,7 +211,7 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> no_active
     no_active --> preparing : start 建 active 并抽 uuid storage.py:177
-    preparing --> entry_pending : entry_intent 记下 Enter 前那一帧 runner.py:2198
+    preparing --> entry_pending : entry_intent 记下 Enter 前那一帧 runner.py:2356
     entry_pending --> entry_pending : entry_warning_intent 记下等级警告帧 storage.py:213
     entry_pending --> entered : entry_observed 只认四个后继页 storage.py:199
     entered --> entered : record floor_clear 必须 1..5 顺序 storage.py:259
@@ -219,8 +229,8 @@ stateDiagram-v2
 | `phase` | 谁写 | 前置条件 |
 | --- | --- | --- |
 | `preparing` | `RunStore.start()`（`src/maalimbus/storage.py:177`） | 没有 active 时才建 |
-| `entry_pending` | `RunStore.entry_intent()`（`src/maalimbus/storage.py:186`），调用点 `src/maalimbus/runner.py:2198` | 必须先有 Enter 前那一帧的 sha256 |
-| `entry_pending`（加警告） | `RunStore.entry_warning_intent()`（`src/maalimbus/storage.py:213`），调用点 `src/maalimbus/runner.py:2200` | 同一 phase 内只允许一次 |
+| `entry_pending` | `RunStore.entry_intent()`（`src/maalimbus/storage.py:186`），调用点 `src/maalimbus/runner.py:2356` | 必须先有 Enter 前那一帧的 sha256 |
+| `entry_pending`（加警告） | `RunStore.entry_warning_intent()`（`src/maalimbus/storage.py:213`），调用点 `src/maalimbus/runner.py:2358` | 同一 phase 内只允许一次 |
 | `entered` | `RunStore.entry_observed()`（`src/maalimbus/storage.py:199`），调用点 `src/maalimbus/runner.py:1464` | 后继页只能是 `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` 之一 |
 
 推进（或回退）轮换的三条路径，都在 `src/maalimbus/run_wiring.py`：
@@ -242,6 +252,41 @@ stateDiagram-v2
 ## 5.4 数据模型图
 
 实体名＝文件名（去扩展名）；`user-shop-<scope>` 与 `user-exploration-<scope>` 里的 `<scope>` 就是当次 run 的 `active.id`，所以在磁盘上是一局一个文件（当前实例：`config/user-shop-f855ac82c2b1429aae9c747a122213b8.json`）。属性只列**当前文件里真实存在的键**。
+
+**逻辑数据模型：** 下图表达保存队伍、一局、事件和证据的引用关系及基数；它不是数据库物理表，FK 没有数据库约束。历史局可能没有当前队伍档案，故档案端为可选。后面的文件属性图仅用于 JSON 文档字段盘点。
+
+```mermaid
+erDiagram
+    SAVED_TEAM o|--o{ RUN : "slot reference"
+    RUN ||--o{ RUN_EVENT : "contains"
+    RUN_EVENT }o--|| FRAME_EVIDENCE : "proof reference"
+    SAVED_TEAM {
+        int slot "profile identity"
+        string name
+        array deployment
+        array keywords
+    }
+    RUN {
+        string id "run scope"
+        int team "saved slot reference"
+        array floors
+        bool victory
+        bool reward
+        object events
+    }
+    RUN_EVENT {
+        string event_key "map key; idempotency within run"
+        string kind
+        int floor "optional"
+        string evidence
+        string sha256
+    }
+    FRAME_EVIDENCE {
+        string path "private relative locator preferred"
+        string sha256 "evidence file digest"
+        string image_sha256 "frame JSON field"
+    }
+```
 
 ```mermaid
 erDiagram
@@ -285,8 +330,11 @@ erDiagram
     user-deployment-transaction {
         string scope
         array order
+        array saved_order
+        array unavailable
         array sequence
         object pending
+        array revives
         bool submitted
     }
     user-floor-gift-transaction {
@@ -353,6 +401,7 @@ erDiagram
         string scope
         object visits
         array bought
+        array unspent_intents
         object pending
         string current_visit
     }
