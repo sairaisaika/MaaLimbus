@@ -458,3 +458,16 @@ state, data or recovery warrants a diagram. Overview views route readers to thes
 sections. The coverage index and syntax parser do not establish functional or live
 gameplay acceptance. Neural inference belongs to Maa native recognition; independent
 teachers, review bundles and offline training are project-owned learning services.
+
+## Mirror startup reconciles fresh idle evidence before applying a queue
+
+A changed queue must not be applied under an actually active run. The task owns
+the controller lease and observes first if a scope is saved. MIRROR_ENTRY alone
+is not proof of inactivity: exact Before Entry plus Enter controls must independently
+pass .9 with matching encoded PNG/hash/dimensions. A new team picker may also prove
+the old dungeon absent. Entry/payout pending remain protected. An ended scope is
+archived atomically with its original flags and evidence, without inferring clear
+or reward. Only then may native single/rotation settings be applied. Expected
+preparation refusals always write explicit result and human log, without callback
+poisoning or game input. Preparation/loop share a journal, and existing evidence
+frame indexes are never reused.

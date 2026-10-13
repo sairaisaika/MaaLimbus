@@ -18,6 +18,7 @@ ACTION_WORDS = {'click': 'click', 'swipe': 'swipe', 'node': 'node', 'record': 'n
 
 #: what a stop reason means, and the next thing to look at
 GLOSSARY = {
+    'mirror_settings_rejected': '镜牢启动设置未能应用：已保留旧局与事务证据，尚未发送游戏输入。请查看下面的具体错误和本次画面。',
     'floor_gift_unpriced_choices_insufficient': '可完整识别的试炼礼物不足以完成本次选择；未知试炼已排除，未猜测权重。',
     'floor_gift_enemy_trial_not_unique': '礼物卡自身的敌人等级或试炼文本缺失/不唯一；保留 pending，等待识别修复，不重复选择。',
     'window_steps_passed': 'every planned input in this window was proven by the page '

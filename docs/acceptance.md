@@ -1648,3 +1648,28 @@ This is a source test result, not complete game or production-value acceptance.
 - User confirms the previous run cleared. This is retained separately from incomplete
   harness payout/return records; no history is rewritten to invent a receipt. User
   chose success-only automatic rotation plus explicit manual skip. Gameplay stays paused.
+
+## October13 actual GUI startup refusal and fresh entry reconciliation
+
+Actual installed runs pi-20261013-022858/023045 and single2 runs023230/023233
+failed with Finish the active run before changing its rotation inside
+GlobalSettingsAction. GUI override logs contain the correct requested choices.
+They had no agent-result.json: a nested guarded callback swallowed the expected
+configuration refusal before MainTask wrote a report. No gameplay input occurred.
+
+Source moves independently observed entry reconciliation before settings changes.
+It requires exact high-confidence Before Entry and Enter (the broad MIRROR_ENTRY
+classifier alone is insufficient), matching encoded PNG hash/dimensions, and
+protects entry_pending and same-scope unresolved payout. Stale scope archival is
+atomic with the evidence metadata; existing victory/floors remain, new payout or
+completion is never invented. Requested single or rotation settings follow it.
+
+Fresh Limbus screenshot, actual Maa OCR/MapObserve and isolated copies passed
+single[2]/rotation[1,2,3,4,5] in build/mirror-idle-entry-native-verification.json.
+Original private hashes unchanged; zero game input. This is not GUI continuation.
+
+Expected settings errors now persist agent-result.json/run.log and a Chinese
+explanation instead of just a red failure; callback_failure remains clear. Startup
+and loop share one evidence directory and keep original journal frame indexes,
+so scoped entry proof cannot be overwritten. Full snapshot1636passed/1skip157.29s;
+latest focused74passed2.26s. Frozen installation and live GUI execution remain open.

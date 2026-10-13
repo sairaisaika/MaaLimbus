@@ -227,6 +227,12 @@ sequenceDiagram
   participant L as RunStore
   participant V as Fresh team OCR / 新队伍观测
   participant M as Maa controller
+  participant A as MainTask preparation / 启动准备
+  A->>M: Fresh native observation before queue changes / 改队列前核新画面
+  M-->>A: Exact Before Entry or new picker proof / 明确未入场或新局编队证明
+  A->>L: Retire only proven ended old scope / 只归档已证明结束的旧局
+  A->>A: Apply requested single or rotation queue / 应用请求的单队或轮换
+  A->>R: Same evidence directory and journal / 同一证据目录与日志
   R->>L: reconcile fresh DUNGEON_TEAM / 核新入场页面
   R->>L: start if absent, read team_slot / 新建局或取当前队伍
   R->>R: Rebind result, shop and exploration scope / 绑定新局结果与事务路径
@@ -246,6 +252,8 @@ sequenceDiagram
   M-->>R: Warning or entry successor / 警告页或入场后继
   R->>L: entry_observed after independent successor / 后继证明后记账
 ```
+
+Startup does not clear old state from the broad MIRROR_ENTRY label: Before Entry and Enter require independent high-confidence readings with matching JSON/PNG hashes and dimensions. Active gameplay, pending entry and same-scope payout remain protected. Existing clear facts survive; no active dungeon does not imply payout. Queue changes follow this reconciliation. Expected settings refusal writes explicit result/human logs rather than an unexplained red task.
 
 Source boundaries: `src/maalimbus/run_wiring.py:156` (`reconcile`); `src/maalimbus/team_navigation.py:1` (`browse`, `prepare`); `src/maalimbus/runner.py:1` (`MirrorRunner.step`).
 

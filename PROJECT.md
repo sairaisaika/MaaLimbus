@@ -1863,3 +1863,21 @@ This is a source test result, not complete game or production-value acceptance.
 - Python full snapshot1623 passed/1 permission skip; later wiki/skip focused40 passed.
   Latest source/wiki changes are not installed. Remaining game pipeline, learning
   production quality and public updater obligations stay open.
+
+## Continuation: October13 actual GUI single/rotation startup refusal
+
+- Actual GUI runs022858/023045/023230/023233 rejected in GlobalSettingsAction with
+  Finish the active run before changing its rotation, before any gameplay input.
+  The GUI correctly sent rotation[1,2,3,4,5] and later single[2]; the old Team7
+  ledger blocked application before the runner could reconcile the ended run.
+- MainTask now observes independently before changing settings when a run is saved.
+  Exact Before Entry plus Enter, PNG/JSON hash and dimensions, or a new picker,
+  can retire the stale scope without inventing payout/clear. Pending entry/payout
+  and actual ongoing gameplay are preserved. Native fresh screenshot + isolated
+  copies prove both single2 and rotation1..5, original private hashes unchanged.
+- Expected settings refusals now persist agent-result/run.log and show the reason;
+  they do not latch callback_failure. Preparation and loop share one evidence folder
+  and journal; resumed journals continue indexes instead of overwriting bound frames.
+- Full snapshot1636 passed/1 Windows permission skip157.29s; latest focused74 passed
+  2.26s includes journal durability/clear preservation. Native probe remains zero-input.
+  Freeze/install and actual GUI entry continuation are the next required gates.

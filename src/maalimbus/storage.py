@@ -220,7 +220,7 @@ class RunStore:
             warning_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
         write_json(self.path,data);self.data=data
 
-    def abandon(self, *, note=None):
+    def abandon(self, *, note=None, ended_entry_proof=None):
         """Drop the active run and leave the rotation where it stands.
 
         A wipe only ends a dungeon if the player accepts the result, and the driver keeps
@@ -238,6 +238,8 @@ class RunStore:
         data.setdefault('abandoned', []).append(dict(
             active, note=note,
             abandoned_at=datetime.datetime.now(datetime.timezone.utc).isoformat()))
+        if ended_entry_proof is not None:
+            data['abandoned'][-1]['ended_entry_proof']=copy.deepcopy(ended_entry_proof)
         data['abandoned'] = data['abandoned'][-50:]
         data['active'] = None
         write_json(self.path, data)

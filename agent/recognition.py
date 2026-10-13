@@ -77,7 +77,10 @@ class Journal:
     def __init__(self, directory):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
-        self.index = 0
+        # Explicit evidence directories can be reused after a bounded stop. Never
+        # overwrite a frame already referenced by a transaction or run ledger.
+        self.index = max((int(p.stem.split('-')[-1]) for p in self.directory.glob('frame-*')
+                          if p.suffix in ('.json','.png') and p.stem.split('-')[-1].isdigit()),default=0)
 
     def record(self, event, **details):
         data = {'event': event, 'utc': datetime.now(timezone.utc).isoformat(), **details}
@@ -1376,7 +1379,7 @@ def write_loop_result(directory, result):
                     encoding='utf-8')
     try:
         print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
-              ': '+str(result.get('reason') or result.get('error') or '原因未记录')+
+              ': '+str(result.get('user_message') or result.get('reason') or result.get('error') or '原因未记录')+
               '; '+str(result.get('error') or '')+
               '; inputs='+str(result.get('clicks_sent',0))+'; 证据='+str(path)+'。',flush=True)
     except (OSError,UnicodeError):
@@ -1460,13 +1463,29 @@ class GlobalSettingsAction(CustomAction):
 
     @guarded_callback(False)
     def run(self, context, argv):
+        try:
+            return self.apply(context)
+        except (ValueError,KeyError,OSError) as error:
+            result=dict(passed=False,reason='mirror_settings_rejected',error=str(error),
+                        input_sent=False,clicks_sent=0,verified_clear=False)
+            directory=self.recognition.journal.directory
+            self.recognition.journal.record('mirror_settings_rejected',**result)
+            write_loop_result(directory,result)
+            write_run_log(directory,result)
+            return False
+
+    def apply(self, context):
+        """Let MainTask handle expected preparation failures without poisoning callbacks."""
         directory = data_directory(ROOT)
         changed = apply_builds(directory, collect_builds(context.get_node_data))
         choice = collect_mirror_queue(context.get_node_data)
         if choice is not None:
             TaskPreferences(directory).set_mirror_queue(*choice)
+            mode,queue=choice
+            print('MaaLimbus 本轮队伍设置：'+('单队 ' if mode=='single' else '依次轮换 ')+
+                  ', '.join('Team'+str(slot) for slot in queue)+'。',flush=True)
         self.recognition.journal.record('global_build_settings_applied', slots=changed,
-                                        device_input=False)
+                                        mirror_queue=choice,device_input=False)
         return True
 
 
@@ -1499,7 +1518,9 @@ class MirrorLoopAction(CustomAction):
         deadline = time.monotonic() + budget
         # The observation nodes journal through the recognition and the loop reads the
         # run directory, so both halves of one run share one journal.
-        journal = Journal(directory)
+        existing=self.recognition.journal
+        journal=(existing if existing is not None and existing.directory.resolve()==directory.resolve()
+                 else Journal(directory))
         self.recognition.journal = journal
         result = dict(pid=os.getpid(), address=settings.address, controller='Maa AgentServer',
                       observe_only=bool(settings.observe_only), steps=[], clicks_sent=0,
@@ -1568,10 +1589,14 @@ class MainTaskAction(CustomAction):
         directory=loop_directory(params)
         journal=Journal(directory)
         self.recognition.journal=journal
-        def reject(reason):
-            result=dict(passed=False,reason=reason,task=task,input_sent=False,verified_clear=False)
+        def reject(reason, error=None):
+            result=dict(passed=False,reason=reason,task=task,input_sent=False,clicks_sent=0,verified_clear=False)
+            if error is not None:result['error']=str(error)
+            if reason=='mirror_settings_rejected':
+                result['user_message']=event_log.explain(reason)
             journal.record('main_task_stopped',**result)
             write_loop_result(directory,result)
+            write_run_log(directory,result)
             return False
         try:
             lease=ControllerLease.acquire(ROOT/'build/controller.lock')
@@ -1590,26 +1615,49 @@ class MainTaskAction(CustomAction):
                 if not InputPreflight(self.recognition).run(context,argv):
                     return reject('Actual controller identity failed')
                 if task=='mirror':
-                    if not GlobalSettingsAction(self.recognition).run(context,argv):return False
-                    from maalimbus.mirror_preferences import collect as collect_preferences, apply as apply_preferences
-                    preference_edit=collect_preferences(context.get_node_data)
-                    if preference_edit is not None:
-                        apply_preferences(data_directory(ROOT),preference_edit,
-                            gifts=self.recognition.gift_catalog().entries,
-                            packs=self.recognition.theme_catalog().names)
-                    from maalimbus.mirror_starlight import collect,apply
-                    source,star_task,star_edit=collect(context.get_node_data)
-                    apply(data_directory(ROOT),source,star_task,star_edit)
-                    node=context.get_node_data('MirrorLoop')
-                    from maalimbus.mirror_task_options import collect as collect_task_options
-                    loop_params=dict(node['action']['param']['custom_action_param'])
-                    loop_params.update(collect_task_options(context.get_node_data))
-                    from maalimbus.shop_settings import FIELDS
-                    for name,field in zip(('MirrorShopPolicy','MirrorShopRefreshLimit','MirrorShopCoinReserve'),FIELDS):
-                        choice=context.get_node_data(name)['attach'][field]
-                        if choice!='saved':loop_params[field]=choice
-                    selected=SimpleNamespace(custom_action_param=json.dumps(loop_params),node_name='MirrorLoop')
-                    return MirrorLoopAction(self.recognition).run(context,selected)
+                    try:
+                        config=data_directory(ROOT)
+                        ledger=config/'user-run-ledger.json'
+                        if ledger.exists():
+                            value=read_json(ledger)
+                            if not isinstance(value,dict) or 'active' not in value:
+                                raise ValueError('Invalid saved Mirror ledger')
+                            if value['active'] is not None:
+                                # Queue application used to fail before the runner could
+                                # observe that the user had ended the previous dungeon.
+                                print('MaaLimbus 当前阶段：启动前核对旧局与队伍设置。',flush=True)
+                                observer=runner.MaaObserver(AgentTasker(context),directory)
+                                runner.observe(observer,time.monotonic()+30)
+                                from maalimbus.run_wiring import reconcile_idle_entry
+                                store=RunStore(ledger,[SimpleNamespace(slot=s) for s in value['team_slots']])
+                                outcome=reconcile_idle_entry(store,runner.frame_file(directory))
+                                journal.record('mirror_entry_preparation',**outcome)
+                        GlobalSettingsAction(self.recognition).apply(context)
+                    except (ValueError,KeyError,OSError,RuntimeError,TimeoutError,TypeError) as error:
+                        return reject('mirror_settings_rejected',error)
+                    try:
+                        from maalimbus.mirror_preferences import collect as collect_preferences, apply as apply_preferences
+                        preference_edit=collect_preferences(context.get_node_data)
+                        if preference_edit is not None:
+                            apply_preferences(data_directory(ROOT),preference_edit,
+                                gifts=self.recognition.gift_catalog().entries,
+                                packs=self.recognition.theme_catalog().names)
+                        from maalimbus.mirror_starlight import collect,apply
+                        source,star_task,star_edit=collect(context.get_node_data)
+                        apply(data_directory(ROOT),source,star_task,star_edit)
+                        node=context.get_node_data('MirrorLoop')
+                        from maalimbus.mirror_task_options import collect as collect_task_options
+                        loop_params=dict(node['action']['param']['custom_action_param'])
+                        loop_params['directory']=str(directory)
+                        loop_params.update(collect_task_options(context.get_node_data))
+                        from maalimbus.shop_settings import FIELDS
+                        for name,field in zip(('MirrorShopPolicy','MirrorShopRefreshLimit','MirrorShopCoinReserve'),FIELDS):
+                            choice=context.get_node_data(name)['attach'][field]
+                            if choice!='saved':loop_params[field]=choice
+                        selected=SimpleNamespace(custom_action_param=json.dumps(loop_params),node_name='MirrorLoop')
+                        return MirrorLoopAction(self.recognition).run(context,selected)
+                    except (ValueError,KeyError,OSError,TypeError) as error:
+                        return reject('mirror_settings_rejected',error)
                 observer=runner.MaaObserver(AgentTasker(context),directory)
                 if task=='rewards':
                     from maalimbus.reward_task_budget import apply as apply_reward_budget

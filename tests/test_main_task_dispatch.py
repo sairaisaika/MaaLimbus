@@ -18,6 +18,7 @@ def isolate_fake_dispatch_controller_lease(tmp_path,monkeypatch):
     # Production lock identity/exclusion is covered in test_controller_lease.py.
     import maalimbus.controller_lease as leases
     monkeypatch.setattr(leases,'lease_path',lambda path:tmp_path/'unit-dispatch.lock')
+    monkeypatch.setattr(recognition,'data_directory',lambda *a:tmp_path)
 
 
 def test_six_main_tasks_reference_saved_builds_and_no_diagnostic_entry():
@@ -77,7 +78,7 @@ def test_active_lux_dispatch_stops_before_preference_write_observation_or_device
 
 def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_path,monkeypatch):
     monkeypatch.setattr(recognition.InputPreflight,'run',lambda *args:True)
-    monkeypatch.setattr(recognition.GlobalSettingsAction,'run',lambda *args:True)
+    monkeypatch.setattr(recognition.GlobalSettingsAction,'apply',lambda *args:True)
     seen=[]
     def run(self,context,args):
         seen.append(json.loads(args.custom_action_param));return True
@@ -100,7 +101,7 @@ def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_pat
     assert action.run(context,args)
     assert seen==[dict(steps=120,run_store='config/user-run-ledger.json',stop_page='STAR_GRACES',
                        gift_keyword='poise',gift_search='refuse',battle_assignment='damage',
-                       shop_policy='learned',shop_refreshes=3,shop_reserve_coins=200)]
+                       shop_policy='learned',shop_refreshes=3,shop_reserve_coins=200,directory=str(tmp_path))]
 
 
 def test_windows_open_task_requires_actual_existing_game_and_does_not_launch(tmp_path,monkeypatch):

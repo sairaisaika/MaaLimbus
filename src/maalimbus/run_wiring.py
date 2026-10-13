@@ -250,3 +250,62 @@ def earned_its_payout(store, *, settled_now=False):
             return False
         return settled_at > left_at
     return bool(receipt.get('victory') or receipt.get('reward'))
+
+
+def reconcile_idle_entry(store, proof):
+    """Retire a stale gameplay scope before native queue/settings application.
+
+    Uses the newly observed frame, never the broad MIRROR_ENTRY classifier alone:
+    an ongoing run can share its Enter/Exploring chrome. No reward is inferred.
+    Unsettled receipts and entry inputs remain protected and are never erased.
+    """
+    import hashlib
+    from pathlib import Path
+    from .storage import read_json
+    from .vision import Text, find
+    from .team_vision import selected_saved_team
+    if proof is None:raise ValueError('Fresh entry frame is missing; preserve the active run')
+    proof=Path(proof)
+    record=read_json(proof)
+    if not isinstance(record,dict) or not isinstance(record.get('ocr'),list):
+        raise ValueError('Fresh entry frame is malformed; preserve the active run')
+    png=proof.with_suffix('.png')
+    if hashlib.sha256(png.read_bytes()).hexdigest()!=record.get('image_sha256'):
+        raise ValueError('Fresh entry screenshot hash differs; preserve the active run')
+    import cv2
+    image=cv2.imread(str(png));size=record.get('size')
+    if image is None or size!=[image.shape[1],image.shape[0]]:
+        raise ValueError('Fresh entry screenshot geometry differs; preserve the active run')
+    texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+    page=record.get('scene')
+    if record.get('overlay_dismissal'):
+        return dict(retired=False,reason='entry_overlay_requires_normal_resolution')
+    idle=(page=='MIRROR_ENTRY'
+          and len(find(texts,r'^\s*Before\s+Entry\s*$',(.68,.10,.98,.32),size,.9))==1
+          and len(find(texts,r'^\s*Enter\s*$',(.76,.55,.97,.85),size,.9))==1)
+    picker=(page=='DUNGEON_TEAM' and selected_saved_team(texts,size) is not None
+            and len(find(texts,r'^\s*Confirm\s*$',(.76,.70,.98,.96),size,.9))==1)
+    if not idle and not picker:
+        return dict(retired=False,reason='fresh_page_does_not_prove_no_active_dungeon',page=page)
+    active=store.data.get('active')
+    if active is None:return dict(retired=False,reason='ledger_already_idle',page=page)
+    if active.get('phase')=='entry_pending':
+        raise ValueError('Entry confirmation pending; preserve its original intent')
+    path=store.path.parent/'user-reward-claim-transaction.json'
+    claim=read_json(path) if path.exists() else {}
+    if not isinstance(claim,dict):raise ValueError('Invalid payout state; preserve active run')
+    if claim.get('scope')==active['id'] and (claim.get('pending') or not claim.get('completed')):
+        raise ValueError('Current payout transaction remains pending; preserve its evidence')
+    identity=active['id']
+    if active.get('victory') and active.get('reward'):
+        store.record(identity,'entry_returned-startup','entry_returned',proof)
+        disposition='verified_reward_return'
+    else:
+        ended=dict(
+            json=str(proof),json_sha256=hashlib.sha256(proof.read_bytes()).hexdigest(),
+            png_sha256=record['image_sha256'],page=page,outcome_inferred=False)
+        store.abandon(note='Fresh native idle entry proves the old dungeon is no longer active; '
+                           'outcome/payout not inferred; evidence '+str(proof),ended_entry_proof=ended)
+        disposition='ended_without_new_outcome_claim'
+    return dict(retired=True,previous_scope=identity,page=page,disposition=disposition,
+                game_input=False,completed_runs=store.data['completed_runs'])

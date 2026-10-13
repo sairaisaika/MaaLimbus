@@ -227,6 +227,12 @@ sequenceDiagram
   participant L as RunStore
   participant V as Fresh team OCR / 新队伍观测
   participant M as Maa controller
+  participant A as MainTask preparation / 启动准备
+  A->>M: Fresh native observation before queue changes / 改队列前核新画面
+  M-->>A: Exact Before Entry or new picker proof / 明确未入场或新局编队证明
+  A->>L: Retire only proven ended old scope / 只归档已证明结束的旧局
+  A->>A: Apply requested single or rotation queue / 应用请求的单队或轮换
+  A->>R: Same evidence directory and journal / 同一证据目录与日志
   R->>L: reconcile fresh DUNGEON_TEAM / 核新入场页面
   R->>L: start if absent, read team_slot / 新建局或取当前队伍
   R->>R: Rebind result, shop and exploration scope / 绑定新局结果与事务路径
@@ -246,6 +252,8 @@ sequenceDiagram
   M-->>R: Warning or entry successor / 警告页或入场后继
   R->>L: entry_observed after independent successor / 后继证明后记账
 ```
+
+启动前不会仅凭 MIRROR_ENTRY 这个宽分类清旧状态：Before Entry 和 Enter 必须独立高置信读出，JSON/PNG 哈希和尺寸必须一致。真实活动局、入场 pending 和同局领奖 pending 保留。旧局通关事实保留，但不根据“现在无局”推断奖励已到账；新队列在此核对之后才应用。设置拒绝写明确结果/人类日志，不再只有红色失败。
 
 源码落点：`src/maalimbus/run_wiring.py:156` (`reconcile`); `src/maalimbus/team_navigation.py:1` (`browse`, `prepare`); `src/maalimbus/runner.py:1` (`MirrorRunner.step`).
 
