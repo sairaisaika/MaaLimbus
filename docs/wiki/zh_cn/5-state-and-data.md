@@ -42,7 +42,7 @@
 stateDiagram-v2
     %% —— 入口段：从大厅走到镜牢门口 ——
     [*] --> UNKNOWN
-    UNKNOWN --> HOME : 回大厅重读 vision.py:473
+    UNKNOWN --> HOME : 新观察独立命中 HOME 锚点，无导航输入
     HOME --> DRIVE : 点底部 Drive 导航 window.py:169
     DRIVE --> MIRROR_ENTRY : 镜牢菜单识别框内点一次 window.py:176
     MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348

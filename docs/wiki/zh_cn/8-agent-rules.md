@@ -120,3 +120,6 @@ flowchart TD
 5. **`.gitignore` 的例外只陈述设计意图。** `.gitignore:28-29` 那两行决定规则层里哪些文件随仓库走；本章只解释这一设计，不代表 git 索引此刻的实际内容——`AGENTS.md` 是否已被 `git add` 与本章的叙述无关。
 
 6. **中英两页没有逐句比对。** 只保证标题、编号、表格与段落顺序一一对应；`../en_us/8-agent-rules.md` 是中文页的忠实镜像而非独立撰写，因此中文页若有一处事实错误，英文页会同步继承。
+
+
+本会话的新增规则：AGENTS.md 的 Memory 指向 `docs/agents/memory.md`。会话收尾仅沉淀有判据的结论到 agentmemory 项目 MaaLimbus，并读回核实；调用前须确认 memory_save / memory_lesson_save 工具可用；不可用时在 PROJECT.md 保留结论并说明外部写回尚未完成，不能把仓库文档或本地日志冒称成外部记忆写入。

@@ -42,7 +42,7 @@ State nodes represent persistent page states; edge labels name an input or indep
 stateDiagram-v2
     %% —— Entry leg: from the lobby to the mirror dungeon door ——
     [*] --> UNKNOWN
-    UNKNOWN --> HOME : re-read the lobby vision.py:473
+    UNKNOWN --> HOME : Fresh independent HOME anchors; no navigation input
     HOME --> DRIVE : tap the bottom Drive nav window.py:169
     DRIVE --> MIRROR_ENTRY : one tap inside the mirror-menu box window.py:176
     MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348

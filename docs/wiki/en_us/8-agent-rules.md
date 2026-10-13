@@ -120,3 +120,6 @@ This section states honestly how far this chapter was verified and what was **no
 5. **The `.gitignore` exceptions state an intent, not an index.** Those two lines at `.gitignore:28-29` decide which files of the rules layer travel with the repository; this chapter only explains that design and does not claim what the git index currently holds — whether `AGENTS.md` has been `git add`ed is unrelated to this chapter's account.
 
 6. **The two languages were not compared sentence by sentence.** Only headings, numbering, tables and paragraph order are guaranteed to correspond; `../zh_cn/8-agent-rules.md` is the source and this page is its mirror rather than an independent write, so a factual error in the Chinese page is inherited here.
+
+
+Added session rule: AGENTS.md Memory points to `docs/agents/memory.md`. Save only evidence-backed conclusions under agentmemory project MaaLimbus at session close and read them back. Check memory_save / memory_lesson_save availability before calling. When unavailable, preserve conclusions in PROJECT.md and state that external writeback remains incomplete; repository documents and local logs are not external-memory writes.
