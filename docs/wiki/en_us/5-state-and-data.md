@@ -32,94 +32,26 @@ Two facts that are easy to get wrong:
 - **`BEFORE_ENTRY` is not a recognised page.** `src/maalimbus/window.py:339` puts it in the same branch as `MIRROR_ENTRY` (`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`), and `assets/resource/base/anchors.json` carries a `before_entry` page; but it is not among the 50 `return` constants of `vision.classify`, and `agent/recognition.py` never produces it. It exists purely as a compatibility synonym branch.
 - **The reviewed labels in `learning_dataset.py` are not runtime page names.** `src/maalimbus/learning_dataset.py:7` `LABELS` has only 11 entries (`STAR_GRACES`, `THEME_PACKS`, `MAP`, `PRE_BATTLE_TEAM`, `BATTLE_HUD`, `GIFT_PICK`, `GIFT_GET`, `EVENT_CHOICE`, `SHOP`, `RUN_COMPLETE`, `UNKNOWN`); it is a human label set for a future learned classifier, and the file says so itself: "Explicit reviewed page label required; OCR scene is not ground truth" (`src/maalimbus/learning_dataset.py:29`). It is neither the runtime page set nor a settlement-page list beyond `RUN_COMPLETE`.
 
-### 5.1.2 The page state diagram
+### 5.1.2 Run lifecycle state machine
 
-State names are the page constants from the code; each edge label is the only permitted input plus the line that produces it. Inside the diagrams the `src/maalimbus/` prefix is dropped for readability: `window.py:169` means `src/maalimbus/window.py:169`, and likewise `vision.py:473`, `storage.py:177`, `deployment_transaction.py:55`, `run_wiring.py:142`; prose outside the diagrams always gives the full path.
-
-State nodes represent persistent page states; edge labels name an input or independent successor observation. UNKNOWN is recognition uncertainty, not an automatic home-navigation action. Unproven budgets or successors preserve pending transactions.
+This is a logical state machine composed from the run ledger and payout transaction, not a page-routing inventory. Preparing / EntryPending / Entered map to active.phase; Victory / Rewarded derive from active.victory / active.reward; ClaimPending maps to the payout transaction pending field. Edges name events, guards and state effects, not call dependencies or retry permission. Page recognition remains in 5.1.1; detailed deployment and gift transactions follow below. Sources: RunStore.start / entry_intent / entry_observed / record / abandon in `src/maalimbus/storage.py`, and receipt bookkeeping in `src/maalimbus/reward_task.py`.
 
 ```mermaid
 stateDiagram-v2
-    %% —— Entry leg: from the lobby to the mirror dungeon door ——
-    [*] --> UNKNOWN
-    UNKNOWN --> HOME : Fresh independent HOME anchors; no navigation input
-    HOME --> DRIVE : tap the bottom Drive nav window.py:169
-    DRIVE --> MIRROR_ENTRY : one tap inside the mirror-menu box window.py:176
-    MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348
-    ENTRY_CONFIRM --> DUNGEON_TEAM : Enter window.py:364
-    ENTRY_CONFIRM --> RESUME_DIALOG : a run is already in progress window.py:364
-    RESUME_DIALOG --> STAR_GRACES : Resume window.py:372
-    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:881
-    LEVEL_WARNING --> STAR_GRACES : continue with the rotated team window.py:859
-    DUNGEON_TEAM --> STAR_GRACES : no warning needed window.py:881
-
-    %% —— Opening configuration: starlight -> initial gifts -> theme pack ——
-    STAR_GRACES --> STAR_CONFIRM : Enter window.py:761
-    STAR_CONFIRM --> STAR_GRACES : nothing bought, back to selection window.py:836
-    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:847
-    INITIAL_GIFTS --> THEME_PACKS : Select window.py:829
-    INITIAL_GIFTS --> GIFT_GET : gift popup window.py:829
-    THEME_PACKS --> MAP : pull the theme pack down window.py:409
-
-    %% —— Inside a floor: the map is the only hub ——
-    MAP --> NODE_PANEL : tap a node window.py:531
-    NODE_PANEL --> PRE_BATTLE_TEAM : Enter window.py:552
-    NODE_PANEL --> SHOP : the node is a shop window.py:552
-    NODE_PANEL --> GIFT_PICK : the node is a gift window.py:552
-    SHOP_LEAVE --> MAP : Confirm leaving window.py:659
-    SHOP --> HEAL_SINNERS : a dead key Sinner window.py:623
-    HEAL_SINNERS --> REVIVE_PICK : its own third row window.py:999
-    REVIVE_PICK --> REVIVE_PICK : its own portrait window.py:589
-    REVIVE_PICK --> REVIVE_DONE : its own Select button window.py:583
-    REVIVE_DONE --> SHOP : its own Leave window.py:566
-    SHOP --> SHOP_PURCHASE : the card on the shelf window.py:633
-    SHOP --> SHOP : Refresh then independently verify the new shelf
-    SHOP --> SHOP_LEAVE : no budget-safe input left window.py:651
-    SHOP_PURCHASE --> GIFT_GET : its own Confirm window.py:608
-    MAP --> SHOP : the node is a shop window.py:531
-    MAP --> EVENT_CHOICE : the node is an event window.py:531
-    MAP --> CUTSCENE : the node is an abnormality cutscene window.py:531
-    MAP --> GIFT_PICK : floor gift page window.py:531
-    MAP --> REWARD_CARD : reward card encounter window.py:531
-    MAP --> EGO_GIFT_POPUP : gift window floating over the map window.py:531
-    MAP --> WINDOW_RESET : weekly reset notice window.py:531
-    EVENT_CHOICE --> EVENT_CHECK : a skill check is required window.py:515
-    EVENT_CHECK --> EVENT_CHECK_RESULT : roll best odds window.py:477
-    EVENT_CHECK --> CUTSCENE : story before the check window.py:458
-    EVENT_CHECK_RESULT --> EVENT_CHECK_READY : story done, control lit window.py:492
-    EVENT_CHECK_READY --> MAP : its own lit Continue window.py:504
-    CUTSCENE --> MAP : SKIP window.py:441
-    EVENT_RESULT --> EVENT_RESULT_READY : story done window.py:424
-    EVENT_RESULT_READY --> EVENT_RESULT_READY : its own Continue window.py:430
-    GIFT_PICK --> GIFT_WARNING : gifts still remain window.py:692
-    GIFT_WARNING --> GIFT_PICK : Cancel keeps the remaining picks window.py:686
-    GIFT_PICK --> GIFT_GET : Select window.py:736
-    GIFT_GET --> MAP : its own Confirm window.py:676
-    GIFT_GET --> GIFT_SEARCH : a search is required window.py:676
-    GIFT_SEARCH --> GIFT_SEARCH_FORGO : give up the search window.py:784
-    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:805
-    REWARD_CARD --> MAP : pick a card, then Confirm window.py:954
-    EGO_GIFT_POPUP --> MAP : Confirm window.py:795
-
-    %% —— Combat leg ——
-    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:920
-    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:920
-    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:932
-    BATTLE_HUD --> BATTLE_TIP : skill tooltip overlay window.py:979
-    BATTLE_TIP --> BATTLE_HUD : Start commits the turn window.py:967
-    BATTLE_HUD --> BATTLE_RESULT : the killing blow lands window.py:979
-    BATTLE_RESULT --> BATTLE_VICTORY : Confirm clears the result mirror.json:1420
-    BATTLE_RESULT --> MAP : back to the map mirror.json:1420
-    BATTLE_TIP --> DEFEAT : party wipe window.py:967
-    DEFEAT --> BATTLE_DEFEAT : party-wipe dialog window.py:321
-    BATTLE_DEFEAT --> BATTLE_HUD : Retry Stage window.py:308
-
-    %% —— Closing leg: five floors cleared, rewards claimed, back to the entrance ——
-    BATTLE_VICTORY --> RUN_CLAIM : settlement after the floor-5 win window.py:286
-    RUN_CLAIM --> RUN_REWARD_DIALOG : Claim Rewards window.py:275
-    RUN_REWARD_DIALOG --> RUN_REWARD_CONFIRM : Claim window.py:264
-    RUN_REWARD_CONFIRM --> RUN_REWARD_BONUS : Confirm window.py:254
-    RUN_REWARD_BONUS --> DUNGEON_TEAM : Confirm, load the next team window.py:240
+  [*] --> Idle
+  Idle --> Preparing : start / create unique run scope
+  Preparing --> EntryPending : entry_intent / persist before input
+  EntryPending --> EntryPending : unproven successor / bounded reads, no repeated Confirm
+  EntryPending --> Entered : entry_observed [independent successor verified]
+  Entered --> Entered : floor_clear [next floor and order proven]
+  Entered --> Victory : final_victory [floors 1 through 5, complete summary]
+  Victory --> Victory : scoped budget unauthorized / no payment
+  Victory --> ClaimPending : reserve [scoped budget matches fresh visible cost]
+  ClaimPending --> ClaimPending : receipt unproven / retain pending, no repeated payment
+  ClaimPending --> Rewarded : complete actual receipt and independent HOME chain audited
+  Rewarded --> Idle : entry_returned / archive and advance rotation
+  Entered --> Abandoned : fresh new-entry team page proves old run gone without receipt
+  Abandoned --> Idle : abandon / retain history, do not advance rotation
 ```
 
 Four things to take from this diagram:

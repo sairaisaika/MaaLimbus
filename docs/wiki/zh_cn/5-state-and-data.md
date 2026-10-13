@@ -32,94 +32,26 @@
 - **`BEFORE_ENTRY` 不是识别出来的页面。** `src/maalimbus/window.py:339` 把它和 `MIRROR_ENTRY` 放在同一个分支（`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`），`assets/resource/base/anchors.json` 里也有 `before_entry` 页面；但 `vision.classify` 的 50 个 `return` 常量里没有它，`agent/recognition.py` 也不会产出它。它是兼容用的同义分支。
 - **`learning_dataset.py` 的 reviewed 标签不是运行时的页面名。** `src/maalimbus/learning_dataset.py:7` 的 `LABELS` 只有 11 个（`STAR_GRACES`、`THEME_PACKS`、`MAP`、`PRE_BATTLE_TEAM`、`BATTLE_HUD`、`GIFT_PICK`、`GIFT_GET`、`EVENT_CHOICE`、`SHOP`、`RUN_COMPLETE`、`UNKNOWN`），是给以后的学习型分类器准备的人工标签集，文件自己也写明「Explicit reviewed page label required; OCR scene is not ground truth」（`src/maalimbus/learning_dataset.py:29`）。它既不是运行时的页面全集，也不含 `RUN_COMPLETE` 之外的结算页。
 
-### 5.1.2 页面状态图
+### 5.1.2 运行生命周期状态图
 
-状态名就是代码里的页面常量；箭头上的文字是「唯一被允许的输入」加上产它的那行代码。图内为了可读省略了 `src/maalimbus/` 前缀：`window.py:169` 即 `src/maalimbus/window.py:169`，`vision.py:473`、`storage.py:177`、`deployment_transaction.py:55`、`run_wiring.py:142` 同理；图外的正文一律写完整路径。
-
-状态图的节点是持久的页面状态；边标签表示输入或独立后继观察。UNKNOWN 是识别状态，不表示自动回大厅。预算与完整后继未证明时保留 pending，不跳过事务。
+此图是账本与领奖事务组合的逻辑状态机，不是页面跳转清单。Preparing / EntryPending / Entered 对应 active.phase；Victory / Rewarded 从 active.victory / active.reward 派生；ClaimPending 对应领奖事务 pending。边上写事件、守卫与状态效果；不是调用关系，也不表示未知时可以重复输入。页面识别仍见 5.1.1，部署和礼物事务的细分状态见后文。依据是 `src/maalimbus/storage.py` 的 RunStore.start / entry_intent / entry_observed / record / abandon，以及 `src/maalimbus/reward_task.py` 的回执入账。
 
 ```mermaid
 stateDiagram-v2
-    %% —— 入口段：从大厅走到镜牢门口 ——
-    [*] --> UNKNOWN
-    UNKNOWN --> HOME : 新观察独立命中 HOME 锚点，无导航输入
-    HOME --> DRIVE : 点底部 Drive 导航 window.py:169
-    DRIVE --> MIRROR_ENTRY : 镜牢菜单识别框内点一次 window.py:176
-    MIRROR_ENTRY --> ENTRY_CONFIRM : Enter window.py:348
-    ENTRY_CONFIRM --> DUNGEON_TEAM : Enter window.py:364
-    ENTRY_CONFIRM --> RESUME_DIALOG : 本局已在进行中 window.py:364
-    RESUME_DIALOG --> STAR_GRACES : Resume window.py:372
-    DUNGEON_TEAM --> LEVEL_WARNING : Confirm window.py:881
-    LEVEL_WARNING --> STAR_GRACES : 用轮换队继续 window.py:859
-    DUNGEON_TEAM --> STAR_GRACES : 无需警告 window.py:881
-
-    %% —— 开局配置段：星光 → 初始礼物 → 主题包 ——
-    STAR_GRACES --> STAR_CONFIRM : Enter window.py:761
-    STAR_CONFIRM --> STAR_GRACES : 未买满则退回选择 window.py:836
-    STAR_CONFIRM --> INITIAL_GIFTS : Confirm window.py:847
-    INITIAL_GIFTS --> THEME_PACKS : Select window.py:829
-    INITIAL_GIFTS --> GIFT_GET : 拿到礼物窗口 window.py:829
-    THEME_PACKS --> MAP : 把主题包往下 Pull window.py:409
-
-    %% —— 楼层内：地图是唯一枢纽 ——
-    MAP --> NODE_PANEL : 点节点 window.py:531
-    NODE_PANEL --> PRE_BATTLE_TEAM : Enter window.py:552
-    NODE_PANEL --> SHOP : 节点是商店 window.py:552
-    NODE_PANEL --> GIFT_PICK : 节点是礼物 window.py:552
-    SHOP_LEAVE --> MAP : Confirm 离店 window.py:659
-    SHOP --> HEAL_SINNERS : 死位罪人 window.py:623
-    HEAL_SINNERS --> REVIVE_PICK : 自己的第三行 window.py:999
-    REVIVE_PICK --> REVIVE_PICK : 自己的罪人头像 window.py:589
-    REVIVE_PICK --> REVIVE_DONE : 自己的 Select 按钮 window.py:583
-    REVIVE_DONE --> SHOP : 自己的 Leave window.py:566
-    SHOP --> SHOP_PURCHASE : 货架上的卡 window.py:633
-    SHOP --> SHOP : 刷新后独立核对新货架
-    SHOP --> SHOP_LEAVE : 没有预算安全的输入了 window.py:651
-    SHOP_PURCHASE --> GIFT_GET : 自己的 Confirm window.py:608
-    MAP --> SHOP : 节点是商店 window.py:531
-    MAP --> EVENT_CHOICE : 节点是事件 window.py:531
-    MAP --> CUTSCENE : 节点是异想体过场 window.py:531
-    MAP --> GIFT_PICK : 层礼物页 window.py:531
-    MAP --> REWARD_CARD : 遭遇奖励卡 window.py:531
-    MAP --> EGO_GIFT_POPUP : 地图上浮出的礼物窗 window.py:531
-    MAP --> WINDOW_RESET : 周记录重置通知 window.py:531
-    EVENT_CHOICE --> EVENT_CHECK : 需要技能检定 window.py:515
-    EVENT_CHECK --> EVENT_CHECK_RESULT : 掷点 best odds window.py:477
-    EVENT_CHECK --> CUTSCENE : 检定前剧情 window.py:458
-    EVENT_CHECK_RESULT --> EVENT_CHECK_READY : 剧情走完、控件变亮 window.py:492
-    EVENT_CHECK_READY --> MAP : 点亮的 Continue window.py:504
-    CUTSCENE --> MAP : SKIP window.py:441
-    EVENT_RESULT --> EVENT_RESULT_READY : 剧情走完 window.py:424
-    EVENT_RESULT_READY --> EVENT_RESULT_READY : 自己的 Continue window.py:430
-    GIFT_PICK --> GIFT_WARNING : 还有剩余礼物 window.py:692
-    GIFT_WARNING --> GIFT_PICK : Cancel 保住剩余选择 window.py:686
-    GIFT_PICK --> GIFT_GET : Select window.py:736
-    GIFT_GET --> MAP : 自己的 Confirm window.py:676
-    GIFT_GET --> GIFT_SEARCH : 需要搜索 window.py:676
-    GIFT_SEARCH --> GIFT_SEARCH_FORGO : 放弃搜索 window.py:784
-    GIFT_SEARCH_FORGO --> MAP : Confirm window.py:805
-    REWARD_CARD --> MAP : 先选卡再 Confirm window.py:954
-    EGO_GIFT_POPUP --> MAP : Confirm window.py:795
-
-    %% —— 战斗段 ——
-    PRE_BATTLE_TEAM --> DEPLOYMENT : Battle! window.py:920
-    PRE_BATTLE_TEAM --> BATTLE_HUD : Battle! window.py:920
-    DEPLOYMENT --> BATTLE_HUD : To Battle! window.py:932
-    BATTLE_HUD --> BATTLE_TIP : 技能说明浮层 window.py:979
-    BATTLE_TIP --> BATTLE_HUD : Start 提交本回合 window.py:967
-    BATTLE_HUD --> BATTLE_RESULT : 打出致命一击 window.py:979
-    BATTLE_RESULT --> BATTLE_VICTORY : Confirm 清掉结算 mirror.json:1420
-    BATTLE_RESULT --> MAP : 回到地图 mirror.json:1420
-    BATTLE_TIP --> DEFEAT : 团灭 window.py:967
-    DEFEAT --> BATTLE_DEFEAT : 团灭对话框 window.py:321
-    BATTLE_DEFEAT --> BATTLE_HUD : Retry Stage window.py:308
-
-    %% —— 收尾段：一局的五层打完、领奖、回到入口 ——
-    BATTLE_VICTORY --> RUN_CLAIM : 第五层胜利后进结算 window.py:286
-    RUN_CLAIM --> RUN_REWARD_DIALOG : Claim Rewards window.py:275
-    RUN_REWARD_DIALOG --> RUN_REWARD_CONFIRM : Claim window.py:264
-    RUN_REWARD_CONFIRM --> RUN_REWARD_BONUS : Confirm window.py:254
-    RUN_REWARD_BONUS --> DUNGEON_TEAM : Confirm，回到入口载入下一队 window.py:240
+  [*] --> Idle
+  Idle --> Preparing : start / 建立唯一 run scope
+  Preparing --> EntryPending : entry_intent / 输入前持久化
+  EntryPending --> EntryPending : 后继未证明 / 有界重读，不重发 Confirm
+  EntryPending --> Entered : entry_observed [独立后继通过]
+  Entered --> Entered : floor_clear [下一层与顺序已证明]
+  Entered --> Victory : final_victory [floors 为 1至5，完整总结]
+  Victory --> Victory : 本局预算未授权 / 不付款
+  Victory --> ClaimPending : reserve [本局预算与 fresh 可见成本一致]
+  ClaimPending --> ClaimPending : 回执未证明 / 保留 pending，不重复付款
+  ClaimPending --> Rewarded : 完整实际回执与独立 HOME 链审计通过
+  Rewarded --> Idle : entry_returned / 归档并推进轮换
+  Entered --> Abandoned : 新入场队伍页证明旧局已不存在且无回执
+  Abandoned --> Idle : abandon / 保留历史，不推进轮换
 ```
 
 读这张图的四个要点：
