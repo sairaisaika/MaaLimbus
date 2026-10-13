@@ -521,6 +521,10 @@ erDiagram
 | `budget` | `assets/resource/base/budget.json` | `status="pending"`、`module_budget=0`、`allowed_purposes=["enkephalin_refill","module_conversion"]`、`note` 明确要求「pending 或 0 时每个请求都带理由拒绝，而不是点什么」 |
 | `gift-plan` | `assets/resource/base/gift-plan.json` | 按队伍给初始礼物优先名单（`default` + `teams` + `sources`），`note` 原文声明「不是普适最优攻略」 |
 
+### 5.4.1 用户设置的字段语义
+
+本章只讲**状态文件的结构**，不讲用户可改的设置项语义。设置项分两份文档：总设置与各任务选项在 `docs/task-settings.md`（210 行），镜牢商店策略在 `docs/shop-settings.md`（169 行）。它们与本章的衔接点是：设置先落进 `config/user-mirror-settings.json` 这类用户态文件（见上表），运行期再由 `assets/interface.json` 的 `option` 传给任务。
+
 ### 与共享契约的冲突
 
 - **`assets/resource/base/locale.json` 不存在。** 共享事实契约把 `resource/{base,en,jp}/locale.json` 列成资源层的一部分；实际目录里只有 `assets/resource/en/locale.json`（87 键）与 `assets/resource/jp/locale.json`（24 键），`base/` 下没有 `locale.json`。`agent/recognition.py:103` 也是按 `assets/resource/{locale}/locale.json` 读的，即语言包必须自带，没有 base 兜底。

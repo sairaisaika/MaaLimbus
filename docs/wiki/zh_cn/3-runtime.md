@@ -121,7 +121,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 - **二次判决**：`plan_step` 本体只做一件事——把落在 `FORBIDDEN_CONTROLS`（`src/maalimbus/window.py:50-63`）里的 target 改判为 `control_is_forbidden`（`src/maalimbus/window.py:128-135`）。两个例外白名单：`STAR_CONFIRM` 的 `star_confirm.cancel_button` 与 `GIFT_PICK` 的 `gift_pick.refuse_button`（`src/maalimbus/window.py:129-133`）。
 - **实现分工**：`src/maalimbus/window.py:139 def _plan_step(...)` 与入口同签名，承载「page → 输入」的全部分派；`plan_step` 只是禁区判决 + 委派（`src/maalimbus/window.py:120-127`）。
 - **调用方**：`src/maalimbus/runner.py:2144-2154`，在 `MirrorRunner.step`（`src/maalimbus/runner.py:1421`）内：`plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`。
-- 导入点在 `src/maalimbus/runner.py:66-67`。`runner.py` 顶部 docstring 另点名 `tools/window_step.py` 是第二个前端（**该文件本次未打开，未验收**）。
+- 导入点在 `src/maalimbus/runner.py:67`（`from maalimbus.window import ...` 那一行）。`src/maalimbus/runner.py:1-31` 的顶部 docstring 另点名 `tools/window_step.py` 是第二个前端；该文件本轮已打开并核实可用（419 行，`tools/window_step.py:62-209` 是它的 `build_parser()`，`C:\Python313\python.exe tools\window_step.py --help` 能正常打印用法），细节见 3.5。
 
 ### 3.2.2 一个真实的数据形状示例
 
@@ -382,11 +382,64 @@ sequenceDiagram
 - 崩溃路径也会落盘：`mirror_loop_error` 事件（带 traceback）之后仍然 `write_loop_result` + `write_run_log`（`agent/recognition.py:1538-1546`）。
 - 模块级 `_load_registry()` 读的也是同一份锚点表（`src/maalimbus/runner.py:2964`）。
 
+## 3.5 如何本地驱动一次运行
+
+本节给出真实命令与产物落点。脚本本身本轮只核实到命令行解析这一层（见本章末尾的未验收清单）。
+
+**入口一：带 UAC 的启动器**（`README.md:56-64`）：
+
+```powershell
+./tools/start_native.ps1 -Binary <Maa 原生库目录> -Locale en -Seconds 180
+```
+
+- `-Binary` 必填，且该目录里必须存在 `MaaFramework.dll`，否则脚本直接抛错（`tools/start_native.ps1:4`、`:11`）。
+- `-Locale` 只接受 `en` / `jp`（默认 `en`）；`-Seconds` 取值范围 1..3600（默认 180）（`tools/start_native.ps1:5-6`）。
+- 它用 `-Verb RunAs` 走标准 Windows UAC，不替用户批准（`tools/start_native.ps1:32-33`）；若已经有一个控制器在跑（`MaaLimbusAgent.exe` / `MaaLimbus.exe`，或命令行指向本仓库 `run_native.py` 的 python 进程），脚本会在启动前抛出 `MaaLimbus already has a running controller; inspect its session first`（`tools/start_native.ps1:12-16`）。
+- 真正的进程由 `tools/native_session.ps1` 拉起：`python -u tools/run_native.py --binary <dir> --locale <en|jp> --seconds <n> --live`（`tools/native_session.ps1:18-19`）；它在 `Seconds + 45` 秒后强杀子进程，超时退出码固定为 `124`（`tools/native_session.ps1:22-28`）。
+
+**产物落点**（每一条都能在脚本里查到）：
+
+| 产物 | 路径 | 出处 |
+| --- | --- | --- |
+| 启动请求与状态 | `build/native-launch-request.json` | `tools/start_native.ps1:27-44`；状态有 `uac_requested` / `launch_failed_or_cancelled` / `wrapper_started` |
+| 包装进程记录 | `build/native-launch.json` | `tools/start_native.ps1:45-47` |
+| 退出码与是否超时 | `build/native-launch-result.json` | `tools/native_session.ps1:29-31` |
+| 实时 stdout / stderr | `build/native-live.stdout.log` / `build/native-live.stderr.log` | `tools/native_session.ps1:11-12` |
+| 当前会话描述 | `build/live-session.json` | `tools/run_native.py:153` |
+| 运行证据目录 | `evidence/runtime/`（Agent 侧目录名形如 `pi-<yyyymmdd-hhmmss>`） | `README.md:64`；`agent/recognition.py:1337-1347` |
+
+**入口二：`tools/window_step.py`**（419 行，自带设备、证据目录与账本的一次性窗口工具）：
+
+- 必填 `--binary`（`tools/window_step.py:65`）、`--address`（`:74`）与 `--authorize`（`:75`，nonce）。
+- 常用开关：`--steps` 默认 1（`:76`）、`--rounds` 默认 3（`:78`）、`--interval` 默认 4.0（`:95`）、`--loop-guard` 默认 3（`:145`）、`--claim-tries` 默认 6（`:153`）、`--observe-page`（`:160`）、`--observe-only`（`:164`）；完整清单在 `tools/window_step.py:62-209` 的 `build_parser()`。
+- 发任何输入之前，必须在 `build/map-probe-authorization.json` 里为命令行传入的 nonce 授权 `live_input_authorized`（`tools/window_step.py:16-17`）。
+- 循环体不在这个文件里：它只做命令行、设备、证据目录与打印，循环在 `src/maalimbus/runner.py`（`tools/window_step.py:19-22`）。
+
+## 3.6 出问题先看哪里
+
+先看这次运行的证据目录，再看日志里的**停止原因字符串**，最后查下面这张表。
+
+| 现象 | 到哪里看 | 依据 |
+| --- | --- | --- |
+| 每步一行的人类可读日志 | `run.log` | `agent/recognition.py:1388 def write_run_log` |
+| 机器可读的逐事件流 | `events.jsonl`（`window_intent` / `map_observed` / `battle_observed`） | `src/maalimbus/runner.py:1366 def note` |
+| 结果摘要 | `agent-result.json` | `agent/recognition.py:1372 def write_loop_result` |
+| 停止原因的一句话解释与建议 | `src/maalimbus/event_log.py:20-73` 的 `GLOSSARY` 表（取词函数 `explain()` 在 `:79-89`） | 该表把每个 reason 映射成「什么意思、下一步看什么」 |
+| 同一页同一动作反复走、停不下来 | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2748` |
+| 领奖家族原地打转 | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2735` |
+| 输入发出去了但页面没动 | reason `unexpected_successor` | `src/maalimbus/runner.py:2633`、`src/maalimbus/runner.py:2671` |
+| 时间预算用尽 | reason `loop_deadline_exceeded` | `agent/recognition.py:1528-1533` |
+| 循环抛异常而不是正常停止 | 事件 `mirror_loop_error`（带 traceback），reason `mirror_loop_failed` | `agent/recognition.py:1534-1546` |
+| 走到调用方点名的页就停 | reason `stop_page_reached` | `src/maalimbus/runner.py:2655` |
+| 页面没有可靠控件，只记录不发输入 | reason `page_is_observe_only` | `src/maalimbus/event_log.py:47-50` |
+| 打包 / 控制台日志 | `build/*.log`（例如 `build/mirror-console-*.log`） | 仓库 `build/` 下的运行日志 |
+| 测试报 `PermissionError [Errno 13]`，路径是 `%LOCALAPPDATA%\MaaLimbus\controller.lock` | 先确认本机是否真有一个 app 或 agent 实例在跑；这是锁被占用，不是代码缺陷 | 锁路径由 `src/maalimbus/controller_lease.py:12-14` 决定；`docs/wiki/zh_cn/7-quality.md` 的「套件与真实实例的资源竞争」一行记着这个现象 |
+
 ---
 
 ## 未验收 / 存疑清单（本章）
 
 - `assets/resource/jp/pipeline/locale.json` 的内容与行数未打开。
-- `tools/window_step.py`（第二个前端）未打开；它只在 `src/maalimbus/runner.py` 的 docstring 与导入注释里被点名。
+- `tools/window_step.py`（第二个前端）已打开：`--help` 能跑、开关与授权门禁都已核对（见 3.5），但**没有实际驱动过一次**，所以「能跑」只到命令行解析这一层，不是端到端验收。
 - `MirrorLoopAction` 返回值中 `passed` 的完整赋值路径未逐行验收（见 3.3.2）。
 - `src/maalimbus/map_vision.py` 之外的同目录视觉模块只依据 `agent/recognition.py:20-43` 的 import 列表列出，正文未逐个打开。

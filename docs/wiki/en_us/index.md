@@ -47,9 +47,9 @@ python -m pytest -q
 
 pytest's path configuration is in `pyproject.toml:20-22` (`pythonpath = ["src"]`, `testpaths = ["tests"]`): **because `pythonpath` is set, you do not have to set `PYTHONPATH` by hand, and you can run the tests from the repository root without installing the package first**. The `dev` extra holds only `pytest>=8` and `pyinstaller>=6` (`pyproject.toml:13-14`); the training-related dependencies live in the separate `learning` extra (`pyproject.toml:15`) and are not needed for day-to-day development.
 
-**When you change the wiki, run one extra guard**: `python tools/check_wiki.py` and `python -m pytest tests/test_wiki.py -q` must both pass (usage and failure behaviour are in `docs/wiki/README.md:55-62`). The guard is read-only and exits non-zero with a list of problems.
+**When you change the wiki, run one extra guard**: `python tools/check_wiki.py` and `python -m pytest tests/test_wiki.py -q` must both pass (usage and failure behaviour are in `docs/wiki/README.md:74-80`). The guard is read-only and exits non-zero with a list of problems.
 
-**Further reading**: the wiki pages cite only part of the topics under `docs/`; the remaining topics are grouped by theme in the "docs/ topic map" section of `docs/wiki/README.md`.
+**Further reading**: the wiki pages cite only part of the topics under `docs/`; the remaining topics are grouped by theme in the [docs/ topic map](../README.md#docs-专题地图--docs-topic-map) section.
 
 ### Path for an end user (someone who just wants it running)
 **6 → 1.1 → 7**: install and run the package via Deployment and Operations; then read the completion table in 1.1 to see which capabilities have verifiable evidence; then read chapter 7 to absorb this repository's standard — "the process started, the task returned success, the offline tests passed" is not a Mirror Dungeon clear (`README.md:31-32`). This lane uses only the packaged program and never touches a Python environment; **if you are going to change code, use the developer path above**.

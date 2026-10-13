@@ -25,7 +25,7 @@ The other half of the standard is **how the suite result itself is qualified**. 
 
 ### 7.1.2 What an evidence directory actually holds
 
-Evidence lives at `evidence/runtime/<task-name>-<yyyymmdd-hhmmss>/`. `evidence/runtime` currently holds **930 directories** (snapshot of 2026-10-12; it grew from 929 to 930 within minutes during this review, so the number only goes up). The directory-name prefix is chosen by the tool that produces it; prefixes observed on disk include `adb-probe-*`, `battle-step-*`, `window-*`, `pi-*`, and `native-deployment-ui-*`. The `window-*` construction point is verified at `tools/window_step.py:235-236`:
+Evidence lives at `evidence/runtime/<task-name>-<yyyymmdd-hhmmss>/`. `evidence/runtime` currently holds **932 directories** (snapshot of 2026-10-12; it climbed from 929 to 932 during this very review, so the number only goes up). The directory-name prefix is chosen by the tool that produces it; prefixes observed on disk include `adb-probe-*`, `battle-step-*`, `window-*`, `pi-*`, and `native-deployment-ui-*`. The `window-*` construction point is verified at `tools/window_step.py:235-236`:
 
 ```python
 directory = ROOT / ('evidence/runtime/window-' + datetime.now().strftime('%Y%m%d-%H%M%S'))

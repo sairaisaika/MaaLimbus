@@ -300,6 +300,20 @@ Current result: `python tools/verify_pipeline_spec.py` → `ok — 0 problem(s)`
 
 This check caught one real defect (`docs/maaframework-conformance.md:117-123`): `MapObserve` uses `limbus_map_observe` and `BattleObserve` uses `limbus_battle_observe`, but `agent/main.py` registered only 11 names, neither of them among them — a node whose `custom_action` was never registered cannot run at all. The classes had been there all along (`agent/recognition.py:1130` `MapObservation`, `:1165` `BattleObservation`), so the fix was the registration itself, now at `agent/main.py:63-64`.
 
+Those three manual file names are **relative paths** inside the MaaFramework manual (written as `docs/zh_cn/3.3-ProjectInterfaceV2协议.md` and so on, see `tools/verify_pipeline_spec.py:5`, `tools/verify_pipeline_spec.py:11` and `tools/verify_pipeline_spec.py:15`), but this repository has **no** `docs/zh_cn/` directory; the manual really lives in the vendored upstream tree at `sources/upstream/MaaFramework/docs/zh_cn/3.3-ProjectInterfaceV2协议.md` (1379 lines). Look for it there when you follow one of those names.
+
+## 2.5 Extending a task
+
+In this repository adding a task is four edits that must land together: miss one and the label is missing, the entry is missing, or the task cannot run at all. The chain below follows one of the six main tasks (the Mirror Dungeon `mirror_loop`) end to end.
+
+1. **Declare the task in PI**: the `task` array at `assets/interface.json:103-167`. Each entry carries at least `name` (the ProjectInterface task name), `entry` (**which must be a real pipeline node name**) and `default_check` (whether it is ticked by default), plus `label` and `description` (values starting with `$` are i18n keys) and an optional `option` list. The six main tasks are `open_game` (`assets/interface.json:105-110`, entry `OpenGameTask`), `mirror_loop` (`:112-129`, entry `MirrorTask`), `experience` (`:131-139`, `ExperienceTask`), `thread` (`:141-149`, `ThreadTask`), `rewards` (`:151-159`, `RewardsTask`) and `stamina` (`:161-166`, `StaminaTask`).
+2. **Add the label in all three languages**: `assets/i18n/zh_cn.json`, `assets/i18n/en_us.json` and `assets/i18n/ja_jp.json` must all carry the same key, otherwise that language has no text; the `$main_*` and `$main_*_description` keys of the six main tasks sit at `:75-86` in all three files.
+3. **Write the entry node**: `assets/resource/base/pipeline/mirror.json:5273-5338` holds the six entry stubs, all with the same shape: `recognition: "DirectHit"` + `action: "Custom"` + `custom_action: "limbus_main_task"` + `custom_action_param: {"task": "<name>"}`, plus `timeout`, `next: []` and `on_error: []`. Note that **the node name and `custom_action_param.task` are not the same string**: the PI task `mirror_loop` points at the node `MirrorTask` (`assets/resource/base/pipeline/mirror.json:5284-5294`) while that node passes down `task` = `"mirror"`.
+4. **Register the custom action**: `agent/main.py:48-69` is the agent-side registration list: one `register_custom_recognition('limbus_scene', ...)` plus fifteen `register_custom_action` calls, with `limbus_main_task` at `agent/main.py:69`. The same batch is registered again in the native command-line tool: `tools/run_native.py:143`. **A node that names an action nobody registered cannot run at all** (`docs/maaframework-conformance.md:117-123` records that this is how the two observation nodes were caught).
+5. **Run the conformance guard**: `tools/verify_pipeline_spec.py` turns the rules of the previous section into executable checks (`entry` must name a real node, `custom_action` must already be registered in `agent/main.py`, and an override must name real nodes) and exits 1 on a violation; the upstream basis is `docs/maaframework-conformance.md`. The current result is `ok — 0 problem(s)` (`docs/maaframework-conformance.md:132`).
+
+Adding pipeline nodes without a task entry is a legal path too: not every node in `mirror.json` is reachable from an entry chain, and the tools can drive them by name (`docs/maaframework-conformance.md:110-113`).
+
 ---
 
 ## Open questions left by this chapter

@@ -17,6 +17,16 @@ contract the pages were delivered under and exits non-zero the moment one rots:
 * Across the site the six diagram kinds the chapters promise are covered:
   architecture / flow / deployment (`flowchart`), sequence (`sequenceDiagram`),
   state (`stateDiagram-v2`) and data model (`erDiagram`).
+* Every content page — the pages under `zh_cn/` and `en_us/` other than `index.md` —
+  carries a section heading that names what the chapter does *not* establish. The marker
+  must be a 1-3 level heading, and the heading text is normalised (case, `-` / `_`,
+  punctuation, whitespace) before a stem table is consulted, so
+  `## 未验收 / 待核实`, `## 本章的未解问题`, `### Unverified / open questions` and
+  `## Not-yet-verified / open items (this chapter)` all count. A page that merely uses
+  one of those words in a sentence is still reported. `index.md` and `README.md` are
+  exempt because they are routing pages — a site map and a reading order make no
+  technical claim that could be left unverified, so demanding the section there would
+  only breed ceremony.
 * A `path:line` reference in prose resolves to a real file and a line that exists.
   A reference inside a fence is a diagram label, not a citation — a chapter that
   shortens paths inside a diagram must spell the shorthand out in prose
@@ -25,6 +35,17 @@ contract the pages were delivered under and exits non-zero the moment one rots:
   half-translated.
 
 Read-only. Exit 1 when a page breaks one of those rules.
+
+Whether a diagram body really parses is beyond this checker (see
+tools/make_wiki_mermaid_check.py). Latest full render verification, a dated snapshot
+rather than a live result: **2026-10-12 — 42/42 blocks parsed, 0 failed** (flowchart 24,
+sequenceDiagram 8, stateDiagram-v2 6, erDiagram 4), page title `done:42/42`, against
+https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs. Nothing in the
+repository re-checks that number: the generated page and its result JSON live under
+`build/`, which is gitignored (.gitignore:24). Re-establish it with
+`python tools/make_wiki_mermaid_check.py`, serving the repository root
+(`python -m http.server 8791 --bind 127.0.0.1`) and reading `window.__RESULT` at
+http://127.0.0.1:8791/build/wiki-mermaid-check.html.
 """
 from __future__ import annotations
 
@@ -60,6 +81,24 @@ FENCE_RE = re.compile(r'^(`{3,})\s*([^\s`]*)\s*$')
 HEADING_RE = re.compile(r'^(#{2,3})\s+(.+?)\s*$', re.M)
 LABEL_PREFIX_RE = re.compile(r'^(?:图|表|Figure|Table)\s+')
 NUMBER_RE = re.compile(r'^(?:[Dd]\d+|\d+(?:[.\-]\d+)*)')
+
+# The closing "what this chapter does not establish" section. Two rules keep the check
+# robust to the wording a writer picks:
+#
+# * the marker must be a 1-3 level heading — a page that merely says 未验收 in a sentence
+#   has not written the section;
+# * the heading text is normalised (lower-cased, `-` / `_` and punctuation folded to
+#   spaces, whitespace collapsed) before a stem table is consulted, so
+#   `Not-yet-verified / open items`, `Not verified / open questions` and `UNVERIFIED` are
+#   one case instead of three. Stems rather than full titles keep the table from growing
+#   a literal per page.
+UNVERIFIED_HEADING_RE = re.compile(r'^#{1,3}[ \t]+([^\n]+)$', re.M)
+UNVERIFIED_STEMS = (
+    '未解', '未验收', '未覆盖', '待核实', '存疑', '未确认',
+    'unverified', 'not verified', 'not yet verified', 'not covered', 'open question',
+    'caveat', 'known gap', 'known boundar', 'unaccepted', 'unconfirmed',
+    'to be confirmed', 'to confirm',
+)
 
 # Only anchored refs (`path/file.ext:line`) are enforced; a bare `file.ext` in prose
 # is not a citation which can be resolved, so it is left alone.
@@ -119,6 +158,30 @@ def diagram_type(lines: list, start: int, end: int) -> str:
         if not stripped or stripped.startswith('%%') or stripped.startswith('---'):
             continue
         return re.split(r'[\s{(\[]', stripped, maxsplit=1)[0]
+    return ''
+
+
+def normalize_heading(text: str) -> str:
+    """Fold a heading to the shape the stem table matches.
+
+    `Not-yet-verified / open items` becomes `not yet verified open items`, so one stem
+    covers every case and punctuation variant of a title.
+    """
+    text = text.lower().replace('-', ' ').replace('_', ' ')
+    text = re.sub(r'[^\w\s]', ' ', text)
+    return ' '.join(text.split())
+
+
+def unverified_section(prose: str) -> str:
+    """The heading naming what a chapter does not establish, or '' when it has none.
+
+    `prose` is the page with fenced blocks blanked, so a diagram label cannot stand in
+    for the section, and only a real 1-3 level heading is considered.
+    """
+    for match in UNVERIFIED_HEADING_RE.finditer(prose):
+        normalized = normalize_heading(match.group(1))
+        if any(stem in normalized for stem in UNVERIFIED_STEMS):
+            return match.group(0).strip()
     return ''
 
 
@@ -198,6 +261,10 @@ def check_wiki(wiki: Path = None, root: Path = None) -> dict:
             diagram_types[kind] = diagram_types.get(kind, 0) + 1
         if not mermaid and not is_routing and '.' not in page_stem(page):
             problems.append('[MERMAID] %s: no mermaid block' % name)
+
+        # A content page must say what it does not establish. Routing pages are exempt.
+        if not is_routing and not unverified_section(prose):
+            problems.append('[UNVERIFIED] %s: no unverified / open-questions section' % name)
 
         # Anchors are citations only outside a fence.
         broken, resolved = [], 0

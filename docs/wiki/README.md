@@ -52,6 +52,25 @@ Page 4 is delivered. Some chapters may add sub-pages; a sub-page is only reachab
 
 This wiki is the narrative documentation layer and does **not** replace the sources of truth: current progress lives in `PROJECT.md`, design constraints in `docs/design.md`, and the acceptance ledger in `docs/acceptance.md` (the same three files `AGENTS.md:5-11` lists as required reading before touching code).
 
+## docs/ 专题地图 / docs/ topic map
+
+wiki 各章只引用了 `PROJECT.md`、`docs/design.md`、`docs/acceptance.md` 和一部分专题；下表把**仍值得延伸阅读**的 `docs/` 专题按主题列出来，让它们从 wiki 可达。这里只给链接与一句话定位，事实以文档自身为准。**刻意不列**：验收流水账与进度记录、未落地的计划与实验、一次性会话记录（`DEEPSEEK_CONTINUATION.md`、`handover-*.md`）、经济审计、第三方许可正文、测试逐文件清单——这些要么已被 `PROJECT.md` / `docs/acceptance.md` 取代，要么会误导读者把计划当既成事实。
+
+The wiki chapters cite `PROJECT.md`, `docs/design.md`, `docs/acceptance.md` and part of the topics; the table below groups the `docs/` topics that are **still worth reading further**, so they are reachable from the wiki. Links and one-line positioning only — the documents themselves remain the facts. **Deliberately excluded**: the acceptance ledger and progress records, plans and experiments that never landed, one-off session records (`DEEPSEEK_CONTINUATION.md`, `handover-*.md`), economy audits, third-party license text, and per-file test inventories — those are either superseded by `PROJECT.md` / `docs/acceptance.md` or would tempt a reader to mistake a plan for a fact.
+
+| 主题 / Theme | 文档 / Document |
+| --- | --- |
+| 运行时与两条运行路径 / Runtime and the two run paths | [`docs/runner.md`](../runner.md) — runner 作为库（去掉屏幕与输入之后的镜牢循环）；[`docs/agent-loop.md`](../agent-loop.md) — 打包应用驱动整轮运行的 pipeline 接缝。 |
+| 架构契约与决策 / Architecture contract and decisions | [`docs/post-battle-ownership.md`](../post-battle-ownership.md) — 战后路径归 pipeline 还是归 driver；**给奖励卡、层礼、商店、下一层或入场返回加节点之前先读**。 |
+| 原生控制与 MXU 配置 / Native control and MXU configuration | [`docs/native-control.md`](../native-control.md) — 原生客户端与窗口控制、四种控制方式；[`docs/task-settings.md`](../task-settings.md) — 任务与已保存队伍的设置项；[`docs/theme-packs.md`](../theme-packs.md) — 主题包选择任务（尚未接通地图与五层循环）。 |
+| 商店设置 / Shop settings | [`docs/shop-settings.md`](../shop-settings.md) — 决定一次商店访问如何被限界、携带上限与解析器的三项镜牢设置。 |
+| 打包与分发 / Packaging and distribution | [`docs/windows-package.md`](../windows-package.md) — Windows 开发包的实际构成与它的未验收边界。 |
+| 更新链 / Update chain | [`docs/update-staging.md`](../update-staging.md) — `tools/check_update.py --stage` 的下载与暂存语义；[`docs/startup-updater.md`](../startup-updater.md) — 桌面快捷方式启动器的自更新流程。 |
+| 框架一致性 / Framework conformance | [`docs/maaframework-conformance.md`](../maaframework-conformance.md) — 与 MaaFramework 上游协议的逐项对照**及其缺口段**，是「哪些协议特性本项目根本没断言」的集中来源。 |
+| 黑盒学习 / Black-box learning | [`docs/learning.md`](../learning.md) — 图像哈希、按真实运行分组的训练数据准备与当前样本不足的诚实结论。 |
+| 许可与上游对照 / License and upstream cross-check | [`docs/readme-license-reference.md`](../readme-license-reference.md) — 针对指定上游提交核对 README、LICENSE、构建指南与标准接口设计。 |
+| 协作流程（agent 专用）/ Collaboration process (agent-facing) | [`docs/agents/domain.md`](../agents/domain.md)、[`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)、[`docs/agents/memory.md`](../agents/memory.md)、[`docs/agents/triage-labels.md`](../agents/triage-labels.md) — 多上下文域文档、issue 追踪、记忆回写与 triage 标签约定（`AGENTS.md` 已在入口指向它们）。 |
+
 ## 自检 / Self-check
 
 wiki 有一道离线守卫。任何一页漂移——锚点指向不存在的文件、行号越界、导航行被改坏、只有一种语言加了小节、代码围栏没配对、图类型写错、双语篇幅失衡——它都会非零退出并列出问题：

@@ -521,6 +521,10 @@ Entities mapped to files and writers:
 | `budget` | `assets/resource/base/budget.json` | `status="pending"`, `module_budget=0`, `allowed_purposes=["enkephalin_refill","module_conversion"]`; its `note` demands that "while pending or 0 every request is refused with a reason instead of clicking anything" |
 | `gift-plan` | `assets/resource/base/gift-plan.json` | gives the initial-gift priority list per team (`default` + `teams` + `sources`); its `note` states outright that this is "not a universal optimal guide" |
 
+### 5.4.1 User settings field semantics
+
+This chapter covers **the structure of the state files**, not the semantics of the settings a user can change. Those live in two documents: global settings and each task option in `docs/task-settings.md` (210 lines), and the Mirror Dungeon shop policy in `docs/shop-settings.md` (169 lines). The seam with this chapter is: a setting lands first in a user-state file such as `config/user-mirror-settings.json` (see the table above) and is passed to the task at run time through the `option` entries of `assets/interface.json`.
+
 ### Conflicts with the shared contract
 
 - **`assets/resource/base/locale.json` does not exist.** The shared fact contract lists `resource/{base,en,jp}/locale.json` as part of the resource layer; in the actual tree there is only `assets/resource/en/locale.json` (87 keys) and `assets/resource/jp/locale.json` (24 keys), with no `locale.json` under `base/`. `agent/recognition.py:103` also reads `assets/resource/{locale}/locale.json`, i.e. each language pack must ship its own copy and `base` is not a fallback.

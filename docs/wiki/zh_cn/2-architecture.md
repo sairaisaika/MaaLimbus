@@ -300,9 +300,23 @@ flowchart LR
 
 这次核查抓到过一个真实缺陷（`docs/maaframework-conformance.md:117-123`）：`MapObserve` 用 `limbus_map_observe`、`BattleObserve` 用 `limbus_battle_observe`，但 `agent/main.py` 只注册了 11 个名字，两个都不在其中——`custom_action` 没被注册的节点根本无法运行。类一直都在（`agent/recognition.py:1130` `MapObservation`、`:1165` `BattleObservation`），所以修法就是补注册，现在是 `agent/main.py:63-64`。
 
+那三处协议文件名是 MaaFramework 手册里的**相对路径**（写作 `docs/zh_cn/3.3-ProjectInterfaceV2协议.md` 等，见 `tools/verify_pipeline_spec.py:5`、`tools/verify_pipeline_spec.py:11`、`tools/verify_pipeline_spec.py:15`），而本仓库**没有** `docs/zh_cn/` 目录；手册真实的 vendored 位置是 `sources/upstream/MaaFramework/docs/zh_cn/3.3-ProjectInterfaceV2协议.md`（1379 行）。按名字找手册时请去那里。
+
+## 2.5 扩展一个任务
+
+在本仓库里「加一个任务」是四处同时改：少改一处就会缺文案、缺入口，或者运行期根本跑不起来。下面以六个主任务中的一个（镜牢 `mirror_loop`）为例走完整条链。
+
+1. **在 PI 里声明任务**：`assets/interface.json:103-167` 的 `task` 数组。每个条目至少有 `name`（ProjectInterface 里的任务名）、`entry`（**必须是真实存在的 pipeline 节点名**）与 `default_check`（是否默认勾选），另有 `label` 与 `description`（以 `$` 开头的是 i18n 键）以及可选的 `option` 列表。六个主任务是 `open_game`（`assets/interface.json:105-110`，entry `OpenGameTask`）、`mirror_loop`（`:112-129`，entry `MirrorTask`）、`experience`（`:131-139`，`ExperienceTask`）、`thread`（`:141-149`，`ThreadTask`）、`rewards`（`:151-159`，`RewardsTask`）、`stamina`（`:161-166`，`StaminaTask`）。
+2. **补齐三个语言的文案**：`assets/i18n/zh_cn.json`、`assets/i18n/en_us.json`、`assets/i18n/ja_jp.json` 都要加同名键，否则对应语言就缺文案；六个主任务的 `$main_*` 与 `$main_*_description` 在三个文件里都落在 `:75-86`。
+3. **写入口节点**：`assets/resource/base/pipeline/mirror.json:5273-5338` 是这六个任务的入口桩，形态完全一致——`recognition: "DirectHit"` + `action: "Custom"` + `custom_action: "limbus_main_task"` + `custom_action_param: {"task": "<名字>"}`，另带 `timeout`、`next: []`、`on_error: []`。注意**节点名与 `custom_action_param.task` 不是同一个字符串**：PI 的 `mirror_loop` 指向节点 `MirrorTask`（`assets/resource/base/pipeline/mirror.json:5284-5294`），而该节点传下去的 `task` 是 `"mirror"`。
+4. **注册自定义动作**：`agent/main.py:48-69` 是 Agent 侧的注册清单——一个 `register_custom_recognition('limbus_scene', ...)` 加十五个 `register_custom_action`，其中 `limbus_main_task` 在 `agent/main.py:69`。同一批注册在原生命令行工具里还有一份：`tools/run_native.py:143`。**节点引用了一个没注册的动作，这个节点就根本无法运行**（`docs/maaframework-conformance.md:117-123` 记录了两个观察节点正是这样被抓出来的）。
+5. **跑一致性守卫**：`tools/verify_pipeline_spec.py` 把上一节那些规则变成可执行检查（`entry` 必须指向真实节点、`custom_action` 必须已在 `agent/main.py` 注册、override 里的名字必须是真实节点），违规退出 1；上游依据见 `docs/maaframework-conformance.md`。当前结果是 `ok — 0 problem(s)`（`docs/maaframework-conformance.md:132`）。
+
+只加 pipeline 节点、不加任务入口也是合法路径：`mirror.json` 里并非所有节点都挂在入口链上，工具可以按名字直接驱动它们（`docs/maaframework-conformance.md:110-113`）。
+
 ---
 
-## 本章的未解问题
+## 本章的未解问题（未验收）
 
 这些是架构层面的开放项，写在这里以免下一章把它们当成已完成的事实：
 

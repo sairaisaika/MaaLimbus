@@ -25,7 +25,7 @@
 
 ### 7.1.2 证据目录里到底存了什么
 
-证据目录形态是 `evidence/runtime/<任务名>-<yyyymmdd-hhmmss>/`。`evidence/runtime` 下实测有 **930 个目录**（2026-10-12 快照；复核过程中它几分钟内就从 929 长到 930，因此这个数只会往上走）。目录名前缀由产生它的工具决定，实测存在的形态包括 `adb-probe-*`、`battle-step-*`、`window-*`、`pi-*`、`native-deployment-ui-*`；其中 `window-*` 的构造点已核实为 `tools/window_step.py:235-236`：
+证据目录形态是 `evidence/runtime/<任务名>-<yyyymmdd-hhmmss>/`。`evidence/runtime` 下实测有 **932 个目录**（2026-10-12 快照；本次核对过程中它从 929 一路涨到 932，因此这个数只会往上走）。目录名前缀由产生它的工具决定，实测存在的形态包括 `adb-probe-*`、`battle-step-*`、`window-*`、`pi-*`、`native-deployment-ui-*`；其中 `window-*` 的构造点已核实为 `tools/window_step.py:235-236`：
 
 ```python
 directory = ROOT / ('evidence/runtime/window-' + datetime.now().strftime('%Y%m%d-%H%M%S'))

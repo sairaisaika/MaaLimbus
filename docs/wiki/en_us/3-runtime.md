@@ -121,7 +121,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 - **The second verdict**: `plan_step`'s own body does exactly one thing — a target that lands on a `FORBIDDEN_CONTROLS` control (`src/maalimbus/window.py:50-63`) is re-issued as `control_is_forbidden` (`src/maalimbus/window.py:128-135`). Two whitelisted exceptions: `STAR_CONFIRM`'s `star_confirm.cancel_button` and `GIFT_PICK`'s `gift_pick.refuse_button` (`src/maalimbus/window.py:129-133`).
 - **Split of work**: `src/maalimbus/window.py:139 def _plan_step(...)` shares the signature and carries the whole "page -> input" dispatch; `plan_step` is only the forbidden-control verdict plus delegation (`src/maalimbus/window.py:120-127`).
 - **Caller**: `src/maalimbus/runner.py:2144-2154`, inside `MirrorRunner.step` (`src/maalimbus/runner.py:1421`): `plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`.
-- The import site is `src/maalimbus/runner.py:66-67`. The `runner.py` module docstring names `tools/window_step.py` as the second front end (**that file was not opened this round — not yet verified**).
+- The import sits at `src/maalimbus/runner.py:67` (the `from maalimbus.window import ...` line). The module docstring at `src/maalimbus/runner.py:1-31` also names `tools/window_step.py` as the second frontend; that file was opened this round and its usability checked (419 lines; `tools/window_step.py:62-209` is its `build_parser()`, and `C:\Python313\python.exe tools\window_step.py --help` prints usage normally). Details in 3.5.
 
 ### 3.2.2 A real data-shape example
 
@@ -382,11 +382,64 @@ The three are three roles of one chain:
 - The crash path also lands on disk: after the `mirror_loop_error` event (with traceback) it still calls `write_loop_result` + `write_run_log` (`agent/recognition.py:1538-1546`).
 - The module-level `_load_registry()` reads that same anchor table (`src/maalimbus/runner.py:2964`).
 
+## 3.5 Driving one run locally
+
+This section gives the real commands and where their artifacts land. The scripts themselves were only verified down to command-line parsing this round (see the open-items list at the end of this chapter).
+
+**Entry point one: the UAC launcher** (`README.md:56-64`):
+
+```powershell
+./tools/start_native.ps1 -Binary <Maa native library dir> -Locale en -Seconds 180
+```
+
+- `-Binary` is required and that directory must contain `MaaFramework.dll`, otherwise the script throws immediately (`tools/start_native.ps1:4`, `:11`).
+- `-Locale` accepts only `en` / `jp` (default `en`); `-Seconds` ranges over 1..3600 (default 180) (`tools/start_native.ps1:5-6`).
+- It elevates through `-Verb RunAs` (standard Windows UAC) and never approves on behalf of the user (`tools/start_native.ps1:32-33`); if a controller is already running (`MaaLimbusAgent.exe` / `MaaLimbus.exe`, or a python process whose command line points at this repository `run_native.py`), the script throws `MaaLimbus already has a running controller; inspect its session first` before starting anything (`tools/start_native.ps1:12-16`).
+- The real process is started by `tools/native_session.ps1`: `python -u tools/run_native.py --binary <dir> --locale <en|jp> --seconds <n> --live` (`tools/native_session.ps1:18-19`); it force-kills the child after `Seconds + 45` seconds and fixes the timeout exit code at `124` (`tools/native_session.ps1:22-28`).
+
+**Where the artifacts land** (each one is readable in the scripts):
+
+| Artifact | Path | Source |
+| --- | --- | --- |
+| Launch request and its status | `build/native-launch-request.json` | `tools/start_native.ps1:27-44`; the statuses are `uac_requested` / `launch_failed_or_cancelled` / `wrapper_started` |
+| Wrapper process record | `build/native-launch.json` | `tools/start_native.ps1:45-47` |
+| Exit code and whether it timed out | `build/native-launch-result.json` | `tools/native_session.ps1:29-31` |
+| Live stdout / stderr | `build/native-live.stdout.log` / `build/native-live.stderr.log` | `tools/native_session.ps1:11-12` |
+| Current session description | `build/live-session.json` | `tools/run_native.py:153` |
+| Run evidence directory | `evidence/runtime/` (the agent side names its own `pi-<yyyymmdd-hhmmss>`) | `README.md:64`; `agent/recognition.py:1337-1347` |
+
+**Entry point two: `tools/window_step.py`** (419 lines; a one-shot window tool that builds its own device, evidence directory and ledger):
+
+- Required: `--binary` (`tools/window_step.py:65`), `--address` (`:74`) and `--authorize` (`:75`, the nonce).
+- Common flags: `--steps` default 1 (`:76`), `--rounds` default 3 (`:78`), `--interval` default 4.0 (`:95`), `--loop-guard` default 3 (`:145`), `--claim-tries` default 6 (`:153`), `--observe-page` (`:160`), `--observe-only` (`:164`); the full list is `build_parser()` at `tools/window_step.py:62-209`.
+- Before any input is sent, `build/map-probe-authorization.json` must grant `live_input_authorized` for the nonce passed on the command line (`tools/window_step.py:16-17`).
+- The loop is not in this file: it keeps only the flags, the device, the evidence directory and the printing, while the loop lives in `src/maalimbus/runner.py` (`tools/window_step.py:19-22`).
+
+## 3.6 Where to look when it stops
+
+Start with the evidence directory of this run, then read the **stop reason string** in the log, then consult this table.
+
+| Symptom | Where to look | Source |
+| --- | --- | --- |
+| One human-readable line per step | `run.log` | `agent/recognition.py:1388 def write_run_log` |
+| The machine-readable event stream | `events.jsonl` (`window_intent` / `map_observed` / `battle_observed`) | `src/maalimbus/runner.py:1366 def note` |
+| Result summary | `agent-result.json` | `agent/recognition.py:1372 def write_loop_result` |
+| One sentence explaining a stop reason | the `GLOSSARY` table at `src/maalimbus/event_log.py:20-73` (`explain()` at `:79-89`) | it maps every reason to what it means and what to look at next |
+| The same page kept offering the same plan | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2748` |
+| The claim family made no progress | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2735` |
+| The input was sent but the page did not move | reason `unexpected_successor` | `src/maalimbus/runner.py:2633`, `src/maalimbus/runner.py:2671` |
+| The time budget ran out | reason `loop_deadline_exceeded` | `agent/recognition.py:1528-1533` |
+| The loop raised instead of stopping | event `mirror_loop_error` (with a traceback), reason `mirror_loop_failed` | `agent/recognition.py:1534-1546` |
+| It stopped because the caller named this page | reason `stop_page_reached` | `src/maalimbus/runner.py:2655` |
+| The page has no proven control, so it is recorded only | reason `page_is_observe_only` | `src/maalimbus/event_log.py:47-50` |
+| Packaging / console logs | `build/*.log` (for example `build/mirror-console-*.log`) | run logs under the repository `build/` |
+| A test fails with `PermissionError [Errno 13]` on `%LOCALAPPDATA%\MaaLimbus\controller.lock` | first check whether a real app or agent instance is running on this machine; the lock is held, which is not a code defect | the lock path comes from `src/maalimbus/controller_lease.py:12-14`; the suite-versus-live-instance row in `docs/wiki/en_us/7-quality.md` records the symptom |
+
 ---
 
-## Not-yet-verified / open items (this chapter)
+## Not verified / open items (this chapter)
 
 - The content and line count of `assets/resource/jp/pipeline/locale.json` were not opened.
-- `tools/window_step.py` (the second front end) was not opened; it is named only in `src/maalimbus/runner.py`'s docstring and import comment.
+- `tools/window_step.py` (the second frontend) has been opened: `--help` runs and its flags plus authorization gate were checked (see 3.5), but **it was never actually driven**, so its usability reaches only as far as command-line parsing, not end-to-end acceptance.
 - The full assignment path of `passed` in `MirrorLoopAction`'s return value was not traced line by line (see 3.3.2).
 - Vision modules other than `src/maalimbus/map_vision.py` are listed only from the import list at `agent/recognition.py:20-43`; their bodies were not opened one by one.

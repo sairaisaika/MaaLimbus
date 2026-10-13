@@ -47,9 +47,9 @@ python -m pytest -q
 
 pytest 的路径配置在 `pyproject.toml:20-22`（`pythonpath = ["src"]`、`testpaths = ["tests"]`）：**开了 `pythonpath`，所以不必手工设 `PYTHONPATH`，不必先安装包也能在仓库根跑测试**。`dev` extra 只含 `pytest>=8` 与 `pyinstaller>=6`（`pyproject.toml:13-14`）；训练相关依赖另在 `learning` extra（`pyproject.toml:15`），日常开发不需要。
 
-**改 wiki 时另跑一道守卫**：`python tools/check_wiki.py` 与 `python -m pytest tests/test_wiki.py -q`，两者都必须通过（用法与失败示例见 `docs/wiki/README.md:55-62`）。守卫只读，退出非零即列出问题。
+**改 wiki 时另跑一道守卫**：`python tools/check_wiki.py` 与 `python -m pytest tests/test_wiki.py -q`，两者都必须通过（用法与失败示例见 `docs/wiki/README.md:74-80`）。守卫只读，退出非零即列出问题。
 
-**延伸阅读**：wiki 各页只引用了 `docs/` 下的一部分专题；其余专题按主题分组列在 `docs/wiki/README.md` 的「docs/ 专题地图」一节。
+**延伸阅读**：wiki 各页只引用了 `docs/` 下的一部分专题；其余专题按主题分组列在 [docs/ 专题地图](../README.md#docs-专题地图--docs-topic-map) 一节。
 
 ### 终端用户路径（只想把它跑起来的人）
 **6 → 1.1 → 7**：先按部署与运维装包跑起来；再读 1.1 的完成度表，知道哪些能力真的有可核验证据；最后读第 7 章，理解本仓库的口径——「进程启动、任务返回成功、离线测试通过」都不等于镜牢通关（`README.md:31-32`）。这条路只用已打包的程序，不碰 Python 环境；**要改代码请看上面的开发者路径**。
