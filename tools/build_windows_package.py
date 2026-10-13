@@ -138,7 +138,7 @@ def main():
     shutil.copyfile(args.mxu_client/'mxu.exe' if custom_proof else stage/'mxu/mxu.exe', app/'MaaLimbus.exe')
     shutil.copytree(stage/'maa/bin', app/'maafw')
     for name in ('assets', 'docs', 'THIRD_PARTY_NOTICES'):
-        shutil.copytree(ROOT/name, app/name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        shutil.copytree(ROOT/name, app/name, ignore=shutil.ignore_patterns('__pycache__','*.pyc','*.local.json','*.log','*.jsonl'))
     for name in ('README.md', 'README_en.md', 'LICENSE'):
         shutil.copyfile(ROOT/name, app/name)
     frozen_notices = collect_frozen_notices(app/'THIRD_PARTY_NOTICES/Python-runtime')
@@ -196,6 +196,7 @@ def main():
                 if p.is_file() and 'evidence' not in p.relative_to(app).parts}
     (app/'package-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     # Verification can create empty evidence dirs. No private runtime data enters the zip.
+    require_public(p for p in app.rglob('*') if public_file(p))
     record = dict(app=str(app), self_test=self_test,
                   **export_assets(app, stage/'release-assets'))
     (ROOT/'build/windows-package-latest.json').write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')

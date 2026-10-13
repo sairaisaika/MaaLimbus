@@ -6,7 +6,7 @@ import re
 TEXT={'.md','.py','.json','.jsonl','.toml','.txt','.ps1','.yml','.yaml','.js','.ts','.tsx','.rs','.html'}
 PATTERNS={
     'local_user_path':re.compile(r'(?i)[A-Z]:[\\/]+Users[\\/]+(?!Public\b|Default\b|<|%|\$)[^\\/\s"\x27]+'),
-    'player_id_literal':re.compile(r'(?i)(?:\buser[_ -]?id|\buid|玩家(?:编号|ID)|好友(?:代码|ID))\s*[:=]\s*["\x27]?[A-Z]?\d{7,}')}
+    'player_id_literal':re.compile(r'(?i)(?:\buser[_ -]?id|\buid|玩家(?:编号|ID)|好友(?:代码|ID))["\x27]?\s*[:=]\s*["\x27]?[A-Z]?\d{7,}')}
 
 def public_file(path):
     return (path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc'
