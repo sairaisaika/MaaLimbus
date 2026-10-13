@@ -40,7 +40,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q
 ```
 
-先阅读 [设计与任务选项](docs/design.md) 和 [验收记录](docs/acceptance.md)。
+先阅读 [设计与任务选项](docs/design.md) 和 [验收记录](docs/acceptance.md)。本仓库自身的分层讲解（架构、运行时、业务流程、状态与数据、部署、质量，中英双语）见 [wiki](docs/wiki/README.md)。
 
 | 功能 | 已验证范围 | 未完成部分 |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ MaaLimbus 自有代码当前声明为 [AGPL-3.0-or-later](LICENSE)。这是本�
 
 ## 开发
 
-本项目使用官方 Python 对象接口和 Job 封装。Maa 管理截图、输入及 Pipeline 调度，Agent 提供识别和决策，纯 Python 策略可以离线验证。
+本项目使用官方 Python 对象接口和 Job 封装。Maa 管理截图、输入及 Pipeline 调度，Agent 提供识别和决策，纯 Python 策略可以离线验证。本项目的分层讲解见 [wiki 索引](docs/wiki/README.md)；下列链接是上游 MaaFramework 的参考文档。
 
 - [快速开始](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/docs/zh_cn/1.1-快速开始.md)
 - [Pipeline 协议](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/docs/zh_cn/3.1-任务流水线协议.md)

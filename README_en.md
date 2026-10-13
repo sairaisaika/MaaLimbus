@@ -40,7 +40,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q
 ```
 
-Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md).
+Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md). The repository's own narrative walk-through (architecture, runtime, business flows, state and data, deployment, quality; bilingual) is the [wiki](docs/wiki/README.md).
 
 | Feature | Verified scope | Remaining work |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ This learning project is provided as stated in its license, without promised run
 
 ## Development
 
-The project consumes official Python objects and Jobs. Maa owns screenshots/input/Pipeline scheduling; the Agent supplies recognition/decisions, while pure Python policies run offline.
+The project consumes official Python objects and Jobs. Maa owns screenshots/input/Pipeline scheduling; the Agent supplies recognition/decisions, while pure Python policies run offline. This project's own layered walk-through is the [wiki index](docs/wiki/README.md); the links below are upstream MaaFramework references.
 
 - [Quick start](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/docs/en_us/1.1-QuickStarted.md)
 - [Binding/interface design](https://github.com/MaaXYZ/MaaFramework/blob/cc5fef675f42ca899e12bc4932ff37ac1278853c/docs/zh_cn/4.2-标准化接口设计.md)

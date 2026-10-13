@@ -1,0 +1,89 @@
+# MaaLimbus Wiki
+
+本仓库 wiki 的入口路由页。中文导航在前，English navigation 在后；两种语言的正文逐节镜像，文件名同名同结构。
+
+This is the routing page for the repository wiki. Chinese navigation first, English navigation second; the two languages mirror section by section and share file names.
+
+## 中文导航
+
+| 语言 | 索引入口 | 说明 |
+| --- | --- | --- |
+| 简体中文 | [`zh_cn/index.md`](zh_cn/index.md) | 中文为主文，术语保留英文原名并在首次出现时给中文 |
+| English | [`en_us/index.md`](en_us/index.md) | 中文版的忠实镜像，逐节对应，不是摘要 |
+
+章节一览（每页在两种语言下都存在，可直接点击）：
+
+| 页码 | 中文标题 | English title |
+| --- | --- | --- |
+| 0 | [索引](zh_cn/index.md) | [Index](en_us/index.md) |
+| 1 | [概览与术语](zh_cn/1-overview.md) | [Overview and Glossary](en_us/1-overview.md) |
+| 2 | [架构](zh_cn/2-architecture.md) | [Architecture](en_us/2-architecture.md) |
+| 3 | [运行时](zh_cn/3-runtime.md) | [Runtime](en_us/3-runtime.md) |
+| 4 | [业务流程](zh_cn/4-business-flows.md) | [Business Flows](en_us/4-business-flows.md) |
+| 5 | [状态与数据](zh_cn/5-state-and-data.md) | [State and Data](en_us/5-state-and-data.md) |
+| 6 | [部署与运维](zh_cn/6-deployment.md) | [Deployment and Operations](en_us/6-deployment.md) |
+| 7 | [质量与验收](zh_cn/7-quality.md) | [Quality and Acceptance](en_us/7-quality.md) |
+
+第 4 章已交付。部分章节可能另有子页，子页只由该章自己的主页面链接。
+
+本 wiki 是叙述性文档层，**不替代事实源**：当前进度看 `PROJECT.md`，设计约束看 `docs/design.md`，验收口径看 `docs/acceptance.md`（`AGENTS.md:5-11` 同样把这三个文件列为改代码前的必读）。
+
+## English navigation
+
+| Language | Index entry | Notes |
+| --- | --- | --- |
+| 简体中文 | [`zh_cn/index.md`](zh_cn/index.md) | Chinese is the main text; terms keep their English names with a Chinese gloss at first use |
+| English | [`en_us/index.md`](en_us/index.md) | A faithful mirror of the Chinese text, section by section — not a summary |
+
+All pages, both languages:
+
+| Page | English title | 中文标题 |
+| --- | --- | --- |
+| 0 | [Index](en_us/index.md) | [索引](zh_cn/index.md) |
+| 1 | [Overview and Glossary](en_us/1-overview.md) | [概览与术语](zh_cn/1-overview.md) |
+| 2 | [Architecture](en_us/2-architecture.md) | [架构](zh_cn/2-architecture.md) |
+| 3 | [Runtime](en_us/3-runtime.md) | [运行时](zh_cn/3-runtime.md) |
+| 4 | [Business Flows](en_us/4-business-flows.md) | [业务流程](zh_cn/4-business-flows.md) |
+| 5 | [State and Data](en_us/5-state-and-data.md) | [状态与数据](zh_cn/5-state-and-data.md) |
+| 6 | [Deployment and Operations](en_us/6-deployment.md) | [部署与运维](zh_cn/6-deployment.md) |
+| 7 | [Quality and Acceptance](en_us/7-quality.md) | [质量与验收](zh_cn/7-quality.md) |
+
+Page 4 is delivered. Some chapters may add sub-pages; a sub-page is only reachable from its own chapter's main page.
+
+This wiki is the narrative documentation layer and does **not** replace the sources of truth: current progress lives in `PROJECT.md`, design constraints in `docs/design.md`, and the acceptance ledger in `docs/acceptance.md` (the same three files `AGENTS.md:5-11` lists as required reading before touching code).
+
+## 自检 / Self-check
+
+wiki 有一道离线守卫。任何一页漂移——锚点指向不存在的文件、行号越界、导航行被改坏、只有一种语言加了小节、代码围栏没配对、图类型写错、双语篇幅失衡——它都会非零退出并列出问题：
+
+```powershell
+python tools/check_wiki.py
+python -m pytest tests/test_wiki.py -q
+```
+
+离线守卫判断不了 Mermaid 正文能不能解析（它只认第一行的图类型关键字）。要验证渲染：
+
+```powershell
+python tools/make_wiki_mermaid_check.py
+python -m http.server 8791 --bind 127.0.0.1
+# 打开 http://127.0.0.1:8791/build/wiki-mermaid-check.html
+```
+
+必须走 HTTP：`file://` 页面不能 import mermaid 的 ES module，而且会**静默**失败——页面停在 "parsing" 不给结果。
+
+The wiki has an offline guard. Any drift — a `path:line` anchor pointing at a file that does not exist, a line number past the end of the file, a broken navigation line, a section added to one language only, an unpaired code fence, a wrong diagram keyword, or a twin pair out of proportion — makes it exit non-zero and list what broke:
+
+```powershell
+python tools/check_wiki.py
+python -m pytest tests/test_wiki.py -q
+```
+
+The offline guard cannot tell whether a mermaid body parses; it only reads the diagram keyword on the first line. To check rendering:
+
+```powershell
+python tools/make_wiki_mermaid_check.py
+python -m http.server 8791 --bind 127.0.0.1
+# open http://127.0.0.1:8791/build/wiki-mermaid-check.html
+```
+
+Serve over HTTP on purpose: a `file://` document cannot import the mermaid ES module, and it fails **silently** — the page sits on "parsing" with no result.
