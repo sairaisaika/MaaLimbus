@@ -40,7 +40,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q
 ```
 
-Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md). The repository's own narrative walk-through (architecture, runtime, business flows, state and data, deployment, quality; bilingual) is the [wiki](docs/wiki/README.md).
+Read the [design](docs/design.md) and [acceptance evidence](docs/acceptance.md). The repository's own narrative walk-through (architecture, runtime, business flows, state and data, deployment, quality, the agent rules layer; bilingual) is the [wiki](docs/wiki/README.md).
 
 | Feature | Verified scope | Remaining work |
 | --- | --- | --- |

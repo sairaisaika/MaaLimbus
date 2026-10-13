@@ -23,8 +23,9 @@ This is the routing page for the repository wiki. Chinese navigation first, Engl
 | 5 | [状态与数据](zh_cn/5-state-and-data.md) | [State and Data](en_us/5-state-and-data.md) |
 | 6 | [部署与运维](zh_cn/6-deployment.md) | [Deployment and Operations](en_us/6-deployment.md) |
 | 7 | [质量与验收](zh_cn/7-quality.md) | [Quality and Acceptance](en_us/7-quality.md) |
+| 8 | [Agent 规则层](zh_cn/8-agent-rules.md) | [Agent Rules Layer](en_us/8-agent-rules.md) |
 
-第 4 章已交付。部分章节可能另有子页，子页只由该章自己的主页面链接。
+第 4 章已交付。第 8 章是元章节，讲怎么在这个仓库里干活，不讲产品行为。部分章节可能另有子页，子页只由该章自己的主页面链接。
 
 本 wiki 是叙述性文档层，**不替代事实源**：当前进度看 `PROJECT.md`，设计约束看 `docs/design.md`，验收口径看 `docs/acceptance.md`（`AGENTS.md:5-11` 同样把这三个文件列为改代码前的必读）。
 
@@ -47,8 +48,9 @@ All pages, both languages:
 | 5 | [State and Data](en_us/5-state-and-data.md) | [状态与数据](zh_cn/5-state-and-data.md) |
 | 6 | [Deployment and Operations](en_us/6-deployment.md) | [部署与运维](zh_cn/6-deployment.md) |
 | 7 | [Quality and Acceptance](en_us/7-quality.md) | [质量与验收](zh_cn/7-quality.md) |
+| 8 | [Agent Rules Layer](en_us/8-agent-rules.md) | [Agent 规则层](zh_cn/8-agent-rules.md) |
 
-Page 4 is delivered. Some chapters may add sub-pages; a sub-page is only reachable from its own chapter's main page.
+Page 4 is delivered. Chapter 8 is a meta chapter about working in this repository rather than product behaviour. Some chapters may add sub-pages; a sub-page is only reachable from its own chapter's main page.
 
 This wiki is the narrative documentation layer and does **not** replace the sources of truth: current progress lives in `PROJECT.md`, design constraints in `docs/design.md`, and the acceptance ledger in `docs/acceptance.md` (the same three files `AGENTS.md:5-11` lists as required reading before touching code).
 

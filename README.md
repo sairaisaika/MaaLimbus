@@ -40,7 +40,7 @@ python -m pip install -e '.[dev]'
 python -m pytest -q
 ```
 
-先阅读 [设计与任务选项](docs/design.md) 和 [验收记录](docs/acceptance.md)。本仓库自身的分层讲解（架构、运行时、业务流程、状态与数据、部署、质量，中英双语）见 [wiki](docs/wiki/README.md)。
+先阅读 [设计与任务选项](docs/design.md) 和 [验收记录](docs/acceptance.md)。本仓库自身的分层讲解（架构、运行时、业务流程、状态与数据、部署、质量、agent 规则层，中英双语）见 [wiki](docs/wiki/README.md)。
 
 | 功能 | 已验证范围 | 未完成部分 |
 | --- | --- | --- |

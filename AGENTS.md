@@ -8,7 +8,7 @@ This file is the entry point for agents working in this repo.
 - `PROJECT.md` — 当前进度、continuation 记录与 development contract（改代码前先读）。
 - `docs/design.md` — 设计约束。
 - `docs/acceptance.md` — 验收口径。
-- `docs/wiki/README.md` — 分层讲解 wiki（架构、运行时、业务流程、状态与数据、部署、质量，中英双语）；叙述性文档层，不替代上面三个事实源。
+- `docs/wiki/README.md` — 分层讲解 wiki（架构、运行时、业务流程、状态与数据、部署、质量、agent 规则层，中英双语）；叙述性文档层，不替代上面三个事实源。
 
 ## Agent skills
 

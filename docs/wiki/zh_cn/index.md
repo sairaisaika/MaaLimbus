@@ -16,8 +16,11 @@
 | 5 | [状态与数据](5-state-and-data.md) | [State and Data](../en_us/5-state-and-data.md) | 用户态私有状态、run ledger、事务与收据的数据模型 |
 | 6 | [部署与运维](6-deployment.md) | [Deployment and Operations](../en_us/6-deployment.md) | 打包、安装、更新、日志与证据归档 |
 | 7 | [质量与验收](7-quality.md) | [Quality and Acceptance](../en_us/7-quality.md) | 测试与验收口径：到底什么才算通过 |
+| 8 | [Agent 规则层](8-agent-rules.md) | [Agent Rules Layer](../en_us/8-agent-rules.md) | 在这个仓库里干活时遵守什么：票据与规格、triage 标签、领域词汇、结论沉淀 |
 
 各章主页面在两种语言下同名同结构（`zh_cn/<page>` 对应 `en_us/<page>`）。部分章节可能另有子页；子页只由该章自己的主页面链接，本表不列子页。
+
+第 8 章是元章节：它讲的是「在这个仓库里干活时遵守什么」，不是产品行为，所以不参与上面几条阅读路径——需要建票、打标签、查词汇或沉淀结论时单独翻它。
 
 ## 第 4 章的状态
 

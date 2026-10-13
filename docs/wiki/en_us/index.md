@@ -16,8 +16,11 @@ This wiki is the narrative documentation layer of MaaLimbus. The sources of trut
 | 5 | [State and Data](5-state-and-data.md) | [状态与数据](../zh_cn/5-state-and-data.md) | Private user state, the run ledger, the data model of transactions and receipts |
 | 6 | [Deployment and Operations](6-deployment.md) | [部署与运维](../zh_cn/6-deployment.md) | Packaging, installation, updates, logs and evidence archiving |
 | 7 | [Quality and Acceptance](7-quality.md) | [质量与验收](../zh_cn/7-quality.md) | Tests and the acceptance standard: what actually counts as passing |
+| 8 | [Agent Rules Layer](8-agent-rules.md) | [Agent 规则层](../zh_cn/8-agent-rules.md) | What you follow while working in this repository: tickets and specs, triage labels, domain vocabulary, sedimenting conclusions |
 
 Every chapter's main page shares the same name and structure in both languages (`en_us/<page>` mirrors `zh_cn/<page>`). Some chapters may add sub-pages; a sub-page is linked only from its own chapter's main page, so it is not listed here.
+
+Chapter 8 is a meta chapter: it covers what you follow while working in this repository rather than product behaviour, so it sits outside the reading paths above — open it when you need to file a ticket, apply a label, check vocabulary, or sediment a conclusion.
 
 ## The state of chapter 4
 
