@@ -2162,7 +2162,15 @@ This is a source test result, not complete game or production-value acceptance.
   with real pointer input at 07:22 local. The run `dist/MaaLimbus/evidence/runtime/pi-20261014-072228` opened on
   scene `NODE_PANEL` -- the exact page the packaged CLI run could not read before `d574a26` -- and then
   dispatched `CUTSCENE -> EVENT_CHOICE -> EVENT_RESULT -> GIFT_GET -> PRE_BATTLE_TEAM -> BATTLE_HUD -> MAP ->
-  NODE_PANEL -> GIFT_GET` over 179 frames: the GUI Start chain is now observed live, not only wired.
+  NODE_PANEL -> GIFT_GET` and ran on to 254 frames / 71 inputs: `window_intent` covered `BATTLE_HUD` 20 (win-rate
+  assignment and start button), `MAP` 8 node clicks, `SHOP` 7 including 4 `SHOP_PURCHASE`, `GIFT_GET` 6,
+  `NODE_PANEL` 5 -- all five through `panel_enter_is_the_only_forward_input`, which is `d574a26` exercised live --
+  `GIFT_PICK` 4, `REWARD_CARD` 2 and the four event-check pages. It then stopped honestly at 07:40:34 on
+  `floor_gift_commit_receipt_not_proven` (`src/maalimbus/runner.py:2696`): the floor-gift transaction held
+  `selected ['Prejudice','Uncapped Defibrilator']` while the `GIFT_GET` notice it had to commit
+  (`frame-0254.json`) names 'Blue Zippo Li...' and 'New Release Pamphlet', so no selected name matched the
+  receipt and nothing was written to the run ledger. That disagreement between the picked gift names and the
+  notice's own name is the next bounded defect for the one-click chain.
 - The live run before this one (`dist/MaaLimbus/evidence/runtime/pi-20261014-053727`, 5 inputs) had stopped on
   `Grace purchase successor balance not proven`, and its own frames say why: the STAR_GRACES reader is right and
   the OCR missed one glyph -- `frame-0010`/`frame-0011` read the counter at `[1515,45,54,40]` ('95'), while
