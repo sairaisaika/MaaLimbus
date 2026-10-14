@@ -30,6 +30,38 @@ def _key(name):
     return ' '.join(name.split()).casefold()
 
 
+# The shop's own typeface draws ``i``, ``l`` and ``1`` with one stem, and ``o`` with
+# the ``0`` it prints for prices, so the reader that named a card at reservation can
+# name that same card at reconciliation with the other letter.  Live
+# ``window-20261012-221212`` reserved "Today's Expression" and its successor printed
+# the very same slot, price and Purchased badge as "Today's Expresslon": the receipt
+# then found no bought card, fell back to the whole-shelf comparison and refused a
+# purchase the counter had already charged (2993 -> 2804 for 189).  A card is matched
+# by the shelf's own history plus its badge and price, never by one glyph of its
+# title.  This fold is *not* a fuzzy title match: ``matching_purchase_question``
+# still demands the complete name, and two titles must be the same string after the
+# confusable class alone is folded.
+#
+# The condensed face also closes ``rn`` into the one stem pair a reader can take for
+# ``m``: live ``pi-20261014-080122`` reserved a purchase on a six-slot shelf whose own
+# frames read its 160-coin slot as "Thomy Path", and the returning shelf printed that
+# same slot, price and card as "Thorny Path" (its catalogue name).  The badge path then
+# called a card the shelf had held all along an offer it "never held" and stopped the
+# run at floor 3.  Folding the ligature compares the card, not the reader's opinion of
+# its fourth glyph.
+_CONFUSABLE = str.maketrans({'i': '1', 'l': '1', '!': '1', '|': '1', 'o': '0',
+                             '\u2019': "'", '\u02bc': "'", '\u00b4': "'", '`': "'"})
+
+
+def _fold(name):
+    return _key(name).translate(_CONFUSABLE).replace('rn', 'm')
+
+
+def _same_title(one, other):
+    """Whether a re-read shelf row is still the card an intent was written for."""
+    return _key(one) == _key(other) or _fold(one) == _fold(other)
+
+
 def _frame(path):
     path = Path(path).resolve()
     record = read_json(path)
@@ -370,28 +402,66 @@ class ShopTransaction:
             raise ValueError('Shop purchase receipt/shelf still unknown; preserve pending')
         coins = _coins(texts, size)
         shelf = _shelf(texts, size)
+        if coins == pending['coins'] and shelf:
+            # An intent whose click left the shop's own purchase question behind: the
+            # shelf still prints the card once, at the price and without the Purchased
+            # badge it had when the intent was written, and the visit's currency is
+            # exactly what it was.  Nothing was bought, so the intent is dropped unspent
+            # (live: window-20261012-210547, whose shelf offer "Replace Don Qubote's Sil"
+            # opened the skill-replacement chooser instead of a purchase question).
+            still = [o for o in shelf if _same_title(o['name'], pending['name'])]
+            if (pending['stage'] == 'card_intent' and len(still) == 1
+                    and still[0]['price'] == pending['price']
+                    and not still[0].get('purchased')):
+                data = copy.deepcopy(self.data)
+                data.setdefault('unspent_intents', []).append(dict(
+                    name=pending['name'], price=pending['price'], visit=visit,
+                    stage=pending['stage'], successor=proof,
+                    shelf_evidence='unchanged_shelf_and_untouched_currency'))
+                data['pending'] = None
+                self._save(data)
+                return True
         if coins != pending['coins'] - pending['price'] or not shelf:
             raise ValueError('Exact shop purchase currency delta not proven')
-        bought=[o for o in shelf if _key(o['name'])==_key(pending['name'])]
+        baseline = _baseline(pending) or pending['shelf']
+        bought=[o for o in shelf if _same_title(o['name'], pending['name'])]
         if bought:
             # Actual native shop retains and reorders the card, with Purchased
-            # above its art. The badge must belong to this exact full title/price.
-            baseline=_baseline(pending) or pending['shelf']
-            prior=[o for o in baseline if _key(o['name'])==_key(pending['name'])]
+            # above its art. The badge must belong to this title and price, where the
+            # title may differ only by the typeface's confusable glyphs (see _same_title).
+            prior=[o for o in baseline if _same_title(o['name'], pending['name'])]
             if (len(bought)!=1 or not bought[0].get('purchased')
                     or bought[0]['price']!=pending['price']
                     or len(prior)!=1 or prior[0].get('purchased')
                     or pending['stage'] not in ('confirm_intent','overlay_intent')):
                 raise ValueError('Purchased offer disappearance or own Purchased badge not proven')
-        # All other slots must be retained; a sparse OCR read cannot masquerade
-        # as the disappearance of the chosen card.  The baseline is re-read rather
-        # than trusted from bytes an older reader wrote.
-        remaining = sorted((_key(o['name']), o['price']) for o in (_baseline(pending) or pending['shelf'])
-                           if _key(o['name']) != _key(pending['name']))
-        actual = sorted((_key(o['name']), o['price']) for o in shelf
-                        if _key(o['name'])!=_key(pending['name']))
-        if actual != remaining:
-            raise ValueError('Independent complete successor shelf not proven')
+            # The card's own Purchased badge plus the exact coin delta above is the
+            # receipt, so the *other* slots do not have to be re-read: the shelf keeps
+            # and reorders its cards, and one faint badge below the reader's floor used
+            # to turn a completed purchase into "Independent complete successor shelf
+            # not proven" (window-20261012-203743 frame-0149, the Gemstone Oscillator's
+            # own badge read at .763 where its neighbour read .823).  What stays refused
+            # is a successor showing a card this shelf never held, because that would
+            # mean the receipt is a different page.  A title that differs only in the
+            # typeface's own confusable glyph counts as the card that was held.
+            held = {_key(offer['name']) for offer in baseline}
+            held |= {_fold(offer['name']) for offer in baseline}
+            if [offer['name'] for offer in shelf
+                    if not _same_title(offer['name'], pending['name'])
+                    and _key(offer['name']) not in held and _fold(offer['name']) not in held]:
+                raise ValueError('Shop successor shows an offer the shelf never held')
+        else:
+            # Without the card's own badge the disappearance is the only evidence, so
+            # every other slot must be retained; a sparse OCR read cannot masquerade as
+            # the disappearance of the chosen card.  The baseline is re-read rather than
+            # trusted from bytes an older reader wrote.  Retained slots are compared
+            # under the same confusable fold, so a misread glyph is not a lost slot.
+            remaining = sorted((_fold(o['name']), o['price']) for o in baseline
+                               if not _same_title(o['name'], pending['name']))
+            actual = sorted((_fold(o['name']), o['price']) for o in shelf
+                            if not _same_title(o['name'], pending['name']))
+            if actual != remaining:
+                raise ValueError('Independent complete successor shelf not proven')
         data = copy.deepcopy(self.data)
         data['bought'].append(dict(name=pending['name'], price=pending['price'],
                                    visit=visit, before=pending['before'],

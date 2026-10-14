@@ -233,6 +233,38 @@ LIVE_BEFORE = ROOT / 'evidence/runtime/pi-20261012-123906/frame-0064.json'
 LIVE_AFTER = ROOT / 'evidence/runtime/pi-20261012-123906/frame-0065.json'
 
 
+def test_an_intent_whose_click_left_the_question_behind_is_dropped_unspent(tmp_path):
+    """Live window-20261012-210547: the cap's click on the shelf offer "Replace Don
+    Qubote's Sil" opened the skill-replacement chooser, so the shop's purchase question
+    never appeared.  The shelf that follows still prints that card at its own price,
+    without its Purchased badge, and the visit's currency is exactly what it was: nothing
+    was bought, so the intent is dropped unspent instead of stopping the run forever.
+    """
+    tx, before = setup(tmp_path)
+    assert reserve(tx, before) == [870, 357, 120, 90]
+    unchanged = frame(tmp_path, 'unchanged', shelf())
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', unchanged) is True
+    assert tx.data['pending'] is None and tx.data['bought'] == []
+    dropped = tx.data['unspent_intents'][0]
+    assert dropped['name'] == 'Oracle' and dropped['price'] == 20
+    assert dropped['stage'] == 'card_intent'
+    assert dropped['shelf_evidence'] == 'unchanged_shelf_and_untouched_currency'
+    assert 'png_sha256' in dropped['successor']
+
+
+@pytest.mark.parametrize('rows,coins', [
+    (shelf(coins=120), 120),          # the currency moved: the delta rule owns this case
+    (shelf(names=('Scalpel',)), 100),  # the card is gone: disappearance owns it too
+])
+def test_an_unspent_intent_needs_the_unchanged_shelf_and_currency(tmp_path, rows, coins):
+    tx, before = setup(tmp_path)
+    assert reserve(tx, before) == [870, 357, 120, 90]
+    successor = frame(tmp_path, 'successor', rows)
+    with pytest.raises(ValueError, match='Exact shop purchase currency delta not proven'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', successor)
+    assert tx.data['pending'] is not None and not tx.data.get('unspent_intents')
+
+
 def test_the_live_refresh_pair_reserves_and_reconciles(tmp_path):
     if not LIVE_BEFORE.exists() or not LIVE_AFTER.exists():
         pytest.skip('retained live shop evidence is not present')
@@ -286,3 +318,143 @@ def test_a_sparse_successor_shelf_is_still_refused(tmp_path):
     with pytest.raises(ValueError, match='complete changed shelf not proven'):
         tx.reconcile_refresh('scope', 'floor1:shop1', sparse)
     assert tx.data['pending'] is not None
+
+
+def test_the_cards_own_purchased_badge_is_the_receipt_for_its_own_card(tmp_path):
+    """A badge settles the purchase even when another slot of the shelf reads short.
+
+    Live frame ``window-20261012-203743/frame-0149`` kept the bought card under its
+    own ``Purchased`` badge while its neighbour's badge read .763, below the floor
+    that prices a card.  The complete-shelf comparison then refused a purchase the
+    page had already completed; the badge plus the exact coin delta is the receipt.
+    """
+    tx, before = setup(tmp_path)
+    reserve(tx, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after',
+                  shelf(('Oracle',), 80) + [row('Purchased', (870, 320, 120, 40))])
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.data['pending'] is None
+    assert tx.data['bought'][-1]['name'] == 'Oracle'
+    assert tx.data['bought'][-1]['shelf_evidence'] == 'own_purchased_badge'
+
+
+def test_the_badge_path_still_refuses_a_card_the_shelf_never_held(tmp_path):
+    """The receipt may read short, but it may not be a different page."""
+    tx, before = setup(tmp_path)
+    reserve(tx, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after',
+                  shelf(('Oracle', 'Wobbling Keg'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    original = tx.path.read_bytes()
+    with pytest.raises(ValueError, match='never held'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', after)
+    assert tx.path.read_bytes() == original
+    assert tx.bought_names == []
+
+
+def test_a_title_differing_only_in_the_typefaces_confusable_glyph_is_the_same_card(tmp_path):
+    """The shelf's own typeface is what spells the card two ways.
+
+    Live ``window-20261012-221212`` reserved "Today's Expression", the counter went
+    2993 -> 2804 for its 189, and the successor printed that same slot under its own
+    Purchased badge as "Today's Expresslon".  The exact-title match found no bought
+    card, so the whole-shelf comparison refused a purchase the page had completed.
+    """
+    before = frame(tmp_path, 'before', shelf(("Today's Expression", 'Scalpel')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1',
+                        dict(name="Today's Expression", price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question("Today's Expression", 20),
+                             'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(("Today's Expresslon",), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ["Today's Expression"]
+    assert tx.data['bought'][-1]['shelf_evidence'] == 'own_purchased_badge'
+    assert tx.data['pending'] is None
+
+
+def test_a_condensed_ligature_reads_as_the_same_slot(tmp_path):
+    """A condensed ``rn`` folds into ``m``, so the slot must not become a new card.
+
+    Live ``pi-20261014-080122`` reserved a purchase on a six-slot shelf whose own
+    frames read its 160-coin slot as "Thomy Path"; the returning shelf printed that
+    same slot, price and card as "Thorny Path", its catalogue name.  The badge path
+    then refused the purchase as a successor showing an offer "the shelf never held"
+    and the run stopped at floor 3.
+    """
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Thomy Path')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Oracle', 'Thorny Path'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ['Oracle']
+    assert tx.data['pending'] is None
+
+
+def test_the_ligature_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
+    """``rn`` folding into ``m`` compares a glyph pair, not any near title."""
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Thorny Path')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Oracle', 'Thorny Rd'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    original = tx.path.read_bytes()
+    with pytest.raises(ValueError, match='never held'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', after)
+    assert tx.path.read_bytes() == original
+    assert tx.bought_names == []
+
+
+def test_the_confusable_fold_never_adopts_a_card_with_a_different_glyph(tmp_path):
+    """The fold covers the typeface's own pairs, not titles in general."""
+    tx, before = setup(tmp_path)
+    reserve(tx, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Orach',), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    original = tx.path.read_bytes()
+    with pytest.raises(ValueError, match='Independent complete successor shelf not proven'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', after)
+    assert tx.path.read_bytes() == original
+    assert tx.bought_names == []
+
+
+LIVE_CONFUSABLE_BEFORE = ROOT / 'evidence/runtime/window-20261012-221212/frame-0002.json'
+LIVE_CONFUSABLE_QUESTION = ROOT / 'evidence/runtime/window-20261012-221212/frame-0004.json'
+LIVE_CONFUSABLE_AFTER = ROOT / 'evidence/runtime/window-20261012-221212/frame-0008.json'
+
+
+def test_the_live_confusable_successor_is_receipted(tmp_path):
+    """The round trip that exposed the fold, replayed from its own three frames."""
+    if not all(path.exists() for path in (LIVE_CONFUSABLE_BEFORE,
+                                          LIVE_CONFUSABLE_QUESTION,
+                                          LIVE_CONFUSABLE_AFTER)):
+        pytest.skip('retained live shop evidence is not present')
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    assert tx.begin_visit('scope', 'floor4:shop1', LIVE_CONFUSABLE_BEFORE)
+    assert tx.reserve_purchase('scope', 'floor4:shop1',
+                               dict(name="Today's Expression", price=189), 2993,
+                               LIVE_CONFUSABLE_BEFORE)
+    assert tx.data['pending']['shelf'][1]['name'] == "Today's Expression"
+    assert len(tx.reserve_confirm('scope', 'floor4:shop1', LIVE_CONFUSABLE_QUESTION)) == 4
+    assert tx.reconcile_purchase('scope', 'floor4:shop1', LIVE_CONFUSABLE_AFTER) is True
+    bought = tx.data['bought'][-1]
+    assert bought['name'] == "Today's Expression" and bought['price'] == 189
+    assert bought['shelf_evidence'] == 'own_purchased_badge'
+    assert tx.data['pending'] is None
+

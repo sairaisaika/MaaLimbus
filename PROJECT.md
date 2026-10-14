@@ -2249,3 +2249,16 @@ This is a source test result, not complete game or production-value acceptance.
   `run_count: 0`, so card ③'s stop is not armed in this window and the live bound is `steps 400` / `budget 5400s`.
   Still owed: the full five-floor clear with payout and entry return, and a window that is actually armed with a
   saved run count.
+- A third live stop exposed the same reader-versus-transaction gap on the shop shelf: at 12:14 this run stopped with
+  `Shop successor shows an offer the shelf never held` (`mirror_loop_stopped`, 68 steps / 67 clicks, `passed: false`)
+  while settling the `Rusted Cutting Knife` purchase it had just made for 244 of 1530 coins.
+  `config/user-shop-3122877b…json` kept `pending.stage overlay_intent`, and the returning frames 0201/0202 show the
+  very same six slots with the bought card under its own `Purchased` badge -- but the visit's own reservation frames
+  0195/0196 had read the 160-coin slot as "Thomy Path" while the returning shelf read "Thorny Path", its catalogue
+  name (`assets/resource/base/gift-catalog.json` `gifts[280]`), so the strict title comparison called a card the
+  shelf had held all along an offer it never held. `src/maalimbus/shop_transaction.py` now folds the condensed `rn`
+  ligature into `m` beside the typeface's other confusable glyphs (pinned by
+  `tests/test_shop_transaction.py::test_a_condensed_ligature_reads_as_the_same_slot` and the negative
+  `test_the_ligature_fold_is_not_a_licence_to_shorten_a_title`), and replaying the stopped store against
+  `frame-0202.json` settles it: `reconcile_purchase` returns True, `bought[-1]` is `Rusted Cutting Knife`, `pending`
+  is cleared. The installed app still has to carry this fold before a five-floor clear can be attempted again.

@@ -1847,3 +1847,11 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   `mirror_run_count_keep`, and `dist/MaaLimbus/assets/resource/base/pipeline/mirror.json` carries the
   `MirrorRunCount` node. The window running now launched with `run_count: 0`, so the stop path itself is still the one
   part of this card that has not been seen to fire.
+- The shop shelf's own reader is what names a card, and the transaction now folds the condensed `rn` ligature into
+  `m` beside the typeface's other confusable glyphs. The live stop it repairs is recorded: run `pi-20261014-080122`
+  ended with `Shop successor shows an offer the shelf never held` (68 steps, 67 clicks, `passed: false`) while
+  settling a `Rusted Cutting Knife` purchase of 244 coins, because its own reservation frames read the 160-coin slot
+  as `Thomy Path` and the returning shelf printed `Thorny Path`, the catalogue name. Replaying that stopped store
+  against the returning frame `frame-0202.json` now returns `reconcile_purchase: True` with
+  `bought[-1] = Rusted Cutting Knife` and `pending` cleared, and
+  `tests/test_shop_transaction.py` pins both the fold and its refusal to shorten a title.
