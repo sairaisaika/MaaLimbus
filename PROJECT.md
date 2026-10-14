@@ -2216,3 +2216,15 @@ This is a source test result, not complete game or production-value acceptance.
   five `shop_decision_ranking` events the two purchases were chosen by
   `the_gift_plan_asked_for_this_offer_and_the_shop_covers_it` with `learning: None`. So the lesson-apply path is a
   human review gate plus 10 independent scopes, not missing code.
+- Card ⑥'s source-anchor review now has a measurement instead of an impression:
+  `tools/verify_wiki_citations.py` (pinned by `tests/test_wiki_citations.py`, 6 passed) classifies the 1,280
+  `path.py:LINE` citations in `docs/wiki` as 383 with no symbol named beside them, 397 inside table rows that name
+  several at once, 300 whose path does not resolve as written, and 200 that do name a symbol -- of those, 140 still
+  land within 16 lines and 60 have drifted. One example: `docs/wiki/en_us/3-runtime.md:456` cites
+  `src/maalimbus/runner.py:2824` for `claim_family_made_no_progress`, but that line now reads
+  `entry['reason'] = 'run_count_reached'`. `tools/check_wiki.py` (ok, 0 problems across 26 files) and the citation
+  resolver cannot see this class, because a citation that lands on another real code line is structurally valid.
+  `python tools/wiki_route.py --build` regenerated the index (`--check`: valid, 15 routes, `snapshot_stale: false`)
+  and moved the run-count row to `src/maalimbus/runner.py:174` `Settings`; `docs/wiki/agent-index.md`,
+  `agent-index.json` and `routes.json` are still untracked in the working tree, so the drift list is recorded here
+  as the next bounded pass rather than silently rewritten.
