@@ -1834,3 +1834,9 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   two on one line), 300 unresolvable paths and 12 unattributed (a word the cited file never mentions, or the module's
   own name) counted rather than guessed; `tools/check_wiki.py` stays `ok — 0 problem(s)` and
   `tools/verify_wiki_routes.py` prints `passed: true`.
+- Card ③'s saved setting reaches the installed UI without touching a device:
+  `dist/MaaLimbus/assets/interface.json` declares `mirror_run_count` (cases saved/1/2/3/5/10), its
+  `zh_cn`/`en_us`/`ja_jp` label sets carry `mirror_run_count`, `mirror_run_count_description` and
+  `mirror_run_count_keep`, and `dist/MaaLimbus/assets/resource/base/pipeline/mirror.json` carries the
+  `MirrorRunCount` node. The window running now launched with `run_count: 0`, so the stop path itself is still the one
+  part of this card that has not been seen to fire.
