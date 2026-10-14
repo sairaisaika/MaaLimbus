@@ -6,6 +6,10 @@ def collect(get_node):
     keyword = get_node('MirrorInitialKeyword')['attach']['keyword']
     search = get_node('MirrorGiftSearch')['attach']['mode']
     bounds = get_node('MirrorRunBounds')['attach']['steps']
+    # The run count is a later node than the rest: a pipeline built before it existed
+    # simply carries no value, and that reads as "no number named" rather than as a
+    # failure to start the window.
+    runs = get_node('MirrorRunCount').get('attach', {}).get('run_count', 'saved')
     battle = get_node('MirrorBattleAssignment')['attach']['mode']
     result = {}
     if battle not in ('saved','win_rate','damage','observe'):
@@ -24,4 +28,10 @@ def collect(get_node):
         if type(bounds) is not int or not 1 <= bounds <= 2000:
             raise ValueError('Mirror window steps must be 1..2000')
         result['steps'] = bounds
+    # The number of complete runs the player asks for, which is not the step bound: zero
+    # is "no number named" and the window keeps walking until another bound stops it.
+    if runs != 'saved':
+        if type(runs) is not int or not 0 <= runs <= 50:
+            raise ValueError('Mirror run count must be 0..50')
+        result['run_count'] = runs
     return result

@@ -143,6 +143,12 @@ def report(result, *, title='MaaLimbus mirror run', extra=(), now=None):
     observed = result.get('observation')
     if observed and observed.get('scene'):
         lines.append(f'page: {observed["scene"]} (before any input)')
+    runs = result.get('verified_runs') or {}
+    if runs and runs.get('ledger_total') is not None:
+        target = int(runs.get('target') or 0)
+        lines.append('verified runs: {completed} of {target} this launch ({total} in the ledger)'.format(
+            completed=runs.get('completed'), target=target or 'unbounded',
+            total=runs.get('ledger_total')))
     lines.extend(str(line) for line in extra if line)
     lines.append('')
     for decision in result.get('decisions') or []:

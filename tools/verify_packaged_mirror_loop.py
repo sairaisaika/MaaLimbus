@@ -17,6 +17,8 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import hashlib
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'agent')]
@@ -63,6 +65,8 @@ def main():
     parser.add_argument('--observe-only', action='store_true')
     parser.add_argument('--stop-page', help='Stop on first fresh named page before input there')
     parser.add_argument('--entry', choices=('MirrorTask', 'MirrorLoop'), default='MirrorTask')
+    parser.add_argument('--gui-log',type=Path,
+                        help='Replay the last already-parsed MirrorTask overrides from the local MXU log')
     parser.add_argument('--data-directory', type=Path,
                         help='Explicit private-state binding; defaults to installed app config')
     parser.add_argument('--report', type=Path,
@@ -78,6 +82,21 @@ def main():
     result = dict(app=str(app), address=args.address, observe_only=bool(args.observe_only),
                   agent=str(app / 'agent/MaaLimbusAgent.exe'), directory=str(directory),
                   entry=args.entry, steps_requested=args.steps, clicks_sent=0, passed=False)
+    gui_overrides=None
+    if args.gui_log:
+        if args.entry!='MirrorTask':raise ValueError('GUI choices require the actual MirrorTask entry')
+        rows=re.findall(r'entry=MirrorTask, pipelineOverride=(\[.*\])',args.gui_log.read_text(encoding='utf-8'))
+        if not rows:raise ValueError('No already-parsed MirrorTask GUI override in this log')
+        patches=json.loads(rows[-1]);gui_overrides={}
+        if not isinstance(patches,list):raise ValueError('GUI override array required')
+        for patch in patches:
+            if not isinstance(patch,dict):raise ValueError('Invalid GUI patch')
+            for name,value in patch.items():
+                if name in gui_overrides:raise ValueError('Overlapping GUI patches require review')
+                gui_overrides[name]=value
+        result['gui_override_sha256']=hashlib.sha256(rows[-1].encode()).hexdigest()
+        result['gui_choice_replayed']=True
+        result['gui_click_verified']=False
     Library.open(app / 'maafw', agent_server=False)
     Toolkit.init_option(directory / 'debug')
     lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
@@ -128,6 +147,8 @@ def main():
                     'The packaged agent does not register the whole-dungeon loop'
                 for layer in ('base', 'en'):
                     wait_job(resource.post_bundle(app / f'assets/resource/{layer}'), timeout=30)
+                if gui_overrides is not None and not resource.override_pipeline(gui_overrides):
+                    raise ValueError('Installed resources refused the parsed GUI choices')
                 wait_job(controller.post_connection(), timeout=10)
                 tasker = Tasker()
                 assert tasker.bind(resource=resource, controller=controller)

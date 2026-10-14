@@ -33,7 +33,14 @@ def resolve_choices(interface, task):
     if spec is None:raise ValueError('Saved task no longer exists in this interface')
     overrides={}
     def visit(name):
-        value=task['optionValues'][name]
+        value=task['optionValues'].get(name)
+        if value is None:
+            # A queue saved before this option existed names no value for it, and MXU
+            # would have left the option's own default in place: replay that instead of
+            # refusing a config the UI itself produced.
+            default=interface['option'][name].get('default_case')
+            if default is None:raise ValueError('Saved queue names no value for a required option')
+            value={'type':'select','caseName':default}
         if value['type']!='select':raise ValueError('Expected fixed select option')
         case=next((c for c in interface['option'][name]['cases'] if c['name']==value['caseName']),None)
         if case is None:raise ValueError('Unknown saved option case')

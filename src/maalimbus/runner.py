@@ -59,7 +59,9 @@ from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_sta
                             select_ready)
 from .run_wiring import earned_its_payout, expire, reconcile, settle
 from .shop_vision import currency as shop_currency, offers as shop_offers
-from .shop_vision import SHELF_PRICE_FLOOR, shelf_tokens, wanted_offers
+from .shop_vision import (SHELF_PRICE_FAINT_FLOOR, SHELF_PRICE_FLOOR, shelf_tokens,
+                          wanted_offers)
+from .shop_settings import CARRY_CAP_COINS
 from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
 from .vision import Text, inset_box
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
@@ -150,10 +152,15 @@ def _defaults():
     """
     return {
         'steps': 1, 'rounds': 3, 'unknown_rounds': 30, 'battle_rounds': 8,
+        # A *complete* run is five verified floors, a claimed payout and a return to the
+        # lobby; ``steps``/``rounds`` bound one window and never count runs. Zero means the
+        # player did not name a number and the window walks until another bound stops it.
+        'run_count': 0,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
         'gift_search': 'refuse', 'shop_refreshes': 2,
-        'shop_policy': 'manual', 'shop_reserve_coins': 0,
+        'shop_policy': 'manual', 'shop_reserve_coins': 500,
+        'shop_carry_cap_coins': CARRY_CAP_COINS,
         'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
         'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
@@ -177,8 +184,11 @@ class Settings:
             self._values.update(_overrides(source))
         if (self._values['shop_policy'] not in ('manual','learned') or
                 type(self._values['shop_refreshes']) is not int or not 0<=self._values['shop_refreshes']<=5 or
-                type(self._values['shop_reserve_coins']) is not int or not 0<=self._values['shop_reserve_coins']<=500):
+                type(self._values['shop_reserve_coins']) is not int or not 0<=self._values['shop_reserve_coins']<=500 or
+                type(self._values['shop_carry_cap_coins']) is not int or not 0<=self._values['shop_carry_cap_coins']<=3000):
             raise ValueError('Invalid bounded shop settings')
+        if type(self._values['run_count']) is not int or not 0 <= self._values['run_count'] <= 50:
+            raise ValueError('Invalid bounded mirror run count')
 
     def __getattr__(self, name):
         try:
@@ -657,6 +667,16 @@ def observe(observer, deadline=None):
     The analyze event itself carries no frame hash, tokens or size, so they are
     attached here: the repeated-card guard, the "did the click move the screen"
     check, the guide-book carousel and the pre-battle team reader all need them.
+
+    The native local reads are attached for the same reason. ``MaaObserver``
+    answers with the semantic ``map_observed`` event, so a live pre-battle page
+    reached :func:`team_state` without the ``deployment_availability`` record the
+    frame the same step had just written carried: the run then read an 11-card
+    capacity with no unavailable card, spent both re-reads, and stopped on
+    ``Current deployment capacity requires independent unavailable-card proof``
+    (evidence/runtime/window-20261012-202916/frame-0003.json holds the accepted
+    proof, ``unavailable: [6]``). Replayed frames keep working: a frame record
+    already carries its own local reads, and only a missing list is filled in.
     """
     record = observer.observe(deadline=deadline)
     if not record.get('image_sha256'):
@@ -667,6 +687,9 @@ def observe(observer, deadline=None):
             record['size'] = details.get('size')
         if not record.get('ocr'):
             record['ocr'] = details.get('ocr')
+        local = details.get('local_ocr')
+        if local and not record.get('local_ocr'):
+            record['local_ocr'] = local
     return record
 
 
@@ -922,7 +945,8 @@ def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges
 
 
 def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
-               reserve_coins=0, policy='manual', learning=None, value_context=None):
+               reserve_coins=0, policy='manual', learning=None, value_context=None,
+               blocked=(), carry_cap_coins=None, gift_names=()):
     """What the shop page offers and the one input a shop visit may spend.
 
     A shop is spent from by reading its own page: every offer prints its name and
@@ -931,11 +955,26 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
 
     * ``confirm`` -- the Confirm of the shop's own purchase dialog, when one is up,
     * ``buy`` -- the first offer the gift plan asked for that the shop's currency
-      covers, and which this run has not already paid for,
+      covers, and which this run has not already paid for; its ``why`` says which rule
+      chose it,
     * ``refresh`` -- the plain Refresh button, while a shop visit still has refreshes
       left and the currency covers one twice over (a refresh must never be able to
       eat the price of a gift the plan wants),
     * ``reason`` -- why none of the above is offered.
+
+    The visit's carry cap comes last, and only when the visit has nothing better to do
+    with its coins: when the gift plan has no affordable offer, no refresh is left worth
+    taking, and the visit would still walk out with more than ``carry_cap_coins``, the
+    surplus is spent on the cheapest offer the shelf itself prints that the player has
+    not blocked and no earlier visit already bought (``why='carry_cap'``).  A run that
+    leaves a shop with thousands of coins has bought nothing with them (the operator's
+    directive of 2026-10-12: keep 500, at most 1500), and the purchase still has to prove
+    itself against the shop's own printed price, exactly like the plan's own offers.
+    ``carry_cap_coins=None`` disables that rule, and ``blocked`` names offers the player
+    forbade: neither the plan nor the cap may buy one.  ``gift_names`` is the gift
+    catalog's own vocabulary, and when it is supplied the cap only spends on an offer it
+    names: the shelf also sells skill-replacement services, and buying one opens a
+    chooser the shop's own purchase question never appears in.
     """
     if record.get('scene') not in ('SHOP', 'SHOP_PURCHASE') or not record.get('ocr'):
         return None
@@ -945,11 +984,14 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
                for item in record['ocr'] if item['score']>=.9]
     # The shelf's own price badge is read below the currency's floor, so a six-slot
     # shelf whose badge OCRs at .835 is still six offers instead of four -- an
-    # unchanged shelf must never pass for a refreshed one.  A faint title is still not
-    # a title, and the currency and refresh costs keep the stricter records, so a
-    # low-confidence number can never price a refresh.
+    # unchanged shelf must never pass for a refreshed one.  A badge can read fainter
+    # still (frame-0149 of window-20261012-203743 printed a real badge at .763), so the
+    # shelf keeps every token ``shelf_tokens`` will price; that reader is the one place
+    # that decides a faint number is a badge.  A faint title is still not a title, and
+    # the currency and refresh costs keep the stricter records, so a low-confidence
+    # number can never price a refresh.
     shelf_read = [Text(item['text'], tuple(item['box']), item['score'])
-                  for item in record['ocr'] if item['score']>=SHELF_PRICE_FLOOR]
+                  for item in record['ocr'] if item['score']>=SHELF_PRICE_FAINT_FLOOR]
     question = record.get('scene') == 'SHOP_PURCHASE'
     found = shop_offers(shelf_tokens(shelf_read), size)
     cash = shop_currency(records, size)
@@ -986,7 +1028,7 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
         if affordable:
             offer = affordable[0]
             buy = {'box': list(offer.click), 'name': offer.name, 'price': offer.price,
-                   'index': offer.index}
+                   'index': offer.index, 'why': 'gift_plan'}
             reason = 'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'
         elif wanted_offers_now:
             reason = 'every_offer_the_plan_asked_for_costs_more_than_the_shop_holds'
@@ -1008,6 +1050,42 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
         if worth_it:
             refresh = {'box': list(plain.box), 'cost': plain.cost,
                        'reason': 'no_offer_matches_the_gift_plan_yet'}
+        # Last, and only when the visit has nothing better: the coins it would carry out
+        # of the shop above its cap are spent on the cheapest offer the shelf itself
+        # prints.  Every guard is the shelf's own reading -- a printed price inside the
+        # budget, a printed box to click -- never a coordinate or a guess, and the same
+        # printed price the purchase then has to prove itself against.  The shelf also
+        # sells services that are not gifts: window-20261012-210547/frame-0005.json sold
+        # "Replace Don Qubote's Sil" at 77, and buying it opened the skill-replacement
+        # chooser (frame-0006.json, an UNKNOWN_DIALOG with its own Confirm) instead of
+        # the shop's purchase question.  The gift catalog names no such offer (its
+        # closest ratio is .48), so when the catalog's own names are supplied the cap
+        # only spends on an offer the catalog names, and a shelf of services is left.
+        if (buy is None and refresh is None and carry_cap_coins is not None
+                and cash > carry_cap_coins):
+            forbidden = {name.strip().casefold() for name in blocked if isinstance(name, str)}
+            forbidden.update(name.strip().casefold() for name in bought
+                             if isinstance(name, str))
+            named = {name.strip().casefold() for name in gift_names if isinstance(name, str)}
+            cheap = [offer for offer in found
+                     if offer.click and offer.price is not None
+                     and offer.price <= cash-reserve_coins
+                     and offer.name.strip().casefold() not in forbidden
+                     and (not named or offer.name.strip().casefold() in named)]
+            if cheap:
+                offer = min(cheap, key=lambda item: (item.price, item.index))
+                buy = {'box': list(offer.click), 'name': offer.name, 'price': offer.price,
+                       'index': offer.index, 'why': 'carry_cap'}
+                reason = ('the_visit_would_carry_out_more_coins_than_its_cap_holds_so_'
+                          'the_shelf_is_spent_on')
+            else:
+                # The cap could not be honoured and the trace has to say so.  The live
+                # window-20261012-221631 spent three cards down to 2400 and then printed
+                # ``no_offer_matches_the_gift_plan`` for a shelf whose only unbought offer
+                # was the service "Replace Don Qubote's Sil" at 77 -- true of the plan,
+                # silent about the 900 coins the cap still wanted to spend.
+                reason = ('the_visit_would_carry_out_more_coins_than_its_cap_holds_but_no_'
+                          'affordable_unbought_offer_the_shelf_prints_is_the_catalogs')
     return {'currency': cash, 'buy': buy, 'refresh': refresh,
             'policy_trace':locals().get('policy_trace'),
             'confirm': purchase_confirm_target(records, size), 'reason': reason,
@@ -1222,6 +1300,10 @@ class MirrorRunner:
         self.registry = registry if registry is not None else _load_registry()
         self.store = store
         self.run_id = run_id
+        # The verified-run total this window starts from: a saved number of runs is this
+        # launch's own instruction, so only the delta since here may satisfy it -- the
+        # ledger's all-time count is not a progress bar for the current launch.
+        self.run_baseline = None if store is None else _completed_runs(store)
         self.directory = Path(directory) if directory is not None else Path(os.getcwd())
         self.directory.mkdir(parents=True, exist_ok=True)
         self.journal = journal
@@ -1299,6 +1381,30 @@ class MirrorRunner:
             self.run_id = run_id
         if store is not None:
             self.store = store
+            if self.run_baseline is None:
+                self.run_baseline = _completed_runs(store)
+
+    def _verified_runs(self):
+        """How many complete runs this window has seen settle since it started."""
+        if self.store is None or self.run_baseline is None:
+            return None
+        return _completed_runs(self.store) - self.run_baseline
+
+    def _run_count_reached(self):
+        """The player's own number of complete runs, once this window delivered it.
+
+        ``completed_runs`` advances only on ``entry_returned``, which the ledger refuses
+        before five verified floors, a final victory and a claimed reward
+        (``storage.py259-289``), so an abandoned, expired or given-up run never counts.
+        The number is this launch's instruction, not a module budget: a following run
+        still pays from its own scope, and a run that cannot start keeps its cleared,
+        unclaimed state instead of borrowing an older authorisation.
+        """
+        target = int(self.settings.run_count or 0)
+        seen = self._verified_runs()
+        if target <= 0 or seen is None or seen < target:
+            return None
+        return dict(target=target, completed=seen)
 
     def note(self, name, **fields):
         """Journal one event, when a journal is attached."""
@@ -1515,6 +1621,22 @@ class MirrorRunner:
                     cx, cy = int(round(x * scale)), int(round(y * scale))
                     candidates.append([cx - side // 2, cy - side // 2, side, side])
             candidates = state['map_progress'].remaining(candidates)
+        heal_options=None
+        if page=='HEAL_SINNERS' or page in ('UNKNOWN','UNKNOWN_DIALOG'):
+            # The shop's Heal Sinners modal is drawn over the shop page: its three
+            # numbered options are read from this frame (live
+            # window-20261012-212047/frame-0012.json, whose third option reads
+            # '3. Revive a single Sinner.' with its own 100 badge at [1768,611,50,42]).
+            # The classifier names the modal off its own title and structure, and this read
+            # binds the option the plan may aim at; an UNKNOWN frame that shows the same
+            # structure is named here as well, so a window started while the modal is open
+            # still reaches the one input that brings a key saved slot back.
+            from .shop_revive import heal_sinners_options
+            heal_options=heal_sinners_options(
+                [Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])],
+                record.get('size') or (1920,1080))
+            if heal_options is not None:
+                page='HEAL_SINNERS'
         sha = record.get('image_sha256')
         if not settings.observe_only and page in WAIT_PAGES:
             if page=='UNKNOWN':
@@ -1652,6 +1774,17 @@ class MirrorRunner:
                         and pending.get('kind')=='purchase'
                         and pending.get('stage')=='confirm_intent'
                         and not pending.get('overlay_acknowledgement'))
+            # A purchase intent's own click can land on a service modal instead of the
+            # shop's question: the live window-20261012-210547 spent its surplus on the
+            # shelf offer "Replace Don Qubote's Sil" and got the skill-replacement
+            # chooser.  The shelf whose receipt has to be read is behind that modal, so
+            # the modal is dismissed through its own close control (the next step's
+            # UNKNOWN_DIALOG plan) and the page after it is where the intent is either
+            # booked or dropped unspent.  Nothing else is allowed through: any other
+            # successor still keeps the pending bytes untouched and stops the run.
+            recoverable=(page=='UNKNOWN_DIALOG' and not settings.observe_only
+                         and pending.get('kind')=='purchase'
+                         and pending.get('stage')=='card_intent')
             if answerable:
                 try:
                     notice_ack=shop_tx.reserve_overlay_acknowledgement(
@@ -1663,6 +1796,10 @@ class MirrorRunner:
                           reason='the_purchase_own_gift_get_notice_is_acknowledged_once',
                           target=list(notice_ack),input_sent=False,
                           acknowledgement=shop_tx.data['pending']['overlay_acknowledgement'])
+            elif recoverable:
+                self.note('shop_receipt_recovery_modal',page=page,stage=pending.get('stage'),
+                          reason='the_intent_click_opened_a_modal_and_the_shop_is_behind_it',
+                          input_sent=False)
             else:
                 stopped=self._record(page,record,frame,candidates,None,'shop_receipt_successor_not_proven')
                 return self._result(page,None,False,stopped,done=True)
@@ -1673,6 +1810,8 @@ class MirrorRunner:
         if page in ('SHOP', 'SHOP_PURCHASE'):
             names=wanted_gifts(state['gift_plan'],settings.gift_keyword,fallback=())
             keywords=[]
+            gift_vocabulary=()
+            profile=None
             if self.store is not None:
                 from .storage import ProfileStore
                 from .gift_plan import shop_wanted
@@ -1681,6 +1820,7 @@ class MirrorRunner:
                               if p.slot==self.store.team_slot),None)
                 if profile is None:raise ValueError('Current saved shop team absent')
                 catalog=GiftCatalog(ROOT/'assets/resource/base')
+                gift_vocabulary=tuple(catalog.entries)
                 from .shop_priority import load as load_shop_priorities
                 explicit_priorities=load_shop_priorities(ROOT/'assets/resource/base/shop-priorities.json',catalog)
                 names=shop_wanted(profile,catalog,explicit_priorities)
@@ -1729,9 +1869,61 @@ class MirrorRunner:
                               refreshes_used=state['shop_refreshes'],
                               refresh_limit=settings.shop_refreshes,reserve_coins=settings.shop_reserve_coins,
                               policy=settings.shop_policy,learning=learning,
+                              blocked=sorted(profile.block) if profile else (),
+                              carry_cap_coins=settings.shop_carry_cap_coins,
+                              gift_names=gift_vocabulary,
                               value_context=dict(floor=state['floor_now'],keywords=keywords))
+            if page=='SHOP' and shop:
+                # A revive planned at this shop is booked from the shop's own counter: the
+                # Heal Sinner service is paid for with the run's in-run currency, so the
+                # step back onto the panel has to show it lower by exactly the price the
+                # modal printed.  The receipt is consumed once, and a panel that does not
+                # prove it is recorded instead of believed.
+                receipt=state.pop('revive_receipt',None)
+                if receipt:
+                    before=receipt.get('coins_before'); cost=receipt.get('cost')
+                    after=shop.get('currency')
+                    proof=dict(source='shop_currency_delta',
+                               image_sha256=record.get('image_sha256'))
+                    if (self.deployment_transaction is not None and isinstance(before,int)
+                            and isinstance(after,int) and isinstance(cost,int)
+                            and before-after==cost):
+                        self.deployment_transaction.book_revive(
+                            receipt['card'],cost,before,after,proof=proof)
+                        self.note('shop_revive_booked',card=receipt['card'],cost=cost,
+                                  coins_before=before,coins_after=after,proof=proof,
+                                  reason='the_shop_s_own_counter_moved_by_the_price_the_modal_printed',
+                                  input_sent=False)
+                    else:
+                        self.note('shop_revive_receipt_not_proven',card=receipt.get('card'),
+                                  cost=cost,coins_before=before,coins_after=after,proof=proof,
+                                  reason='the_shop_s_counter_did_not_show_the_revive_price',
+                                  input_sent=False)
+                # A key slot the deployment page's own proof could not field comes back
+                # before the visit spends anything else: the operator's standing rule is
+                # that a Sinner in the first seven slots of the saved order must be
+                # revived, and the shop's Heal Sinner service is the only way back.  The
+                # card list is the deployment transaction's own proof, never a guess at
+                # a portrait, and the click box is the service's own two label tokens.
+                from .shop_revive import heal_sinner,key_losses,saved_order,unavailable_sinners
+                store_state=self.deployment_transaction.data if self.deployment_transaction is not None else None
+                lost=key_losses(unavailable_sinners(store_state),saved_order(store_state))
+                service=heal_sinner([Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']],
+                                    record.get('size')) if lost else None
+                if service is not None:
+                    shop['revive']={'box':list(service.box),'cost':service.cost,
+                                    'cost_box':list(service.cost_box) if service.cost_box else None,
+                                    'cards':lost}
+                    state['revive_receipt']=dict(card=lost[0],cost=service.cost,
+                                                 coins_before=shop.get('currency'))
+                    self.note('shop_revive_planned',cards=lost,cost=service.cost,
+                              coins_before=shop.get('currency'),
+                              reason='a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back',
+                              input_sent=False)
             self.note('shop_policy',mode=settings.shop_policy,refresh_limit=settings.shop_refreshes,
-                      reserve_coins=settings.shop_reserve_coins,decision=shop.get('policy_trace'),input_sent=False)
+                      reserve_coins=settings.shop_reserve_coins,
+                      carry_cap_coins=settings.shop_carry_cap_coins,
+                      decision=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP' and shop:
                 chosen=shop.get('buy') or {};offers=shop.get('offers') or []
                 from .shop_vision import wanted_offers,Offer
@@ -1904,6 +2096,59 @@ class MirrorRunner:
             texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
             box=dialog_dismissal(texts,record.get('size') or (1920,1080),self.locale_dictionary())
             if box:plan_controls['unknown_dialog.close']=list(box)
+        if page=='HEAL_SINNERS' and heal_options is not None:
+            plan_controls['heal_sinners.revive']=list(heal_options.revive_box)
+        if page in ('REVIVE_PICK','REVIVE_DONE'):
+            # The modal's second step asks for the Sinner itself (live
+            # evidence/runtime/window-20261012-213008/frame-0002.json reads 'Select the
+            # Sinner to revive.' [102,567,330,36] with the party bar along the bottom of the
+            # screen, the dead card 6's portrait highlighted and its number the one this OCR
+            # never reads), and its own bottom-right button then answers that pick.  Which
+            # card is dead is the deployment page's own proof, so the bar box comes from the
+            # deck that proof names; only one input leaves per picker frame, so a picker that
+            # answers a click with itself gets the modal's own button answered next, never
+            # its portrait clicked twice (a second click takes a selection back, live
+            # window-20261012-214600).
+            from .shop_revive import (key_losses,modal_bottom_control,picker_slot,saved_order,
+                                      unavailable_sinners)
+            store_state=(self.deployment_transaction.data
+                         if self.deployment_transaction is not None else None)
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
+            size=record.get('size') or (1920,1080)
+            words=self.locale_dictionary()
+            if page=='REVIVE_DONE':
+                # Somebody is back ("<Sinner>, revived, returns to battle.") and the modal's
+                # own button is now Leave, which hands the panel back to the shop.  The row
+                # above it would heal again for another 100 and is never aimed at here.
+                state.pop('revive_pick_frames',None)
+                box=modal_bottom_control(texts,[words.get('leave',r'^Leave$')],size)
+                if box is not None:
+                    plan_controls['revive_done.leave']=box
+                    self.note('revive_done_leave_bound',box=box,
+                              reason='the_modal_s_own_bottom_right_button_is_the_way_back',
+                              input_sent=False)
+            else:
+                picked=state.get('revive_pick_frames',0)
+                state['revive_pick_frames']=picked+1
+                if picked:
+                    box=modal_bottom_control(texts,[words.get('select',r'^Select$')],size)
+                    if box is not None:
+                        plan_controls['revive_pick.action']=box
+                        self.note('revive_pick_confirm_bound',box=box,
+                                  reason='the_modal_s_own_bottom_right_button_answers_the_pick',
+                                  input_sent=False)
+                else:
+                    box=picker_slot(unavailable_sinners(store_state),saved_order(store_state),
+                                    size)
+                    if box is not None:
+                        plan_controls['revive_pick.slot']=list(box)
+                        self.note('revive_pick_slot_bound',box=list(box),
+                                  cards=key_losses(unavailable_sinners(store_state),
+                                                   saved_order(store_state)),
+                                  reason='the_picker_asks_for_the_card_the_deployment_page_could_not_field',
+                                  input_sent=False)
+        elif state.pop('revive_pick_frames',None) is not None:
+            pass
         if page=='GIFT_GET' and notice_ack is not None:
             # The notice's own Confirm was just re-proved against this very frame and
             # stored as the pending purchase's acknowledgement, so that box -- not the
@@ -2247,17 +2492,21 @@ class MirrorRunner:
         point = None
         if page in ('SHOP','SHOP_PURCHASE') and plan.get('reason') in (
                 'buying_the_gift_the_gift_plan_asked_for',
+                'spending_the_coins_this_visit_would_carry_out_on_the_shelf',
                 'refreshing_the_shelf_for_the_gift_the_plan_wants',
                 'confirming_the_purchase_the_shop_asked_about'):
             visit=shop_tx.data['current_visit']
-            if plan['reason']=='buying_the_gift_the_gift_plan_asked_for':
+            if plan['reason'] in ('buying_the_gift_the_gift_plan_asked_for',
+                                  'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
                 target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),
                     reserve_coins=settings.shop_reserve_coins,decision_context=dict(team=self.store.team_slot,
                     keywords=keywords,floor=state['floor_now'],owned_bought=list(state['shop_bought']),
                     wanted=list(shop['wanted']),
                     policy=settings.shop_policy,policy_trace=shop.get('policy_trace'),
                     reserve_coins=settings.shop_reserve_coins,refresh_limit=settings.shop_refreshes,
-                    refreshes_used=state['shop_refreshes'],offers=shop['offers']))
+                    refreshes_used=state['shop_refreshes'],offers=shop['offers'],
+                    why=(plan['detail'] or {}).get('why'),
+                    carry_cap_coins=settings.shop_carry_cap_coins))
             elif plan['reason']=='refreshing_the_shelf_for_the_gift_the_plan_wants':
                 target=shop_tx.reserve_refresh(self.run_id,visit,plan['detail']['cost'],shop['currency'],settings.shop_refreshes,frame_file(directory),reserve_coins=settings.shop_reserve_coins)
             else:
@@ -2308,7 +2557,8 @@ class MirrorRunner:
                       reason=plan['reason'], point=list(point), delay_ms=delay)
             self.device.click(*point)
         self.artifacts['clicks_sent'] += 1
-        if plan.get('reason') == 'buying_the_gift_the_gift_plan_asked_for':
+        if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
+                                  'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
             # The price is booked as spent the moment the click goes out: a purchase
             # the shop answers with its own question is still a purchase this run has
             # committed the currency to, and the next shop frame must not offer it
@@ -2316,7 +2566,8 @@ class MirrorRunner:
             bought = dict((plan.get('detail') or {}), step=state['step'],
                           frame=frame_file(directory).name, point=None if point is None else list(point))
             self.note('shop_purchase_sent', gift=bought.get('name'), price=bought.get('price'),
-                      currency=bought.get('currency'), point=bought['point'],receipt_verified=False)
+                      why=bought.get('why'), currency=bought.get('currency'),
+                      point=bought['point'],receipt_verified=False)
         elif plan.get('reason') == 'refreshing_the_shelf_for_the_gift_the_plan_wants':
             state['shop_refreshes']=shop_tx.refreshes_used(self.run_id,shop_tx.data['current_visit'])
             self.note('shop_shelf_refreshed', cost=(plan.get('detail') or {}).get('cost'),
@@ -2548,6 +2799,23 @@ class MirrorRunner:
             # drawn for a new dungeon, so seeing it while the ledger still calls a run
             # active means that run ended without a receipt and the ledger would
             # otherwise never open the next one.
+            # The player's own number of complete runs. This window keeps walking into the
+            # next run -- every scope pays from its own budget -- until the launch has
+            # delivered what it was asked for, and only then hands control back.
+            reached = self._run_count_reached()
+            if reached is not None:
+                entry['reason'] = 'run_count_reached'
+                entry['stopped'] = 'run_count_reached'
+                entry['verified_runs'] = reached
+                self.artifacts['run_count'] = reached
+                self.note('run_count_reached', **reached)
+                result = self._result(page, plan.get('target'), True, 'run_count_reached',
+                                      done=True)
+                # ``_result`` reads the last appended step, and this step's record is
+                # appended after the ledger block, so the stop names itself here.
+                result['reason'] = 'run_count_reached'
+                result['verified_runs'] = reached
+                return result
         detail = plan.get('detail') or {}
         if entry['passed'] and detail.get('slot'):
             # The loadout slot has been sent; the next step on this page must fall
@@ -2922,7 +3190,22 @@ class MirrorRunner:
                                   or (last or {}).get('stopped')
                                   or (last or {}).get('reason')
                                   or ('navigation_probe_unresolved_at_boundary' if self.state.get('navigation_probe_pending') else 'no_step_recorded')))
+        if self.store is not None:
+            # The one place a verified-run count is visible to the caller and the log:
+            # what this launch asked for, what it delivered, and the ledger's own total.
+            result['verified_runs'] = dict(target=int(settings.run_count or 0),
+                                           completed=self._verified_runs(),
+                                           ledger_total=_completed_runs(self.store),
+                                           counted_at_launch=self.run_baseline)
         return result
+
+
+def _completed_runs(store):
+    """The ledger's all-time verified-run total, or 0 when it cannot be read."""
+    try:
+        return int((store.data or {}).get('completed_runs') or 0)
+    except (AttributeError, TypeError, ValueError):
+        return 0
 
 
 def _foreground(device):

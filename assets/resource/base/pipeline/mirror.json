@@ -5576,6 +5576,14 @@
     },
     "next": []
   },
+  "MirrorRunCount": {
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "run_count": 0
+    },
+    "next": []
+  },
   "MirrorPreferenceEdit": {
     "recognition": "DirectHit",
     "action": "DoNothing",

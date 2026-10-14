@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.runner import (FakeDevice, FrameObserver, MaaDevice,  # noqa: E402
                               MaaObserver, MirrorRunner, REGISTRY, candidates_of,
-                              header_chrome, inside_chrome)
+                              header_chrome, inside_chrome, observe, team_state)
 import maalimbus.runner as runner_module  # noqa: E402
 
 # A live window whose first pages are the run summary's claim: frame-0001 is RUN_CLAIM,
@@ -66,6 +66,60 @@ def window(tmp_path, frames, settings):
     runner = MirrorRunner(device, settings=settings, registry=json.loads(
         REGISTRY.read_text(encoding='utf-8')), directory=tmp_path, observer=observer)
     return runner, device
+
+
+def _ledger(tmp_path, monkeypatch, completed):
+    """A run ledger whose verified-run total is the number this case names."""
+    from types import SimpleNamespace
+    from maalimbus.storage import RunStore
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    monkeypatch.setattr(runner_module, '_completed_runs', lambda ledger: completed)
+    return store, scope
+
+
+def test_a_named_run_count_is_delivered_only_by_a_verified_run(tmp_path, monkeypatch):
+    """The count is the ledger's own verified total, not the step bound.
+
+    ``completed_runs`` only advances on ``entry_returned``, which the ledger refuses
+    before five verified floors, a victory and a claimed reward, so a run that was
+    abandoned or expired can never satisfy the player's number.
+    """
+    store, scope = _ledger(tmp_path, monkeypatch, 1)
+    runner = MirrorRunner(FakeDevice([]), settings={'rounds': 1, 'run_count': 2},
+                          directory=tmp_path, store=store, run_id=scope)
+    assert (runner.run_baseline, runner._verified_runs()) == (1, 0)
+    assert runner._run_count_reached() is None
+    monkeypatch.setattr(runner_module, '_completed_runs', lambda ledger: 2)
+    assert (runner._verified_runs(), runner._run_count_reached()) == (1, None)
+    monkeypatch.setattr(runner_module, '_completed_runs', lambda ledger: 3)
+    assert runner._run_count_reached() == dict(target=2, completed=2)
+
+
+def test_no_named_run_count_never_stops_the_window(tmp_path, monkeypatch):
+    store, scope = _ledger(tmp_path, monkeypatch, 4)
+    runner = MirrorRunner(FakeDevice([]), settings={'rounds': 1},
+                          directory=tmp_path, store=store, run_id=scope)
+    assert runner.settings.run_count == 0 and runner._run_count_reached() is None
+
+
+def test_the_window_hands_control_back_once_the_named_run_count_is_delivered(tmp_path,
+                                                                             monkeypatch):
+    """The delivered number stops the window in place and no further input goes out."""
+    store, scope = _ledger(tmp_path, monkeypatch, 0)
+    runner, device = window(tmp_path, [CLAIM_FRAME, CLAIM_SUCCESSOR],
+                            {'rounds': 1, 'run_count': 1})
+    runner.store, runner.run_id, runner.run_baseline = store, scope, 0
+    monkeypatch.setattr(runner_module, '_completed_runs', lambda ledger: 1)
+    result = runner.step()
+    assert (result['reason'], result['stopped'], result['input_sent'], result['done']) == (
+        'run_count_reached', 'run_count_reached', True, True)
+    assert result['verified_runs'] == dict(target=1, completed=1)
+    # This step's own click went out; the window then handed control back instead of
+    # starting another run.
+    assert len(device.clicks) == 1 and device.swipes == []
+    assert runner.summary()['verified_runs'] == dict(target=1, completed=1,
+                                                     ledger_total=1, counted_at_launch=0)
 
 
 def test_observe_battle_preference_reaches_runner_and_sends_no_input(tmp_path):
@@ -736,11 +790,68 @@ def test_a_battle_frame_whose_observation_records_nothing_stops(tmp_path, monkey
     assert calls == ['WindowMapObserve', 'WindowBattleObserve', 'WindowBattleObserve']
 
 
+def test_a_live_page_keeps_the_native_local_reads_of_its_frame(tmp_path):
+    """The unavailable-card proof has to survive the live observer seam.
+
+    ``MaaObserver`` answers with the semantic ``map_observed`` event, whose payload
+    carries no ``local_ocr``, while the frame the same step wrote carries the native
+    ``deployment_availability`` record. Without that record every live
+    PRE_BATTLE_TEAM step read an 11-card capacity with no unavailable card, spent
+    both re-reads and stopped on 'Current deployment capacity requires independent
+    unavailable-card proof' while the frame itself held ``accepted: true`` and
+    ``unavailable: [6]`` (evidence/runtime/window-20261012-202916/frame-0003.json,
+    written by the run that stopped). ``size`` and ``ocr`` were already attached
+    here; the native reads are attached for the same reason, and a frame record
+    that already carries its own is never overwritten.
+    """
+    proof = {'purpose': 'deployment_availability', 'accepted': True, 'participants': [0, 11],
+             'unavailable': [6], 'teacher': 'native_hp_and_card_pixels'}
+    (tmp_path / 'frame-0002.json').write_text(json.dumps({
+        'image_sha256': 'a' * 64, 'size': [1920, 1080],
+        'ocr': [{'text': '0/ 11', 'box': [1680, 738, 180, 92], 'score': .894}],
+        'local_ocr': [proof]}), encoding='utf-8')
+
+    class SilentEvent:
+        directory = tmp_path
+
+        def observe(self, *, deadline=None):
+            return {'event': 'map_observed', 'scene': 'PRE_BATTLE_TEAM', 'frame': 'frame-0002'}
+
+    record = observe(SilentEvent())
+    assert record['local_ocr'] == [proof]
+    controls = {'pre_battle.card_%02d' % index: [0, 0, 1, 1] for index in range(1, 13)}
+    team = team_state(record, controls)
+    assert team['availability']['accepted'] is True, 'the proof reaches the pre-battle reader'
+    assert team['unavailable'] == [6], 'and with it the card the page cannot field'
+
+
+def test_a_record_that_already_carries_its_local_reads_keeps_them(tmp_path):
+    """A replayed frame is its own evidence: the seam never rewrites it."""
+    own = {'purpose': 'deployment_availability', 'accepted': False, 'participants': [0, 12]}
+    (tmp_path / 'frame-0002.json').write_text(json.dumps({
+        'image_sha256': 'b' * 64, 'size': [1920, 1080], 'ocr': [], 'local_ocr': [own]}),
+        encoding='utf-8')
+
+    class Event:
+        directory = tmp_path
+
+        def observe(self, *, deadline=None):
+            return {'event': 'map_observed', 'scene': 'PRE_BATTLE_TEAM', 'frame': 'frame-0002',
+                    'local_ocr': [own]}
+
+    assert observe(Event())['local_ocr'] == [own]
+
+
 SHOP_DIR = ROOT / 'evidence/runtime/window-20261012-024300'
 SHOP_FRAME = SHOP_DIR / 'frame-0173.json'
 SHOP_REASON_BUY = 'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'
 SHOP_REASON_NONE = 'no_offer_matches_the_gift_plan'
 SHOP_REASON_BOUGHT = 'every_offer_the_gift_plan_asked_for_was_already_bought'
+# The cap's own line was crossed and it still bought nothing: the reason has to name
+# that state, not the gift plan's, or a live trace cannot tell a shelf that had
+# nothing to sell from a plan that simply wanted nothing.
+SHOP_REASON_CAP_UNMET = ('the_visit_would_carry_out_more_coins_than_its_cap_holds_but_no_'
+                         'affordable_unbought_offer_the_shelf_prints_is_the_catalogs')
 
 
 def shop_page():
@@ -825,6 +936,98 @@ def test_an_offer_this_run_already_paid_for_is_not_paid_for_again():
     assert state['buy'] is None and state['reason'] == SHOP_REASON_BOUGHT
 
 
+SHOP_REASON_CAP = ('the_visit_would_carry_out_more_coins_than_its_cap_holds_so_'
+                   'the_shelf_is_spent_on')
+
+
+def test_a_visit_that_would_carry_out_more_than_its_cap_spends_the_surplus():
+    """The operator's directive: keep 500, carry at most 1500 out of a visit.
+
+    The plan wants a gift this shelf does not hold and the visit has no refresh left, so
+    without the cap it would walk out with all 1008 coins (the live run pi-20261012-174217
+    did exactly that with 2518).  The surplus buys the cheapest card the shelf itself
+    printed, and it is reported as the cap's purchase rather than as the plan's.
+    """
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    state = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                       reserve_coins=500, carry_cap_coins=800)
+    assert state['refresh'] is None
+    assert state['buy'] == {'box': [870, 357, 120, 90], 'name': 'Replace Heathciffs Skill',
+                            'price': 77, 'index': 1, 'why': 'carry_cap'}
+    assert state['reason'] == SHOP_REASON_CAP
+
+
+def test_the_cap_never_pays_more_than_the_visit_may_carry_or_buy_a_blocked_offer():
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    # A reserve above the coins on the page leaves nothing to spend: the cap is a rule
+    # about surplus, never a reason to break the floor the player set.
+    poor = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                      reserve_coins=1000, carry_cap_coins=800)
+    assert poor['buy'] is None and poor['reason'] == SHOP_REASON_CAP_UNMET
+    # A blocked name is skipped for the next cheapest printed offer, and when the player
+    # blocked the whole shelf the visit leaves with its coins rather than buying anything.
+    blocked = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                         reserve_coins=500, carry_cap_coins=800,
+                         blocked=['Replace Heathciffs Skill'])
+    assert blocked['buy']['name'] == 'Uncapped Defibrilator'
+    assert blocked['buy']['price'] == 147 and blocked['buy']['why'] == 'carry_cap'
+    every = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                       reserve_coins=500, carry_cap_coins=800,
+                       blocked=[offer['name'] for offer in page_offers(page)])
+    assert every['buy'] is None and every['reason'] == SHOP_REASON_CAP_UNMET
+
+
+def test_the_cap_only_spends_on_an_offer_the_gift_catalog_names():
+    """The shelf also sells services, and one of them derailed a live run.
+
+    ``window-20261012-210547/frame-0005.json`` printed ``Replace Don Qubote's Sil`` at 77
+    among the shelf's cards; the catalog names no such offer, and clicking it opened the
+    skill-replacement chooser instead of the shop's own purchase question
+    (``frame-0006.json``, an UNKNOWN_DIALOG whose only safe control is Cancel).  When the
+    catalog's vocabulary is supplied, the cap skips every offer it does not name.
+    """
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    named = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                       reserve_coins=500, carry_cap_coins=800, gift_names=('Scalpel',))
+    assert named['buy']['name'] == 'Scalpel' and named['buy']['price'] == 155
+    assert named['buy']['why'] == 'carry_cap'
+    unknown = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                         reserve_coins=500, carry_cap_coins=800,
+                         gift_names=('No Such Gift',))
+    assert unknown['buy'] is None and unknown['reason'] == SHOP_REASON_CAP_UNMET
+    # An empty vocabulary is how every caller that has no catalog keeps the old rule.
+    everything = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                            reserve_coins=500, carry_cap_coins=800, gift_names=())
+    assert everything['buy']['name'] == 'Replace Heathciffs Skill'
+
+
+def page_offers(page):
+    from maalimbus.runner import shop_state
+    return shop_state(page, wanted=['Wound Clerid'])['offers']
+
+
+def test_the_cap_waits_for_the_plan_and_its_refresh_and_only_fires_above_itself():
+    """Order: the gift plan first, then a refresh worth taking, then the cap, and never
+    below the cap itself; ``None`` leaves the rule off entirely."""
+    from maalimbus.runner import shop_state
+    page = shop_page()
+    plan = shop_state(page, wanted=['Prejudice'], refreshes_used=2, refresh_limit=2,
+                      reserve_coins=500, carry_cap_coins=800)
+    assert plan['buy']['name'] == 'Prejudice' and plan['buy']['why'] == 'gift_plan'
+    fresh = shop_state(page, wanted=['Wound Clerid'], refreshes_used=0, refresh_limit=2,
+                       reserve_coins=500, carry_cap_coins=800)
+    assert fresh['buy'] is None and fresh['refresh']['cost'] == 15
+    above = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                       reserve_coins=500, carry_cap_coins=1500)
+    assert above['buy'] is None and above['reason'] == SHOP_REASON_NONE
+    off = shop_state(page, wanted=['Wound Clerid'], refreshes_used=2, refresh_limit=2,
+                     reserve_coins=500)
+    assert off['buy'] is None and off['reason'] == SHOP_REASON_NONE
+
+
 def test_the_shop_page_is_not_read_when_the_page_is_not_a_shop():
     from maalimbus.runner import shop_state
     page = shop_page()
@@ -891,3 +1094,187 @@ def test_a_shop_visit_that_spent_its_refreshes_leaves_instead(tmp_path):
     assert runner.state['shop_refreshes'] == 0
     intents = [details for event, details in notes.events if event == 'window_intent']
     assert intents[0]['reason'] == 'leaving_the_shop_is_the_only_budget_safe_input'
+
+
+def _dead_key_deployment(path, dead=6):
+    """A deployment store whose own proof could not field `dead` in a key saved slot."""
+    from maalimbus.storage import write_json
+    order = [dead, 2, 4, 9, 12, 7, 11, 10, 3, 1, 8, 5]
+    write_json(path, dict(scope='run', sequence=[], pending=None, saved_order=order,
+                          order=order, unavailable=[dead]))
+    return path
+
+
+def _counter_lower(record, delta):
+    """The same shop frame with the shop's own counter read `delta` lower."""
+    from maalimbus.shop_vision import CURRENCY_X, CURRENCY_Y
+
+    def inside(box):
+        cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
+        return CURRENCY_X[0] <= cx <= CURRENCY_X[1] and CURRENCY_Y[0] <= cy <= CURRENCY_Y[1]
+
+    counter = [token for token in record['ocr'] if inside(token['box'])]
+    assert len(counter) == 1, counter
+    patched = json.loads(json.dumps(record))
+    for token in patched['ocr']:
+        if token['box'] == counter[0]['box']:
+            token['text'] = str(int(counter[0]['text']) - delta)
+    return patched
+
+
+def test_the_shop_sells_a_dead_key_slot_back_and_books_it_from_its_own_counter(tmp_path):
+    """The Heal Sinner service is planned from the deck's proof and booked by its price.
+
+    A Sinner the deployment page's own proof could not field whose saved slot is among the
+    first seven comes back first, before the visit spends anything else, and the revive is
+    paid for out of the run's own currency.  The only receipt that books it is the shop's
+    counter moving by exactly the price the modal printed (live 2026-10-12: 1008 -> 908 for
+    Hong Lu's 100).
+    """
+    from maalimbus.deployment_transaction import DeploymentTransaction
+    from maalimbus.shop_revive import heal_sinner
+    from maalimbus.vision import Text
+    page = shop_page()
+    runner, device, notes = shop_window(tmp_path, page)
+    image = runner.observer.frames[0]['image']
+    store = _dead_key_deployment(tmp_path / 'deployment.json')
+    runner.deployment_transaction = DeploymentTransaction(store)
+    runner.state['gift_plan'] = {'teams': {'bleed': ['Prejudice']}, 'default': []}
+    result = runner.step()
+    assert result['page'] == 'SHOP'
+    # The service click is the input; whether the frame after it is accepted is a separate
+    # question, so the intent is read where the run writes it before sending the click.
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents and intents[0]['reason'] == 'a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back'
+    service = heal_sinner([Text(t['text'], tuple(t['box']), t['score']) for t in page['ocr']],
+                          page.get('size'))
+    assert intents[0]['target'] == list(service.box)
+    planned = [details for event, details in notes.events if event == 'shop_revive_planned']
+    assert len(planned) == 1 and planned[0]['cards'] == [6]
+    assert (planned[0]['cost'], planned[0]['coins_before']) == (100, 1008)
+    assert runner.state['revive_receipt'] == dict(card=6, cost=100, coins_before=1008)
+    assert [details for event, details in notes.events if event == 'shop_purchase_sent'] == []
+    # The next shop frame is the one the revive left behind: its own counter is 100 lower,
+    # the price the modal printed, so that frame is the receipt and the store books it.
+    after = dict(_counter_lower(page, 100), image=image)
+    runner.observer.frames, runner.observer.index = [after] * 4, 0
+    result = runner.step()
+    assert result['page'] == 'SHOP'
+    booked = [details for event, details in notes.events if event == 'shop_revive_booked']
+    assert len(booked) == 1 and booked[0]['coins_after'] == 908
+    assert booked[0]['proof']['source'] == 'shop_currency_delta'
+    assert DeploymentTransaction(store).data['revives'] == [
+        dict(card=6, cost=100, coins_before=1008, coins_after=908, proof=booked[0]['proof'])]
+    # The booked receipt is what keeps the same Sinner from being bought back twice: the
+    # store's own dead list no longer names card 6.
+    from maalimbus.shop_revive import key_losses, saved_order, unavailable_sinners
+    assert unavailable_sinners(DeploymentTransaction(store).data) == []
+    assert key_losses([], saved_order(DeploymentTransaction(store).data)) == []
+
+
+def test_a_counter_that_does_not_show_the_revive_price_books_nothing(tmp_path):
+    """A frame after the revive that kept the same counter is recorded, never believed."""
+    from maalimbus.deployment_transaction import DeploymentTransaction
+    page = shop_page()
+    runner, device, notes = shop_window(tmp_path, page)
+    image = runner.observer.frames[0]['image']
+    store = _dead_key_deployment(tmp_path / 'deployment.json')
+    runner.deployment_transaction = DeploymentTransaction(store)
+    runner.state['revive_receipt'] = dict(card=6, cost=100, coins_before=1008)
+    runner.observer.frames, runner.observer.index = [dict(page, image=image)] * 4, 0
+    runner.step()
+    unproven = [details for event, details in notes.events
+                if event == 'shop_revive_receipt_not_proven']
+    assert len(unproven) == 1 and unproven[0]['coins_after'] == 1008
+    assert unproven[0]['reason'] == 'the_shop_s_counter_did_not_show_the_revive_price'
+    assert DeploymentTransaction(store).data.get('revives') in (None, [])
+
+
+REVIVE_PICK_FRAME = ROOT / 'evidence/runtime/window-20261012-213008/frame-0002.json'
+REVIVE_PICKED_FRAME = ROOT / 'evidence/runtime/window-20261012-214635/frame-0006.json'
+REVIVE_DONE_FRAME = ROOT / 'evidence/runtime/window-20261012-214803/frame-0001.json'
+
+
+def revive_frame(path, words):
+    """A retained revive frame as the live recognition layer names it today."""
+    from maalimbus.vision import Text, classify
+    if not path.exists():
+        pytest.skip('retained live revive evidence is not present')
+    record = json.loads(path.read_text(encoding='utf-8'))
+    rows = [Text(t['text'], tuple(t['box']), t['score']) for t in record['ocr']]
+    return dict(record, scene=classify(rows, words, record.get('size') or (1920, 1080)),
+                image=archived(path))
+
+
+def revive_window(tmp_path, frames):
+    """A window walking revive frames in order, with the run's own stores."""
+    from types import SimpleNamespace
+    from maalimbus.policies import Team
+    from maalimbus.storage import ProfileStore, RunStore
+    ProfileStore(tmp_path/'user-team-profiles.json').save([Team(2,frozenset({'Bleed'}))])
+    store = RunStore(tmp_path / 'user-run-ledger.json', [SimpleNamespace(slot=2)])
+    scope = store.start()
+    device = FakeDevice([frame['image'] for frame in frames])
+    observer = FrameObserver(tmp_path, [dict(frame) for frame in frames])
+    notes = Notes()
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+                          registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
+                          directory=tmp_path, observer=observer, journal=notes,
+                          store=store, run_id=scope)
+    return runner, device, notes
+
+
+def test_the_picker_names_the_dead_card_and_the_modal_answers_its_own_pick(tmp_path):
+    """The revive's whole second step, walked on the frames the live run left behind.
+
+    window-20261012-213008/frame-0002 is the picker before anything was picked: it asks for
+    the Sinner and prints no bottom button, so the one input it can take is the dead card's
+    own portrait in the party bar.  window-20261012-214635/frame-0006 is the same step after
+    that pick, where the modal's own 'Select' [1614,937,166,61] answers it; and
+    window-20261012-214803/frame-0001 is what the revive printed -- "Hong Lu, revived,
+    returns to battle." over 'Leave' [1622,943,150,53].  Which card is dead is never guessed
+    from a portrait: it is the deployment store's own proof.
+    """
+    from maalimbus.deployment_transaction import DeploymentTransaction
+    from maalimbus.shop_revive import key_losses, picker_slot, saved_order, unavailable_sinners
+    words = json.loads((ROOT / 'assets/resource/en/locale.json').read_text(encoding='utf-8'))
+    pick = revive_frame(REVIVE_PICK_FRAME, words)
+    picked = revive_frame(REVIVE_PICKED_FRAME, words)
+    done = revive_frame(REVIVE_DONE_FRAME, words)
+    shop = dict(shop_page(), image=archived(SHOP_FRAME))
+    assert (pick['scene'], picked['scene'], done['scene']) == (
+        'REVIVE_PICK', 'REVIVE_PICK', 'REVIVE_DONE'), 'the rules name these frames'
+    runner, device, notes = revive_window(tmp_path, [pick, picked, picked, done, done, shop])
+    store = _dead_key_deployment(tmp_path / 'deployment.json')
+    runner.deployment_transaction = DeploymentTransaction(store)
+    # Only an input the frame itself argues for: the dead card's slot, from the deck proof.
+    result = runner.step()
+    assert result['page'] == 'REVIVE_PICK'
+    bound = [details for event, details in notes.events if event == 'revive_pick_slot_bound']
+    data = DeploymentTransaction(store).data
+    assert len(bound) == 1 and bound[0]['cards'] == key_losses(unavailable_sinners(data),
+                                                              saved_order(data)) == [6]
+    assert bound[0]['box'] == list(picker_slot(unavailable_sinners(data), saved_order(data)))
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents[-1]['reason'] == \
+        'picking_the_dead_key_slot_the_deployment_page_could_not_field'
+    assert intents[-1]['target'] == bound[0]['box']
+    # The first picker frame prints no button, so nothing but a portrait could be answered.
+    assert not [details for event, details in notes.events
+                if event == 'revive_pick_confirm_bound']
+    # The picker answers the portrait with itself, and now the modal's own button is there.
+    result = runner.step()
+    assert result['page'] == 'REVIVE_PICK'
+    confirm = [details for event, details in notes.events if event == 'revive_pick_confirm_bound']
+    assert len(confirm) == 1 and confirm[0]['box'] == [1614, 937, 166, 61]
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents[-1]['reason'] == 'the_modals_own_button_answers_the_pick_the_bar_made'
+    assert intents[-1]['target'] == [1614, 937, 166, 61]
+    # And the notice the revive printed is left by its own button, never by 'Heal again.'.
+    result = runner.step()
+    assert result['page'] == 'REVIVE_DONE'
+    leave = [details for event, details in notes.events if event == 'revive_done_leave_bound']
+    assert len(leave) == 1 and leave[0]['box'] == [1622, 943, 150, 53]
+    intents = [details for event, details in notes.events if event == 'window_intent']
+    assert intents[-1]['reason'] == 'the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop'
+    assert intents[-1]['target'] == [1622, 943, 150, 53]

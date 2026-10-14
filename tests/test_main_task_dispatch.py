@@ -90,6 +90,7 @@ def test_mirror_dispatch_reads_parsed_native_action_and_preserves_params(tmp_pat
         if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='poise'))
         if name=='MirrorGiftSearch':return dict(attach=dict(mode='refuse'))
         if name=='MirrorRunBounds':return dict(attach=dict(steps='saved'))
+        if name=='MirrorRunCount':return dict(attach=dict(run_count='saved'))
         if name=='MirrorBattleAssignment':return dict(attach=dict(mode='damage'))
         if name=='MirrorShopPolicy':return dict(attach=dict(shop_policy='learned'))
         if name=='MirrorShopRefreshLimit':return dict(attach=dict(shop_refreshes=3))

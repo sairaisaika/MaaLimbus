@@ -83,6 +83,7 @@ def test_gui_start_prepares_old_run_before_applying_both_real_option_shapes(tmp_
         if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='saved'))
         if name=='MirrorGiftSearch':return dict(attach=dict(mode='saved'))
         if name=='MirrorRunBounds':return dict(attach=dict(steps='saved'))
+        if name=='MirrorRunCount':return dict(attach=dict(run_count='saved'))
         if name=='MirrorBattleAssignment':return dict(attach=dict(mode='saved'))
         for n,f in [('MirrorShopPolicy','shop_policy'),('MirrorShopRefreshLimit','shop_refreshes'),('MirrorShopCoinReserve','shop_reserve_coins')]:
             if name==n:return dict(attach={f:'saved'})

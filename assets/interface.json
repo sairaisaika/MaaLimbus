@@ -123,6 +123,7 @@
         "mirror_shop_refresh_limit",
         "mirror_shop_coin_reserve",
         "mirror_run_bounds",
+        "mirror_run_count",
         "mirror_preferences",
         "mirror_battle_assignment"
       ]
@@ -68134,6 +68135,80 @@
             "MirrorShopCoinReserve": {
               "attach": {
                 "shop_reserve_coins": 500
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mirror_run_count": {
+      "type": "select",
+      "label": "$mirror_run_count",
+      "description": "$mirror_run_count_description",
+      "default_case": "saved",
+      "cases": [
+        {
+          "name": "saved",
+          "label": "$mirror_run_count_keep",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": "saved"
+              }
+            }
+          }
+        },
+        {
+          "name": "1",
+          "label": "1",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "2",
+          "label": "2",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": 2
+              }
+            }
+          }
+        },
+        {
+          "name": "3",
+          "label": "3",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": 3
+              }
+            }
+          }
+        },
+        {
+          "name": "5",
+          "label": "5",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": 5
+              }
+            }
+          }
+        },
+        {
+          "name": "10",
+          "label": "10",
+          "pipeline_override": {
+            "MirrorRunCount": {
+              "attach": {
+                "run_count": 10
               }
             }
           }
