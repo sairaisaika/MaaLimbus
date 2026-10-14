@@ -14,7 +14,7 @@ config/*.json.*.tmp
 *.log
 
 # Agent skills 配置（本地记录：issue tracker / triage 标签词汇 / 域文档布局）
-docs/agents/
+docs/agents/*
 AGENTS.md
 CONTEXT.md
 CONTEXT-MAP.md
@@ -22,4 +22,9 @@ CONTEXT-MAP.md
 # read-only upstream reference clones fetched by research subagents
 .research/deps/
 build/
+
+# 例外：记忆沉淀纪律这两份要随仓库走（只放行这两份，其余 agent 文档保持本地）
+# 父目录本身被忽略时，针对其中文件的否定行不生效 —— 所以上面写 docs/agents/* 而不是 docs/agents/
+!docs/agents/memory.md
+!AGENTS.md
 

@@ -236,7 +236,7 @@ def check_wiki(wiki: Path = None, root: Path = None) -> dict:
         lines = path.read_text(encoding='utf-8', errors='replace').split('\n')
         language = name.split('/', 1)[0] if '/' in name else ''
         page = name.split('/', 1)[1] if '/' in name else name
-        is_routing = page == 'index.md' or name == 'README.md'
+        is_routing = page == 'index.md' or name in ('README.md','agent-index.md')
 
         blocks, unclosed = scan_fences(lines)
         prose = prose_only(lines, blocks)

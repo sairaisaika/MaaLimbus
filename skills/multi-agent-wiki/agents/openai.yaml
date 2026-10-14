@@ -1,0 +1,3 @@
+interface:
+  display_name: "Engineering Wiki for Agents"
+  short_description: "Fast source-backed wiki routing for multi-agent projects"
