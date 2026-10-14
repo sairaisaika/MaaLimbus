@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--png',type=Path,required=True)
     parser.add_argument('--binary',type=Path,default=ROOT/'dist/MaaLimbus/maafw')
     parser.add_argument('--config',type=Path,required=True)
+    parser.add_argument('--apply',action='store_true',help='retire the ended scope on the live store (never settles a purchase)')
     args=parser.parse_args()
     output=ROOT/'build'/('mirror-idle-native-'+uuid.uuid4().hex)
     output.mkdir(parents=True)
@@ -67,9 +68,31 @@ def main():
                           retired=outcome['retired'],completion_unchanged=True,receipts_unchanged=True))
     unchanged=protected=={n:sha(args.config/n) for n in protected}
     assert unchanged
+    extra={}
+    if args.apply:
+        # Retire the ended scope on the live store. The proof must be this screenshot and
+        # the store must still hold an active scope; the grace transaction is hashed before
+        # and after to prove this path never settles a pending purchase (that is
+        # verify_grace_balance_recovery.py --apply).
+        assert args.config.resolve()==(ROOT/'config').resolve(),args.config
+        ledger=args.config/'user-run-ledger.json'
+        grace=args.config/'user-grace-transaction.json'
+        grace_sha=sha(grace) if grace.is_file() else None
+        live=read_json(ledger);assert live['active'] is not None,'nothing to retire'
+        shutil.copyfile(ledger,output/'ledger-before-apply.json')
+        real=RunStore(ledger,[SimpleNamespace(slot=s) for s in live['team_slots']])
+        outcome=reconcile_idle_entry(real,proof)
+        after=read_json(ledger)
+        assert after['active'] is None,after['active']
+        assert len(after['abandoned'])==len(live['abandoned'])+1
+        assert after['completed_runs']==live['completed_runs'] and len(after['receipts'])==len(live['receipts'])
+        assert grace_sha is None or sha(grace)==grace_sha
+        extra=dict(applied=True,retired_scope=live['active']['id'],retired_outcome=outcome,
+                   abandoned=len(after['abandoned']),ledger_sha256_after=sha(ledger),grace_hash_unchanged=True)
     report=dict(passed=True,scene=record['scene'],frame=str(proof),png_sha256=record['image_sha256'],
                 json_sha256=sha(proof),cases=cases,private_hashes_unchanged=unchanged,
-                device_controller=False,game_input=False,scope='Native OCR + isolated state only; not GUI Start or gameplay')
+                device_controller=False,game_input=False,
+                scope='Native OCR + isolated state only; not GUI Start or gameplay',**extra)
     write_json(ROOT/'build/mirror-idle-entry-native-verification.json',report)
     print(json.dumps(dict(passed=True,scene=record['scene'],cases=cases,private_hashes_unchanged=unchanged,
                          game_input=False)))

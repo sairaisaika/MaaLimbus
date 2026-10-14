@@ -1702,3 +1702,55 @@ latest focused74passed2.26s. Frozen installation and live GUI execution remain o
   Latest whole-suite rerun and actual full pipeline remain required.
 - DSH handoff follows docs/plan-20261014-recovery-diagnostics.md and wiki-first
   feature-local diagrams. Resource CPU/RAM/GPU/VRAM UI remains planned, not done.
+
+## DSH handoff: the sent star card is settled from evidence, and the packaged entry runs the chain
+
+- The handoff gate `build/dsh-20261014-ready.json` carried Codex commit 252c0d2 and a
+  running client (PID 6764). The client was closed through `CloseMainWindow` — no
+  MaaLimbus process remained — and the app was rebuilt and safely reinstalled so the
+  **source-only node-adapter fix** is now in the install: `build-info.json` records
+  source `252c0d2a9b38`, built `2026-10-14T10:20:08Z`, MXU `aa28bc31…9615c2`,
+  self-test passed, and all 2970 private files byte-identical to the backup and to the
+  install copy (`every_backup_file_identical: true`, `only_in_install: []`).
+- Acceptance criterion: a sent star-card input is **settled from evidence, never
+  replayed**. Two deviceless tools gained an explicit `--apply`, each refusing a clone,
+  a changed pending, or a scope that is still active:
+  `tools/verify_mirror_idle_entry.py --apply` retired the ended scope
+  `bc1fec62c8984a8f9d78ed6c26b0f4b8` from the fresh native `MIRROR_ENTRY` frame
+  (`disposition: ended_without_new_outcome_claim`, `completed_runs` still 2, receipts
+  still 2, rotation and grace bytes untouched — `build/mirror-idle-entry-native-verification.json`,
+  ledger sha `7b085d5f…`); `tools/verify_grace_balance_recovery.py --apply` then booked
+  the retained before/after pair (95 → 75) onto the real store
+  (`selected [2,4]`, `spent 30`, `pending null`, `bef3f24b… → 89ea65c6…`,
+  `device_input: 0` — `build/grace-balance-recovery-native-verification.json`). The
+  default path of both tools still runs against isolated copies only.
+- The fresh page that settled it reads **Available 105** again, so the discarded
+  preparation did not carry its 30 stars into the new run: recovering the sent card into
+  its own scope and retiring that scope is the honest record, and no second retrieval
+  happens.
+- Acceptance criterion: the packaged MainTask entry must walk the real chain, not just
+  connect. `build/grace-stop-page-star-graces.json` shows
+  `MIRROR_ENTRY → ENTRY_CONFIRM → DUNGEON_TEAM → STAR_GRACES` with `entry_connected: true`,
+  `bounded_progress_verified: true`, three inputs, and **no** `a node plan needs a Maa
+  tasker` — the failure that stopped `pi-20261014-053727`. A second run then read every
+  grace balance at the anchored crops (`105 → 95 → 75 → 45 → 5`), bought the planned
+  `[2,4,5,7]` one input at a time, confirmed the selection and entered the dungeon
+  (`evidence/runtime/packaged-mirror-20261014-063205`).
+- The same live run closes an item this document listed as still required: its journal
+  carries live `pre_battle_identity_report` rows (11/12 measured, 3 identities resolved,
+  9 named gaps), and the agent console prints the real decision traces —
+  `主题评分：保存权重，越高越优先；同分按画面从左到右。` followed by per-pack
+  `权重=…；最终分=…；来源=neutral_default`, which is the rule score and its provenance
+  rather than a claimed trained policy.
+- Acceptance criterion for the run count: `completed_runs` advances only on
+  `entry_returned`, which already requires five verified floors, a victory and a claimed
+  reward (`storage.py259-289`, `tests/test_run_store.py53-61`); abandoning or pointing a
+  team never touches it; `MirrorRunBounds` is read only as a step bound
+  (`mirror_task_options.py8`) and all three locale labels state it is not a dungeon count.
+  No code path grants module budget from a completed run: `assets/resource/base/budget.json`
+  still ships `module_budget: 0` with status pending.
+- Still required: the full five-floor clear with payout and entry return in one packaged
+  run, a live shop purchase whose GET overlay is bound to the purchase in that run, the
+  actual MXU GUI **click** Start acceptance, GUI persistence acceptance (portrait/star
+  editors saved and reopened), a visible verified-run counter in the panel, and the
+  resource-diagnostics panel.

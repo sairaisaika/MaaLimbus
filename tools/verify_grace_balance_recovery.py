@@ -1,5 +1,13 @@
-"""Retained native balance readings and isolated pending-purchase recovery."""
-import argparse,hashlib,json,shutil,sys,time,uuid
+"""Retained native balance readings and isolated pending-purchase recovery.
+
+Without ``--apply`` every case runs against isolated copies and the store's bytes are
+proven unchanged. With ``--apply`` the one verified pending is settled on the real
+store from the retained frames -- zero device input, never a second purchase -- and
+only when the run that sent it is no longer active in the ledger (retire it first with
+tools/verify_mirror_idle_entry.py --apply). A pending whose evidence does not prove the
+exact delta stays pending; this tool cannot invent an outcome.
+"""
+import argparse,hashlib,json,shutil,sys,time,uuid,datetime
 from pathlib import Path
 import cv2
 ROOT=Path(__file__).resolve().parents[1]
@@ -18,7 +26,9 @@ from maalimbus.storage import read_json,write_json
 
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--transaction',type=Path,required=True);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--evidence',type=Path,required=True);p.add_argument('--transaction',type=Path,required=True)
+ p.add_argument('--apply',action='store_true',help='settle the verified pending on the real store (retire the run first)')
+ p.add_argument('--run-ledger',type=Path,default=ROOT/'config/user-run-ledger.json');a=p.parse_args()
  out=ROOT/'build'/('grace-native-'+uuid.uuid4().hex);out.mkdir()
  original=digest(a.transaction)
  Library.open(ROOT/'dist/MaaLimbus/maafw',agent_server=False);Toolkit.init_option(out/'debug')
@@ -54,5 +64,23 @@ def main():
   assert clone.read_bytes()==old
  assert not controller.input_attempts
  report=dict(passed=True,cases=cases,recovered_card=pending['card'],recovery_no_input=True,private_hash_unchanged=True,device_input=0)
+ if a.apply:
+  # Settle the one verified pending on the real store. Three guards keep this from ever
+  # becoming a fabricated receipt: the target must be the live store (a clone is refused),
+  # the live pending must be byte-for-byte the intent just verified, and the run that sent
+  # it must already be retired from the ledger (tools/verify_mirror_idle_entry.py --apply).
+  store=a.transaction.resolve()
+  assert store==(ROOT/'config/user-grace-transaction.json').resolve(),store
+  live=read_json(store);assert live['pending']==pending,(live.get('pending'),pending)
+  assert Path(pending['proof']).resolve().parent==a.evidence.resolve(),pending['proof']
+  active=read_json(a.run_ledger).get('active')
+  assert active is None or active['id']!=pending['scope'],active
+  store_before=digest(store)
+  applied=GraceTransaction(store);applied.recover(live['scope'],live['requested'],live['budget'],75,current)
+  after=read_json(store)
+  assert after['pending'] is None and pending['card'] in after['selected'],after
+  assert after['spent']==live['spent']+pending['cost'],after
+  report.update(applied=True,store=str(store),store_sha256_before=store_before,store_sha256_after=digest(store),
+                pending_before=pending,transaction_after=dict(scope=after['scope'],selected=after['selected'],spent=after['spent'],budget=after['budget']))
  write_json(ROOT/'build/grace-balance-recovery-native-verification.json',report);print(json.dumps(report))
 if __name__=='__main__':main()

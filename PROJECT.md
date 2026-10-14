@@ -1825,6 +1825,161 @@ Idle source verification after these changes: 1528 passed, 1 skipped
 (Windows symlink privilege), 98.33 s; build/shop-value-deployment-full-tests.txt.
 This is a source test result, not complete game or production-value acceptance.
 
+## Continuation: October 12 the shop's Heal Sinner revive
+
+- The operator's rule and route: a Sinner in the first seven slots of the saved order who
+  cannot be deployed has to come back, `Heal Sinner 100` opens three options and the third
+  one is the revive, and the Sinner itself is then the one to click. It became three pages,
+  each named from two independent tokens: `HEAL_SINNERS` (`assets/resource/en/locale.json:67`,
+  `vision.py:266-269`; the title plus the three ordinal rows whose third prints its own badge),
+  `REVIVE_PICK` (`:68`, `vision.py:286-288`) and `REVIVE_DONE` (`:69`, `vision.py:283-285`).
+  The first option's ordinal is read live as `I.` rather than `1.`, so
+  `shop_revive.ORDINAL` matches a loose glyph run and the rows are taken in reading order.
+- The modal's inputs are words, not positions: the option rows are display-only in every
+  state. Measured live in `window-20261012-214600`, clicking the revive row, its 100 badge
+  and its inner label did nothing, while a second click on the picked portrait took the pick
+  back (highlight 227 px -> 0). The real input is the modal's own bottom-right control, whose
+  word carries the state: `Return` [1610,941,172,55] in the three-way step, `Select`
+  [1614,937,166,61] in the pick step, `Leave` [1622,943,150,53] after a revive
+  (`shop_revive.modal_bottom_control`, `CONFIRM_X=(1560,1860)` x `CONFIRM_Y=(900,1010)`,
+  exactly one match at `FLOOR=.9`).
+- Which Sinner is dead is never read from the picture. It is the deployment page's own proof:
+  `unavailable_sinners` = the store's `unavailable` plus its rejected inputs' proof cards,
+  minus the cards the booked `revives` name, intersected with `saved_order[:KEY_POSITIONS]`
+  (7). The picker's bar is measured geometry (`BAR_FIRST_CENTER=112`, `BAR_PITCH=115`, the
+  box 90 x 120 at y 880), so `slot_box(card)` aims without searching portraits.
+- A revive is booked only from the shop's own counter delta, because its price cannot be read
+  off the shelf before it is spent: planning stores `state['revive_receipt']`, and the next
+  SHOP frame books it through `deployment_transaction.book_revive` only when
+  `coins_before - currency == cost`; any other delta notes
+  `shop_revive_receipt_not_proven` and books nothing. Live proof, one window apart:
+  `window-20261012-214803/frame-0001.json` reads `Hong Lu, revived, returns to battle.` over
+  2993, exactly 3093 - 100.
+- Written up in `docs/shop-revive.md`, cross-linked from `docs/shop-settings.md`. Suite:
+  1595 passed, 1 skipped (Windows symlink permission);
+  `tests/test_runner.py tests/test_window.py tests/test_shop_settings.py` 181 passed.
+  `dist/MaaLimbus` rebuilt and installed from this source (`tools/make_local_app.py`,
+  `self_test` and `agent_self_test` true, 2824 private files preserved, backup
+  `dist/MaaLimbus.backup-833ef7c747b245c38c279855909937ef`).
+- Still required at that point: one live window driving the whole route from the planner in a
+  single run (the live clicks above were sent one at a time with `tools/window_step.py`), and the
+  carry-cap spend of `docs/shop-settings.md` in a live shop. The continuation below answers the
+  cap spend and the planner's own legs; what is still open is named at its end.
+
+### Live continuation: the planner drove the modal, the cap and the exit
+
+- `build/deepseek-revive-live-14.json` (`window-20261012-221139`, `--steps 60`) started on the
+  revive notice the previous run left behind and drove it from the planner in one window:
+  step 0 `REVIVE_DONE -> SHOP` `click` `the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop`,
+  step 1 `SHOP -> SHOP_PURCHASE` `spending_the_coins_this_visit_would_carry_out_on_the_shelf`
+  (the carry-cap rule buying live for the first time), step 2 `SHOP_PURCHASE -> GIFT_GET`
+  `confirming_the_purchase_the_shop_asked_about`, step 3 `GIFT_GET -> SHOP`
+  `the_gift_get_notice_is_cleared_with_its_own_confirm`. Step 4 stopped the run:
+  `Independent complete successor shelf not proven`.
+- That stop was a real defect in the receipt, not in the revive. `shop_transaction.py:419`
+  matched the bought card by its exact title, and the shop's own typeface spells the same card
+  two ways: the visit reserved "Today's Expression" 189, the counter went 2993 -> 2804, and the
+  successor printed that same slot under its own Purchased badge as "Today's **Expresslon**".
+  No bought card was recognised, so the fallback compared every remaining slot and refused a
+  purchase the counter had already charged. `_same_title`/`_fold` (`shop_transaction.py:33-53`)
+  now fold the typeface's confusable class (`i`/`l`/`1`/`!`/`|`, `o`/`0`, apostrophes) before
+  matching a re-read shelf row to the intent, and the fix is used for the badge's own card, the
+  unspent-intent guard and the strict whole-shelf comparison. It is not a fuzzy title match:
+  `matching_purchase_question` still demands the complete name.
+- `build/deepseek-revive-live-15.json` (`window-20261012-221631`, `--steps 70`) then did the
+  whole shop visit on the fixed source: the walk-in reconcile booked the stuck
+  "Today's Expression" (`own_purchased_badge`, successor `frame-0001`), the cap bought
+  "Blood, Sweat, and Tears" 200 (`frame-0007`) and "Millarca" 204 (`frame-0013`), two refresh
+  receipts were booked, the visit closed (`closed: True`, `pending: None`) and the run left the
+  shop at 2400 through `SHOP_LEAVE` — then kept driving the dungeon (battles, `EVENT_CHECK`,
+  `REWARD_CARD`, `NODE_PANEL`, `PRE_BATTLE_TEAM`, `GIFT_PICK`) to the step budget. The cap could
+  not reach its own ceiling on that shelf (every affordable offer was already bought and the only
+  unbought one was the service "Replace Don Qubote's Sil"), which the decision now says in its own
+  reason instead of borrowing the gift plan's (`SHOP_REASON_CAP_UNMET` in
+  `tests/test_runner.py:794`), and the exit stayed budget-safe. `config/user-run-ledger.json`
+  now holds the active run on floors `[1,2,3,4]` (team 7, rotation 5), so floor 5 is the next
+  live milestone; the earlier receipt `8de51ee326254dada65ae776aa1c1e11` (team 4, floors
+  `[1,2,3,4,5]`, victory and reward) is still the only floor 5 outcome on evidence.
+- Tests: `tests/test_shop_transaction.py` 45 passed, including the live three-frame replay
+  (`frame-0002` reservation, `frame-0004` question, `frame-0008` successor) and a negative that
+  proves the fold never adopts a card with a different glyph; `tests/test_runner.py` 46 passed.
+- Still required after this continuation: a single planner run that starts at `HEAL_SINNERS` and
+  carries the revive itself (`HEAL_SINNERS -> REVIVE_PICK -> REVIVE_DONE -> SHOP`) — only its
+  separate legs are live-proven so far — and a floor 5 outcome on evidence.
+- `dist/MaaLimbus` was rebuilt from this source after the fold fix (`tools/make_local_app.py`,
+  `self_test` and `agent_self_test` true, 2824 private files, backup
+  `dist/MaaLimbus.backup-0553a889cb14422f8fed9197f057a77b`), and the frozen product was then
+  pointed at the live window to continue the run toward floor 5
+  (`tools/verify_packaged_mirror_loop.py --app dist/MaaLimbus --steps 300 --seconds 3600`,
+  report `build/deepseek-floor5-packaged.json`). Suite at this point: 1598 passed, 1 skipped.
+
+## Continuation: October 12, the wiki is brought back onto today's code
+
+- The wiki (`docs/wiki/`, `README.md` + `zh_cn/` + `en_us/`, 11 chapters per language) had been
+  frozen at 20:40-21:51 the same day, i.e. **before** the shop revive work: a grep for
+  `shop_revive`, `Heal Sinner`, `revive`, `REVIVE_`, `CARRY_CAP` and `modal_bottom_control` over
+  every wiki file returned zero hits. It now documents the work: `shop_revive.py` joined the module
+  table (`docs/wiki/*/2.2-modules.md`, 92 -> 93 modules), chapter 5's store table carries
+  `saved_order`/`unavailable`/`revives` and the shop store's `bought`/`refresh_receipts`/`closed`,
+  the in-floor state graph gained the revive route (`SHOP -> HEAL_SINNERS -> REVIVE_PICK ->
+  REVIVE_DONE -> SHOP`) plus the shop's own purchase/refresh/leave edges, chapter 4 gained the
+  shop-visit section, chapter 7 gained the battle-HUD gap, and chapter 2.3 gained decisions D13
+  (a dialog's answer is the state word it prints, not its explanatory row) and D14 (the confusable
+  fold, explicitly not fuzzy matching).
+- Two new build-side guards exist for the *anchor* half of the wiki, which
+  `tools/check_wiki.py` never checked (it validates structure, not `path:line`):
+  `build/deepseek-continuation-20261012/resolve-wiki-citations.py` resolves every
+  `src/maalimbus/<module>.py:line` citation to the line it lands on and flags inverted ranges,
+  out-of-file lines, blanks and comment-only spans, and
+  `build/deepseek-continuation-20261012/fix-wiki-citations.py` holds the audited repair table
+  (both languages, longest citation first, idempotent). After the repairs: 1112 citations
+  resolved, 12 remaining flags that are all deliberate citations of a design-comment banner, and
+  `tools/check_wiki.py` still `ok — 0 problem(s)` with `tests/test_wiki.py` 30 passed.
+- One real code defect came out of the audit: the `HEAL_SINNERS` plan's third row opens a picker
+  the classifier names `REVIVE_PICK`, but the plan's `expect` tuple omitted that page, so the hop
+  was an `unexpected_successor` retry. `src/maalimbus/window.py:1000` now reads
+  `expect=('REVIVE_PICK', 'HEAL_SINNERS', 'SHOP', 'PRE_BATTLE_TEAM', 'UNKNOWN')`, asserted by
+  `tests/test_window.py::test_the_shops_own_option_list_is_answered_with_its_third_row_only`;
+  `tests/test_window.py tests/test_runner.py tests/test_vision.py` = 169 passed.
+- A read-only audit subagent hand-verified every `window.py`/`vision.py`/`runner.py`/
+  `shop_transaction.py` citation in the wiki and found ~60 stale ones, all now repaired (~130
+  replacements across both languages). One row is knowingly left alone: `7-quality.md:19` quotes
+  `docs/acceptance.md`'s own record (`runner.py:1784`, `runner.py:2131`), which the audit marked
+  UNVERIFIABLE — it is a quotation of another document, so it is not re-anchored by guesswork.
+
+### Continuation: October 12 late, the diagrams catch up and one durability defect closes
+
+- The **diagrams** were the last stale layer. `§5.1.2`'s in-floor state graph already carried the
+  revive route, but nothing else did, so `docs/wiki/*/4-business-flows.md` gained a shop-visit
+  flowchart under `§4.3.1` (the ordered inputs, each hop gated by its own page's words, ending in
+  the `coins_before - current == cost` receipt gate and `book_revive`), `docs/wiki/*/2-architecture.md`
+  figure 2-2 gained a `shop_revive.py` node in the page-reading layer with `RUNNER --> SHOPREV -->
+  SHOPV` edges grounded in `src/maalimbus/runner.py:1862` and `src/maalimbus/shop_revive.py:20`,
+  and the chapter-5 ER diagram now lists the keys the revive path actually writes
+  (`saved_order`/`unavailable`/`revives` on `user-deployment-transaction`, `unspent_intents` on the
+  shop store). The module count was stale in eight more places (chapter 1's two diagram labels,
+  chapter 2's four mentions, chapter 6's source-tree diagram, chapter 2.2's cluster sum): all now
+  93, and chapter 2's Chinese vision-cluster row was 25 where the English row and chapter 2.2 both
+  said 29 — both are now 30. Verified with `tools/check_wiki.py` (`ok — 0 problem(s)`,
+  flowchart 28 -> 30), `tests/test_wiki.py` 30 passed, and the offline render check
+  (`tools/make_wiki_mermaid_check.py` + a local HTTP server read through the browser):
+  **48/48 blocks parsed, all blocks parsed**.
+- One durability defect closed while touching that contract. `DeploymentTransaction.prepare`
+  rewrites the store from a fresh dict whenever the page has been submitted again — which is how a
+  selection is cleared — and that rewrite silently dropped `revives`, the receipt the shop's own
+  currency counter paid for. The next shop visit of the same run then read the dead slot again and
+  walked back into a picker it had already paid for (the picker refuses, so the run stops rather
+  than double-charges). `src/maalimbus/deployment_transaction.py:23-30` now carries same-scope
+  revive receipts through that rewrite and starts a different scope empty, pinned by two tests in
+  `tests/test_deployment_transaction.py`. Live note: `config/user-deployment-transaction.json`
+  currently holds no `revives` row (its last write predates the manual booking, and the game shows
+  no dead slot — `unavailable: []`), so nothing was re-booked into the operator's store by hand.
+- Suites at this point: `python -m pytest -q` = **1600 passed, 1 skipped**; the wiki citation
+  resolver reports **1144 citations, 12 flags**, and every one of the twelve is a deliberate
+  citation of a design-comment banner rather than drift.
+
+
+
 
 ## Continuation: October 13 entry reconciliation, list browsing and wiki semantics
 
@@ -1910,3 +2065,34 @@ This is a source test result, not complete game or production-value acceptance.
   Latest whole-suite rerun and actual full pipeline remain required.
 - DSH handoff follows docs/plan-20261014-recovery-diagnostics.md and wiki-first
   feature-local diagrams. Resource CPU/RAM/GPU/VRAM UI remains planned, not done.
+
+## DSH handoff execution: star settlement, packaged entry, live pipeline
+
+- Gate build/dsh-20261014-ready.json given with Codex commit 252c0d2; the running
+  client PID6764 was closed with CloseMainWindow and no MaaLimbus process remained.
+  Rebuilt and safely reinstalled with the node-adapter fix: build-info source
+  252c0d2a9b38, built 2026-10-14T10:20:08Z, mxu_sha256 aa28bc31…9615c2, self-test
+  passed, 2970 private files byte-identical to the backup and to the install copy.
+- Card1 was settled in both halves from retained evidence with zero device input.
+  The ended scope bc1fec62c8984a8f9d78ed6c26b0f4b8 was retired through native OCR of
+  the fresh MIRROR_ENTRY frame: disposition ended_without_new_outcome_claim,
+  completed_runs still 2, receipts still 2, grace transaction untouched
+  (build/mirror-idle-entry-native-verification.json, ledger sha 7b085d5f…). The sent
+  card4 selection was then booked from the retained before/after frames (95->75):
+  selected[2,4], spent30, pending null, store bef3f24b…->89ea65c6…
+  (build/grace-balance-recovery-native-verification.json). Both tools gained an
+  explicit --apply that refuses a clone, a changed pending and an unretired scope;
+  their default path stays isolated-copy only.
+- Card2's packaged entry now walks MIRROR_ENTRY -> ENTRY_CONFIRM -> DUNGEON_TEAM ->
+  STAR_GRACES through the installed MainTask with no tasker error, so the source-only
+  adapter fix is proven in the install (build/grace-stop-page-star-graces.json). The
+  live run then read every grace balance at the anchored crops 105->95->75->45->5,
+  bought the planned[2,4,5,7] with one input each, confirmed the selection and entered
+  the dungeon; its evidence is evidence/runtime/packaged-mirror-20261014-063205.
+- Card3's run-count semantics were verified in source instead of asserted:
+  completed_runs advances only on entry_returned after five floors, a victory and a
+  claimed reward (storage.py259-289, tests/test_run_store.py53-61); abandoning or
+  pointing never touches it; MirrorRunBounds is read only as a step bound
+  (mirror_task_options.py8) and all three locale labels say it is not a dungeon count;
+  the module gate still ships pending/0. A visible verified-run counter in the MXU
+  panel is not built yet.
