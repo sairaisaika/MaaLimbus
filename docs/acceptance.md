@@ -1821,6 +1821,13 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   (`src/maalimbus/shop_value_training.py:764-765`, `:779-780`), so `lesson-apply` is a human review gate plus 10
   independent scopes, not missing code; what orders a real purchase today is `src/maalimbus/shop_priority.py` plus
   the gift plan, as the packaged run's five `shop_decision_ranking` events show.
+- The review gate is operable instead of theoretical: `tools/review_shop_purchase.py` (pinned by
+  `tests/test_shop_review_tool.py`, 7 passed) lists every retained sample with its review status, its outcome flags
+  and its exclusion reason, records an approved/rejected decision with a note and a 0..1 label, and refuses
+  `--eligible` unless `verify_episode_evidence` re-reads the bytes and the run ledger first. Run against the three
+  real samples it refuses with `delayed_outcome_scope_not_in_run_ledger` -- all three carry scope
+  `f855ac82c2b1429a…`, which the ledger no longer holds (the retired scope), so no label can make them trainable;
+  and because they share that one scope they could never supply the 10 independent episodes the export requires.
 - The retest then carried the same page past the stop it had hit before: the run's own `floor_gift_ranking` at 12:05
   selected `Today's Expression` (`selection_source: single_free_select_button`, proof `frame-0057.json`), the `Select`
   intent (`select_takes_the_picked_floor_gifts`, point `[1686,873]`) was answered by the notice, and

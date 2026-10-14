@@ -2216,6 +2216,13 @@ This is a source test result, not complete game or production-value acceptance.
   five `shop_decision_ranking` events the two purchases were chosen by
   `the_gift_plan_asked_for_this_offer_and_the_shop_covers_it` with `learning: None`. So the lesson-apply path is a
   human review gate plus 10 independent scopes, not missing code.
+- That gate is now operable rather than theoretical: `tools/review_shop_purchase.py` (pinned by
+  `tests/test_shop_review_tool.py`, 7 passed) lists every retained sample with its review status, outcome flags
+  and reason; records an approved/rejected decision with a note and a 0..1 label; and refuses `--eligible` unless
+  `verify_episode_evidence` re-reads the bytes and the run ledger first. Against the three real samples it refuses
+  with `delayed_outcome_scope_not_in_run_ledger`: all three carry scope `f855ac82c2b1429a…`, which the ledger no
+  longer holds (the retired scope), so no label can make them trainable -- and since they share that one scope they
+  could never supply the 10 independent episodes the export requires.
 - Card ⑥'s source-anchor review now has a measurement instead of an impression:
   `tools/verify_wiki_citations.py` (pinned by `tests/test_wiki_citations.py`, 10 passed) classifies the 1,280
   `path.py:LINE` citations in `docs/wiki` as 383 with no symbol named beside them, 397 inside table rows that name
