@@ -165,6 +165,8 @@ CustomAction已经占用框架worker，不能在里面改回 `context.tasker.pos
 
 **同一处读取差距，落在货架上（2026-10-14）**：同一局复测继续走到第3层，在结算刚买下的 `Rusted Cutting Knife`（244枚，1530 → 1286）时以 `Shop successor shows an offer the shelf never held` 停下（68步 / 67次输入，`passed: false`）。存档保留了 `pending.stage: overlay_intent`，返回后的货架仍是同样的六个槽位、被买下的卡带自己的 `Purchased` 徽标——但本次造访自己的预订帧把160枚那个槽位读成 `Thomy Path`，返回货架读成 `Thorny Path`（图鉴名，`assets/resource/base/gift-catalog.json` 的 `gifts[280]`），于是严格的标题比较把货架一直持有的卡当成“从未持有”的报盘。商店的折叠现在把印刷体连字 `rn` 一并折成 `m`（`src/maalimbus/shop_transaction.py`），由 `tests/test_shop_transaction.py::test_a_condensed_ligature_reads_as_the_same_slot` 及其反例钉住；用返回帧重放停止的存档即可结算（`reconcile_purchase: True`、`bought[-1] = Rusted Cutting Knife`、`pending` 清空）。要再次尝试五层通关，安装版必须带上这处折叠。
 
+**等货架重画完再判（2026-10-14）**：重装后的应用再次由自己的按钮启动（`pi-20261014-193945`，本地19:39），只走了1次输入就停下——货架上没有计划想要的藏品，于是它付了15币刷新（`[1478,168,86,28]`，金币1127），而后继帧 `frame-0004` 只读到六个槽位中的两个、计数仍是刷新前的数，既证不出差额也证不出完整的变更货架。交易规则拒收这样一帧是对的（`ShopTransaction.reconcile_refresh`，`src/maalimbus/shop_transaction.py`），所以 runner 改为等待而不是停车：同一次造访里最多三帧未证成的后继帧会记为 `shop_refresh_settling` 并重新观察，意图在等待期间始终未被认领，第四帧仍然停车（`src/maalimbus/runner.py`，由 `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops` 钉住）。实机证明要等下一次在同一商店启动。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

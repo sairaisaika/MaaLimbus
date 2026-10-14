@@ -865,8 +865,12 @@ def shop_page():
     return record
 
 
-def shop_window(tmp_path, record):
-    """A one-step window sitting on the shop page, with the run's own store."""
+def shop_window(tmp_path, record, extras=None):
+    """A one-step window sitting on the shop page, with the run's own store.
+
+    ``extras`` replaces the three identical observations with its own records, so a
+    test can hand the loop a page that changes between steps.
+    """
     from types import SimpleNamespace
     from maalimbus.storage import RunStore,ProfileStore
     from maalimbus.policies import Team
@@ -875,7 +879,9 @@ def shop_window(tmp_path, record):
     scope = store.start()
     image = archived(SHOP_FRAME)
     device = FakeDevice([image, image, image])
-    observer = FrameObserver(tmp_path, [dict(record,image=image)]*3)
+    records = ([dict(record,image=image)]*3 if extras is None
+               else [dict(extra,image=image) for extra in extras])
+    observer = FrameObserver(tmp_path, records)
     notes = Notes()
     runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
@@ -1084,6 +1090,27 @@ def test_a_refresh_is_booked_against_the_visit_that_paid_for_it(tmp_path):
     assert [details for event, details in notes.events if event == 'shop_shelf_refreshed']
     intents = [details for event, details in notes.events if event == 'window_intent']
     assert intents[0]['reason'] == 'refreshing_the_shelf_for_the_gift_the_plan_wants'
+
+
+def test_a_refresh_successor_read_mid_change_waits_before_it_stops(tmp_path):
+    """A shelf caught mid-redraw is a wait, not a stop; the wait is bounded and books nothing."""
+    page = shop_page()
+    dropped = {'Uncapped Defibrilator','Polarization','Scalpel','Curriculum Vitae'}
+    sparse = dict(page, ocr=[token for token in page['ocr'] if token['text'] not in dropped])
+    runner, device, notes = shop_window(tmp_path, page,
+                                        extras=[page] + [sparse] * 11)
+    runner.state['gift_plan'] = {'teams': {'bleed': ['Wound Clerid']}, 'default': []}
+    runner.run(steps=5, interval=0.0, round_limit=5)
+    waits = [details for event, details in notes.events if event == 'shop_refresh_settling']
+    assert [wait['attempt'] for wait in waits] == [1, 2, 3]
+    assert all(wait['input_sent'] is False for wait in waits)
+    assert not [details for event, details in notes.events if event == 'shop_receipt_verified']
+    # The fourth unproven read is the last one: an unchanged page still stops the window,
+    # and the refresh intent stays unclaimed because nothing proved it was paid for.  This
+    # harness replays one image, so that read stops on the frame-identity guard rather than
+    # on the delta; the live run stopped on the delta from a genuinely redrawn frame.
+    assert runner.artifacts['steps'][-1].get('stopped')
+    assert runner.shop_transaction.data['pending']['kind'] == 'refresh'
 
 
 def test_a_shop_visit_that_spent_its_refreshes_leaves_instead(tmp_path):

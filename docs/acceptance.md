@@ -1880,3 +1880,16 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   build/mxu-interactive-artifact/mxu.exe --mxu-proof build/mxu-interactive-artifact/build-proof.json`, backup
   `dist/MaaLimbus.backup-17fd3ae48e124a06969f277e49945a44`, 3912 private files preserved, `agent_self_test: true`).
   The GUI Start that has to prove them live is the next entry.
+
+## A refresh's successor frame can be caught mid-redraw (2026-10-14)
+
+- The sixth real GUI Start (`dist/MaaLimbus/evidence/runtime/pi-20261014-193945`) sent one input: the shelf held
+  nothing the gift plan wanted, so the run paid the 15-coin refresh at `[1478,168,86,28]` (currency 1127).
+- Its successor frame `frame-0004` read two of the six slots and the counter still showed the pre-refresh coins, so
+  `ShopTransaction.reconcile_refresh` was right to refuse to book an unproven receipt.
+- `src/maalimbus/runner.py` now re-observes such a frame instead of stopping: bounded to three waits per visit, each
+  noted as `shop_refresh_settling` with `input_sent: false`; the pending intent is never claimed by waiting, and the
+  fourth unproven frame still stops the window.
+- `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops` pins the wait, the bound
+  and the unclaimed intent. In that harness the fourth read trips the frame-identity guard rather than the delta.
+- Still owed: the live run on that shop, and a complete five-floor clear.

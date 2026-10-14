@@ -1835,7 +1835,26 @@ class MirrorRunner:
                 if d and d.get('pending') and page=='SHOP':
                     shop_reconcile=(shop_tx.reconcile_purchase if d['pending']['kind']=='purchase' else shop_tx.reconcile_refresh)
                     kind=d['pending']['kind']
-                    shop_reconcile(self.run_id,d['current_visit'],frame_file(directory))
+                    try:
+                        shop_reconcile(self.run_id,d['current_visit'],frame_file(directory))
+                    except (ValueError,OSError) as error:
+                        # A refresh's successor frame can be caught while the shelf is still
+                        # being redrawn.  The live window of 2026-10-14 (run
+                        # pi-20261014-193945, frame-0004) read two of the six slots and the
+                        # counter still showed the pre-refresh coins, so that one frame
+                        # proved neither the delta nor the changed shelf.  Wait for a
+                        # settled frame instead of stopping -- bounded, and only for a
+                        # refresh: the pending intent stays unclaimed through the wait, so
+                        # nothing is booked by waiting, and an unchanged page still stops.
+                        key=f'{kind}:{d["current_visit"]}'
+                        waits=state.setdefault('shop_settle_waits',{})
+                        if kind!='refresh' or waits.get(key,0)>=3:
+                            raise
+                        waits[key]=waits.get(key,0)+1
+                        self.note('shop_refresh_settling',page=page,kind=kind,
+                                  reason='the_refresh_successor_frame_is_mid_change',
+                                  error=str(error),attempt=waits[key],input_sent=False)
+                        return self._result(page,None,False,None,waiting=True)
                     self.note('shop_receipt_verified',kind=kind,input_sent=False)
                 d=shop_tx.data
                 if page=='SHOP':

@@ -2285,3 +2285,11 @@ This is a source test result, not complete game or production-value acceptance.
   is pinned by `tests/test_prune_shop_state.py` (dry-run, idempotence, an unknown shape it refuses). The pruned store
   reads under the ordinary 2 MiB guard again, with all seven bought cards and the pending `Tangled Bundle` intent
   intact.
+- A sixth real GUI Start (`pi-20261014-193945`, 19:39 local, the app's own Start button pressed with real pointer
+  input) stopped after one input on a *refresh* successor it could not prove: the shelf held nothing the plan
+  wanted, so the run paid the 15-coin refresh (currency 1127, box `[1478,168,86,28]`) and the next frame read two
+  of the six slots with the still pre-refresh counter. `src/maalimbus/runner.py` now waits instead of stopping --
+  up to three unproven successor frames per visit, each noted as `shop_refresh_settling`, the intent left unclaimed,
+  the fourth still stopping the window -- pinned by
+  `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops`. The live proof is the next
+  launch on that shop.
