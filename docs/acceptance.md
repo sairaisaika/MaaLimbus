@@ -1893,3 +1893,11 @@ counter, the diagnostics panel and the lesson-apply path remain open.
 - `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops` pins the wait, the bound
   and the unclaimed intent. In that harness the fourth read trips the frame-identity guard rather than the delta.
 - Still owed: the live run on that shop, and a complete five-floor clear.
+- 2026-10-14 19:51 local, the live run on that shop
+  (`dist/MaaLimbus/evidence/runtime/pi-20261014-195102`): the bounded wait is real -- three consecutive unproven
+  successor frames, each noted `shop_refresh_settling` with `input_sent: false` and no ledger write, then the stop
+  `Fresh refresh currency delta and complete changed shelf not proven`. The run's `frame-0005.png` shows why: the
+  client is inside its scheduled maintenance window (`Server is under Scheduled Maintenance. You will be able to
+  login after 12:00(KST)`), the shelf is greyed with two legible slots and the currency is unchanged at 1127. The
+  refresh was never delivered, so the pending intent is left unclaimed rather than booked; the five-floor live
+  acceptance stays open until the server returns.

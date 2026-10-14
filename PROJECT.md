@@ -2293,3 +2293,15 @@ This is a source test result, not complete game or production-value acceptance.
   the fourth still stopping the window -- pinned by
   `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops`. The live proof is the next
   launch on that shop.
+- 2026-10-14 19:51 local, the next launch (`dist/MaaLimbus/evidence/runtime/pi-20261014-195102`): the wait did fire
+  live -- three unproven successor frames in a row, each noted `shop_refresh_settling` (`attempt` 1, 2, 3,
+  `reason: the_refresh_successor_frame_is_mid_change`) with no input sent and no ledger write, and the fourth frame
+  stopped the window with `Fresh refresh currency delta and complete changed shelf not proven`. Reading that run's
+  `frame-0005.png` explains why no frame could ever settle: the game is in its scheduled maintenance window and the
+  client shows `Server is under Scheduled Maintenance. You will be able to login after 12:00(KST)`. The shelf behind
+  the notice is greyed out with only two slots legible (`of Roses` 144, `Thorny Path` 160) and the currency still
+  reads 1127, so the 15-coin refresh was never delivered. The stop is therefore honest in both directions: nothing
+  was booked, and nothing claims the refresh happened. The pending refresh intent stays unclaimed in
+  `config/user-shop-3122877b7bb64409b6ad9fe68522de7b.json`; because the cost was never charged, the next live run
+  after maintenance will simply attempt it again. Hard five-floor live proof remains blocked until the server is
+  back.
