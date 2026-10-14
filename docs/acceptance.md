@@ -1821,3 +1821,14 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   (`src/maalimbus/shop_value_training.py:764-765`, `:779-780`), so `lesson-apply` is a human review gate plus 10
   independent scopes, not missing code; what orders a real purchase today is `src/maalimbus/shop_priority.py` plus
   the gift plan, as the packaged run's five `shop_decision_ranking` events show.
+- The retest then carried the same page past the stop it had hit before: the run's own `floor_gift_ranking` at 12:05
+  selected `Today's Expression` (`selection_source: single_free_select_button`, proof `frame-0057.json`), the `Select`
+  intent (`select_takes_the_picked_floor_gifts`, point `[1686,873]`) was answered by the notice, and
+  `config/user-floor-gift-transaction.json` committed a receipt (`pending: null`, `commit_sent: true`,
+  `receipts[0] = {title: Today's Expression, receipt: frame-0059.json, successor: frame-0060.json}`), so that shape no
+  longer stops the chain. The window launched with `run_count: 0`, so its live bound is still `steps 400` /
+  `budget 5400s` and not yet a saved run count.
+- Wiki citation drift was measured for the first time: `tools/verify_wiki_citations.py` attributes a `path.py:LINE`
+  citation to the symbol named beside it and judged **1280 citations, 200 named, 140 landed, 60 drifted**, leaving 383
+  unnamed, 397 crowded (more than two on one line) and 300 unresolvable paths counted rather than guessed;
+  `tools/check_wiki.py` stays `ok — 0 problem(s)` and `tools/verify_wiki_routes.py` prints `passed: true`.

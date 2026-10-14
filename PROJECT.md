@@ -2228,3 +2228,14 @@ This is a source test result, not complete game or production-value acceptance.
   and moved the run-count row to `src/maalimbus/runner.py:174` `Settings`; `docs/wiki/agent-index.md`,
   `agent-index.json` and `routes.json` are still untracked in the working tree, so the drift list is recorded here
   as the next bounded pass rather than silently rewritten.
+- The live retest then carried the chain past that stop and booked the receipt: the run's `floor_gift_ranking` at
+  12:05 selected `Today's Expression` (`selection_source: single_free_select_button`, proof `frame-0057.json`), the
+  `Select` intent (`select_takes_the_picked_floor_gifts`, point `[1686,873]`) was answered by the notice, and
+  `config/user-floor-gift-transaction.json` now holds `pending: null`, `commit_sent: true` and
+  `receipts[0] = {title: Today's Expression, receipt: frame-0059.json, successor: frame-0060.json}`. The window runs
+  on `difficulty: hard` (`difficulty_gate`, required `hard`), and the ledger's active scope
+  `3122877b7bb64409b6ad9fe68522de7b` carries `floors [1, 2]` (`floor_clear-1` from the packaged run,
+  `floor_clear-2` from this run's `frame-0014.json`) against `completed_runs: 2` overall. It launched with
+  `run_count: 0`, so card ③'s stop is not armed in this window and the live bound is `steps 400` / `budget 5400s`.
+  Still owed: the full five-floor clear with payout and entry return, and a window that is actually armed with a
+  saved run count.
