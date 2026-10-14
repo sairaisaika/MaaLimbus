@@ -1,8 +1,11 @@
 # Recovery, settings and local diagnostics plan
 
 Status: star balance recovery and decision traces implemented; current-page product
-test pending. Local diagnostics remains planned and delegated. This plan separates
-the new work from existing live Mirror transaction/state evidence.
+test evidence is tracked in acceptance. Local diagnostics now has a backend sampler
+and read-only CLI; GUI integration and process-GPU attribution remain unverified.
+The current staged plan and six engineering views live in
+[wiki chapter9](wiki/en_us/9-execution-plan.md). This document retains the original
+diagnostic interface contract; it is not a replacement for current acceptance.
 
 1. Reproduce the actual `Grace purchase successor balance not proven` frame with
    native Maa OCR. Preserve the existing card4 intent. Two anchored detected-digit
