@@ -2167,10 +2167,20 @@ This is a source test result, not complete game or production-value acceptance.
   `NODE_PANEL` 5 -- all five through `panel_enter_is_the_only_forward_input`, which is `d574a26` exercised live --
   `GIFT_PICK` 4, `REWARD_CARD` 2 and the four event-check pages. It then stopped honestly at 07:40:34 on
   `floor_gift_commit_receipt_not_proven` (`src/maalimbus/runner.py:2696`): the floor-gift transaction held
-  `selected ['Prejudice','Uncapped Defibrilator']` while the `GIFT_GET` notice it had to commit
-  (`frame-0254.json`) names 'Blue Zippo Li...' and 'New Release Pamphlet', so no selected name matched the
-  receipt and nothing was written to the run ledger. That disagreement between the picked gift names and the
-  notice's own name is the next bounded defect for the one-click chain.
+  `selected ['Prejudice','Uncapped Defibrilator']` -- the two cards the run's own clicks ticked on the pick page
+  (`frame-0252`, button `Select 2/2`) -- while the notice it had to commit (`frame-0254`, retained as
+  `evidence/runtime/gui-20261014-072228/frame-0254.json`) prints `Dark Vestige` on its own name plate, a name from
+  neither the pick page's four offers nor the selection, so no selected name matched the receipt and nothing was
+  written to the run ledger. Its Confirm is the only forward input on that page, so refusing the press stopped a
+  one-click chain that was already working.
+- That disagreement is now a bounded, tested rule instead of a stop: the notice page and its own name plate prove
+  the press, and the receipt keeps both names -- the pick it answers and what the device printed.
+  `FloorGiftTransaction.notice_matches_a_pick` and `receipt_intent(..., on_notice_page=True)` in
+  `src/maalimbus/floor_gift_transaction.py`, the notice gate plus the labelled note
+  `floor_gift_notice_outside_selection` in `src/maalimbus/runner.py`, pinned by
+  `tests/test_gift_receipt_settling.py`: the retained live notice drives the whole runner step, and a name the
+  selection cannot account for is still refused on any page that is not a notice page, because the middle band
+  (`initial_gifts.receipt_name`) is a loose read that an encounter reward page also prints into.
 - The live run before this one (`dist/MaaLimbus/evidence/runtime/pi-20261014-053727`, 5 inputs) had stopped on
   `Grace purchase successor balance not proven`, and its own frames say why: the STAR_GRACES reader is right and
   the OCR missed one glyph -- `frame-0010`/`frame-0011` read the counter at `[1515,45,54,40]` ('95'), while

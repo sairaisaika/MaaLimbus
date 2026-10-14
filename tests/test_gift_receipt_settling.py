@@ -23,6 +23,10 @@ BEFORE = ROOT/'evidence/runtime/window-20261008-102111/frame-0435.json'
 SELECTED = ROOT/'evidence/runtime/window-20261008-110526/frame-0001.json'
 CONNECTING = SELECTED.with_name('frame-0002.json')
 GET = ROOT/'evidence/runtime/window-20261008-110924/frame-0001.json'
+#: Live GUI run pi-20261014-072228 pressed 'Select 2/2' for 'Prejudice' and
+#: 'Uncapped Defibrilator'; the device answered on its own notice page with
+#: 'Dark Vestige' -- a name from neither the pick page nor the selection.
+LIVE_NOTICE = ROOT/'evidence/runtime/gui-20261014-072228/frame-0254.json'
 
 
 def offer(frame):
@@ -245,3 +249,88 @@ def test_runner_still_refuses_a_successor_the_page_does_not_prove(tmp_path):
     assert events(evidence, 'floor_gift_receipt_recovered') == []
     assert (tx.data['pending'] or {}).get('kind') == 'receipt'
     assert tx.data['completed'] is False
+
+
+def prepared_transaction(tmp_path, title='Perversion'):
+    tx = FloorGiftTransaction(tmp_path/'tx.json')
+    offers, count = offer(BEFORE)
+    tx.prepare('scope', offers, count, BEFORE)
+    tx.intent(title, count, BEFORE)
+    offers, count = offer(SELECTED)
+    tx.observe_pick(offers, count, SELECTED)
+    tx.commit(SELECTED)
+    return tx
+
+
+def test_select_press_is_proven_by_the_notice_the_device_printed(tmp_path):
+    """Live pi-20261014-072228: a notice naming a gift outside the selection is not a stop.
+
+    The notice page and its own name plate are what prove the press submitted; which
+    name the plate carries is the receipt stage's business, not the press's. Refusing it
+    here stopped a real run after its input had already landed.
+    """
+    teams = (Team(2, frozenset({'Charge', 'Tremor'})),)
+    ProfileStore(tmp_path/'user-team-profiles.json').save(teams)
+    store = RunStore(tmp_path/'ledger.json', teams)
+    scope = store.start()
+    frames = [SELECTED, CONNECTING, LIVE_NOTICE]
+    device = FakeDevice([cv2.imread(str(f.with_suffix('.png'))) for f in frames])
+    runner = MirrorRunner(device, settings={'rounds': 2, 'interval': 0}, store=store,
+                          run_id=scope, directory=tmp_path, journal=Journal(tmp_path),
+                          observer=FrameObserver(tmp_path, [str(f) for f in frames]))
+    tx = runner.floor_gift_transaction
+    offers, count = offer(BEFORE)
+    tx.prepare(scope, offers, count, BEFORE)
+    tx.intent('Perversion', count, BEFORE)
+    offers, count = offer(SELECTED)
+    tx.observe_pick(offers, count, SELECTED)
+
+    runner.step()
+
+    result = runner.artifacts['steps'][-1]
+    assert result['page_after'] == 'GIFT_GET' and result['passed'] is True
+    assert device.clicks and len(device.swipes) == 0 and device.keys == []
+    # The press is proven, nothing is claimed: the notice is still to be answered.
+    assert tx.data['pending']['kind'] == 'commit'
+    assert tx.data['receipts'] == [] and tx.data['completed'] is False
+    outside = events(tmp_path, 'floor_gift_notice_outside_selection')
+    assert len(outside) == 1
+    assert outside[0]['printed'] == 'Dark Vestige' and outside[0]['selected'] == ['Perversion']
+
+
+def test_a_notice_naming_no_pick_is_booked_with_the_name_the_device_printed(tmp_path):
+    """The receipt keeps both names: the pick it answers and what the device printed.
+
+    The notice's own Confirm lands on the floor's map, so this is the whole live shape:
+    one pick, announced under a name the run never selected, and the receipt that says so.
+    """
+    tx = prepared_transaction(tmp_path)
+    tx.receipt_intent('Dark Vestige', LIVE_NOTICE, on_notice_page=True)
+    assert tx.data['pending']['kind'] == 'receipt'
+    assert tx.data['pending']['title'] == 'Perversion'
+    assert tx.data['pending']['printed'] == 'Dark Vestige'
+    tx.observe_receipt('MAP', None, LIVE_NOTICE)
+    assert tx.data['completed'] is True and tx.data['pending'] is None
+    assert tx.data['receipts'][0]['title'] == 'Perversion'
+    assert tx.data['receipts'][0]['printed'] == 'Dark Vestige'
+
+
+def test_an_unmatched_notice_without_the_notice_page_still_refuses(tmp_path):
+    """The reader is a loose middle-band match: only a notice page may explain a name.
+
+    The encounter reward page prints '2~3 E.G.O Gift' straight into the same band, so a
+    name the selection cannot account for is only accepted where the page proves a notice.
+    """
+    tx = prepared_transaction(tmp_path)
+    with pytest.raises(ValueError):
+        tx.receipt_intent('Dark Vestige', LIVE_NOTICE)
+
+
+def test_notice_matches_a_pick_needs_a_printed_name_and_an_unclaimed_pick(tmp_path):
+    tx = prepared_transaction(tmp_path)
+    assert tx.notice_matches_a_pick('Dark Vestige') is True
+    assert tx.notice_matches_a_pick(None) is False
+    assert tx.notice_matches_a_pick('') is False
+    tx.receipt_intent('Perversion', LIVE_NOTICE, on_notice_page=True)
+    tx.observe_receipt('MAP', None, LIVE_NOTICE)
+    assert tx.notice_matches_a_pick('Dark Vestige') is False

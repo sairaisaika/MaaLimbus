@@ -2035,7 +2035,13 @@ class MirrorRunner:
                 return (pending.get('kind')=='commit' and bool(floor_receipt)
                         and (any(initial_gifts.same_name(floor_receipt,n) for n in left)
                              or bool(printed and initial_gifts.same_name(floor_receipt,printed))))
-            if page!='GIFT_GET' or not _attributed(d):
+            # A notice page whose own name plate answers no pick still proves the press:
+            # live run pi-20261014-072228 printed 'Dark Vestige' for a selection the run
+            # really made. The receipt stage labels that name; reading it as an
+            # unattributable page here is what stopped the run.
+            notice=_attributed(d) or (page=='GIFT_GET'
+                                      and floor_tx.notice_matches_a_pick(floor_receipt))
+            if page!='GIFT_GET' or not notice:
                 # An outstanding receipt whose own confirm already landed is resolved from
                 # the retained pair: the notice the run booked, its hash-checked frame, and
                 # this fresh successor. It books what the page printed instead of stopping.
@@ -2470,7 +2476,8 @@ class MirrorRunner:
             pending=(self.floor_gift_transaction.data or {}).get('pending') or {}
             if pending.get('kind')=='commit':
                 try:
-                    self.floor_gift_transaction.receipt_intent(floor_receipt,frame_file(directory))
+                    self.floor_gift_transaction.receipt_intent(floor_receipt,frame_file(directory),
+                                                               on_notice_page=(page=='GIFT_GET'))
                 except ValueError as error:
                     entry.update(passed=False,reason=str(error),
                                  stopped='unverified_floor_gift_receipt_intent')
@@ -2692,8 +2699,18 @@ class MirrorRunner:
             from . import initial_gifts
             post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
             title=initial_gifts.receipt_name(post_records,settled.get('size') or (1920,1080))
-            if settled_page!='GIFT_GET' or not any(initial_gifts.same_name(title,n) for n in self.floor_gift_transaction.data['selected']):
+            # The press is proven by the notice page and its own name plate, not by the
+            # plate agreeing with the run's picks: live run pi-20261014-072228 pressed
+            # 'Select 2/2' for 'Prejudice'/'Uncapped Defibrilator' and the device answered
+            # 'Dark Vestige'. The receipt stage keeps that name as a labelled substitution;
+            # refusing it here is what stopped the run after the press had already landed.
+            if not (settled_page=='GIFT_GET' and bool(title)
+                    and self.floor_gift_transaction.notice_matches_a_pick(title)):
                 entry.update(passed=False,reason='floor_gift_commit_receipt_not_proven',stopped='unverified_floor_gift_commit')
+            elif not any(initial_gifts.same_name(title,n) for n in self.floor_gift_transaction.data['selected']):
+                self.note('floor_gift_notice_outside_selection',printed=title,
+                          selected=list(self.floor_gift_transaction.data['selected']),
+                          successor=str(frame_file(directory)),input_sent=False)
         if plan.get('reason') in ('refuse_proven_owned_single_free_gift','confirm_proven_owned_gift_refusal'):
             try:
                 self.floor_gift_transaction.observe_refusal(settled_page,frame_file(directory),

@@ -132,7 +132,23 @@ class FloorGiftTransaction:
         p.update(confirm_sent=True,confirm_proof=str(proof));write_json(self.path,d)
 
 
-    def receipt_intent(self, title, proof):
+    def notice_matches_a_pick(self, title):
+        """Whether a printed GIFT_GET notice can answer one of this run's unclaimed picks.
+
+        A notice naming a gift the run picked is a receipt. A notice naming some other
+        E.G.O Gift is still the device's own answer to the press that was just submitted:
+        live run ``pi-20261014-072228`` pressed ``Select 2/2`` for 'Prejudice' and
+        'Uncapped Defibrilator' and the notice page printed 'Dark Vestige', a name from
+        neither the pick page nor the selection, so the run keeps going and the receipt
+        stage labels what was printed instead of claiming it. A notice with no printed
+        name, or with no unclaimed pick left to answer, is never accepted.
+        """
+        d=self.data or {}
+        if not title:return False
+        seen=[r['title'] for r in d.get('receipts',[])]
+        return bool([n for n in d.get('selected',[]) if n not in seen])
+
+    def receipt_intent(self, title, proof, *, on_notice_page=False):
         from .initial_gifts import same_name
         d=self.data;p=d.get('pending')
         expected=[n for n in d['selected'] if same_name(n,title)]
@@ -143,6 +159,11 @@ class FloorGiftTransaction:
             # pick; the pick itself is still the one this run chose.
             unclaimed=[n for n in d['selected'] if n not in seen]
             if len(unclaimed)==1:expected=unclaimed
+        if not expected and on_notice_page and self.notice_matches_a_pick(title):
+            # The device answered the submitted selection with a gift under its own
+            # name. The next unclaimed pick is the one that press answered; its own
+            # printed name is kept beside it as the labelled, auditable observation.
+            expected=[n for n in d['selected'] if n not in seen][:1]
         if not d['commit_sent'] or not p or p['kind']!='commit' or len(expected)!=1 or expected[0] in seen:
             raise ValueError('floor_gift_receipt_unknown_repeated_or_pending')
         d['pending']=dict(kind='receipt',title=expected[0],proof=str(proof))
