@@ -1749,8 +1749,52 @@ latest focused74passed2.26s. Frozen installation and live GUI execution remain o
   (`mirror_task_options.py8`) and all three locale labels state it is not a dungeon count.
   No code path grants module budget from a completed run: `assets/resource/base/budget.json`
   still ships `module_budget: 0` with status pending.
+- Resource diagnostics (CPU/RAM/GPU/VRAM) shipped as a **deviceless collector plus
+  read-only CLI**, not a panel: `src/maalimbus/resource_diagnostics.py` (stdlib only —
+  ctypes `GetProcessTimes`/`GetProcessMemoryInfo`/`GetSystemTimes` with
+  `PROCESS_QUERY_LIMITED_INFORMATION`, handles closed in `finally`, no elevation) and
+  `tools/resource_diagnostics.py` print one snapshot. The
+  `docs/plan-20261014-recovery-diagnostics.md:44-52` contract is implemented verbatim
+  (version/sampled_at/interval_ms; processes[] role/pid/cpu_percent/rss_bytes/status;
+  gpu provider/device_name/util_percent/vram_used_bytes/vram_total_bytes/status; plus an
+  explicit-provenance `process_gpu` block). Unknown is `null` + a machine-readable
+  reason, never 0 (`CPU_PERCENT_SEMANTICS` — "100 = one fully busy core; multi-threaded
+  processes may exceed 100"), the GPU is one bounded `subprocess.run(nvidia-smi, fixed
+  argv, timeout=3.0, CREATE_NO_WINDOW, never shell=True)`, and no identifier, raw
+  command, private state, lease or upload is involved. `tests/test_resource_diagnostics.py`
+  is 14 passed (22 with the existing ctypes/subprocess idiom subset). Live snapshot:
+  `agent` pid 67064 at 4.17 % of one core and 87 MiB RSS beside a genuine measured 0.0,
+  whole-box 402.05 % of 16 cores never presented as the app's load, and an RTX 5080 at
+  5 % util / 5.74 of 17.09 GB VRAM; `process_gpu` is deliberately `unsupported`
+  (`no_per_process_gpu_provider`) because no per-process GPU provider exists on this host,
+  so whole-device load is never attributed to MaaLimbus. Evidence
+  `build/resource-diagnostics-report.md`. Still absent: the opt-in panel, and
+  name-based role discovery cannot see the live run's `python.exe` driver, which it must
+  not guess.
+- The packaged acceptance run `evidence/runtime/packaged-mirror-20261014-063205` is the
+  first live chain past the entry page into the dungeon on the fixed install:
+  STAR_GRACES -> STAR_CONFIRM -> INITIAL_GIFTS -> GIFT_SEARCH -> THEME_PACKS -> MAP ->
+  NODE_PANEL -> PRE_BATTLE_TEAM -> BATTLE_HUD. Battles are reachable only through the
+  native node-plan path, so this is live proof that `MaaDevice`'s carried `AgentTasker`
+  removed the `a node plan needs a Maa tasker` stop. The grace plan executed inside the
+  run (account star 525 -> 25 for the planned `[2,4,5,7]`; scope allowance 105 -> 5 = the
+  100 budget), and the cancelled preparation's earlier card-4 click charged the account
+  nothing — its allowance moved 95 -> 75 while the spendable star stayed 375, and this
+  fresh preparation re-offered cards 2 and 4 — so no star card was bought twice.
 - Still required: the full five-floor clear with payout and entry return in one packaged
-  run, a live shop purchase whose GET overlay is bound to the purchase in that run, the
-  actual MXU GUI **click** Start acceptance, GUI persistence acceptance (portrait/star
-  editors saved and reopened), a visible verified-run counter in the panel, and the
-  resource-diagnostics panel.
+  run (this run was still on floor 1 in battle when this note was written), a live shop
+  purchase whose GET overlay is bound to the purchase in that run, the actual MXU GUI
+  **click** Start acceptance, GUI persistence acceptance (portrait/star editors saved and
+  reopened), a visible verified-run counter in the panel, the resource-diagnostics panel,
+  and the chapter-9 English mirror that `tools/check_wiki.py` currently reports missing.
+
+## DSH handoff: deployment-order reading (2026-10-14)
+
+The packaged entry acceptance now reaches and answers the deployment page. Run 1 proved the entry chain and a
+first battle but stopped on `deployment_order_digits_incomplete_after_retries`; the retained frame-0103 showed
+the cause (one crop read card 11's printed `4` at 0.98, the smaller nested crop read nothing, so the order was
+refused rather than proven different). The reader now requests three framings of each card band and adopts a
+number only when two agree, which both retained pages verify devicelessly. After a safe reinstall of the frozen
+agent (2970 private files preserved, self-test passed) the re-run entered the deployment page and continued into
+the battle, so the packaged entry pipeline is proven at least to `BATTLE_HUD`. The live GUI click Start, the
+explicit run count with a visible counter, the diagnostics panel and the lesson-apply path remain open.

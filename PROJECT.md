@@ -2096,3 +2096,41 @@ This is a source test result, not complete game or production-value acceptance.
   (mirror_task_options.py8) and all three locale labels say it is not a dungeon count;
   the module gate still ships pending/0. A visible verified-run counter in the MXU
   panel is not built yet.
+- Card4's resource diagnostics landed deviceless: src/maalimbus/resource_diagnostics.py
+  (stdlib ctypes/subprocess only) plus tools/resource_diagnostics.py and 14 hermetic
+  tests implement the plan document's snapshot contract verbatim - unknown is null with
+  a machine-readable reason, never 0, and the GPU read is one bounded nvidia-smi call.
+  A live snapshot resolved the running Agent (pid 67064, 4.17% of one core, 87MiB RSS),
+  kept the whole-box 402.05%/16-core figure explicitly separate from the app's load, and
+  reported process_gpu as unsupported because this host has no per-process GPU provider.
+  Report build/resource-diagnostics-report.md; the opt-in panel is still to build.
+- The packaged acceptance run evidence/runtime/packaged-mirror-20261014-063205 is the
+  first live chain past the entry page on the fixed install: STAR_GRACES ->
+  STAR_CONFIRM -> INITIAL_GIFTS -> GIFT_SEARCH -> THEME_PACKS -> MAP -> NODE_PANEL ->
+  PRE_BATTLE_TEAM -> BATTLE_HUD. Reaching battles exercises exactly the native node-plan
+  path whose missing tasker stopped the previous product run, and the run spent its
+  configured grace plan (account star 525->25, scope allowance 105->5) without buying a
+  card twice: the cancelled preparation had moved only its own allowance 95->75 and
+  never charged the account.
+
+## DSH continuation: the printed deployment order is read from several framings (2026-10-14)
+
+- The packaged acceptance run stopped at step 39 on `deployment_order_digits_incomplete_after_retries` after
+  entering the dungeon, clearing the first node and winning a battle
+  (`evidence/runtime/packaged-mirror-20261014-063205`, report `build/packaged-pipeline-run-1.json`): the two
+  nested crops lost card 11's printed `4` (`frame-0103.json`), so the page was refused as an unreadable order
+  instead of a proven different one.
+- `src/maalimbus/deployment_numbers_native.py` now reads each card's band through three framings and adopts a
+  number only when two of them agree; a card no two framings agree on keeps `None`. Proven deviceless on both
+  retained pages (`tools/verify_deployment_numbers_native.py`: `frame-0027` needs the narrow framing,
+  `frame-0103` needs the margin; both now read all twelve printed numbers), pinned by
+  `tests/test_deployment_numbers.py`, full suite `1675 passed, 1 skipped`, commit `e7aaafc`.
+- Rebuilt and safely installed the packaged app on top of that source
+  (`dist/MaaLimbus.backup-ea051b4de6454b459fe2f2157bfea998`, 2970 private files preserved, self-test passed,
+  `build-info.json` source_commit `e7aaafcd27e00c3b02640c312679af2bab64f8f8`) and re-ran the packaged
+  acceptance (`build/packaged-pipeline-run-2.json`, evidence `evidence/runtime/packaged-mirror-20261014-065112`):
+  the run drove `PRE_BATTLE_TEAM -> DEPLOYMENT -> BATTLE_HUD`, i.e. the deployment page that stopped run 1 is
+  now read and answered.
+- Still open from this era: the live GUI click Start (the packaged CLI probe is explicitly not a substitute), an
+  explicit saved run count with a visible verified-run counter, the resource-diagnostics panel, and the
+  lesson-review/apply path.

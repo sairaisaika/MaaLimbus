@@ -74,8 +74,8 @@ def test_the_six_promised_diagram_kinds_are_covered():
 def test_the_page_inventory_matches_the_delivered_wiki():
     assert sorted(p.name for p in (WIKI / 'zh_cn').glob('*.md')) == \
         sorted(p.name for p in (WIKI / 'en_us').glob('*.md'))
-    assert len(list((WIKI / 'zh_cn').glob('*.md'))) == 11
-    assert len(list((WIKI / 'en_us').glob('*.md'))) == 11
+    assert len(list((WIKI / 'zh_cn').glob('*.md'))) == 12
+    assert len(list((WIKI / 'en_us').glob('*.md'))) == 12
     assert (WIKI / 'README.md').exists()
 
 
