@@ -1796,5 +1796,28 @@ the cause (one crop read card 11's printed `4` at 0.98, the smaller nested crop 
 refused rather than proven different). The reader now requests three framings of each card band and adopts a
 number only when two agree, which both retained pages verify devicelessly. After a safe reinstall of the frozen
 agent (2970 private files preserved, self-test passed) the re-run entered the deployment page and continued into
-the battle, so the packaged entry pipeline is proven at least to `BATTLE_HUD`. The live GUI click Start, the
-explicit run count with a visible counter, the diagnostics panel and the lesson-apply path remain open.
+the battle, so the packaged entry pipeline is proven at least to `BATTLE_HUD`. The live GUI click Start has since been performed (see the next section); the explicit run count with its visible
+counter, the diagnostics panel and the lesson-apply path remain open.
+
+## Live retest on the fixed install (2026-10-14)
+
+- The app was rebuilt with the agent re-frozen so that `floor_gift_transaction.py` and `runner.py` reach the
+  installed build (`tools/make_local_app.py --mxu-exe build/mxu-interactive-artifact/mxu.exe --mxu-proof
+  build/mxu-interactive-artifact/build-proof.json`, backup
+  `dist/MaaLimbus.backup-68aeeca0d7234aa6bc5f71fcd4604e20`, 3481 private files preserved, `agent_self_test: true`).
+  `dist/MaaLimbus/build-info.json` now reads `source_commit 509119eb74e2110a0f27d53a0c76ab13be1b1e37`,
+  `source_dirty true`, `built_at 2026-10-14T11:59:55.017753+00:00`, with its pending list unchanged (`MXU UI
+  validation`, `live input postcondition`, `full five-floor loop`).
+- Its own Start button was pressed with real pointer input at 08:01 local, and the run
+  `dist/MaaLimbus/evidence/runtime/pi-20261014-080122` opened on the previous run's leftover `GIFT_GET` notice. The
+  loop's startup reconciliation settled that pending floor-gift transaction with no new click:
+  `floor_gift_receipt_substituted` records `expected: Uncapped Defibrilator`, `printed: Uncapped Defilbrilator`,
+  `expected_owned: false`, `input_sent: false`. `difficulty_gate` reports `difficulty: hard` against `required:
+  hard`, so this dungeon is the Hard one the goal asks for, and `run_ledger_event` recorded `kind: floor_clear,
+  floor: 2` against `frame-0014.json` -- two of five floors are now in the ledger.
+- The learning loop was measured on the same tree: `python tools/train_shop_value.py` prints `training_ready:
+  false`, `reviewed_episodes: 0` against `min_episodes: 10`, `exclusion_reasons: {review_not_approved: 3}`, and the
+  four next actions it names. Export refuses below 10 reviewed and 10 ledger-verified episodes
+  (`src/maalimbus/shop_value_training.py:764-765`, `:779-780`), so `lesson-apply` is a human review gate plus 10
+  independent scopes, not missing code; what orders a real purchase today is `src/maalimbus/shop_priority.py` plus
+  the gift plan, as the packaged run's five `shop_decision_ranking` events show.

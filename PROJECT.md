@@ -2201,4 +2201,18 @@ This is a source test result, not complete game or production-value acceptance.
   (`evidence/runtime/packaged-mirror-20261014-065112`) all five `shop_decision_ranking` events carry
   `learning: None` and the two purchases were chosen by `the_gift_plan_asked_for_this_offer_and_the_shop_covers_it`.
 - Still open: the five-floor completion and the saved-run count's live stop; the resource-diagnostics panel (④);
-  the lesson-review/apply path (⑤); and the named-anchor re-resolution of wiki citations into `runner.py` (⑥).
+  and the named-anchor re-resolution of wiki citations into `runner.py` (⑥).
+- The learning loop was measured rather than only read (card ⑤): `python tools/train_shop_value.py` reports
+  `training_ready: false` and `production_enabled: false` because all 3 retained samples under
+  `build/learning-review/shop-purchases` are `review_not_approved` (`exclusion_reasons: {review_not_approved: 3}`)
+  and 0 reviewed episodes is under `MIN_REVIEWED_EPISODES = 10` (`src/maalimbus/shop_value_training.py:48`), so
+  `rank_preview` (`src/maalimbus/shop_value_shadow.py:7`) has no model to load, returns the input order unchanged
+  (lines 11, 53, 56) and the trace reads `purchase_value_model_missing_rule_fallback`. The gate is deliberate:
+  export refuses below 10 reviewed (`shop_value_training.py:764-765`) and below 10 ledger-verified episodes
+  (`:779-780`), and the readiness report's own next actions are to approve a review with a 0..1 benefit per sample,
+  attach a ledger-bound `outcome.json`, keep the evidence bytes beside each sample, and collect 10 independent
+  scopes. What orders a real purchase today is the shop priority (`src/maalimbus/shop_priority.py`, a known unique
+  gift plus an integer 0..100, loaded at `src/maalimbus/runner.py:1824`) and the gift plan: in the packaged run's
+  five `shop_decision_ranking` events the two purchases were chosen by
+  `the_gift_plan_asked_for_this_offer_and_the_shop_covers_it` with `learning: None`. So the lesson-apply path is a
+  human review gate plus 10 independent scopes, not missing code.
