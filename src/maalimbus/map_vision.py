@@ -105,12 +105,20 @@ def node_panel(records, size):
     opened it looked like a no-op. The Mirror-Dungeon entry page carries an `Enter` in
     the same slot but never a floor header, so it is still excluded. The theme name is
     used only as recorded context, never as identity.
+
+    The panel accepts the floor header *label* alone, without the pack line that the
+    map itself insists on: on the encounter shape the pack line is whatever small map
+    text happens to survive OCR, and on evidence/runtime/packaged-mirror-20261014-065112
+    frame-0250 it read as nothing at all while 'Exploring Floor 2' and the panel's
+    `Enter` were both on screen. The frame went UNKNOWN, the window waited the run out
+    and stopped with `page_unreadable_after_waiting`; an entry page still has no header,
+    so this does not widen identity to the entry screen.
     """
     enters = find(records, ENTER_PATTERN, ENTER_ROI, size, .8)
     if len(enters) != 1:
         return None
     rewards = find(records, REWARDS_PATTERN, REWARDS_ROI, size, .8)
-    if len(rewards) != 1 and map_header(records, size) is None:
+    if len(rewards) != 1 and map_header(records, size) is None and floor_label(records, size) is None:
         return None
     titles = find(records, PANEL_TITLE_PATTERN, PANEL_TITLE_ROI, size, .8)
     titles.sort(key=lambda t: (t.box[1], t.box[0]))
@@ -1144,6 +1152,19 @@ def battle_target(page):
     return page.battle.box
 
 
+def floor_label(records, size):
+    """The floor header's own words, whether or not its pack line could be read.
+
+    The label is the part of the header the node panel cannot hide; a map page is still
+    only a map once the pack line below it is read too (see :func:`map_header`).
+    """
+    matches = find(records, HEADER_PATTERN, HEADER_ROI, size, .85)
+    if len(matches) == 1:
+        return matches[0]
+    labels = find(records, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)
+    return labels[0] if labels else None
+
+
 def map_header(records, size):
     """Return the map header only when floor text and the pack line both parse.
 
@@ -1155,30 +1176,25 @@ def map_header(records, size):
     the separate "Floor" token.
     """
     floor = None
-    text = None
-    matches = find(records, HEADER_PATTERN, HEADER_ROI, size, .85)
-    if len(matches) == 1:
-        text = matches[0]
-        digit = re.match(HEADER_PATTERN, text.text.strip(), re.I).group(1)
-        floor = int(digit) if digit else None
-    else:
-        labels = [r for r in find(records, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)]
-        for label in labels:
-            same_line = [r for r in find(records, HEADER_FLOOR_PATTERN, HEADER_ROI, size, .85)
-                         if r.box[0] > label.box[0]
-                         and abs((r.box[1] + r.box[3] / 2) / size[1]
-                                 - (label.box[1] + label.box[3] / 2) / size[1]) <= .03]
-            same_line.sort(key=lambda r: r.box[0])
-            text = label
-            if same_line:
-                digit = re.match(HEADER_FLOOR_PATTERN, same_line[0].text.strip(), re.I).group(1)
-                floor = int(digit) if digit else None
-            # The stylised "Floor" token is dropped by OCR on roughly half of the
-            # live map frames (evidence/runtime/window-20261006-033259/frame-0002.json),
-            # so the label alone is accepted; the pack line below still gates it.
-            break
+    text = floor_label(records, size)
     if text is None:
         return None
+    whole = re.match(HEADER_PATTERN, text.text.strip(), re.I)
+    if whole:
+        digit = whole.group(1)
+        floor = int(digit) if digit else None
+    else:
+        same_line = [r for r in find(records, HEADER_FLOOR_PATTERN, HEADER_ROI, size, .85)
+                     if r.box[0] > text.box[0]
+                     and abs((r.box[1] + r.box[3] / 2) / size[1]
+                             - (text.box[1] + text.box[3] / 2) / size[1]) <= .03]
+        same_line.sort(key=lambda r: r.box[0])
+        # The stylised "Floor" token is dropped by OCR on roughly half of the live map
+        # frames (evidence/runtime/window-20261006-033259/frame-0002.json), so the label
+        # alone is accepted; the pack line below still gates it.
+        if same_line:
+            digit = re.match(HEADER_FLOOR_PATTERN, same_line[0].text.strip(), re.I).group(1)
+            floor = int(digit) if digit else None
     pack_candidates = [r for r in records
                        if r.score >= .8 and r.box[1] > text.box[1]
                        and PACK_ROI[0] <= (r.box[0] + r.box[2] / 2) / size[0] <= PACK_ROI[2]

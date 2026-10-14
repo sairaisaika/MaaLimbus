@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, LATTICE_PITCH, MapHeader,
-                                  ORNAMENT_LIFT, advance_candidates, enter_target,
+                                  ORNAMENT_LIFT, advance_candidates, enter_target, floor_label,
                                   highlighted_nodes, lattice_neighbours, lit_nodes, map_clicks,
                                   map_header, map_page, node_markers, node_panel,
                                   pre_battle_team_page, route_decision, yellow_flame_player,
@@ -156,6 +156,38 @@ def test_an_encounter_panel_without_clear_rewards_is_still_a_panel():
     # ...and a page with an Enter but no floor header is still not a panel.
     entry = [Text('Enter', (1670, 784, 122, 57), .99)]
     assert node_panel(entry, size) is None
+
+
+def test_a_panel_whose_pack_line_was_dropped_is_still_a_panel():
+    """The encounter panel can arrive with its pack line read as nothing at all.
+
+    Live packaged run evidence/runtime/packaged-mirror-20261014-065112 opened this panel
+    on floor 2 (frame-0250): `Enter` at [1672,784,118,57] and the header label
+    'Exploring Floor 2' were read, but the small pack line below the label was not in
+    the OCR output at all. Identity that demands `Clear Rewards` said "not a panel", and
+    identity that demands the full map header said the same, so the frame stayed UNKNOWN
+    and the window waited the whole 90 s out and stopped with
+    `page_unreadable_after_waiting`. The label alone is enough for a panel; a map still
+    needs the pack line, and the entry page has neither.
+    """
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    path = root / 'evidence/runtime/packaged-mirror-20261014-065112/frame-0250.json'
+    if not path.exists():
+        pytest.skip('retained live stall frame is not present')
+    data = json.loads(path.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in data['ocr']]
+    size = tuple(data['size'])
+    assert data['scene'] == 'UNKNOWN'                     # what the shipped build saw
+    assert map_header(records, size) is None              # the pack line really is missing
+    assert floor_label(records, size).text == 'Exploring Floor 2'
+    panel = node_panel(records, size)
+    assert panel is not None
+    assert panel.title == 'Emotional Craving'
+    assert panel.clear_rewards is None
+    assert panel.enter.box == (1672, 784, 118, 57)
+    assert enter_target(panel) == (1672, 784, 118, 57)
 
 
 def test_the_marked_step_is_offered_before_the_badge_nodes():
