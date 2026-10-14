@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useAppStore, flushConfig } from '@/stores/appStore';
 import { saveConfig } from '@/services/configService';
 import { SINNERS, toggleSinner, moveSinner, completeOrder } from '@/utils/teamOrder';
+import { SINNER_IMAGES } from '@/utils/teamArtwork';
+
+const ZH_NAMES=['李箱','浮士德','堂吉诃德','良秀','默尔索','鸿璐','希斯克利夫','以实玛利','罗佳','辛克莱','奥提斯','格里高尔'];
 
 export function TeamBuildEditor({ optionKey }: { optionKey: string }) {
   const store = useAppStore();
@@ -48,9 +51,10 @@ export function TeamBuildEditor({ optionKey }: { optionKey: string }) {
     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2" aria-label={text('罪人编队','Sinner formation','罪人編成')}>
       {SINNERS.map((name,index) => {const position=shown.indexOf(name);return <button key={name} disabled={disabled || !editing}
         aria-pressed={position>=0} onClick={()=>setDraft(toggleSinner(draft,name))}
-        className={`relative min-h-20 rounded-lg border-2 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${position>=0?'border-accent bg-bg-secondary':'border-border bg-bg-primary opacity-70'}`}>
-        <span className="text-xs text-text-secondary">{index+1}</span><span className="block text-sm font-semibold">{name}</span>
-        {position>=0 && <span className="absolute top-1 right-1 rounded bg-accent px-1 text-xs text-white">{position+1}</span>}
+        className={`relative min-h-32 rounded-lg border-2 p-2 flex flex-col items-center justify-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${position>=0?'border-accent bg-bg-secondary':'border-border bg-bg-primary opacity-70'}`}>
+        <img src={SINNER_IMAGES[index]} alt="" className="w-16 h-20 object-contain" />
+        <span className="block text-xs font-semibold">{zh?ZH_NAMES[index]:name}</span>
+        {position>=0 && <span className="absolute top-1 right-1 rounded bg-accent px-2 py-1 text-lg font-bold text-white" aria-label={`Order ${position+1}`}>{position+1}</span>}
       </button>;})}
     </div>
     {editing && <><div className="flex flex-wrap gap-1" aria-label={text('当前出战顺序','Deployment order','現在の出撃順')}>

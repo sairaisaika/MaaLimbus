@@ -1881,3 +1881,32 @@ This is a source test result, not complete game or production-value acceptance.
 - Full snapshot1636 passed/1 Windows permission skip157.29s; latest focused74 passed
   2.26s includes journal durability/clear preservation. Native probe remains zero-input.
   Freeze/install and actual GUI entry continuation are the next required gates.
+
+
+## October14 recovery, restored controls and continuation
+
+- The actual pi-20261014-053727 failure selected card4 but did not read75 at the
+  original only_rec crop: native confidence .767653 under .85. Two anchored
+  detected-digit crops now agree without reducing the threshold or deleting a
+  contrary full-frame read. Native actual105/95/75 plus masked digit/label cases
+  and isolated pending4 recovery pass, original private transaction unchanged.
+- Added bounded observation-only retries and a retained-before-frame/current
+  exact-delta recovery before new star inputs. Decision console and run.log show
+  actual rule components/final scores, saved weights, shop priority and shadow
+  boundaries. This does not claim a trained value policy controls purchases.
+- Fresh pinned custom MXU build restores GitHub update button, reference portrait
+  order editor and base star-card selection. Native SHA aa28bc31…9615c2, full
+  corresponding source. Installed Agent self-test passed,2970 private hashes kept;
+  build/grace-ui-installed-verification.json. GUI persistence is not yet accepted.
+- Actual installed MirrorTask probe found HOME rather than the historical STAR
+  page; it reached DRIVE, then exposed missing tasker wiring for native NODE plans.
+  Source fixes MaaDevice to carry the same AgentTasker callback proxy used by the
+  observer;72 focused tests including retained DRIVE navigation pass. This latest
+  adapter fix is source-only after the installed freeze. No star recovery or
+  further star purchase happened live. Existing pending card4 remains protected.
+- Full pre-correction snapshot1651passed/1skip/2failed exposed payout using all
+  profiles rather than the actual queue and a historical-fixture queue mismatch.
+  Both corrected; focused reward/grace/log/UI84 and adapter/Runner72 passed.
+  Latest whole-suite rerun and actual full pipeline remain required.
+- DSH handoff follows docs/plan-20261014-recovery-diagnostics.md and wiki-first
+  feature-local diagrams. Resource CPU/RAM/GPU/VRAM UI remains planned, not done.

@@ -33,6 +33,27 @@ def patch(source):
     p.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/TeamBuildEditor.tsx',source/'src/components/TeamBuildEditor.tsx')
     shutil.copyfile(ROOT/'desktop/mxu/teamOrder.ts',source/'src/utils/teamOrder.ts')
+    shutil.copyfile(ROOT/'desktop/mxu/teamArtwork.ts',source/'src/utils/teamArtwork.ts')
+    shutil.copyfile(ROOT/'desktop/mxu/StarCardsEditor.tsx',source/'src/components/StarCardsEditor.tsx')
+    for name in ('ARTWORK_NOTICE.md','artwork-provenance.json'):
+        shutil.copyfile(ROOT/'desktop/mxu'/name,source/name)
+    option=source/'src/components/OptionEditor.tsx';o=option.read_text(encoding='utf8')
+    if 'function StandardOptionEditor(' not in o:
+        o=o.replace("import { RichLabel } from './RichLabel';", "import { RichLabel } from './RichLabel';\nimport { StarCardsEditor } from './StarCardsEditor';",1)
+        needle='export function OptionEditor({'
+        if o.count(needle)!=1:raise ValueError('Pinned MXU option hook changed')
+        o=o.replace(needle,'''export function OptionEditor(props: OptionEditorProps) {
+  const project = useAppStore(state=>state.projectInterface?.name);
+  if (project==='MaaLimbus') {
+    if (/^mirror_star_(task|team)_\\d$/.test(props.optionKey)) return null;
+    const matched = /^mirror_star_(task|team)_budget$/.exec(props.optionKey);
+    if (matched) return <StarCardsEditor {...props} prefix={matched[1]==='task'?'mirror_star_task':'mirror_star_team'} />;
+  }
+  return <StandardOptionEditor {...props} />;
+}
+
+function StandardOptionEditor({''',1)
+        option.write_text(o,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/SoftwareUpdatePanel.tsx',source/'src/components/SoftwareUpdatePanel.tsx')
     shutil.copyfile(ROOT/'desktop/mxu/RotationPanel.tsx',source/'src/components/RotationPanel.tsx')
     rust=source/'src-tauri/src/lib.rs';s=rust.read_text(encoding='utf8')

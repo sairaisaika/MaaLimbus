@@ -67,6 +67,9 @@ def retained_bookkeeping(tmp_path):
     archived=[r for r in ledger['receipts'] if r['id']==scope][0]
     ledger['active']=deepcopy(archived);ledger['active']['reward']=False
     ledger['active']['events']={}
+    # Reconstruct an isolated, consistent fixed-team scope, not today's queue:
+    # the actual operator can change the queue after this historical receipt.
+    ledger['team_slots']=[archived['team']];ledger['rotation']=0
     ledger['receipts']=[];ledger['completed_runs']=0
     write_json(tmp_path/'user-run-ledger.json',ledger)
     write_json(tmp_path/'user-team-profiles.json',read_json(root/'config/user-team-profiles.json'))

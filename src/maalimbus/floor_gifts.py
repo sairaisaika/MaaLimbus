@@ -293,7 +293,10 @@ def rank(offers, team, selected):
         score = offer.trial.penalty - (40 if preferred else 0) + (60 if offer.owned else 0) - offer.visible_benefit
         ranking.append(dict(title=offer.title, canonical=offer.canonical,
                             score=score, trial=asdict(offer.trial),
-                            preferred=preferred, owned=offer.owned,visible_benefit=offer.visible_benefit))
+                            preferred=preferred, owned=offer.owned,visible_benefit=offer.visible_benefit,
+                            score_components=dict(trial=offer.trial.penalty,synergy=-40 if preferred else 0,
+                                already_owned=60 if offer.owned else 0,visible_benefit=-offer.visible_benefit),
+                            score_source='rule',score_direction='lower_is_better',learned_applied=False))
     return sorted(ranking,key=lambda r:(r['score'],r['title']))
 
 
@@ -315,4 +318,7 @@ def exploration_rank(offers,team,selected):
             preferred=preferred,owned=offer.owned,trial=None,
             observed_level=offer.trial.level,printed_trial=offer.unpriced,
             uncertainty_penalty=1000,exploratory=True,learned_applied=False))
+        rows[-1].update(score_components=dict(uncertainty=1000,observed_level=offer.trial.level*30,
+            already_owned=60 if offer.owned else 0,synergy=-40 if preferred else 0),
+            score_source='bounded_exploration_rule',score_direction='lower_is_better')
     return sorted(rows,key=lambda row:(row['score'],row['title']))

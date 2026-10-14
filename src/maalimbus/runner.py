@@ -276,8 +276,9 @@ class MaaDevice:
     ``click()`` mean "the touch landed" rather than "the touch was queued".
     """
 
-    def __init__(self, controller, *, wait=None, target_long_side=1920, deadline=None):
+    def __init__(self, controller, *, wait=None, target_long_side=1920, deadline=None, tasker=None):
         self.controller = controller
+        self.tasker = tasker
         self.wait = wait
         self.deadline = deadline
         self.target_long_side = target_long_side
@@ -1304,6 +1305,17 @@ class MirrorRunner:
         self.last_event = name
         if self.journal is not None:
             self.journal.record(name, **fields)
+        from .decision_log import lines as decision_lines,signature as decision_signature
+        rendered=decision_lines(name,fields)
+        if rendered:
+            key=decision_signature(name,fields)
+            seen=getattr(self,'_logged_decisions',set())
+            if key not in seen:
+                seen.add(key);self._logged_decisions=seen
+                self.artifacts.setdefault('decisions',[]).append(dict(event=name,lines=rendered))
+                for line in rendered:
+                    try:print('MaaLimbus '+line,flush=True)
+                    except (OSError,UnicodeError):pass
         labels={'MAP':'地图','NODE_PANEL':'节点进入','PRE_BATTLE_TEAM':'核对保存编队',
                 'BATTLE_HUD':'战斗','BATTLE_PLANNING':'战斗配卡','SHOP':'商店',
                 'SHOP_PURCHASE':'商店购买确认','GIFT_PICK':'选择藏品','GIFT_GET':'藏品到账',
@@ -1720,6 +1732,22 @@ class MirrorRunner:
                               value_context=dict(floor=state['floor_now'],keywords=keywords))
             self.note('shop_policy',mode=settings.shop_policy,refresh_limit=settings.shop_refreshes,
                       reserve_coins=settings.shop_reserve_coins,decision=shop.get('policy_trace'),input_sent=False)
+            if page=='SHOP' and shop:
+                chosen=shop.get('buy') or {};offers=shop.get('offers') or []
+                from .shop_vision import wanted_offers,Offer
+                # Reuse the exact matching/order function that chose the purchase.
+                matches=wanted_offers([Offer(o['index'],o['name'],(),o['price'],None,tuple(o['click']) if o.get('click') else None) for o in offers],names,
+                    [entry['name'] for entry in state['shop_bought']])
+                ranks={o.index:len(matches)-n for n,o in enumerate(matches)}
+                rows=[]
+                for offer in offers:
+                    price=offer['price'];eligible=offer['index'] in ranks
+                    affordable=price is not None and shop['currency'] is not None and price<=shop['currency']-settings.shop_reserve_coins
+                    rows.append(dict(name=offer['name'],price=price,manual_weight=(explicit_priorities if profile else {}).get(offer['name'],0),
+                        score=ranks.get(offer['index']),status='可购买' if eligible and affordable else '不在候选队列' if not eligible else '超过可用金币',
+                        chosen=chosen.get('index')==offer['index']))
+                self.note('shop_decision_ranking',ranking=rows,currency=shop['currency'],reserve=settings.shop_reserve_coins,
+                    refresh_limit=settings.shop_refreshes,reason=shop['reason'],learning=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP_PURCHASE' and shop:
                 from .shop_vision import matching_purchase_question
                 pending=shop_tx.data['pending']
@@ -1969,6 +1997,11 @@ class MirrorRunner:
             try:
                 records=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
                 available=available_starlight(records,record.get('size') or (1920,1080))
+                if page=='STAR_GRACES' and transaction.data and transaction.data.get('pending'):
+                    recovered=transaction.recover(self.run_id,state['grace_wanted'],settings.grace_budget,
+                                                  available,frame_file(directory))
+                    self.note('grace_purchase_recovered',card=recovered['card'],cost=recovered['cost'],
+                              available=available,input_sent=False,proof=str(frame_file(directory)))
                 if settings.grace_auto:
                     priorities=[int(n) for n in settings.graces.split(',') if n]
                     costs=None
@@ -2373,6 +2406,14 @@ class MirrorRunner:
             try:
                 observed=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 after_available=available_starlight(observed,settled.get('size') or (1920,1080))
+                for attempt in range(1,4):
+                    if after_available is not None or settled_page!='STAR_GRACES':break
+                    self.note('grace_successor_balance_read_retry',attempt=attempt,input_sent=False,
+                              pending_card=transaction.data['pending']['card'])
+                    settled=self._observe();settled_page=settled.get('scene')
+                    observed=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                    after_available=available_starlight(observed,settled.get('size') or (1920,1080))
+                    entry.update(settled=settled,page_after=settled_page,scene_after=settled_page)
                 if settled_page!='STAR_GRACES':raise ValueError('Grace purchase left selection unexpectedly')
                 transaction.observe(after_available,frame_file(directory))
             except ValueError as error:
@@ -2858,6 +2899,7 @@ class MirrorRunner:
                                     'team': self.store.team_slot,
                                     'rotation': self.store.data['rotation']}
         result['steps'] = self.artifacts['steps']
+        result['decisions'] = self.artifacts.get('decisions',[])
         result['clicks_sent'] = self.artifacts['clicks_sent']
         result['verified_clear'] = self.artifacts['verified_clear']
         flow_records = self.artifacts['flow_steps']

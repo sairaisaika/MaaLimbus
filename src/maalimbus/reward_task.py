@@ -38,7 +38,13 @@ def finish(config,scope,home):
     if active:
         if active.get('id')!=scope or active.get('floors')!=[1,2,3,4,5] or not active.get('victory'):
             raise ValueError('Completed run scope differs before payout bookkeeping')
-        store=RunStore(ledger,ProfileStore(config/'user-team-profiles.json').load())
+        profiles={p.slot:p for p in ProfileStore(config/'user-team-profiles.json').load()}
+        slots=data.get('team_slots')
+        if not isinstance(slots,list) or not slots or any(slot not in profiles for slot in slots):
+            raise ValueError('Current payout rotation references an unsaved team')
+        store=RunStore(ledger,[profiles[slot] for slot in slots])
+        if active.get('team')!=store.team_slot:
+            raise ValueError('Completed run team differs from the retained queue cursor')
         # Save the verified HOME before bookkeeping. If the transaction write
         # after rotation fails, recovery checks the exact archived events and
         # finishes this transaction without rotating or clicking again.

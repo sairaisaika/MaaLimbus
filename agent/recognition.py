@@ -310,23 +310,9 @@ class LimbusRecognition(CustomRecognition):
         if scene=='UNKNOWN' and planning_anchors(image,self.battle_catalog(),self.locale_name):
             scene='BATTLE_PLANNING'
         if scene in ('STAR_GRACES','STAR_CONFIRM'):
-            # The full text detector truncated 86 to 8 in actual frame-0005, and reads
-            # the label as "Avallable" in window-20261012-012943/frame-0012.json. A
-            # fixed numeric crop is accepted only with a fresh Available label, and the
-            # crop itself tolerates the starlight glyph glued to the digits.
-            if len(find(records,AVAILABLE_LABEL,(.70,.02,.80,.10),size,.85))==1:
-                roi=(1515,45,54,40)
-                detail=context.run_recognition_direct(JRecognitionType.OCR,
-                    JOCR(roi=roi,only_rec=True,expected=[AVAILABLE_PATTERN.lstrip('^')],threshold=.85),image)
-                if detail is None:raise RuntimeError('Maa local Available OCR returned no evidence')
-                x,y,w,h=roi
-                records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
-                found=[]
-                if detail.hit:
-                    for result in detail.filtered_results:
-                        records.append(Text(result.text,roi,result.score))
-                        found.append(dict(text=result.text,score=result.score,box=list(roi)))
-                local.append(dict(purpose='available_starlight',roi=list(roi),only_rec=True,results=found))
+            from maalimbus.grace_balance_native import repair as repair_grace_balance
+            records, balance_proof=repair_grace_balance(context.run_recognition_direct,image,records)
+            local.extend(balance_proof)
         if scene=='STAR_CONFIRM':
             roi=(1318,459,66,45)
             detail=context.run_recognition_direct(JRecognitionType.OCR,
@@ -1527,8 +1513,9 @@ class MirrorLoopAction(CustomAction):
                       verified_clear=False, foreground_before=None)
         loop = None
         try:
-            device = runner.MaaDevice(context.tasker.controller, deadline=deadline)
-            observer = runner.MaaObserver(AgentTasker(context), directory)
+            subtasks=AgentTasker(context)
+            device = runner.MaaDevice(context.tasker.controller, deadline=deadline,tasker=subtasks)
+            observer = runner.MaaObserver(subtasks, directory)
             store, run_id = loop_store(settings, journal)
             if store is not None:
                 result['run_ledger'] = dict(path=str(store.path), run=run_id,

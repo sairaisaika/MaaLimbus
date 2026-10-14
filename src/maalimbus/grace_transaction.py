@@ -116,3 +116,37 @@ class GraceTransaction:
         d['selected'].append(p['card']);d['spent']+=p['cost'];d['available']=available
         d['proofs'].append(str(proof));d['pending']=None
         write_json(self.path,d)
+
+    def recover(self,scope,requested,budget,available,proof):
+        """Book a sent purchase from retained intent + fresh exact balance, no input."""
+        from pathlib import Path
+        import hashlib
+        from .grace_vision import available_starlight, observed_board
+        from .vision import Text
+        import cv2
+        d=self.data
+        if (not d or d['scope']!=scope or d['requested']!=list(requested)
+                or d['budget']!=budget or not d.get('pending')):
+            raise ValueError('Grace recovery scope/configuration/pending mismatch')
+        pending=d['pending']
+        def frame(path):
+            path=Path(path);record=read_json(path);png=path.with_suffix('.png')
+            if (record.get('scene')!='STAR_GRACES' or
+                    hashlib.sha256(png.read_bytes()).hexdigest()!=record.get('image_sha256')):
+                raise ValueError('Grace recovery frame hash/page differs')
+            image=cv2.imread(str(png))
+            if image is None or [image.shape[1],image.shape[0]]!=record.get('size'):
+                raise ValueError('Grace recovery frame dimensions differ')
+            texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
+            return record,image,texts
+        before,image,texts=frame(pending['proof'])
+        board=observed_board(image,texts,[pending['card']])
+        if (available_starlight(texts,before['size'])!=pending['before'] or not board
+                or board['costs'][pending['card']-1]!=pending['cost']
+                or pending['card'] in d['selected'] or d['spent']+pending['cost']>budget):
+            raise ValueError('Grace retained purchase intent not independently proven')
+        after,_,texts=frame(proof)
+        if available_starlight(texts,after['size'])!=available:
+            raise ValueError('Grace recovery current balance differs')
+        self.observe(available,proof)
+        return pending

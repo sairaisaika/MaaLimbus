@@ -1,0 +1,95 @@
+{
+  "upstream": "https://github.com/HSLix/LixAssistantLimbusCompany",
+  "commit": "431b432e22f0b0da08b95d7c478fa213be20b3e8",
+  "license": "AGPL-3.0; game artwork remains Project Moon property",
+  "images": [
+    {
+      "path": "lalc_backend/img/general/sinners/Yi Sang.png",
+      "sha256": "3fd96181c5aae159f94fcd6fb2c2649f0fdadfe6831d1102f790aba9c4e9469e"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Faust.png",
+      "sha256": "8ffe95c3d09612c8d897ccdc725448e7027b76061df1d5bc5301202f2ed49d94"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Don Quixote.png",
+      "sha256": "a694b522c48c6c293c2885de1f9de346fe563d84d80a41233bf7b65ced42d9d8"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/RyoShu.png",
+      "sha256": "a35256959ac546a4ad6a23625b0b2a5a2143a39cfcb33cb3f40e752f648f1ab1"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Meursault.png",
+      "sha256": "821086f394d5cf38a0907df14877da9ac20a1b26eb206c945a3f490573fd4952"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Hong Lu.png",
+      "sha256": "a1444034bcaf1939e59b176ced2b86ed6c034dc7534fafed0efa5b6707d228ee"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Heathcliff.png",
+      "sha256": "3297947cab4206d16cd2aa31e07dd5757ae46655fa75d587b6c1940966b45383"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Ishmael.png",
+      "sha256": "513183424e794458b516800d40b65f19a7de942860f818a96b6b06d5ff1faa8e"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Rodion.png",
+      "sha256": "fd270d105a9463a34b24061e556810561d598dba22eadeed0abc119788efc224"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Sinclair.png",
+      "sha256": "d7328365be88aa80cb79f642cfea653f5df24317c3180049d9ab3b34f0b27825"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Outis.png",
+      "sha256": "388e113a8baca839d34da77ae5ba1904cbbdf89fc2e2ba4cef90226f0724780e"
+    },
+    {
+      "path": "lalc_backend/img/general/sinners/Gregor.png",
+      "sha256": "187abef4c64a4aff0d28814256de7fe1cefb170084e7a1ba0096ae9851cd0f45"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_00.png",
+      "sha256": "d00a77bbfc061efa5c8e71a6681c3d347135cb13088324fc79e6e3b6957893c9"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_01.png",
+      "sha256": "7127ae1bc11917997744bcb4bc1523cc95d24ac47669b8400b175afd99670fc2"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_02.png",
+      "sha256": "49ce3f98d8abc8c6e0a5da3100b54e9589169163a9a7e179bf69182d355307f3"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_03.png",
+      "sha256": "1bc21ad835f50fed16133119a7624aa531b4dc36f5fa8b6d83b1321c80f08096"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_04.png",
+      "sha256": "2f40c5c3ba5712cf79e5793e6cd64c0c13009bcc4293982614999dafafa3110c"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_05.png",
+      "sha256": "cdbbb98db6c10ff22754065be3bc748f76b79e3fdb001ef38a1bde6721f0fe7e"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_06.png",
+      "sha256": "a9721694529884ac5835a4d27eb1ce14dfbbe3fa6571aa98a58d1a809620c089"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_07.png",
+      "sha256": "7f4a901b7994c2fe03022a6ed9806f85a239a736f13fdd2a782d5c0dd5995e09"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_08.png",
+      "sha256": "70ae9cb5f637b3635a2e2b5ef2412398fdca252704efe1c40923a6608022aa9c"
+    },
+    {
+      "path": "lalc_backend/img/general/mirror/stars/mirror_09.png",
+      "sha256": "34aa5391780c8dfff2505e3662313044f476164bdb38c0dd3c017c2206aa8e36"
+    }
+  ]
+}

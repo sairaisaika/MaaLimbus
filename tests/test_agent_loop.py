@@ -152,6 +152,19 @@ def test_the_node_defaults_to_a_whole_run():
     assert ignored == []
 
 
+def test_packaged_loop_node_navigation_uses_callback_subtasks(tmp_path,monkeypatch):
+    drive=ROOT/'evidence/runtime/packaged-mirror-20261014-060837/frame-0006.json'
+    entry=ROOT/'dist/MaaLimbus/evidence/runtime/pi-20261014-053727/frame-0001.json'
+    if not drive.exists() or not entry.exists():pytest.skip('Retained navigation frames absent')
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(tmp_path/'private'))
+    result=run_loop(tmp_path,dict(steps=1,run_store='',interval=0),frames=(drive,entry))
+    answer=read_result(result.directory)
+    assert result.recognition.callback_failure is None
+    assert 'WindowDrive' in result.context.entries
+    assert answer['reason']!='mirror_loop_failed'
+    assert answer['steps'][0]['plan']['node']=='WindowDrive'
+
+
 def test_a_node_parameter_wins_and_a_stranger_is_reported():
     settings, ignored = loop_parameters({'steps': 12, 'team': 2, 'typo': 1})
     assert (settings.steps, settings.team) == (12, 2)

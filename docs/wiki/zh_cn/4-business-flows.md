@@ -331,6 +331,27 @@ flowchart TD
 源码落点：`src/maalimbus/initial_gifts.py:1`; `src/maalimbus/initial_transaction.py:1`; `src/maalimbus/theme_transaction.py:5` (`intent`, `observe`).
 
 
+### 4.3.5.1 星光已发送意图的恢复
+
+`src/maalimbus/grace_balance_native.py:1` keeps two detected numeric reads under
+an independent Available label. `src/maalimbus/grace_transaction.py:120`
+reconciles only matching scope/configuration, retained frame hash/current visible
+cost and an exact current delta. Missing evidence triggers observation retries,
+never another purchase. Native retained tests pass; the current live recovery and
+full-pipeline acceptance remain open. See the concrete plan in
+[recovery and diagnostics](../../plan-20261014-recovery-diagnostics.md).
+
+```mermaid
+stateDiagram-v2
+  [*] --> Pending: Persist before frame and one purchase
+  Pending --> Reading: Fresh label and two numeric crops
+  Reading --> Reading: Missing read, up to three observations
+  Reading --> Booked: Same intent and exact balance delta
+  Reading --> Retained: Unknown or conflicting evidence
+  Retained --> Reading: Restart with fresh observation, no purchase
+  Booked --> NextCard: Selected once and budget retained
+```
+
 <a id="feature-4-3-6"></a>
 
 ### 4.3.6 战斗配卡与真实进度

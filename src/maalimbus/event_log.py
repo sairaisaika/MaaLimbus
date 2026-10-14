@@ -145,6 +145,9 @@ def report(result, *, title='MaaLimbus mirror run', extra=(), now=None):
         lines.append(f'page: {observed["scene"]} (before any input)')
     lines.extend(str(line) for line in extra if line)
     lines.append('')
+    for decision in result.get('decisions') or []:
+        lines.extend(decision.get('lines') or [])
+        lines.append('')
     if result.get('flow_steps'):
         lines.append('navigation flow:')
         for step in result['flow_steps']:
