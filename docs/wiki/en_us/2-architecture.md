@@ -68,7 +68,7 @@ flowchart LR
 4. The action calls into business logic and Maa adapters under `src/maalimbus/`. `MirrorLoopAction` (`agent/recognition.py:1478`) *is* the whole loop: it wraps the PI's controller as `runner.MaaDevice`, wraps `AgentTasker` as `runner.MaaObserver`, and hands both to `runner.MirrorRunner` (`agent/recognition.py:1509-1522`).
 5. Every input the business layer sends goes back through `MaaDevice`'s `post_click` / `post_swipe` onto the PI's own controller. No second device channel is created (`docs/agent-loop.md:105-107`).
 
-> The load-bearing constraint: **there is exactly one input exit**. The `Device` Protocol at `src/maalimbus/runner.py:251` and the `Observer` Protocol at `:550` are the only two seams between the business layer and a device. That is also why the loop is offline-testable — `FrameObserver` (`:566`) replays archived frames and `FakeDevice` (`:386`) records what was sent, so `tests/test_runner.py` drives the real loop over real archived evidence with no device attached.
+> The load-bearing constraint: **there is exactly one input exit**. The `Device` Protocol at `src/maalimbus/runner.py:557` and the `Observer` Protocol at `:550` are the only two seams between the business layer and a device. That is also why the loop is offline-testable — `FrameObserver` (`:566`) replays archived frames and `FakeDevice` (`:386`) records what was sent, so `tests/test_runner.py` drives the real loop over real archived evidence with no device attached.
 
 ### Three external dependencies and their licences
 

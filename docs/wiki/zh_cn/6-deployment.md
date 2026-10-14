@@ -145,7 +145,7 @@ MaaLimbus 不是单体程序，而是**三个进程 + 一个原生库**的拼装
 | `windows` | `:46` | Win32；截图 `ScreenDC`、鼠标/键盘 `Seize`（独占前台） | 同上 |
 | `mumu-adb` | `:61` | `type: Adb` | `src/maalimbus/adb_device.py`：`discover()` 走 `Toolkit.find_adb_devices`（`:28`）、`build()` 构造 `AdbController`（`:97-103`） |
 
-`mumu-adb` 的输入方式有一个**已在实机验证过的陷阱**：`src/maalimbus/adb_device.py:21` 定义 `INPUT_NAMES`（`1 AdbShell` / `2 MinitouchAndAdbKey` / `4 Maatouch` / `8 EmulatorExtras`），`:22-23` 定义 `SCREENCAP_NAMES`（`64 EmulatorExtras` 等），`:5-6` 记录输入优先级 `EmulatorExtras > Maatouch > MinitouchAndAdbKey > AdbShell`。当不需要截图加速时，`input_policy()`（`:46-63`）会退回到 `adb shell input tap`，而**这条路游戏不认**——2026-10-12 的 `maafw.log` 里 `AdbShellInput::click x=125 y=527` 与 `Controller.Action.Succeeded` 同时出现，但 `DUNGEON_TEAM` 槽位纹丝不动。因此 `tools/make_local_app.py:44-68` 的 `agent_binaries()` 会**强制校验** `maatouch/universal/maatouch` 存在，缺了就报错而不是静默降级（`:183` 把它复制到包的 `maafw/MaaAgentBinary`）。
+`mumu-adb` 的输入方式有一个**已在实机验证过的陷阱**：`src/maalimbus/adb_device.py:21` 定义 `INPUT_NAMES`（`1 AdbShell` / `2 MinitouchAndAdbKey` / `4 Maatouch` / `8 EmulatorExtras`），`:22-23` 定义 `SCREENCAP_NAMES`（`64 EmulatorExtras` 等），`:5-6` 记录输入优先级 `EmulatorExtras > Maatouch > MinitouchAndAdbKey > AdbShell`。当不需要截图加速时，`input_policy()`（`:46-63`）会退回到 `adb shell input tap`，而**这条路游戏不认**——2026-10-12 的 `maafw.log` 里 `AdbShellInput::click x=125 y=527` 与 `Controller.Action.Succeeded` 同时出现，但 `DUNGEON_TEAM` 槽位纹丝不动。因此 `tools/make_local_app.py:175-199` 的 `agent_binaries()` 会**强制校验** `maatouch/universal/maatouch` 存在，缺了就报错而不是静默降级（`:183` 把它复制到包的 `maafw/MaaAgentBinary`）。
 
 ### 6.2.3 `maafw/` 里有什么（实测字节数）
 

@@ -2,7 +2,10 @@
 
 [English](../en_us/index.md) · [Wiki 入口](../README.md)
 
-本 wiki 是 MaaLimbus 的叙述性文档层。事实源仍是 `PROJECT.md`、`docs/design.md`、`docs/acceptance.md`——wiki 只负责导航与解释，不替代它们（同 `AGENTS.md:5-11` 的必读清单）。
+本 wiki 是 MaaLimbus 的叙述性文档层。事实源仍是 `PROJECT.md`、`docs/design.md`、`docs/acceptance.md`——wiki 只负责导航与解释，不替代它们（同 `AGENTS.md:13-16` 的必读清单）。
+
+**定位优先入口**：[agent短索引](../agent-index.md)；`python tools/wiki_route.py "当前问题"`。
+先看相关路由，得到当前源码符号、局部图、测试与边界，再选择需要的章节；无需照顺序通读。
 
 ## 全站导航
 
@@ -17,6 +20,7 @@
 | 6 | [部署与运维](6-deployment.md) | [Deployment and Operations](../en_us/6-deployment.md) | 打包、安装、更新、日志与证据归档 |
 | 7 | [质量与验收](7-quality.md) | [Quality and Acceptance](../en_us/7-quality.md) | 测试与验收口径：到底什么才算通过 |
 | 8 | [Agent 规则层](8-agent-rules.md) | [Agent Rules Layer](../en_us/8-agent-rules.md) | 在这个仓库里干活时遵守什么：票据与规格、triage 标签、领域词汇、结论沉淀 |
+| 9 | [实施计划与完成矩阵](9-execution-plan.md) | [Execution Plan](../en_us/9-execution-plan.md) | P0–P6怎么拆、依赖与证据是什么、六类设计视图和计划/实现如何对照 |
 
 各章主页面在两种语言下同名同结构（`zh_cn/<page>` 对应 `en_us/<page>`）。部分章节可能另有子页；子页只由该章自己的主页面链接，本表不列子页。
 

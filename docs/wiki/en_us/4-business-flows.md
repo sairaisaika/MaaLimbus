@@ -146,7 +146,7 @@ Source boundaries: `src/maalimbus/game_launch.py:8` (`open_game`); `agent/recogn
   2. `mirror_preferences.collect` (`src/maalimbus/mirror_preferences.py:6`) → `apply` (`:21`): writes this run's per-item collector allow/deny and theme-pack preferences into the saved teams.
   3. `mirror_starlight.collect` (`src/maalimbus/mirror_starlight.py:74`) → `apply` (`:17`): source and budget of the Starlight rules.
   4. Read the `MirrorLoop` node's `custom_action_param`, then layer on the initial keywords, gift search, step cap and deployment assignment from `mirror_task_options.collect` (`src/maalimbus/mirror_task_options.py:5`).
-  5. Use `shop_settings.FIELDS` (`src/maalimbus/shop_settings.py:45`) to overlay the three nodes `MirrorShopPolicy` / `MirrorShopRefreshLimit` / `MirrorShopCoinReserve` item by item into the parameters (`agent/recognition.py:1607-1610`); the resolution logic is `src/maalimbus/shop_settings.py:134 resolve_shop_settings` and `:282 collect`.
+  5. Use `shop_settings.FIELDS` (`src/maalimbus/shop_settings.py:289`) to overlay the three nodes `MirrorShopPolicy` / `MirrorShopRefreshLimit` / `MirrorShopCoinReserve` item by item into the parameters (`agent/recognition.py:1641-1644`); the resolution logic is `src/maalimbus/shop_settings.py:134 resolve_shop_settings` and `:282 collect`.
   6. Hand over to `MirrorLoopAction.run` (`agent/recognition.py:1478`, `:1499`): create the directory, read parameters and budget (`:1501-1504`, default 5400 seconds, `agent/recognition.py:1259`), assemble `runner.MaaDevice` (`:1517`) and `runner.MaaObserver` (`:1518`), then build `runner.MirrorRunner` (`:1257`, `:1526`) and call `run(steps, interval, round_limit, deadline)` (`src/maalimbus/runner.py:2907`).
   7. Inside the loop, each step's decision reads a set of independent policy pieces: `src/maalimbus/mirror_learning_policy.py:1304 strategy_score`, `:587 plan_route`, `:779 shop_plan`, `:931 skill_replacement`, `:432 gift_utility`; `src/maalimbus/route_plan.py:108 plan_route`, `src/maalimbus/gift_plan.py:15 load`, `src/maalimbus/shop_priority.py:5 load`, `src/maalimbus/auto_formation.py:17 choose_identity`, `src/maalimbus/budget.py:66 plan_spend`.
 - **Step-by-step sequence**:
@@ -304,7 +304,7 @@ stateDiagram-v2
   Completed --> [*]
 ```
 
-Source boundaries: `src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:1` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
+Source boundaries: `src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:3046` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
 
 
 <a id="feature-4-3-5"></a>

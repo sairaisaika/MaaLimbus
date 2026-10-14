@@ -2,7 +2,10 @@
 
 [简体中文](../zh_cn/index.md) · [Wiki entry](../README.md)
 
-This wiki is the narrative documentation layer of MaaLimbus. The sources of truth remain `PROJECT.md`, `docs/design.md` and `docs/acceptance.md` — the wiki navigates and explains them, it does not replace them (the same three files `AGENTS.md:5-11` lists as required reading).
+This wiki is the narrative documentation layer of MaaLimbus. The sources of truth remain `PROJECT.md`, `docs/design.md` and `docs/acceptance.md` — the wiki navigates and explains them, it does not replace them (the same three files `AGENTS.md:13-16` lists as required reading).
+
+**Locate first**: [short agent index](../agent-index.md), or `python tools/wiki_route.py "current problem"`.
+Read the relevant route for current symbols, local diagrams, tests and boundaries, then only the sections needed; no full-site reading sequence is required.
 
 ## Site navigation
 
@@ -17,6 +20,7 @@ This wiki is the narrative documentation layer of MaaLimbus. The sources of trut
 | 6 | [Deployment and Operations](6-deployment.md) | [部署与运维](../zh_cn/6-deployment.md) | Packaging, installation, updates, logs and evidence archiving |
 | 7 | [Quality and Acceptance](7-quality.md) | [质量与验收](../zh_cn/7-quality.md) | Tests and the acceptance standard: what actually counts as passing |
 | 8 | [Agent Rules Layer](8-agent-rules.md) | [Agent 规则层](../zh_cn/8-agent-rules.md) | What you follow while working in this repository: tickets and specs, triage labels, domain vocabulary, sedimenting conclusions |
+| 9 | [Execution Plan](9-execution-plan.md) | [实施计划与完成矩阵](../zh_cn/9-execution-plan.md) | P0–P6 dependencies, deliverables, evidence, six design views and plan/code reconciliation |
 
 Every chapter's main page shares the same name and structure in both languages (`en_us/<page>` mirrors `zh_cn/<page>`). Some chapters may add sub-pages; a sub-page is linked only from its own chapter's main page, so it is not listed here.
 

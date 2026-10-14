@@ -30,7 +30,7 @@
 两条容易踩的事实：
 
 - **`BEFORE_ENTRY` 不是识别出来的页面。** `src/maalimbus/window.py:339` 把它和 `MIRROR_ENTRY` 放在同一个分支（`if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY')`），`assets/resource/base/anchors.json` 里也有 `before_entry` 页面；但 `vision.classify` 的 50 个 `return` 常量里没有它，`agent/recognition.py` 也不会产出它。它是兼容用的同义分支。
-- **`learning_dataset.py` 的 reviewed 标签不是运行时的页面名。** `src/maalimbus/learning_dataset.py:7` 的 `LABELS` 只有 11 个（`STAR_GRACES`、`THEME_PACKS`、`MAP`、`PRE_BATTLE_TEAM`、`BATTLE_HUD`、`GIFT_PICK`、`GIFT_GET`、`EVENT_CHOICE`、`SHOP`、`RUN_COMPLETE`、`UNKNOWN`），是给以后的学习型分类器准备的人工标签集，文件自己也写明「Explicit reviewed page label required; OCR scene is not ground truth」（`src/maalimbus/learning_dataset.py:29`）。它既不是运行时的页面全集，也不含 `RUN_COMPLETE` 之外的结算页。
+- **`learning_dataset.py` 的 reviewed 标签不是运行时的页面名。** `src/maalimbus/learning_dataset.py:7` 的 `LABELS` 只有 11 个（`STAR_GRACES`、`THEME_PACKS`、`MAP`、`PRE_BATTLE_TEAM`、`BATTLE_HUD`、`GIFT_PICK`、`GIFT_GET`、`EVENT_CHOICE`、`SHOP`、`RUN_COMPLETE`、`UNKNOWN`），是给以后的学习型分类器准备的人工标签集，文件自己也写明「Explicit reviewed page label required; OCR scene is not ground truth」（`src/maalimbus/learning_dataset.py:8`）。它既不是运行时的页面全集，也不含 `RUN_COMPLETE` 之外的结算页。
 
 ### 5.1.2 运行生命周期状态图
 
@@ -114,7 +114,7 @@ stateDiagram-v2
 | `config/user-floor-gift-transaction.json` | `{kind:'pick'}`, `{kind:'commit'}`, `{kind:'refuse_owned'}`, `{kind:'receipt'}` | `src/maalimbus/floor_gift_transaction.py:51`、`:103`、`:113`、`:148` |
 | `config/user-grace-transaction.json` | `{card, cost, before, proof}` | `src/maalimbus/grace_transaction.py:109`，确认 `:113-117` |
 | `config/user-initial-transaction.json` | `{row, title, before, capacity, proof}` | `src/maalimbus/initial_transaction.py:20`，确认 `:22-27` |
-| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:57`，确认 `:58-63`；另存 `saved_order` / `unavailable` 与复活收据 `revives`（`:69` 读、`:73` 记账） |
+| `config/user-deployment-transaction.json` | `{kind:'card'\|'clear', before, capacity, card}` | `src/maalimbus/deployment_transaction.py:12`，确认 `:58-63`；另存 `saved_order` / `unavailable` 与复活收据 `revives`（`:69` 读、`:73` 记账） |
 | `config/user-theme-transaction.json` | `{floor, name, proof}` | `src/maalimbus/theme_transaction.py:11`，确认 `:12-17`（确认时追加 `map_proof`） |
 | `config/user-reward-claim-transaction.json` | 字符串 `'reserved'` → `'claim'` → `'confirm'`（不是 dict） | `src/maalimbus/reward_claim_transaction.py:66`、`:74` |
 | `config/user-shop-<scope>.json` | `{kind:'purchase'\|'refresh', stage:'card_intent'\|'confirm_intent'\|'overlay_intent'\|'refresh_intent', ...}` | `src/maalimbus/shop_transaction.py:286`、`:313`、`:343`、`:383`；买成写 `bought`（`:458`）、刷新回执写 `refresh_receipts`（`:478`），标题比对走 `_same_title`（`:52`，混淆字表 `_CONFUSABLE` `:44`） |
@@ -173,7 +173,7 @@ stateDiagram-v2
 
 **每周奖励（Weekly Bonus）只花在赚到它的那一局上。** 领奖可能问第二遍「要不要花每周奖励」，而每周奖励只有三个、每周重置、不结转，所以答案不能从画面读，只能从账本推：`run_wiring.earned_its_payout()`（`src/maalimbus/run_wiring.py:208-252`）比较最新 receipt 的 `settled_at` 与最新 `abandoned` 的 `abandoned_at`；两者缺一就返回 False，因为「不知道」不是花掉稀缺资源的理由（`:243-250`）。
 
-`config/user-run-ledger.json` 当前实测：`team_slots=[5,4,1,6,2,7,3]`、`rotation=5`（指向 slot 7）、`completed_runs=2`、`active.team=7`、`active.floors=[1,2,3]`、`active.phase="entered"`、`active.events` 三个 `floor_clear`、`receipts` 2 条、`abandoned` 7 条。`team_slots` 的顺序与 `config/user-team-profiles.json` 的 `teams[].slot` 顺序一致（同一份 `[5,4,1,6,2,7,3]`），这不是巧合：`RunStore.__init__` 会用 `ProfileStore` 的 slot 顺序校验既有账本，不一致就拒绝启动（`src/maalimbus/storage.py:137-142`）。
+`config/user-run-ledger.json` 当前实测：`team_slots=[5,4,1,6,2,7,3]`、`rotation=5`（指向 slot 7）、`completed_runs=2`、`active.team=7`、`active.floors=[1,2,3]`、`active.phase="entered"`、`active.events` 三个 `floor_clear`、`receipts` 2 条、`abandoned` 7 条。`team_slots` 的顺序与 `config/user-team-profiles.json` 的 `teams[].slot` 顺序一致（同一份 `[5,4,1,6,2,7,3]`），这不是巧合：`RunStore.__init__` 会用 `ProfileStore` 的 slot 顺序校验既有账本，不一致就拒绝启动（`src/maalimbus/storage.py:69-74`）。
 
 轮换只能通过三个显式入口改动，手工编辑 `rotation` 是被排除在支持范围外的做法：
 

@@ -315,7 +315,7 @@ The four exit families, all anchored:
 
 `_result`'s `done` semantics: `'done': bool(done or stopped is not None)` (`src/maalimbus/runner.py:3091`) — the moment a step produces a stop string, the loop ends.
 
-**Not yet verified**: `MirrorLoopAction.run`'s return value is `bool(result.get('passed'))` (`agent/recognition.py:1553`), but the full assignment path of `passed` (including the positive criterion for a whole successful run) was not traced line by line this round. The related fact we do have is that `record_ledger_event` sets `state['run_settled_itself'] = True` on the `final_victory` / `reward_received` events (`src/maalimbus/runner.py:2690`).
+**Not yet verified**: `MirrorLoopAction.run`'s return value is `bool(result.get('passed'))` (`agent/recognition.py:1553`), but the full assignment path of `passed` (including the positive criterion for a whole successful run) was not traced line by line this round. The related fact we do have is that `record_ledger_event` sets `state['run_settled_itself'] = True` on the `final_victory` / `reward_received` events (`src/maalimbus/runner.py:2797`).
 
 ---
 
@@ -452,8 +452,8 @@ Start with the evidence directory of this run, then read the **stop reason strin
 | The machine-readable event stream | `events.jsonl` (`window_intent` / `map_observed` / `battle_observed`) | `src/maalimbus/runner.py:1374 def note` |
 | Result summary | `agent-result.json` | `agent/recognition.py:1361 def write_loop_result` |
 | One sentence explaining a stop reason | the `GLOSSARY` table at `src/maalimbus/event_log.py:20-73` (`explain()` at `:79-89`) | it maps every reason to what it means and what to look at next |
-| The same page kept offering the same plan | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2837` |
-| The claim family made no progress | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2824` |
+| The same page kept offering the same plan | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2967` |
+| The claim family made no progress | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2954` |
 | The input was sent but the page did not move | reason `unexpected_successor` | `src/maalimbus/runner.py:2722`, `src/maalimbus/runner.py:2722` |
 | The time budget ran out | reason `loop_deadline_exceeded` | `agent/recognition.py:1528-1533` |
 | The loop raised instead of stopping | event `mirror_loop_error` (with a traceback), reason `mirror_loop_failed` | `agent/recognition.py:1534-1546` |
@@ -494,7 +494,7 @@ flowchart TD
   K -.-> N["Human review; not ground truth / 人工复核，尚非真值"]
 ```
 
-Source boundaries: `src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:1` (`_explore_unknown`).
+Source boundaries: `src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:3000` (`_explore_unknown`).
 
 
 <a id="feature-3-8"></a>

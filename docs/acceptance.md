@@ -1829,6 +1829,8 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   longer stops the chain. The window launched with `run_count: 0`, so its live bound is still `steps 400` /
   `budget 5400s` and not yet a saved run count.
 - Wiki citation drift was measured for the first time: `tools/verify_wiki_citations.py` attributes a `path.py:LINE`
-  citation to the symbol named beside it and judged **1280 citations, 200 named, 140 landed, 60 drifted**, leaving 383
-  unnamed, 397 crowded (more than two on one line) and 300 unresolvable paths counted rather than guessed;
-  `tools/check_wiki.py` stays `ok — 0 problem(s)` and `tools/verify_wiki_routes.py` prints `passed: true`.
+  citation to the symbol named beside it, and its own `--apply` then re-pointed the 27 that were unambiguous. The
+  measure now reads **1280 citations: 188 named, 167 landed, 21 drifted**, with 383 unnamed, 397 crowded (more than
+  two on one line), 300 unresolvable paths and 12 unattributed (a word the cited file never mentions, or the module's
+  own name) counted rather than guessed; `tools/check_wiki.py` stays `ok — 0 problem(s)` and
+  `tools/verify_wiki_routes.py` prints `passed: true`.

@@ -66,9 +66,53 @@ def test_a_row_naming_many_citations_is_counted_apart(tmp_path, monkeypatch):
     assert (totals['named'], totals['drifted'], totals['unresolvable'], rows) == (0, 0, 0, [])
 
 
+def test_a_symbol_the_cited_file_never_mentions_is_not_called_drift(tmp_path, monkeypatch):
+    _tree(tmp_path, monkeypatch, 'the rule is `src/mod.py:5` `absent_symbol`\n')
+    totals, rows = verify.check()
+    assert (totals['unattributed'], totals['named'], totals['drifted'], rows) == (1, 0, 0, [])
+
+
+def test_naming_the_module_itself_is_not_called_drift(tmp_path, monkeypatch):
+    (tmp_path / 'docs' / 'wiki' / 'en_us').mkdir(parents=True)
+    (tmp_path / 'src').mkdir()
+    (tmp_path / 'docs' / 'wiki' / 'en_us' / '1-test.md').write_text(
+        'wiring lives in `run_wiring` (`src/run_wiring.py:81`)\n', encoding='utf-8')
+    (tmp_path / 'src' / 'run_wiring.py').write_text('# run_wiring wires it\n' + 'x\n' * 50, encoding='utf-8')
+    monkeypatch.setattr(verify, 'ROOT', tmp_path)
+    monkeypatch.setattr(verify, 'WIKI', tmp_path / 'docs' / 'wiki')
+    totals, rows = verify.check()
+    assert (totals['unattributed'], totals['named'], rows) == (1, 0, [])
+
+
+def test_apply_repoints_a_citation_onto_its_one_definition(tmp_path, monkeypatch):
+    _tree(tmp_path, monkeypatch, 'the rule is `src/mod.py:5` `planted_symbol`\n')
+    totals, rows = verify.check()
+    assert totals['drifted'] == 1
+    applied, skipped = verify.apply_fixes(rows)
+    assert (len(applied), skipped) == (1, [])
+    page = (tmp_path / 'docs' / 'wiki' / 'en_us' / '1-test.md').read_text(encoding='utf-8')
+    assert '`src/mod.py:30`' in page and '`src/mod.py:5`' not in page
+    again, rows_again = verify.check()
+    assert (again['drifted'], rows_again) == (0, [])
+
+
+def test_apply_refuses_a_symbol_with_two_definitions(tmp_path, monkeypatch):
+    _tree(tmp_path, monkeypatch, 'the rule is `src/mod.py:200` `planted_symbol`\n')
+    (tmp_path / 'src' / 'mod.py').write_text(
+        'planted_symbol = 1\n' + 'x\n' * 40 + 'planted_symbol = 2\n', encoding='utf-8')
+    totals, rows = verify.check()
+    assert totals['drifted'] == 1
+    applied, skipped = verify.apply_fixes(rows)
+    assert applied == []
+    assert skipped and 'definition-like' in skipped[0][1]
+    page = (tmp_path / 'docs' / 'wiki' / 'en_us' / '1-test.md').read_text(encoding='utf-8')
+    assert '`src/mod.py:200`' in page
+
+
 def test_the_real_wiki_report_accounts_for_every_citation():
     totals, rows = verify.check()
     assert totals['citations'] > 1000
     assert totals['crowded'] > 0
-    assert totals['named'] + totals['unnamed'] + totals['unresolvable'] + totals['crowded'] == totals['citations']
+    assert totals['named'] + totals['unnamed'] + totals['unresolvable'] + totals['crowded'] \
+        + totals['unattributed'] == totals['citations']
     assert all(row['verdict'] == 'drifted' and row['symbol'] for row in rows)

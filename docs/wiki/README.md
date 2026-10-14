@@ -4,6 +4,29 @@
 
 This is the routing page for the repository wiki. Chinese navigation first, English navigation second; the two languages mirror section by section and share file names.
 
+## Agent 快速入口 / Fast agent entry
+
+**先定位当前问题，不用通读全站。** [短索引](agent-index.md) ·
+[实施计划与完成矩阵](zh_cn/9-execution-plan.md) ·
+[多agent wiki skill](../../skills/multi-agent-wiki/SKILL.md)。
+这些入口节省定位成本，不增加文件锁、审批或固定流程；源码和当前实证优先于过期叙述。
+
+```text
+python tools/wiki_route.py "Grace purchase successor balance not proven"
+python tools/wiki_route.py "GPU占用"
+python tools/wiki_route.py "神经学习是否apply" --json
+```
+
+每次只返回相关功能的**当前代码符号 → 局部解释/图 → 窄范围验证 → 验收边界**。
+函数行号随查询从源码重新定位，不依赖记忆猜路径；未实现功能明确指向设计。
+没有匹配时再做一次有针对性的源码搜索并补路由，不让wiki挡住工作。
+
+Start with the [quick routes](agent-index.md), [execution plan](en_us/9-execution-plan.md)
+or portable [wiki skill](../../skills/multi-agent-wiki/SKILL.md). Read only the relevant
+feature. Queries resolve current symbols and return local diagrams, narrow checks
+and evidence boundaries. This is an efficient navigation aid, not a workflow lock
+or a reason to override source/runtime facts.
+
 ## 中文导航
 
 | 语言 | 索引入口 | 说明 |
@@ -24,6 +47,7 @@ This is the routing page for the repository wiki. Chinese navigation first, Engl
 | 6 | [部署与运维](zh_cn/6-deployment.md) | [Deployment and Operations](en_us/6-deployment.md) |
 | 7 | [质量与验收](zh_cn/7-quality.md) | [Quality and Acceptance](en_us/7-quality.md) |
 | 8 | [Agent 规则层](zh_cn/8-agent-rules.md) | [Agent Rules Layer](en_us/8-agent-rules.md) |
+| 9 | [实施计划与完成矩阵](zh_cn/9-execution-plan.md) | [Execution Plan and Acceptance Matrix](en_us/9-execution-plan.md) |
 
 第 4 章已交付。第 8 章是元章节，讲怎么在这个仓库里干活，不讲产品行为。部分章节可能另有子页，子页只由该章自己的主页面链接。
 
@@ -140,6 +164,7 @@ Overview diagrams are navigation; local diagrams explain specific guards, intera
 | 购买价值学习与规则执行的分界 / Purchase-value learning versus rule execution | [3.9](zh_cn/3-runtime.md#feature-3-9) | [3.9](en_us/3-runtime.md#feature-3-9) |
 | 启动意图与前台确认 / Launch intent and foreground confirmation | [4.2.1](zh_cn/4-business-flows.md#feature-4-2-1) | [4.2.1](en_us/4-business-flows.md#feature-4-2-1) |
 | 入场与列表上下查找 / Entry and bidirectional team-list search | [4.3.2](zh_cn/4-business-flows.md#feature-4-3-2) | [4.3.2](en_us/4-business-flows.md#feature-4-3-2) |
+| GUI Start原生适配链 / GUI Start native subtask adapter | [9.3.1](zh_cn/9-execution-plan.md#feature-9-3-1) | [9.3.1](en_us/9-execution-plan.md#feature-9-3-1) |
 | 每场部署：复用、修正与提交 / Encounter deployment: reuse, correction and submission | [4.3.3](zh_cn/4-business-flows.md#feature-4-3-3) | [4.3.3](en_us/4-business-flows.md#feature-4-3-3) |
 | 楼层礼物选择、到账与恢复 / Floor gifts: selection, receipts and recovery | [4.3.4](zh_cn/4-business-flows.md#feature-4-3-4) | [4.3.4](en_us/4-business-flows.md#feature-4-3-4) |
 | 初始礼物、搜索与楼层主题 / Initial gifts, search and floor themes | [4.3.5](zh_cn/4-business-flows.md#feature-4-3-5) | [4.3.5](en_us/4-business-flows.md#feature-4-3-5) |
@@ -154,6 +179,13 @@ Overview diagrams are navigation; local diagrams explain specific guards, intera
 | 学习数据的引用与复核关系 / Learning data references and review relationships | [5.5](zh_cn/5-state-and-data.md#feature-5-5) | [5.5](en_us/5-state-and-data.md#feature-5-5) |
 | 购物与刷新分别结算 / Purchase and refresh settle separately | [4.3.8](zh_cn/4-business-flows.md#feature-4-3-8) | [4.3.8](en_us/4-business-flows.md#feature-4-3-8) |
 | 图鉴、账户 box 与自动编队 / Catalogue, account box and automatic formation | [4.3.9](zh_cn/4-business-flows.md#feature-4-3-9) | [4.3.9](en_us/4-business-flows.md#feature-4-3-9) |
+| 基线、分工与事实源 / Baseline, ownership and sources of truth | [9.1](zh_cn/9-execution-plan.md#feature-9-1) | [9.1](en_us/9-execution-plan.md#feature-9-1) |
+| 看板卡、依赖与阶段出口 / Board cards, dependencies and phase exits | [9.2](zh_cn/9-execution-plan.md#feature-9-2) | [9.2](en_us/9-execution-plan.md#feature-9-2) |
+| 失败自动恢复与显式运行次数 / Automatic recovery and the explicit run count | [9.3](zh_cn/9-execution-plan.md#feature-9-3) | [9.3](en_us/9-execution-plan.md#feature-9-3) |
+| 学习与策略的架构边界 / Architecture boundary between learning and policy | [9.4](zh_cn/9-execution-plan.md#feature-9-4) | [9.4](en_us/9-execution-plan.md#feature-9-4) |
+| 标签、评分与证据的数据模型 / Labels, scores and evidence data model | [9.5](zh_cn/9-execution-plan.md#feature-9-5) | [9.5](en_us/9-execution-plan.md#feature-9-5) |
+| 资源监控的部署与接口 / Resource monitoring deployment and interface | [9.6](zh_cn/9-execution-plan.md#feature-9-6) | [9.6](en_us/9-execution-plan.md#feature-9-6) |
+| 验收矩阵与回写纪律 / Acceptance matrix and write-back discipline | [9.7](zh_cn/9-execution-plan.md#feature-9-7) | [9.7](en_us/9-execution-plan.md#feature-9-7) |
 
 新增功能或修复改变状态/交互时，审查对应局部图及双语段落；不能只改总览。Mermaid 解析通过只证明语法，覆盖索引只证明可找到说明，二者都不等于游戏 pipeline 通关。
 

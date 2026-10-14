@@ -149,7 +149,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 
 ### 3.2.2 一个真实的数据形状示例
 
-下面这份按 `_plan` 的真实字段定义（`src/maalimbus/window.py:93-96`）与 `UNKNOWN_DIALOG` 上 `confirm_proven_owned_gift_refusal` 这个真实分支（`src/maalimbus/runner.py:2321`）组装；字段名逐字来自代码：
+下面这份按 `_plan` 的真实字段定义（`src/maalimbus/window.py:1013-1016`）与 `UNKNOWN_DIALOG` 上 `confirm_proven_owned_gift_refusal` 这个真实分支（`src/maalimbus/runner.py:2321`）组装；字段名逐字来自代码：
 
 ```python
 plan = {
@@ -452,8 +452,8 @@ sequenceDiagram
 | 机器可读的逐事件流 | `events.jsonl`（`window_intent` / `map_observed` / `battle_observed`） | `src/maalimbus/runner.py:1374 def note` |
 | 结果摘要 | `agent-result.json` | `agent/recognition.py:1361 def write_loop_result` |
 | 停止原因的一句话解释与建议 | `src/maalimbus/event_log.py:20-73` 的 `GLOSSARY` 表（取词函数 `explain()` 在 `:79-89`） | 该表把每个 reason 映射成「什么意思、下一步看什么」 |
-| 同一页同一动作反复走、停不下来 | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2837` |
-| 领奖家族原地打转 | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2824` |
+| 同一页同一动作反复走、停不下来 | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2967` |
+| 领奖家族原地打转 | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2954` |
 | 输入发出去了但页面没动 | reason `unexpected_successor` | `src/maalimbus/runner.py:2722`、`src/maalimbus/runner.py:2722` |
 | 时间预算用尽 | reason `loop_deadline_exceeded` | `agent/recognition.py:1528-1533` |
 | 循环抛异常而不是正常停止 | 事件 `mirror_loop_error`（带 traceback），reason `mirror_loop_failed` | `agent/recognition.py:1534-1546` |
@@ -494,7 +494,7 @@ flowchart TD
   K -.-> N["Human review; not ground truth / 人工复核，尚非真值"]
 ```
 
-源码落点：`src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:1` (`_explore_unknown`).
+源码落点：`src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:3000` (`_explore_unknown`).
 
 
 <a id="feature-3-8"></a>

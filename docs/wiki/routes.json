@@ -1,0 +1,519 @@
+{
+  "schema_version": 1,
+  "project": "MaaLimbus",
+  "routes": [
+    {
+      "id": "startup",
+      "title": "GUI开始红停 / actual Start pipeline",
+      "aliases": [
+        "开始失败",
+        "任务失败",
+        "GUI Start",
+        "mirror_loop_failed",
+        "a node plan needs a Maa tasker"
+      ],
+      "sources": [
+        {
+          "path": "agent/recognition.py",
+          "symbol": "MainTaskAction.run"
+        },
+        {
+          "path": "agent/recognition.py",
+          "symbol": "MirrorLoopAction.run"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "MaaDevice.__init__"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "run_node"
+        },
+        {
+          "path": "agent/recognition.py",
+          "symbol": "AgentTasker.post_task"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3-1",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-1",
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-2"
+      ],
+      "tests": [
+        "tests/test_main_task_dispatch.py",
+        "tests/test_agent_loop.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_main_task_dispatch.py tests/test_agent_loop.py"
+      ],
+      "boundary": "启动成功不等于通关；先核实际成品版本与GUI参数。"
+    },
+    {
+      "id": "queue",
+      "title": "单队、轮换和离屏Team查找",
+      "aliases": [
+        "team1",
+        "team2",
+        "team22",
+        "teams7",
+        "轮换",
+        "单队",
+        "队伍",
+        "滑动"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/task_preferences.py",
+          "symbol": "TaskPreferences.set_mirror_queue"
+        },
+        {
+          "path": "src/maalimbus/team_vision.py",
+          "symbol": "selected_saved_team"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-10",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-10"
+      ],
+      "tests": [
+        "tests/test_task_preferences.py",
+        "tests/test_team_navigation.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_task_preferences.py tests/test_team_navigation.py"
+      ],
+      "boundary": "保存队伍、运行队列、游戏槽位分开；自动换队只在真实完成后。"
+    },
+    {
+      "id": "stars",
+      "title": "星光余额、卡片和已发送购买恢复",
+      "aliases": [
+        "星光",
+        "余额",
+        "Grace purchase successor balance not proven",
+        "grace",
+        "star balance",
+        "pending card4"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/grace_balance_native.py",
+          "symbol": "repair"
+        },
+        {
+          "path": "src/maalimbus/grace_transaction.py",
+          "symbol": "GraceTransaction.recover"
+        },
+        {
+          "path": "src/maalimbus/mirror_starlight.py",
+          "symbol": "resolve"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-5",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-5"
+      ],
+      "tests": [
+        "tests/test_grace_balance_native.py",
+        "tests/test_grace_transaction.py",
+        "tests/test_mirror_starlight.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_grace_balance_native.py tests/test_grace_transaction.py tests/test_mirror_starlight.py"
+      ],
+      "boundary": "读不清先重观察核账；不重买已发送卡片，不推断当前游戏现场。"
+    },
+    {
+      "id": "deployment",
+      "title": "部署顺序复用与实际人数",
+      "aliases": [
+        "部署",
+        "编队顺序",
+        "每场重新编队",
+        "Clear Selection",
+        "deployment",
+        "inherited order"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/deployment_transaction.py",
+          "symbol": "DeploymentTransaction.prepare"
+        },
+        {
+          "path": "src/maalimbus/team_vision.py",
+          "symbol": "carries_saved_order"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-3",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-3"
+      ],
+      "tests": [
+        "tests/test_deployment_transaction.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_deployment_transaction.py"
+      ],
+      "boundary": "印刷顺序和当前人数需独立证明；身份网格位置不等于部署顺序。"
+    },
+    {
+      "id": "shop",
+      "title": "商店购买、刷新和金币对账",
+      "aliases": [
+        "商店",
+        "购买",
+        "刷新",
+        "shop purchase delta",
+        "Exact shop purchase currency delta not proven",
+        "purchase",
+        "refresh"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/shop_vision.py",
+          "symbol": "matching_purchase_question"
+        },
+        {
+          "path": "src/maalimbus/shop_transaction.py",
+          "symbol": "ShopTransaction.reconcile_purchase"
+        },
+        {
+          "path": "src/maalimbus/shop_transaction.py",
+          "symbol": "ShopTransaction.reconcile_refresh"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-8"
+      ],
+      "tests": [
+        "tests/test_shop_transaction.py",
+        "tests/test_shop_actual_purchase.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_shop_transaction.py tests/test_shop_actual_purchase.py"
+      ],
+      "boundary": "购买确认、GET和完整货架结算分开；交易成功不是藏品强度标签。"
+    },
+    {
+      "id": "receipts",
+      "title": "藏品GET与后继恢复",
+      "aliases": [
+        "收据",
+        "GET",
+        "floor_gift_receipt_unknown_repeated_or_pending",
+        "receipt",
+        "到账"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/floor_gift_transaction.py",
+          "symbol": "FloorGiftTransaction.observe_receipt"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-4",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-4"
+      ],
+      "tests": [
+        "tests/test_gift_receipt_settling.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_gift_receipt_settling.py"
+      ],
+      "boundary": "完整名称、scope和独立后继才可核账，不能重复GET。"
+    },
+    {
+      "id": "scores",
+      "title": "候选权重与最终评分日志",
+      "aliases": [
+        "打分",
+        "权重",
+        "评分",
+        "分数",
+        "score",
+        "weights",
+        "log"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/decision_log.py",
+          "symbol": "lines"
+        },
+        {
+          "path": "src/maalimbus/floor_gifts.py",
+          "symbol": "rank"
+        },
+        {
+          "path": "src/maalimbus/theme_vision.py",
+          "symbol": "recommend_pack"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-5",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-5"
+      ],
+      "tests": [
+        "tests/test_decision_log.py",
+        "tests/test_floor_gifts.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_decision_log.py tests/test_floor_gifts.py"
+      ],
+      "boundary": "区分规则分方向、手动优先级、影子预测和真实学习参与。"
+    },
+    {
+      "id": "unknown",
+      "title": "未知页面的有界探索和证据包",
+      "aliases": [
+        "未知",
+        "unknown",
+        "自标签",
+        "自动标签",
+        "self label",
+        "无进展"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/unknown_exploration.py",
+          "symbol": "Exploration"
+        },
+        {
+          "path": "src/maalimbus/semantic_labels.py",
+          "symbol": "persist_frame_proposals"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3"
+      ],
+      "tests": [
+        "tests/test_unknown_exploration.py",
+        "tests/test_semantic_labels.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_unknown_exploration.py tests/test_semantic_labels.py"
+      ],
+      "boundary": "未知不直接结束整条任务；探索受次数、可见控件和预算约束，标签先proposal。"
+    },
+    {
+      "id": "neural",
+      "title": "神经模型是否真正用于识别或策略",
+      "aliases": [
+        "神经",
+        "neural applied",
+        "模型",
+        "训练",
+        "onnx",
+        "shadow",
+        "自监督"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/neural_shadow.py",
+          "symbol": "verified_model"
+        },
+        {
+          "path": "src/maalimbus/shop_value_shadow.py",
+          "symbol": "rank_preview"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-4",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-4"
+      ],
+      "tests": [
+        "tests/test_neural_training_evidence.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_neural_training_evidence.py"
+      ],
+      "boundary": "Maa原生推理与项目离线训练分开；shadow不得冒充生产控制策略。"
+    },
+    {
+      "id": "gpu",
+      "title": "CPU、内存、GPU和显存占用",
+      "aliases": [
+        "gpu占用",
+        "GPU",
+        "显存",
+        "CPU",
+        "RAM",
+        "VRAM",
+        "性能",
+        "占用"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/resource_diagnostics.py",
+          "symbol": "sample"
+        },
+        {
+          "path": "src/maalimbus/resource_diagnostics.py",
+          "symbol": "NvidiaSmiProvider"
+        },
+        {
+          "path": "src/maalimbus/resource_diagnostics.py",
+          "symbol": "_process_gpu_block"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-6",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-6"
+      ],
+      "tests": [
+        "tests/test_resource_diagnostics.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_resource_diagnostics.py"
+      ],
+      "boundary": "已实现采样器原型与只读CLI；整卡GPU不是进程归属。具体进程GPU供应商、GUI面板及同窗实机验收仍待证明。"
+    },
+    {
+      "id": "run-count",
+      "title": "镜牢完整局数与步数上限",
+      "aliases": [
+        "运行次数",
+        "次数",
+        "run count",
+        "步数",
+        "steps",
+        "根据部署"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "Settings"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3"
+      ],
+      "tests": [
+        "tests/test_agent_loop.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_agent_loop.py"
+      ],
+      "boundary": "完整局数是设计要求；Settings步数上限不是通关次数。"
+    },
+    {
+      "id": "payout",
+      "title": "领奖、返回和一次轮换记账",
+      "aliases": [
+        "领奖",
+        "奖励模块",
+        "module budget",
+        "reward",
+        "payout",
+        "完成"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/reward_task.py",
+          "symbol": "finish"
+        },
+        {
+          "path": "src/maalimbus/storage.py",
+          "symbol": "RunStore.record"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-6-1",
+        "docs/wiki/en_us/4-business-flows.md#feature-4-6-1"
+      ],
+      "tests": [
+        "tests/test_reward_task.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_reward_task.py"
+      ],
+      "boundary": "clear、实际到账、返回分别证明；新scope不能冒用旧预算。"
+    },
+    {
+      "id": "settings",
+      "title": "头像编队和星光卡片编辑器",
+      "aliases": [
+        "头像",
+        "设置页",
+        "editor",
+        "设置",
+        "game-like"
+      ],
+      "sources": [
+        {
+          "path": "desktop/mxu/TeamBuildEditor.tsx",
+          "needle": "export function TeamBuildEditor"
+        },
+        {
+          "path": "desktop/mxu/StarCardsEditor.tsx",
+          "needle": "export function StarCardsEditor"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-2",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-2"
+      ],
+      "tests": [
+        "tests/test_mxu_choices.py",
+        "tests/test_mxu_distribution.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_mxu_choices.py tests/test_mxu_distribution.py"
+      ],
+      "boundary": "界面渲染、保存重开、PI参数应用和游戏内生效是四个不同证据。"
+    },
+    {
+      "id": "updater",
+      "title": "GitHub更新按钮与安装分发",
+      "aliases": [
+        "github",
+        "更新按钮",
+        "更新",
+        "updater",
+        "release"
+      ],
+      "sources": [
+        {
+          "path": "desktop/mxu/SoftwareUpdatePanel.tsx",
+          "needle": "export function SoftwareUpdatePanel"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/6-deployment.md#feature-6-4-5",
+        "docs/wiki/en_us/6-deployment.md#feature-6-4-5"
+      ],
+      "tests": [
+        "tests/test_mxu_distribution.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_mxu_distribution.py"
+      ],
+      "boundary": "按钮存在不等于公开新版下载/安装/重启已验收。"
+    },
+    {
+      "id": "plan",
+      "title": "实施计划、依赖、工程图和完成标准",
+      "aliases": [
+        "plan",
+        "计划",
+        "wiki",
+        "验收",
+        "diagram"
+      ],
+      "sources": [],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-2",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-2"
+      ],
+      "tests": [
+        "tests/test_wiki.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_wiki.py"
+      ],
+      "boundary": "执行计划不是已实现事实；依赖是技术关系，不是文档锁或审批。"
+    }
+  ]
+}
