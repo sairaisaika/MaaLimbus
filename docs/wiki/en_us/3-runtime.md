@@ -19,7 +19,7 @@ At runtime there are **two** page identifiers, and they must not be confused.
 | Identifier | Defined by | Entry point | Criterion |
 |---|---|---|---|
 | `scene` | OCR text + normalized position | `src/maalimbus/vision.py:63 def classify(records, locale, size)` | which strings were read this frame, inside which ROI |
-| `page` | `pages[].id` in the anchor table | `src/maalimbus/runner.py:838 def resolve_scene(registry, directory, record)` | scene + anchor hits + overlay precedence |
+| `page` | `pages[].id` in the anchor table | `src/maalimbus/runner.py:839 def resolve_scene(registry, directory, record)` | scene + anchor hits + overlay precedence |
 
 - Text-reading primitive: `src/maalimbus/vision.py:19 def find(records, pattern, roi, size, threshold=.65)`; the record type is `src/maalimbus/vision.py:13 class Text` (`text / box / score`).
 - The overlay outranks the label underneath: `src/maalimbus/window.py:79 def resolve_overlay(page, *, overlay_hit)`, which returns `'TUTORIAL'` when it hits (`src/maalimbus/window.py:88`). The reason is written at `src/maalimbus/window.py:82-86`: the overlay's own continue control does not change from card to card, so "a visible continue" outranks the label below it.
@@ -61,7 +61,7 @@ Loading and offline re-checking all live in `src/maalimbus/anchors.py`:
 - per-kind criteria: `check_ocr` (`:122`), `check_template` (`:132`), `check_geometry` (`:159`)
 - aggregation: `src/maalimbus/anchors.py:169 def evaluate_anchor(...)`, `src/maalimbus/anchors.py:192 def evaluate(...)`, `src/maalimbus/anchors.py:212 def failures(report, *, require_geometry=False)`
 
-At runtime the table is flattened into `{anchor name: pixel box}` by `src/maalimbus/runner.py:692 def controls_by_id(registry: dict) -> dict`. That mapping is exactly the `controls` the planner receives (`src/maalimbus/window.py:146-147` states it: `controls` maps anchor names such as `node_panel.enter_button` to pixel boxes).
+At runtime the table is flattened into `{anchor name: pixel box}` by `src/maalimbus/runner.py:693 def controls_by_id(registry: dict) -> dict`. That mapping is exactly the `controls` the planner receives (`src/maalimbus/window.py:146-147` states it: `controls` maps anchor names such as `node_panel.enter_button` to pixel boxes).
 
 ### 3.1.3 Vision modules
 
@@ -94,7 +94,7 @@ There is exactly one load site, and it loads **only the selected language's file
 Usage is "take the regex by key, hand it to `vision.find`", for example:
 
 - `agent/recognition.py:421` — `find(records, self.locale['gift_confirm'], (.53,.65,.68,.73), size, .85)`
-- `agent/recognition.py:156` — `find(records, self.locale['inferno'], (.70,.07,.99,.3), size)`
+- `agent/recognition.py:159` — `find(records, self.locale['inferno'], (.70,.07,.99,.3), size)`
 - `src/maalimbus/vision.py:57` — `locale.get('cancel', r'(?!x)x')`
 
 Every key in the `jp` table is written as a `japanese-pattern|english-pattern` alternation, e.g. `assets/resource/jp/locale.json:2 "home_drive": "^ドライブ$|^Drive$"`.
@@ -144,7 +144,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 - **Refusal**: `src/maalimbus/window.py:106 def _refuse(page, reason)` returns `_plan(page, RECORD, reason=...)`.
 - **The second verdict**: `plan_step`'s own body does exactly one thing — a target that lands on a `FORBIDDEN_CONTROLS` control (`src/maalimbus/window.py:50-63`) is re-issued as `control_is_forbidden` (`src/maalimbus/window.py:128-135`). Two whitelisted exceptions: `STAR_CONFIRM`'s `star_confirm.cancel_button` and `GIFT_PICK`'s `gift_pick.refuse_button` (`src/maalimbus/window.py:129-133`).
 - **Split of work**: `src/maalimbus/window.py:139 def _plan_step(...)` shares the signature and carries the whole "page -> input" dispatch; `plan_step` is only the forbidden-control verdict plus delegation (`src/maalimbus/window.py:120-127`).
-- **Caller**: `src/maalimbus/runner.py:2302-2312`, inside `MirrorRunner.step` (`src/maalimbus/runner.py:1444`): `plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`.
+- **Caller**: `src/maalimbus/runner.py:2302-2312`, inside `MirrorRunner.step` (`src/maalimbus/runner.py:1456`): `plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`.
 - The import sits at `src/maalimbus/runner.py:67` (the `from maalimbus.window import ...` line). The module docstring at `src/maalimbus/runner.py:1-31` also names `tools/window_step.py` as the second frontend; that file was opened this round and its usability checked (419 lines; `tools/window_step.py:62-209` is its `build_parser()`, and `C:\Python313\python.exe tools\window_step.py --help` prints usage normally). Details in 3.5.
 
 ### 3.2.2 A real data-shape example
@@ -176,7 +176,7 @@ Field semantics (all anchored):
 | `advance` | the page is expected to stay; a frame change is the proof | `window.py:96`, `window.py:190` |
 | `to` / `duration_ms` / `detail` | only on the drag and attached-detail branches | `window.py:97-102` |
 
-The verdict record is assembled by `src/maalimbus/window.py:1041 def step_result(plan, *, sent, before, after, page, frame_changed=False)`, which returns `{action, reason, passed, page_before, page_after, expect, clicks_sent}` (`window.py:1050-1056`).
+The verdict record is assembled by `src/maalimbus/window.py:1052 def step_result(plan, *, sent, before, after, page, frame_changed=False)`, which returns `{action, reason, passed, page_before, page_after, expect, clicks_sent}` (`window.py:1050-1056`).
 
 ### 3.2.3 The loop guard (against repeating an action)
 
@@ -203,17 +203,17 @@ if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT
 
 Three unrelated budgets:
 
-1. **Step budget**: `src/maalimbus/runner.py:2845 def run(self, *, steps=300, interval=6.0, round_limit=5, deadline=None)`; the main loop condition is `while self.state['step'] < goal and walked < max(0, int(round_limit))` (`src/maalimbus/runner.py:2860`). The CLI defaults are `steps = 1` and `rounds = 3` (`src/maalimbus/runner.py:154`).
-2. **Time budget**: `deadline` (`src/maalimbus/runner.py:2845`). The Agent side derives it from the action parameters: `budget = loop_budget(params)`, `deadline = time.monotonic() + budget` (`agent/recognition.py:1498-1499`); `loop_budget` reads `params['budget']`, then an environment variable, then the default `LOOP_BUDGET_SECONDS` (`agent/recognition.py:1329-1334`). Expiry is a `TimeoutError`, collapsed into `result['reason'] = 'loop_deadline_exceeded'` (`agent/recognition.py:1532`).
+1. **Step budget**: `src/maalimbus/runner.py:2907 def run(self, *, steps=300, interval=6.0, round_limit=5, deadline=None)`; the main loop condition is `while self.state['step'] < goal and walked < max(0, int(round_limit))` (`src/maalimbus/runner.py:2922`). The CLI defaults are `steps = 1` and `rounds = 3` (`src/maalimbus/runner.py:154`).
+2. **Time budget**: `deadline` (`src/maalimbus/runner.py:2907`). The Agent side derives it from the action parameters: `budget = loop_budget(params)`, `deadline = time.monotonic() + budget` (`agent/recognition.py:1503-1504`); `loop_budget` reads `params['budget']`, then an environment variable, then the default `LOOP_BUDGET_SECONDS` (`agent/recognition.py:1318-1323`). Expiry is a `TimeoutError`, collapsed into `result['reason'] = 'loop_deadline_exceeded'` (`agent/recognition.py:1540`).
 3. **Spend budget** (Enkephalin / Modules): `src/maalimbus/budget.py`. `src/maalimbus/budget.py:66 def plan_spend(amount, *, budget, spent=None, purpose='module_conversion') -> dict` answers "may we spend this"; `src/maalimbus/budget.py:101 def apply_spend(...)` then adds what gets written to the ledger. The refusal reasons, in order, are `budget_not_configured` / `budget_amount_must_be_positive` / `purpose_not_allowed` / `budget_zero` / `budget_exhausted` / `request_exceeds_remaining` / `amount_not_multiple_of_step` (`src/maalimbus/budget.py:11-15`). The default `status='pending'` means the answer is always "no" (`src/maalimbus/budget.py:70-93` and the note at `budget.py:11`). The static table is `assets/resource/base/budget.json`.
 
 ### 3.2.5 Issuing the action
 
-Three exits, by `plan['action']` (`src/maalimbus/runner.py:2443-2470`):
+Three exits, by `plan['action']` (`src/maalimbus/runner.py:2498-2524`):
 
-- `NODE` → `run_node(self.tasker, plan['node'], self.deadline)` (`runner.py:2449`; `run_node` at `runner.py:1135` is `tasker.post_task(name)` plus `wait_task`).
-- `SWIPE` → jitter the start inside the target box, jitter the end within ±8px of `plan['to']`, then `self.device.swipe(point[0], point[1], drop[0], drop[1], duration)` (`runner.py:2451-2465`).
-- anything else → `box = inset_box(tuple(plan['target']), .3)`, jitter a point inside it, `self.device.click(*point)` (`runner.py:2466-2470`).
+- `NODE` → `run_node(self.tasker, plan['node'], self.deadline)` (`runner.py:2503`; `run_node` at `runner.py:1136` is `tasker.post_task(name)` plus `wait_task`).
+- `SWIPE` → jitter the start inside the target box, jitter the end within ±8px of `plan['to']`, then `self.device.swipe(point[0], point[1], drop[0], drop[1], duration)` (`runner.py:2504-2517`).
+- anything else → `box = inset_box(tuple(plan['target']), .3)`, jitter a point inside it, `self.device.click(*point)` (`runner.py:2518-2524`).
 
 The intent lands on disk before the input is sent: `self.note('window_intent', page=..., target=..., reason=..., point=..., delay_ms=...)` (`runner.py:2445` / `:2460` / `:2468`), and `note` hands off to `Journal.record` (`src/maalimbus/runner.py:1378`).
 
@@ -268,11 +268,11 @@ sequenceDiagram
     Action->>Tasker: return bool(result.get('passed'))
 ```
 
-Code behind it: `agent/recognition.py:1494-1553` (the action body), `src/maalimbus/runner.py:1444 def step`, `src/maalimbus/runner.py:597 class MaaObserver`, `agent/recognition.py:1421-1452 class AgentTasker`, `src/maalimbus/runner.py:621 def observe`, `agent/recognition.py:1130-1162 class MapObservation`, `agent/recognition.py:140-168 LimbusRecognition.observe`.
+Code behind it: `agent/recognition.py:1494-1553` (the action body), `src/maalimbus/runner.py:1456 def step`, `src/maalimbus/runner.py:598 class MaaObserver`, `agent/recognition.py:1410 class AgentTasker`, `src/maalimbus/runner.py:622 def observe`, `agent/recognition.py:1119 class MapObservation`, `agent/recognition.py:143 LimbusRecognition.observe`.
 
 **Why observation must go through `AgentTasker` instead of `context.tasker.post_task`**: `context.tasker`'s executor is a single worker, so posting a node from inside a custom action queues it behind the very task that is waiting for it, and the wait eventually ends in a stop that kills the run; `Context.run_task` is the framework's own door for "run a node synchronously from a callback". That rationale is written out verbatim at `agent/recognition.py:1424-1431`. `post_task` also does one extra thing: before reading the one-shot nodes `WindowMapObserve` / `WindowBattleObserve` it must call `context.clear_hit_count(entry)`, otherwise `max_hit=1` would make every later observation a permanent skip (`agent/recognition.py:1440-1446`).
 
-A second trap is documented in `MaaObserver.observe`'s docstring (`src/maalimbus/runner.py:621-632`): trusting "the latest event of this kind" would mistake the **previous** frame's page for this one's, so when the node records no event it re-runs `read_tries` times; the docstring names the live incident `evidence/runtime/packaged-mirror-20261012-032032`.
+A second trap is documented in `MaaObserver.observe`'s docstring (`src/maalimbus/runner.py:622-633`): trusting "the latest event of this kind" would mistake the **previous** frame's page for this one's, so when the node records no event it re-runs `read_tries` times; the docstring names the live incident `evidence/runtime/packaged-mirror-20261012-032032`.
 
 ### 3.3.2 Exit conditions of the main loop
 
@@ -304,16 +304,16 @@ The four exit families, all anchored:
 
 | Family | Trigger | `stopped` / `reason` value | Anchor |
 |---|---|---|---|
-| Success / natural finish | budget ran out or this page has nothing left to do; the loop returns | `run()` returns `summary()` | `src/maalimbus/runner.py:2845-2867`, `:2875` |
-| Budget exhausted (steps) | `state['step'] >= goal` or `walked >= round_limit` | no stop string, `done=False` | `src/maalimbus/runner.py:2860` |
-| Budget exhausted (time) | `deadline` expires, raising `TimeoutError` | `'loop_deadline_exceeded'` | `agent/recognition.py:1532` |
+| Success / natural finish | budget ran out or this page has nothing left to do; the loop returns | `run()` returns `summary()` | `src/maalimbus/runner.py:2907-2929`, `:2875` |
+| Budget exhausted (steps) | `state['step'] >= goal` or `walked >= round_limit` | no stop string, `done=False` | `src/maalimbus/runner.py:2922` |
+| Budget exhausted (time) | `deadline` expires, raising `TimeoutError` | `'loop_deadline_exceeded'` | `agent/recognition.py:1540` |
 | Refusal (planner declines) | `plan['action']` is not an executable action | `'observe_only'` or `plan['reason']` | `src/maalimbus/runner.py:2331-2332` |
 | Refusal (screen did not move / re-reads spent) | `step_result` says `passed=False` and no re-read is left | that step's own `reason` (e.g. `unexpected_successor`) | `src/maalimbus/runner.py:2562`, `:2345` |
 | Refusal (protocol guard) | loop guard / claim family | `'the_same_plan_repeated'` / `'claim_family_made_no_progress'` | `src/maalimbus/runner.py:2837` / `:2824` |
 | Refusal (caller-named page) | `stop_page` reached | `'stop_page_reached'` | `src/maalimbus/runner.py:1492`, `:2744` |
 | Error | any uncaught exception | `'mirror_loop_failed'` + `journal mirror_loop_error` (with traceback) | `agent/recognition.py:1538-1546` |
 
-`_result`'s `done` semantics: `'done': bool(done or stopped is not None)` (`src/maalimbus/runner.py:3029`) — the moment a step produces a stop string, the loop ends.
+`_result`'s `done` semantics: `'done': bool(done or stopped is not None)` (`src/maalimbus/runner.py:3091`) — the moment a step produces a stop string, the loop ends.
 
 **Not yet verified**: `MirrorLoopAction.run`'s return value is `bool(result.get('passed'))` (`agent/recognition.py:1553`), but the full assignment path of `passed` (including the positive criterion for a whole successful run) was not traced line by line this round. The related fact we do have is that `record_ledger_event` sets `state['run_settled_itself'] = True` on the `final_victory` / `reward_received` events (`src/maalimbus/runner.py:2690`).
 
@@ -331,7 +331,7 @@ Lines 48-69 of `agent/main.py` are the whole registration surface:
 |---|---|---|
 | `limbus_scene` | `LimbusRecognition(locale)` | `agent/main.py:48` |
 
-`LimbusRecognition` is a `CustomRecognition` subclass (`agent/recognition.py:100`); MaaFramework calls its `analyze(self, context, argv)` (`agent/recognition.py:407-413`), which reads the frame, compares it against the `scene` named in `custom_recognition_param`, and returns `None` when it does not match.
+`LimbusRecognition` is a `CustomRecognition` subclass (`agent/recognition.py:103`); MaaFramework calls its `analyze(self, context, argv)` (`agent/recognition.py:397`), which reads the frame, compares it against the `scene` named in `custom_recognition_param`, and returns `None` when it does not match.
 
 **Custom actions (15 in total)**
 
@@ -355,7 +355,7 @@ Lines 48-69 of `agent/main.py` are the whole registration surface:
 
 `main.py:59-62` keeps a comment explaining why the two read-only observation nodes must be registered too: a node whose `custom_action` is not registered cannot run at all.
 
-The matching pipeline nodes (`assets/resource/base/pipeline/mirror.json`): `WindowMapObserve` (`:1455-1462`, `custom_action: limbus_map_observe`), `WindowBattleObserve` (`:1463-1470`), `MirrorLoop` (`:1526-1552`, `custom_action: limbus_mirror_loop`, parameters including `steps: 400` / `interval: 4.0` / `rounds: 3` / `run_store: config/user-run-ledger.json`), `MirrorLoopDone` (`:1553-1558`, `DoNothing`). `GlobalSettingsApply` (`:1559-1568`) → `MirrorLoop` is a second entry path. The `PIPELINE` constant at `runner.py:120-140` is the Python copy of the same node set (`prepare()` writes it out).
+The matching pipeline nodes (`assets/resource/base/pipeline/mirror.json`): `WindowMapObserve` (`:1455-1462`, `custom_action: limbus_map_observe`), `WindowBattleObserve` (`:1463-1470`), `MirrorLoop` (`:1526-1552`, `custom_action: limbus_mirror_loop`, parameters including `steps: 400` / `interval: 4.0` / `rounds: 3` / `run_store: config/user-run-ledger.json`), `MirrorLoopDone` (`:1553-1558`, `DoNothing`). `GlobalSettingsApply` (`:1559-1568`) → `MirrorLoop` is a second entry path. The `PIPELINE` constant at `runner.py:121-141` is the Python copy of the same node set (`prepare()` writes it out).
 
 ### 3.4.2 Agent-side registration and callbacks
 
@@ -388,26 +388,26 @@ sequenceDiagram
     Action->>Server: return passed
 ```
 
-Code behind it: `agent/main.py:20-72`, `agent/recognition.py:100-138`, `agent/recognition.py:1473-1553`.
+Code behind it: `agent/main.py:20-72`, `agent/recognition.py:103-141`, `agent/recognition.py:1478-1561`.
 
 ### 3.4.3 How `MirrorLoopAction` / `MaaObserver` / `Context.run_task` relate
 
 The three are three roles of one chain:
 
-1. **`MirrorLoopAction`** (`agent/recognition.py:1473`) is the shell around a whole run. It hands the `runner` the three things the PI already gave the Agent: the controller as the device (`runner.MaaDevice(context.tasker.controller, deadline=deadline)`, `agent/recognition.py:1502-1510`), `context.run_task` as the tasker (`runner.MaaObserver(AgentTasker(context), directory)`, `:1510`), and the evidence directory as the journal (`journal = Journal(directory)`, `:1502`). Its docstring (`:1473-1490`) states the reason: input goes out through the controller's own `post_click`/`post_swipe`, because that controller is the side that owns the device.
-2. **`MaaObserver`** (`src/maalimbus/runner.py:597`) is "read one page out of an Maa pipeline node". It depends on exactly three things on the context: `tasker`, `run`, `journal` (`:597-612`). It reads through the two node names `WindowMapObserve` / `WindowBattleObserve` (`:621-632`), and on a battle page it reads `battle_observed` once more (`:646`).
-3. **`AgentTasker`** (`agent/recognition.py:1421`) is the adapter. It gives `MaaObserver` the familiar `post_task` interface while actually forwarding to `context.run_task(entry, pipeline_override)` (`agent/recognition.py:1439-1448`), wrapping the synchronous result as an `AgentJob` that is always `done=True` (`agent/recognition.py:1408-1418`).
+1. **`MirrorLoopAction`** (`agent/recognition.py:1478`) is the shell around a whole run. It hands the `runner` the three things the PI already gave the Agent: the controller as the device (`runner.MaaDevice(context.tasker.controller, deadline=deadline)`, `agent/recognition.py:1502-1510`), `context.run_task` as the tasker (`runner.MaaObserver(AgentTasker(context), directory)`, `:1510`), and the evidence directory as the journal (`journal = Journal(directory)`, `:1502`). Its docstring (`:1479-1492`) states the reason: input goes out through the controller's own `post_click`/`post_swipe`, because that controller is the side that owns the device.
+2. **`MaaObserver`** (`src/maalimbus/runner.py:598`) is "read one page out of an Maa pipeline node". It depends on exactly three things on the context: `tasker`, `run`, `journal` (`:598-613`). It reads through the two node names `WindowMapObserve` / `WindowBattleObserve` (`:622-633`), and on a battle page it reads `battle_observed` once more (`:646`).
+3. **`AgentTasker`** (`agent/recognition.py:1410`) is the adapter. It gives `MaaObserver` the familiar `post_task` interface while actually forwarding to `context.run_task(entry, pipeline_override)` (`agent/recognition.py:1428-1437`), wrapping the synchronous result as an `AgentJob` that is always `done=True` (`agent/recognition.py:1397-1407`).
 
 **The boundary**: `agent/` does exactly two things — implement callbacks using the `maa` SDK types (`CustomAction` / `CustomRecognition` / `JOCR`, `agent/recognition.py:15-18`), and adapt the context the PI handed over into the interface `src/maalimbus` expects. All decision-making, recognition, ledgers, and vision live in `src/maalimbus/`; `agent/main.py` itself judges no page. `src/maalimbus/runner.py:70-72` explains why the adaptation layer is needed: the repository root must resolve relative to `runtime_paths.ROOT`, because the Maa agent's cwd is not the repository (`src/maalimbus/runtime_paths.py:8-20`).
 
 ### 3.4.4 Where evidence and results land
 
 - One directory per whole run; the Agent-side default is `evidence/runtime/pi-<yyyymmdd-hhmmss>` (`agent/recognition.py:1337`). The project-wide shape for evidence directories is `evidence/runtime/<task-name>-<yyyymmdd-hhmmss>/`.
-- The whole-run summary goes to `agent-result.json`: `agent/recognition.py:1372 def write_loop_result(directory, result)`.
-- The human-readable log goes to `run.log`: `agent/recognition.py:1388 def write_run_log(directory, result)`.
+- The whole-run summary goes to `agent-result.json`: `agent/recognition.py:1361 def write_loop_result(directory, result)`.
+- The human-readable log goes to `run.log`: `agent/recognition.py:1377 def write_run_log(directory, result)`.
 - Per-step `observation` / `plan` / `frame` / `passed` / `clicks_sent` accumulate in `artifacts['steps']` and come back with `summary()` (`src/maalimbus/runner.py:2867-2898`).
 - The crash path also lands on disk: after the `mirror_loop_error` event (with traceback) it still calls `write_loop_result` + `write_run_log` (`agent/recognition.py:1538-1546`).
-- The module-level `_load_registry()` reads that same anchor table (`src/maalimbus/runner.py:3122`).
+- The module-level `_load_registry()` reads that same anchor table (`src/maalimbus/runner.py:3185`).
 
 ## 3.5 Driving one run locally
 
@@ -448,9 +448,9 @@ Start with the evidence directory of this run, then read the **stop reason strin
 
 | Symptom | Where to look | Source |
 | --- | --- | --- |
-| One human-readable line per step | `run.log` | `agent/recognition.py:1388 def write_run_log` |
+| One human-readable line per step | `run.log` | `agent/recognition.py:1377 def write_run_log` |
 | The machine-readable event stream | `events.jsonl` (`window_intent` / `map_observed` / `battle_observed`) | `src/maalimbus/runner.py:1374 def note` |
-| Result summary | `agent-result.json` | `agent/recognition.py:1372 def write_loop_result` |
+| Result summary | `agent-result.json` | `agent/recognition.py:1361 def write_loop_result` |
 | One sentence explaining a stop reason | the `GLOSSARY` table at `src/maalimbus/event_log.py:20-73` (`explain()` at `:79-89`) | it maps every reason to what it means and what to look at next |
 | The same page kept offering the same plan | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2837` |
 | The claim family made no progress | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2824` |

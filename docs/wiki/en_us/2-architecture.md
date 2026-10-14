@@ -56,7 +56,7 @@ flowchart LR
 | Client | this project's own extension (upstream MaaFramework has no such layer) | task selection, task-setting editors, update panel | `desktop/mxu/TeamBuildEditor.tsx`, `desktop/mxu/teamOrder.ts`, `desktop/mxu/SoftwareUpdatePanel.tsx`, `desktop/mxu/limbus_update.rs` | writes PI configuration and lock-protected private rotation commands; no direct game input |
 | Resource | this project | controller/task/option declarations, anchors, pipeline nodes, localization | `assets/interface.json:2` (`interface_version: 2`), `assets/resource/base/anchors.json`, `assets/resource/base/pipeline/mirror.json`, `assets/i18n/` | declarations only, no decision logic |
 | Tasker | upstream MaaFramework `v5.12.2` | screenshots, recognition, graph scheduling, input conversion, timeouts | `maafw/` (`pyproject.toml` pins `maafw==5.12.2`, see `docs/maaframework-conformance.md:11`) | no business judgement; the coordinate conversion lives in `ControllerAgent::preproc_touch_point` (`docs/maaframework-conformance.md:37-48`) |
-| Agent | this project | custom recognition and custom actions; turns a page into structured evidence | `agent/main.py:48-69`, `agent/recognition.py:100`, `agent/recognition.py:1473` | never builds a second controller |
+| Agent | this project | custom recognition and custom actions; turns a page into structured evidence | `agent/main.py:48-69`, `agent/recognition.py:103`, `agent/recognition.py:1478` | never builds a second controller |
 | Business (`src/maalimbus/`) | this project | page→action planning, ledger, transactions, offline learning | `src/maalimbus/runner.py:1` (95 modules) | planners/transactions are pure; runner adapters and neural_shadow still call Maa, so this directory is not entirely pure business |
 | Controller | MaaFramework + this project's choice | the single real device ownership | `src/maalimbus/windows_controller.py:9`, `src/maalimbus/adb_device.py:1` | only one controller at a time (`src/maalimbus/controller_lease.py:1`) |
 
@@ -65,7 +65,7 @@ flowchart LR
 1. MXU turns the user's ticks into one task through the `task` table at `assets/interface.json:103`; `task.entry` names a pipeline entry node (e.g. `mirror_loop` → `MirrorTask`).
 2. The MaaFramework Tasker loads `assets/resource/base/pipeline/mirror.json` and calls back into the Agent process when it hits a node that needs a custom recognition or action.
 3. The 1 custom recognition + 15 custom actions registered at `agent/main.py:48-69` are invoked by name (`limbus_scene`, `limbus_mirror_loop`, `limbus_map_observe`, …).
-4. The action calls into business logic and Maa adapters under `src/maalimbus/`. `MirrorLoopAction` (`agent/recognition.py:1473`) *is* the whole loop: it wraps the PI's controller as `runner.MaaDevice`, wraps `AgentTasker` as `runner.MaaObserver`, and hands both to `runner.MirrorRunner` (`agent/recognition.py:1509-1522`).
+4. The action calls into business logic and Maa adapters under `src/maalimbus/`. `MirrorLoopAction` (`agent/recognition.py:1478`) *is* the whole loop: it wraps the PI's controller as `runner.MaaDevice`, wraps `AgentTasker` as `runner.MaaObserver`, and hands both to `runner.MirrorRunner` (`agent/recognition.py:1509-1522`).
 5. Every input the business layer sends goes back through `MaaDevice`'s `post_click` / `post_swipe` onto the PI's own controller. No second device channel is created (`docs/agent-loop.md:105-107`).
 
 > The load-bearing constraint: **there is exactly one input exit**. The `Device` Protocol at `src/maalimbus/runner.py:251` and the `Observer` Protocol at `:550` are the only two seams between the business layer and a device. That is also why the loop is offline-testable — `FrameObserver` (`:566`) replays archived frames and `FakeDevice` (`:386`) records what was sent, so `tests/test_runner.py` drives the real loop over real archived evidence with no device attached.
@@ -254,10 +254,10 @@ flowchart LR
 
 | Data | Written where | Written by | Anchor |
 | --- | --- | --- | --- |
-| Per-page PNG + JSON record | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:497` |
-| Run journal (machine-readable) | `<run_dir>/events.jsonl` | `Journal.record` / `MirrorRunner.note()` | `agent/recognition.py:76`, `runner.py:1351` |
+| Per-page PNG + JSON record | `<run_dir>/frame-NNNN.png` / `.json` | `store_frame()` | `src/maalimbus/runner.py:498` |
+| Run journal (machine-readable) | `<run_dir>/events.jsonl` | `Journal.record` / `MirrorRunner.note()` | `agent/recognition.py:76`, `runner.py:1375` |
 | Run summary | `<run_dir>/agent-result.json` | `MirrorLoopAction.run` on the way out | `agent/recognition.py:1547-1548` |
-| Human-readable log | a text report for the same run | `event_log.report()` | `src/maalimbus/event_log.py:130` |
+| Human-readable log | a text report for the same run | `event_log.report()` | `src/maalimbus/event_log.py:131` |
 | Completion events (ordered, evidence-backed) | the run ledger | `RunStore.record()` | `src/maalimbus/storage.py:126` |
 | Team rotation | the run ledger | `RunLedger.complete()` | `src/maalimbus/policies.py:140-148` |
 | Teams and preferences | 17 files under `config/` incl. `user-team-profiles.json` | `ProfileStore` | `src/maalimbus/storage.py:69` |
