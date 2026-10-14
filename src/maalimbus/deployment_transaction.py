@@ -21,8 +21,14 @@ class DeploymentTransaction:
         d=self.data
         if d and (d.get('pending') or d.get('submit_pending')):raise ValueError('Unverified deployment input remains pending')
         if not d or d['scope']!=scope or d.get('submitted'):
+            # A revive receipt is money the shop's own counter already took, so it outlives the
+            # rewrite that clears the selection -- otherwise the next shop visit of the same run
+            # reads a dead slot again and walks back into the picker it has already paid for.  The
+            # in-run currency is spent per run, so a frame naming another scope inherits nothing.
+            receipts=[row for row in d.get('revives') or ()] if d and d['scope']==scope else []
             d=dict(scope=scope,order=list(order),saved_order=saved_order,unavailable=unavailable,
-                   availability_proof=availability_proof,sequence=[],pending=None,submitted=False);self.data=d;write_json(self.path,d)
+                   availability_proof=availability_proof,sequence=[],pending=None,submitted=False,
+                   revives=receipts);self.data=d;write_json(self.path,d)
         if d['order']==saved_order and d['order']!=order and not d['sequence'] and count[0]==0:
             d.update(saved_order=saved_order,order=order,unavailable=unavailable,availability_proof=availability_proof)
             write_json(self.path,d)
@@ -66,3 +72,27 @@ class DeploymentTransaction:
         if not d or d['scope']!=scope or not p or p['kind']!='clear' or p.get('confirm_sent'):
             raise ValueError('Deployment reset confirmation is not authorized by pending clear')
         p['confirm_sent']=True;write_json(self.path,d)
+    def revived_cards(self):
+        """The deck cards a booked revive brought back, read from its own receipts."""
+        return sorted({row['card'] for row in (self.data or {}).get('revives') or ()
+                       if isinstance(row,dict) and isinstance(row.get('card'),int)})
+    def book_revive(self,card,cost,coins_before,coins_after,proof=None):
+        """Record a revive whose price is the currency delta the shop's own counter shows.
+
+        The shop's Heal Sinner service is paid for out of the run's in-run currency, so the
+        only receipt that proves it happened is the shop's counter moving by exactly the
+        price its modal printed (live 2026-10-12: 3093 -> 2993 for Hong Lu's 100).  Any
+        other delta is refused instead of booked: a revive the run cannot prove would let
+        the next shop visit believe a dead slot is still fieldable.
+        """
+        d=self.data
+        if not d:raise ValueError('No deployment store to book a revive against')
+        if not isinstance(card,int) or not 1<=card<=12:
+            raise ValueError('Revive receipt names no deck card')
+        if not isinstance(cost,int) or cost<=0 or not isinstance(coins_before,int) \
+                or not isinstance(coins_after,int) or coins_before-coins_after!=cost:
+            raise ValueError('Revive receipt does not match the price the modal printed')
+        d.setdefault('revives',[]).append(dict(card=card,cost=cost,coins_before=coins_before,
+                                               coins_after=coins_after,proof=proof))
+        write_json(self.path,d)
+        return True

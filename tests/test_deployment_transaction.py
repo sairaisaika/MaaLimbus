@@ -66,3 +66,50 @@ def test_wrong_order_is_changed_but_unread_digits_are_reread(tmp_path):
     broken=list(half);broken[ORDER[2]-1]=None
     uncertain=t.prepare('run',ORDER,(4,12),broken)
     assert not uncertain['reset_required'] and uncertain['order_uncertain']
+
+
+def test_a_revive_is_booked_only_against_the_shop_counters_own_delta(tmp_path):
+    # The only receipt that proves a revive happened is the shop's own counter moving by
+    # exactly the price its modal printed (live 2026-10-12: 3093 -> 2993 for card 6's 100).
+    p=tmp_path/'deployment.json';t=DeploymentTransaction(p);t.prepare('run',ORDER,(0,12))
+    assert t.revived_cards()==[]
+    assert t.book_revive(6,100,3093,2993,proof=dict(source='shop_currency_delta')) is True
+    assert t.revived_cards()==[6]
+    # The store on disk is what the next shop visit reads, and a second receipt for the same
+    # card is the same fact, never a second revive.
+    assert DeploymentTransaction(p).revived_cards()==[6]
+    assert t.book_revive(6,100,2993,2893) is True
+    assert t.revived_cards()==[6]
+    for bad in (dict(cost=100,coins_before=3093,coins_after=3000),
+                dict(cost=0,coins_before=3093,coins_after=3093),
+                dict(cost=100,coins_before=3093,coins_after=None),
+                dict(card=13,cost=100,coins_before=3093,coins_after=2993),
+                dict(card=None,cost=100,coins_before=3093,coins_after=2993)):
+        args=dict(card=6,cost=100,coins_before=3093,coins_after=2993);args.update(bad)
+        with pytest.raises(ValueError):t.book_revive(**args)
+    with pytest.raises(ValueError):DeploymentTransaction(tmp_path/'none.json').book_revive(
+        6,100,3093,2993)
+
+
+def test_a_revive_receipt_outlives_the_rewrite_that_clears_the_selection(tmp_path):
+    # A submitted page makes the next prepare() rewrite the store from scratch (that is how the
+    # selection is cleared).  A booked revive is a payment the shop already took, so the rewrite
+    # must carry it: otherwise the next shop visit of the same run reads the dead slot again and
+    # walks back into a picker it has already paid for.
+    p=tmp_path/'deployment.json';t=DeploymentTransaction(p);t.prepare('run',ORDER,(12,12))
+    assert t.book_revive(6,100,3093,2993,proof=dict(source='shop_currency_delta')) is True
+    t.data['submitted']=True
+    t.prepare('run',ORDER,(12,12))
+    assert t.data['submitted'] is False
+    assert t.revived_cards()==[6]
+    assert DeploymentTransaction(p).revived_cards()==[6]
+
+
+def test_a_new_run_does_not_inherit_the_previous_runs_receipts(tmp_path):
+    # The shop is paid in the run's own currency, so a receipt booked under another scope proves
+    # nothing about this run: the dead slot it named has to be read and paid for again.
+    p=tmp_path/'deployment.json';t=DeploymentTransaction(p);t.prepare('run-a',ORDER,(12,12))
+    assert t.book_revive(6,100,3093,2993) is True
+    t.prepare('run-b',ORDER,(12,12))
+    assert t.revived_cards()==[]
+    assert DeploymentTransaction(p).revived_cards()==[]

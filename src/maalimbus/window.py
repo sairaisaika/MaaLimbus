@@ -554,6 +554,43 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                              'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
                              'GIFT_PICK', 'REWARD_CARD', 'WINDOW_RESET', 'UNKNOWN'),
                      reason='panel_enter_is_the_only_forward_input')
+    if page == 'REVIVE_DONE':
+        # The revive is paid for and the modal says who came back; its own bottom-right
+        # button is now Leave (live evidence/runtime/window-20261012-214803/frame-0001.json
+        # reads 'Hong Lu, revived, returns to battle.' over 'Leave' [1622,943,150,53]).  The
+        # row above it, 'Heal again.', would spend another 100 on healing and is never a
+        # target: this plan only hands the panel back to the shop.
+        box = controls.get('revive_done.leave')
+        if box is None:
+            return _refuse(page, 'the_revived_sinners_notice_has_no_bound_leave')
+        return _plan(page, CLICK, target=box, expect=('SHOP', 'UNKNOWN'), advance=True,
+                     reason='the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop')
+    if page == 'REVIVE_PICK':
+        # The shop's Heal Sinner service opens the modal's second step: it asks which
+        # Sinner to bring back (live
+        # evidence/runtime/window-20261012-213008/frame-0002.json reads 'Select the Sinner
+        # to revive.' and keeps only the revive row above its own bottom button), and the
+        # game wants that Sinner picked in the party bar before the modal answers the pick.
+        # Which Sinner is dead is the deployment page's proof, so the bar box is the deck
+        # slot that proof names; the answer is the modal's own button, never an option row
+        # and never the portrait a second time (the row does nothing until a portrait is
+        # picked, and clicking a picked portrait takes the pick back, both measured live in
+        # window-20261012-214600).  A picker with neither is refused rather than clicked: a
+        # portrait guessed from its look would spend the shop's currency on whatever the
+        # game took it to mean.
+        action = controls.get('revive_pick.action')
+        if action is not None:
+            return _plan(page, CLICK, target=action,
+                         expect=('REVIVE_DONE', 'SHOP', 'PRE_BATTLE_TEAM', 'MAP', 'UNKNOWN'),
+                         reason='the_modals_own_button_answers_the_pick_the_bar_made',
+                         advance=True)
+        slot = controls.get('revive_pick.slot')
+        if slot is not None:
+            return _plan(page, CLICK, target=slot,
+                         expect=('REVIVE_PICK', 'SHOP', 'PRE_BATTLE_TEAM', 'UNKNOWN'),
+                         reason='picking_the_dead_key_slot_the_deployment_page_could_not_field',
+                         advance=True)
+        return _refuse(page, 'the_picker_asked_for_a_sinner_no_proven_loss_names')
     if page in ('SHOP', 'SHOP_PURCHASE'):
         # The shop is paid for with the run's own currency, never with Modules, so
         # buying here cannot touch the budget the module gate guards.  What the page
@@ -562,7 +599,9 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # plan asked for and the shop covers, then refreshes the shelf while the visit
         # still has refreshes and the currency covers one twice over.  Otherwise Leave
         # is the only input this project sends: Heal/Enhance/Fuse/Sell and the keyword
-        # refresh are deliberately left unanchored so no plan can land on them.
+        # refresh are deliberately left unanchored so no plan can land on them: the one
+        # exception is Heal Sinner, which is taken only while a key saved slot is dead
+        # and whose successor is left to the next step (see ``shop['revive']``).
         confirm = (shop or {}).get('confirm')
         if confirm:
             return _plan(page, CLICK, target=confirm,
@@ -573,12 +612,31 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             # or leaving behind it would spend or cancel a purchase nobody asked for, so
             # the frame is recorded instead of clicked.
             return _refuse(page, 'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read')
+        revive = (shop or {}).get('revive')
+        if revive and revive.get('box'):
+            # The operator's standing rule (2026-10-12): a Sinner the deployment page's
+            # own proof could not field whose saved slot is among the first seven comes
+            # back, and the shop's Heal Sinner service is the way to the list it is
+            # chosen from.  The target is the service's own label box; the modal it opens
+            # asks for the Sinner itself and is planned from its own frames (the picker,
+            # then the notice that says who came back).
+            return _plan(page, CLICK, target=revive['box'], expect=(ANY,), advance=True,
+                         reason='a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back',
+                         detail={'cards': revive.get('cards'), 'cost': revive.get('cost'),
+                                 'currency': (shop or {}).get('currency')})
         buy = (shop or {}).get('buy')
         if buy:
+            # Two rules can offer a purchase and both are the shelf's own printed card:
+            # the gift plan asked for it, or the visit would otherwise carry out more
+            # coins than its cap holds.
+            carrying_cap = buy.get('why') == 'carry_cap'
             return _plan(page, CLICK, target=buy['box'],
                          expect=('SHOP_PURCHASE', 'SHOP', 'MAP', 'UNKNOWN'),
-                         reason='buying_the_gift_the_gift_plan_asked_for',
+                         reason=('spending_the_coins_this_visit_would_carry_out_on_the_shelf'
+                                 if carrying_cap else
+                                 'buying_the_gift_the_gift_plan_asked_for'),
                          detail={'name': buy.get('name'), 'price': buy.get('price'),
+                                 'why': buy.get('why'),
                                  'currency': (shop or {}).get('currency')})
         refresh = (shop or {}).get('refresh')
         if refresh and refresh.get('box'):
@@ -935,6 +993,23 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason=battle_assignment+'_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
+    if page == 'HEAL_SINNERS':
+        # The shop's Heal Sinners modal lists three numbered ways to spend 100, and only
+        # the third -- "3. Revive a single Sinner." -- brings a dead Sinner back (operator,
+        # 2026-10-12; live frame window-20261012-211311/frame-0015.json). Its box is that
+        # row's own title token, bound from this frame by the window
+        # (`plan_controls['heal_sinners.revive']`). The modal's other two options heal and
+        # are never aimed at, and the Sinner list the third opens is the page the
+        # classifier names `REVIVE_PICK` (live: evidence/runtime/window-20261012-213008/
+        # frame-0002.json reads 'Select the Sinner to revive.'), so that page is a named
+        # successor here. `HEAL_SINNERS` itself stays in the set because a swallowed click
+        # re-reads the same modal.
+        box = controls.get('heal_sinners.revive')
+        if box is None:
+            return _refuse(page, 'heal_sinners_option_not_anchored')
+        return _plan(page, CLICK, target=box,
+                     expect=('REVIVE_PICK', 'HEAL_SINNERS', 'SHOP', 'PRE_BATTLE_TEAM', 'UNKNOWN'),
+                     reason='the_shop_s_own_third_option_is_the_way_back_for_a_dead_key_slot')
     if page == 'UNKNOWN_DIALOG':
         # A modal that named no page still shows its own close control, and taking it
         # is the only safe input: the modal's other control is a Confirm that spends a

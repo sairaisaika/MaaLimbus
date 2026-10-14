@@ -56,6 +56,18 @@ PRICE_GLYPH_PATTERN = re.compile(r'^[^0-9A-Za-z]{1,2}([0-9]{1,4})\s*$')
 # badges use this floor: the currency and the refresh costs keep the stricter .9.
 SHELF_PRICE_FLOOR = .8
 
+# A badge can also print fainter than that.  Live frame
+# ``window-20261012-203743/frame-0149`` is the successor shelf of a real purchase
+# whose Gemstone Oscillator badge read ``'④ 153'`` at .763 where the identical
+# badge read ``'⊕153'`` at .823 one frame earlier: the .8 floor dropped that card,
+# so the receipt's complete-shelf comparison refused a purchase the page had
+# already completed.  Across the 164 live shop frames this repo retains, every
+# sub-.8 price token that pairs with a confident title is a two-to-four digit
+# badge -- the faintest is ``'⊕ 77'`` at .690 -- while every sub-.8 *single* digit
+# is a stray glyph with no title above it.  The faint exception therefore stays
+# one-sided and in addition only takes a badge that prints at least two digits.
+SHELF_PRICE_FAINT_FLOOR = .65
+
 # A name badge sits this far under the price badge of the same offer, and both are
 # centred on the column, so they pair up by their own printed geometry.  Two price
 # rows are 230px apart, so a row tolerance well under that keeps them apart.
@@ -130,6 +142,17 @@ def price_value(text):
     return int(match.group(1)) if match else None
 
 
+def price_digits(text):
+    """How many digits a price badge prints, or 0 when the token is not a price.
+
+    The count separates a badge from a stray digit the reader also found a number
+    in: a real badge prints the whole price, and no shelf in the retained evidence
+    prices anything under two digits.
+    """
+    match = PRICE_PATTERN.match(text or '') or PRICE_GLYPH_PATTERN.match(text or '')
+    return len(match.group(1)) if match else 0
+
+
 def shelf_tokens(records):
     """The tokens a shelf read may use out of a frame's OCR.
 
@@ -137,11 +160,15 @@ def shelf_tokens(records):
     The exception is deliberately one-sided: a faint *number* beside a confident title
     is still that title's price, while a faint *title* is not a title at all -- the
     page's own price mark and the reader's confidence are not the same thing, and a
-    shelf must never gain a card because its name was read badly.
+    shelf must never gain a card because its name was read badly.  A badge that scored
+    below ``SHELF_PRICE_FLOOR`` still has to print at least two digits, so the stray
+    single glyphs a faint panel also OCRs can never price a card.
     """
     return [token for token in records
             if token.score >= .9
-            or (token.score >= SHELF_PRICE_FLOOR and price_value(token.text) is not None)]
+            or (token.score >= SHELF_PRICE_FLOOR and price_value(token.text) is not None)
+            or (token.score >= SHELF_PRICE_FAINT_FLOOR and price_digits(token.text) >= 2)]
+
 
 
 def offers(records, size=None):
@@ -325,11 +352,17 @@ def matching_purchase_question(records, name, price, size=None, threshold=.9, co
     dialog=native_purchase_dialog(records,size)
     if dialog is not None:
         normalized=lambda text:re.sub(r'\s+',' ',text).strip().casefold()
+        # The dialog quotes the gift as its own name field, and a two-word name wraps
+        # onto two lines: the live frame window-20261012-210346/frame-0004.json printed
+        # 'Smoking' over 'Gunpowder' for the reserved "Smoking Gunpowder", so the band
+        # is read in reading order and joined before it is compared. A band that prints
+        # anything besides the name does not match it, and an empty band never does.
         names=find(records,r'.+',(.26,.51,.41,.59),size,threshold)
-        names=[r for r in names if normalized(r.text)==normalized(name)]
+        names=sorted(names,key=lambda row:(row.box[1],row.box[0]))
+        printed=normalized(' '.join(row.text for row in names))
         balances=purchase_balances(records,size)
-        if (len(names)==1 and balances and balances[0]-balances[1]==price and balances[1]>=0
-                and (coins is None or balances[0]==coins)):
+        if (printed==normalized(name) and balances and balances[0]-balances[1]==price
+                and balances[1]>=0 and (coins is None or balances[0]==coins)):
             return list(dialog['purchase'].box)
         return None
     target = purchase_confirm_target(records, size, require_offers=False)

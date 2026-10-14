@@ -25,8 +25,12 @@ What ``learned`` means, and what it does not:
   adjustment — and nothing here claims a model learned to buy anything.
 
 ``saved`` means "keep the choice already stored"; with nothing stored it falls back to the
-runtime's own defaults — ``manual`` / ``2`` / ``0`` — so an install that never opened these
-settings behaves exactly as it did before they existed.
+runtime's own defaults — ``manual`` / ``2`` / ``500`` (the operator's own directive of
+2026-10-12: a shop visit keeps 500 coins and may not carry more than ``CARRY_CAP_COINS``
+out of it).  An install that stored its own choice keeps that choice exactly as written;
+only an install that never opened these settings moves, and that move is deliberate and
+reported: hoarding thousands of unspent coins bought nothing with them (live run
+``pi-20261012-174217`` refreshed twice and walked out with 2518 coins).
 
 Values are strict integers: a string of digits, a boolean or a float is a refusal, not a
 coercion.  Nothing here is a controller, an input, a capture, a budget write or a ledger
@@ -52,9 +56,22 @@ RESERVE_CAP = 500
 REFRESH_RANGE = (0, 5)
 RESERVE_RANGE = (0, 500)
 
+#: How many coins a shop visit may still carry out of the shop once the shelf prints an
+#: affordable offer the player has not blocked.  This is the operator's own directive
+#: (2026-10-12: ``关底留个500块钱最多留1500``): a run that leaves a shop with thousands of
+#: unspent coins has bought nothing with them, and the live run ``pi-20261012-174217``
+#: refreshed twice and walked out with 2518.  Above this cap the visit spends the surplus
+#: on the cheapest unblocked offer the shelf itself prints, and it never spends below the
+#: player's reserve floor.  It is not a stored option and no UI field writes it: it is read
+#: only, reported, and obeyed by the shop path.
+CARRY_CAP_COINS = 1500
+
 #: The runtime's own behaviour when no setting was ever stored.  ``saved`` resolves to
-#: these, so an untouched install cannot behave differently from the pre-setting build.
-RUNTIME_DEFAULTS = {'shop_policy': 'manual', 'shop_refreshes': 2, 'shop_reserve_coins': 0}
+#: these.  The reserve floor is 500 because the operator's standing directive is to keep
+#: 500 coins and at most 1500: an untouched install that never stored its own floor now
+#: keeps that one, and the card reports it as a runtime default rather than as the
+#: player's own stored choice.
+RUNTIME_DEFAULTS = {'shop_policy': 'manual', 'shop_refreshes': 2, 'shop_reserve_coins': 500}
 
 #: Names of the settings the out-of-module learned layer is allowed to obey, and never
 #: rewrite.  They are documented, not consumed here.
@@ -203,6 +220,11 @@ def resolve_shop_settings(saved=None, overrides=None):
         reserve_source=source('shop_reserve_coins'),
         caps=dict(shop_refreshes=REFRESH_CAP, shop_reserve_coins=RESERVE_CAP),
         ranges=dict(shop_refreshes=list(REFRESH_RANGE), shop_reserve_coins=list(RESERVE_RANGE)),
+        carry_cap=dict(coins=CARRY_CAP_COINS, source='operator_directive',
+                       stored_option=False,
+                       rule=('a shop visit spends the coins above this cap on the cheapest '
+                             'unblocked offer its own shelf prints, and never below the '
+                             'reserve floor')),
         runtime_defaults=dict(RUNTIME_DEFAULTS),
         learned_obeys=list(LEARNED_OBEYS),
         learned_applied=False,
@@ -229,6 +251,14 @@ def shop_settings_protocol():
                      shop_reserve_coins='an integer 0..500, or "saved"'),
         runtime_defaults=dict(RUNTIME_DEFAULTS),
         caps=dict(shop_refreshes=REFRESH_CAP, shop_reserve_coins=RESERVE_CAP),
+        carry_cap=dict(coins=CARRY_CAP_COINS, source='operator_directive',
+                       stored_option=False,
+                       why=('coins left in the wallet at the boss bought nothing; the '
+                            'operator keeps 500 and at most 1500, so the surplus above the '
+                            'cap is spent on the shelf the visit is already looking at'),
+                       never=['spend below the reserve floor',
+                              'buy an offer the player blocked',
+                              'buy without the offer\'s own printed price and box']),
         learned=dict(
             obeys=list(LEARNED_OBEYS),
             never=['raise, lower or rewrite the two hard settings',

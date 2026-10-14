@@ -252,6 +252,40 @@ def classify(records, locale, size):
         and find(records, locale.get('selectable', r'(?!)'), (.66, .13, .82, .25), size, .85)
         and find(records, locale['gift_confirm'], (.56, .68, .72, .78), size, .85)):
         return 'REWARD_CARD'
+    # The shop's Heal Sinners modal covers the panel it was opened from, so it has to be
+    # named above the shop branches or the frame falls to UNKNOWN and the window never
+    # reaches the one control that brings a dead Sinner back (the surplus-spending and
+    # revive work of 2026-10-12). Live frame
+    # evidence/runtime/window-20261012-212047/frame-0012.json reads the modal's own title
+    # 'Heal Sinners' [212,55,256,42] 1.0 over three numbered ways to spend 100 --
+    # 'I. Greatly heal a single Sinner.' [1256,246,380,33] (the OCR's reading of '1.'),
+    # '2. Moderately heal every Sinner.' and '3. Revive a single Sinner.' -- beside its own
+    # 'Return' [1610,941,172,55] and the shop currency '3093' [1476,120,138,38]. The title
+    # alone names nothing in another layout, so the modal's three-option structure is
+    # required as the second, independent proof.
+    from .shop_revive import heal_sinners_options
+    if (find(records, locale.get('heal_sinners', r'(?!x)x'), (.08, .02, .30, .12), size, .85)
+            and heal_sinners_options(records, size) is not None):
+        return 'HEAL_SINNERS'
+    # The modal's second step asks for the Sinner itself: live frame
+    # evidence/runtime/window-20261012-213008/frame-0002.json reads 'Select the Sinner to
+    # revive.' [102,567,330,36] where the three-way question was, with the revive row
+    # '3. Revive a single Sinner.' [1246,246,326,33] and its own '100' [1764,246,52,41] at
+    # the top of the modal and the party bar along the bottom of the screen.  It is named
+    # before the three-option modal, which this frame no longer draws, and the bar it asks
+    # about is only ever clicked from the deployment page's own proof of which card is dead.
+    # The modal's last step says who came back and leaves through its own bottom-right
+    # button: live frame evidence/runtime/window-20261012-214803/frame-0001.json reads
+    # 'Hong Lu, revived, returns to battle.' [108,573,416,28] 0.98 under the modal's own
+    # title with 'Leave' [1622,943,150,53] where 'Return' and 'Select' were, and the shop's
+    # counter already at 2993 -- the 100 the revive cost.  It is named before the pick step,
+    # which it is the successor of, and its own words are the second proof.
+    if (find(records, locale.get('revive_done', r'(?!x)x'), (.03, .51, .30, .58), size, .85)
+            and find(records, locale.get('leave', r'(?!x)x'), (.80, .85, .96, .94), size, .85)):
+        return 'REVIVE_DONE'
+    if (find(records, locale.get('revive_pick', r'(?!x)x'), (.04, .51, .25, .58), size, .85)
+            and find(records, locale.get('heal_sinners', r'(?!x)x'), (.08, .02, .30, .12), size, .85)):
+        return 'REVIVE_PICK'
     # Leaving the shop asks first ("Leave the shop?" with X Cancel / Confirm). The
     # plain shop labels stay on screen behind it, so this veto has to sit above
     # SHOP or the confirm could never be reached.

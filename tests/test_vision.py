@@ -693,3 +693,79 @@ def test_the_result_screen_is_named_when_the_story_box_covers_its_first_letter()
     # Take the banner away and the page is nothing this reader knows.
     trimmed = [r for r in records if 'ICTORY' not in r.text]
     assert classify(trimmed, words, tuple(data['size'])) == 'UNKNOWN'
+
+
+def test_the_shop_heal_sinners_modal_is_named_off_its_title_and_its_options():
+    # The live tokens of evidence/runtime/window-20261012-212047/frame-0012.json: the modal
+    # the shop opens over its own panel, whose three numbered ways each carry their own 100.
+    words=json.loads((LOCALES/'en/locale.json').read_text())
+    modal=[Text('Heal Sinners',(212,55,256,42),1.0),Text('3093',(1476,120,138,38),1),
+           Text('I. Greatly heal a single Sinner.',(1256,246,380,33),.968),
+           Text('100',(1764,246,52,39),1),
+           Text('2. Moderately heal every Sinner.',(1246,432,332,28),.991),
+           Text('100',(1764,428,54,42),1),
+           Text('3. Revive a single Sinner.',(1246,611,326,34),.991),
+           Text('100',(1768,611,50,42),1),Text('Return',(1610,941,172,55),1)]
+    assert classify(modal,words,(1920,1080))=='HEAL_SINNERS'
+
+
+def test_the_heal_sinners_title_alone_does_not_name_the_page():
+    # A title over a page that does not print the modal's three-option structure is not the
+    # modal: the structure is the second, independent proof.
+    words=json.loads((LOCALES/'en/locale.json').read_text())
+    title=[Text('Heal Sinners',(212,55,256,42),1.0),Text('100',(1764,246,52,39),1),
+           Text('Return',(1610,941,172,55),1)]
+    assert classify(title,words,(1920,1080))!='HEAL_SINNERS'
+
+
+def test_the_shop_revive_picker_is_named_off_its_own_ask():
+    # The modal's second step, whose own tokens are
+    # evidence/runtime/window-20261012-213008/frame-0002.json: it asks for the Sinner where
+    # the three-way question was, and the revive row keeps its ordinal with its own 100.
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    picker = [Text('Heal Sinners', (212, 55, 256, 42), 1.0), Text('3093', (1682, 142, 106, 62), 1),
+              Text('Select the Sinner to revive.', (102, 567, 330, 36), .996),
+              Text('3. Revive a single Sinner.', (1246, 246, 326, 33), .991),
+              Text('Revive Selected Sinner', (1260, 301, 226, 26), .99),
+              Text('100', (1764, 246, 52, 41), 1)]
+    assert classify(picker, words, (1920, 1080)) == 'REVIVE_PICK'
+    # The live OCR also reads the same ask without its full stop
+    # (window-20261012-214235/frame-0001.json: 'Select the Sinner to revive' at
+    # [106,571,324,28]) and can misread a letter, so neither is what names the step.
+    without_stop = [Text('Select the Sinner to revive', (106, 571, 324, 28), .99)
+                    if r.text.startswith('Select') else r for r in picker]
+    assert classify(without_stop, words, (1920, 1080)) == 'REVIVE_PICK'
+    misspelt = [Text('Select the Sinner to revlve.', (102, 567, 330, 36), .996)
+                if r.text.startswith('Select') else r for r in picker]
+    assert classify(misspelt, words, (1920, 1080)) == 'REVIVE_PICK'
+    # The ask is only this step over the modal's own title, and the three-way modal is
+    # still the step that asks it.
+    without_title = [r for r in picker if r.text != 'Heal Sinners']
+    assert classify(without_title, words, (1920, 1080)) != 'REVIVE_PICK'
+    with_options = ([r for r in picker if not r.text.startswith('3.')] +
+                    [Text('I. Greatly heal a single Sinner.', (1256, 246, 380, 33), .968),
+                     Text('2. Moderately heal every Sinner.', (1246, 432, 332, 28), .991),
+                     Text('3. Revive a single Sinner.', (1246, 611, 326, 34), .991),
+                     Text('100', (1768, 611, 50, 42), 1)])
+    assert classify(with_options, words, (1920, 1080)) == 'HEAL_SINNERS'
+
+
+def test_the_revived_sinners_notice_is_named_off_the_words_it_prints():
+    # The panel's third state, whose own tokens are
+    # evidence/runtime/window-20261012-214803/frame-0001.json: the modal's title is still
+    # there, the ask is gone, and the notice names the Sinner that came back over the
+    # modal's own button, now Leave.
+    words = json.loads((LOCALES / 'en/locale.json').read_text())
+    done = [Text('Hong Lu, revived, returns to battle.', (108, 573, 416, 28), .98),
+            Text('Leave', (1622, 943, 150, 53), 1.0),
+            Text('Heal Sinners', (212, 55, 256, 42), 1.0)]
+    assert classify(done, words, (1920, 1080)) == 'REVIVE_DONE'
+    # The live OCR dropped the final stop and reads the same words from the modal's own
+    # notice (window-20261012-214803/frame-0002.json).
+    without_stop = [Text(r.text.rstrip('.') if r.text.startswith('Hong') else r.text, r.box,
+                         r.score) for r in done]
+    assert classify(without_stop, words, (1920, 1080)) == 'REVIVE_DONE'
+    # 'revived' in the line is what names it: the same notice without it is the picker's
+    # own ask or nothing at all, never this state.
+    other = [Text('Hong Lu, returns to battle.', (108, 573, 340, 28), .98)] + done[1:]
+    assert classify(other, words, (1920, 1080)) != 'REVIVE_DONE'

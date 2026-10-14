@@ -30,6 +30,29 @@ def test_missing_header_control_name_or_quote_cannot_authorize_purchase(remove):
     assert matching_purchase_question(r,"Devil's Share",144,coins=2707) is None
 
 
+def wrapped_rows():
+    """The real purchase question of window-20261012-210346/frame-0004.json.
+
+    The dialog wrapped the reserved two-word name onto two lines ('Smoking' over
+    'Gunpowder') and the reader found the balance pair both merged into one token
+    and as the two tokens it is made of. Only the wrapped pair may match the name.
+    """
+    return [Text('Purchase E.G.O Gifts',(674,236,292,34),.999),
+        Text('Purchase',(1092,706,128,34),1),Text('X Cancel',(710,702,156,42),.9121),
+        Text('Smoking',(576,561,120,38),1),Text('Gunpowder',(562,593,148,28),1),
+        Text('3294',(1230,236,53,34),1),Text('3093',(1305,235,57,35),1),
+        Text('32943093',(1228,234,134,34),1)]
+
+
+def test_a_purchase_dialog_that_wraps_its_name_still_authorizes_the_reserved_offer():
+    r=wrapped_rows()
+    assert matching_purchase_question(r,'Smoking Gunpowder',201,coins=3294)==[1092,706,128,34]
+    for name,price,coins in [('Smoking',201,3294),('Gunpowder',201,3294),
+                             ('Smoking Gunpowder',200,3294),('Smoking Gunpowder',201,3293),
+                             ('Gunpowder Smoking',201,3294)]:
+        assert matching_purchase_question(r,name,price,coins=coins) is None
+
+
 def test_purchase_confirmation_accepts_the_native_get_notice_as_successor():
     from maalimbus.window import plan_step
     p=plan_step('SHOP_PURCHASE',shop={'confirm':[1092,706,128,34]})

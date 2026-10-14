@@ -36,6 +36,11 @@ LIVE_SHELF_NAMES = ["Replace Gregor's Skill", 'Melted Paraffin', 'Thorny Path',
                     'Wobbling Keg', 'Resolution', 'UPS System']
 LIVE_SHELF_PRICES = [77, 150, 160, 211, 207, 156]
 
+# The shelf one frame after a real purchase in the 20:37 window: the bought card is
+# still there under its own ``Purchased`` badge, and its neighbour's badge read at
+# .763 -- below the floor that used to price a shelf.
+SUCCESSOR_FRAME = ROOT / 'evidence/runtime/window-20261012-203743/frame-0149.json'
+
 
 def live_shelf_page():
     """The 12:39 shelf as the reader sees it: size plus its OCR tokens."""
@@ -178,8 +183,33 @@ def test_a_faint_number_is_a_price_but_a_faint_title_is_not():
     kept = shelf_tokens(records + [faint_number, faint_title])
     assert faint_number in kept
     assert faint_title not in kept
-    assert Text('211', (1586, 458, 70, 36), .79) not in shelf_tokens(
+    # A badge can read fainter than that and still be the card's own price: the
+    # successor shelf of a real purchase printed one at .763.  What the reader's own
+    # strays look like is a *single* digit, which never prices a card.
+    assert Text('211', (1586, 458, 70, 36), .79) in shelf_tokens(
         records + [Text('211', (1586, 458, 70, 36), .79)])
+    assert Text('7', (1586, 458, 20, 36), .79) not in shelf_tokens(
+        records + [Text('7', (1586, 458, 20, 36), .79)])
+
+
+def test_the_successor_shelf_keeps_the_card_whose_badge_read_faint():
+    # ``frame-0149`` of ``window-20261012-203743`` is the shelf just after a real
+    # purchase.  It holds the same six cards as ``frame-0144`` one frame earlier, but
+    # the Gemstone Oscillator's badge read ``'④ 153'`` at .763 where 0144 read
+    # ``'⊕153'`` at .823.  The .8 floor dropped that card, and the purchase receipt
+    # then refused a purchase the page had already completed.
+    if not SUCCESSOR_FRAME.exists():
+        pytest.skip('retained live shop evidence is not present')
+    record = json.loads(SUCCESSOR_FRAME.read_text(encoding='utf-8'))
+    records = [Text(token['text'], tuple(token['box']), token['score'])
+               for token in record['ocr']]
+    found = offers(shelf_tokens(records), tuple(record.get('size') or (1920, 1080)))
+    assert [(offer.name, offer.price) for offer in found] == [
+        ("Replace Yi Sang's Skill", 77), ('Gemstone Oscillator', 153),
+        ('Lightning Rod', 247), ("Hellterfly's Dream", 198),
+        ('Perversion', 157), ('Ragged Umbrella', 211)]
+    assert [offer.name for offer in found if offer.purchased] == ['Ragged Umbrella']
+
 
 
 def test_the_live_shelf_that_broke_the_refresh_reads_all_six_offers():

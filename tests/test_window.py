@@ -1371,7 +1371,10 @@ def test_unknown_dialog_without_a_close_refuses_instead_of_confirming():
 
 
 SHOP_CONTROLS = dict(CONTROLS, **{'shop.leave_button': [1622, 945, 150, 53]})
-BUY = {'box': [1101, 585, 120, 90], 'name': 'Prejudice', 'price': 152, 'index': 6}
+BUY = {'box': [1101, 585, 120, 90], 'name': 'Prejudice', 'price': 152, 'index': 6,
+       'why': 'gift_plan'}
+CARRIED = {'box': [870, 357, 120, 90], 'name': 'Replace Heathciffs Skill', 'price': 77,
+           'index': 1, 'why': 'carry_cap'}
 REFRESH = {'box': [1478, 168, 86, 28], 'cost': 15}
 CONFIRM = [1040, 760, 120, 34]
 
@@ -1382,7 +1385,64 @@ def test_shop_buys_the_offer_the_page_printed_for_the_plan():
                          'reason':'the_gift_plan_asked_for_this_offer_and_the_shop_covers_it'})
     assert plan['action']==CLICK and plan['target']==BUY['box']
     assert plan['reason']=='buying_the_gift_the_gift_plan_asked_for'
-    assert plan['detail']=={'name':'Prejudice','price':152,'currency':1008}
+    assert plan['detail']=={'name':'Prejudice','price':152,'why':'gift_plan',
+                            'currency':1008}
+
+
+def test_shop_spends_the_coins_the_visit_would_carry_out_on_the_shelf_it_read():
+    """The cap's own purchase is a click on the shelf's printed card, not a coordinate.
+
+    It is named differently from the plan's purchase, so the ledger and the journal can
+    tell a gift the plan asked for from a coin the visit simply would not carry out.
+    """
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':1008,'buy':CARRIED,'refresh':None,'confirm':None,
+                         'reason':'the_visit_would_carry_out_more_coins_than_its_cap_holds_so_the_shelf_is_spent_on'})
+    assert plan['action']==CLICK and plan['target']==CARRIED['box']
+    assert plan['reason']=='spending_the_coins_this_visit_would_carry_out_on_the_shelf'
+    assert plan['detail']=={'name':'Replace Heathciffs Skill','price':77,'why':'carry_cap',
+                            'currency':1008}
+
+
+def test_shop_takes_the_way_back_for_a_dead_key_slot_before_it_spends_a_coin():
+    """Heal Sinner is the only service the shop's panel may be aimed at, and only while
+    a saved slot the operator called key is dead (live panel window-20261012-210547/
+    frame-0005.json: Heal Sinner [286,688,72,46] with its badge 100 at [264,742])."""
+    revive={'box':[286,688,72,46],'cost':100,'cost_box':[264,742,62,30],'cards':[6]}
+    plan=plan_step('SHOP',controls=SHOP_CONTROLS,
+                   shop={'currency':3093,'buy':CARRIED,'refresh':REFRESH,'confirm':None,
+                         'revive':revive,'reason':'no_offer_matches_the_gift_plan'})
+    assert plan['action']==CLICK and plan['target']==revive['box']
+    assert plan['reason']=='a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back'
+    assert plan['detail']=={'cards':[6],'cost':100,'currency':3093}
+    # The purchase question still wins: it is already open and cannot be left behind.
+    asked=plan_step('SHOP',controls=SHOP_CONTROLS,
+                    shop={'currency':3093,'buy':CARRIED,'refresh':None,'confirm':CONFIRM,
+                          'revive':revive,'reason':'x'})
+    assert asked['target']==CONFIRM
+    assert asked['reason']=='confirming_the_purchase_the_shop_asked_about'
+    # Without a proven key loss the service is never a target and the cap buys instead.
+    plain=plan_step('SHOP',controls=SHOP_CONTROLS,
+                    shop={'currency':3093,'buy':CARRIED,'refresh':None,'confirm':None,
+                          'revive':None,'reason':'x'})
+    assert plain['target']==CARRIED['box']
+
+
+def test_the_shops_own_option_list_is_answered_with_its_third_row_only():
+    """Only '3. Revive a single Sinner.' is ever aimed at; the healing rows are not."""
+    box=[1246,611,326,34]
+    plan=plan_step('HEAL_SINNERS',
+                   controls=dict(SHOP_CONTROLS,**{'heal_sinners.revive':box}))
+    assert plan['action']==CLICK and plan['target']==box
+    assert plan['reason']=='the_shop_s_own_third_option_is_the_way_back_for_a_dead_key_slot'
+    assert 'UNKNOWN' in plan['expect']
+    # The third row opens the picker, which the classifier names REVIVE_PICK (live
+    # window-20261012-213008/frame-0002.json): an unnamed successor there would cost the
+    # click an unexpected-successor retry.
+    assert 'REVIVE_PICK' in plan['expect']
+    assert 'HEAL_SINNERS' in plan['expect']
+    refused=plan_step('HEAL_SINNERS',controls=SHOP_CONTROLS)
+    assert refused['action']==RECORD and refused['reason']=='heal_sinners_option_not_anchored'
 
 
 def test_shop_answers_the_purchase_question_before_buying_anything_else():
@@ -1434,3 +1494,45 @@ def test_the_purchase_question_answers_its_own_confirm_and_nothing_else():
     plan=plan_step('SHOP_PURCHASE',controls=SHOP_CONTROLS)
     assert plan['action']==RECORD
     assert plan['reason']=='the_shop_asked_about_a_purchase_and_its_confirm_was_not_read'
+
+
+def test_the_revive_picker_only_answers_the_slot_and_button_its_own_frames_bound():
+    """The picker's party bar and the modal's own bottom button are the only targets here.
+
+    Live evidence: window-20261012-213008/frame-0002.png draws the dead card 6's portrait at
+    [642,880,90,120] in the bar, and the confirm that followed it was the modal's 'Select'
+    [1614,937,166,61] (window-20261012-214635/frame-0006.json), which the game answered with
+    'Hong Lu, revived, returns to battle.' (window-20261012-214803/frame-0001.json). A picker
+    that carries neither is refused, never guessed.
+    """
+    slot = [642, 880, 90, 120]
+    picked = plan_step('REVIVE_PICK', controls=dict(SHOP_CONTROLS, **{'revive_pick.slot': slot}))
+    assert picked['action'] == CLICK and picked['target'] == slot
+    assert picked['reason'] == 'picking_the_dead_key_slot_the_deployment_page_could_not_field'
+    assert 'REVIVE_PICK' in picked['expect'] and 'SHOP' in picked['expect']
+    action = [1614, 937, 166, 61]
+    answered = plan_step('REVIVE_PICK',
+                         controls=dict(SHOP_CONTROLS, **{'revive_pick.action': action}))
+    assert answered['action'] == CLICK and answered['target'] == action
+    assert answered['reason'] == 'the_modals_own_button_answers_the_pick_the_bar_made'
+    assert 'REVIVE_DONE' in answered['expect'] and 'SHOP' in answered['expect']
+    refused = plan_step('REVIVE_PICK', controls=SHOP_CONTROLS)
+    assert refused['action'] == RECORD
+    assert refused['reason'] == 'the_picker_asked_for_a_sinner_no_proven_loss_names'
+
+
+def test_the_revived_sinners_notice_leaves_through_the_modals_own_button():
+    """The third state of the panel says who came back and offers nothing else to click.
+
+    Live evidence: window-20261012-214803/frame-0001.json reads 'Hong Lu, revived, returns
+    to battle.' with its own Leave [1622,943,150,53] under it, while the row above it, 'Heal
+    again.', would spend another 100 and is never aimed at.
+    """
+    leave = [1622, 943, 150, 53]
+    done = plan_step('REVIVE_DONE', controls=dict(SHOP_CONTROLS, **{'revive_done.leave': leave}))
+    assert done['action'] == CLICK and done['target'] == leave
+    assert done['reason'] == 'the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop'
+    assert 'SHOP' in done['expect']
+    refused = plan_step('REVIVE_DONE', controls=SHOP_CONTROLS)
+    assert refused['action'] == RECORD
+    assert refused['reason'] == 'the_revived_sinners_notice_has_no_bound_leave'

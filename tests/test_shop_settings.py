@@ -10,6 +10,7 @@ import json
 import pytest
 
 from maalimbus.shop_settings import (
+    CARRY_CAP_COINS,
     FIELDS,
     LEARNED_OBEYS,
     POLICIES,
@@ -43,8 +44,16 @@ def test_an_untouched_install_resolves_to_the_runtime_defaults():
             result['shop_reserve_coins']) == (RUNTIME_DEFAULTS['shop_policy'],
                                               RUNTIME_DEFAULTS['shop_refreshes'],
                                               RUNTIME_DEFAULTS['shop_reserve_coins'])
+    # The floor is the operator's own standing directive -- keep 500 coins and carry at
+    # most 1500 out of a visit -- so an install that never stored a floor now keeps that
+    # one, and the card reports the carry cap as a directive rather than as a stored
+    # option nobody chose.
     assert (result['shop_policy'], result['shop_refreshes'],
-            result['shop_reserve_coins']) == ('manual', 2, 0)
+            result['shop_reserve_coins']) == ('manual', 2, 500)
+    assert result['carry_cap'] == dict(
+        coins=CARRY_CAP_COINS, source='operator_directive', stored_option=False,
+        rule=('a shop visit spends the coins above this cap on the cheapest unblocked '
+              'offer its own shelf prints, and never below the reserve floor'))
     assert reasons(result) == ['runtime_default_used'] * 3
     assert result['state_written'] is False
 
@@ -321,5 +330,6 @@ def test_collect_with_every_node_left_at_saved_is_the_untouched_install():
         ('MirrorShopCoinReserve', 'shop_reserve_coins'))}
     result = collect(nodes.__getitem__)
     assert (result['shop_policy'], result['shop_refreshes'],
-            result['shop_reserve_coins']) == ('manual', 2, 0)
+            result['shop_reserve_coins']) == ('manual', 2, 500)
+    assert result['carry_cap']['coins'] == CARRY_CAP_COINS
     assert result['learned_applied'] is False
