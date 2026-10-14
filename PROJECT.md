@@ -2134,3 +2134,53 @@ This is a source test result, not complete game or production-value acceptance.
 - Still open from this era: the live GUI click Start (the packaged CLI probe is explicitly not a substitute), an
   explicit saved run count with a visible verified-run counter, the resource-diagnostics panel, and the
   lesson-review/apply path.
+
+## DSH continuation: the saved run count and the panel that lost its pack line (2026-10-14)
+
+- The saved run count is now the operator's own field, not a step budget wrongly reused: `mirror_loop` gained
+  the `mirror_run_count` option (`assets/interface.json:126`, node `MirrorRunCount` at
+  `assets/resource/base/pipeline/mirror.json:5579`), `src/maalimbus/mirror_task_options.py:33` reads it beside
+  the step bound, and `src/maalimbus/runner.py:191` clamps it. The counter itself is separate from the step
+  budget: `_verified_runs` (`runner.py:1387`) advances only where the ledger books a returned entry
+  (`runner.py:2807` stops the loop when `_run_count_reached()`), and both the run summary
+  (`summary()['verified_runs']`, `runner.py:3196`) and the module-level `_completed_runs` (`runner.py:3203`,
+  printed by `src/maalimbus/event_log.py:149` as the `ledger: run …` line) report it. 20 new assertions in
+  `tests/test_runner.py` plus the updated `tests/test_mirror_task_options.py`; full suite `1689 passed,
+  1 skipped`.
+- The second packaged acceptance run (`evidence/runtime/packaged-mirror-20261014-065112`) proved the deployment
+  repair and then stalled at 74 steps on `page_unreadable_after_waiting` while the frames show the node panel:
+  `frame-0250` carries the `Emotional Craving` title, the `Enter` control and no resource-pack line, because the
+  pack had just been taken. `src/maalimbus/map_vision.py` now identifies that page by its own identity —
+  `floor_label()` reads the `Exploring Floor N` header, `node_panel()` accepts a panel whose pack line is
+  absent (pinned by `tests/test_map_vision.py::test_a_panel_whose_pack_line_was_dropped_is_still_a_panel`),
+  commit `d574a26`; the run-count work is commit `8ca1ac1`.
+- The app was then rebuilt with the agent re-frozen (`tools/make_local_app.py --mxu-exe
+  build/mxu-interactive-artifact/mxu.exe --mxu-proof build/mxu-interactive-artifact/build-proof.json`, backup
+  `dist/MaaLimbus.backup-bd579a330ea541d0a58db4ccdd5d3d08`, 2970 private files preserved, agent self-test
+  passed, `build-info.json` source_commit `8ca1ac1b0d41ee17f51687acbf92e8f06ede4350`) and a **real GUI Start**
+  was performed: `dist/MaaLimbus/MaaLimbus.exe` (process 34940) was launched and its own Start button pressed
+  with real pointer input at 07:22 local. The run `dist/MaaLimbus/evidence/runtime/pi-20261014-072228` opened on
+  scene `NODE_PANEL` -- the exact page the packaged CLI run could not read before `d574a26` -- and then
+  dispatched `CUTSCENE -> EVENT_CHOICE -> EVENT_RESULT -> GIFT_GET -> PRE_BATTLE_TEAM -> BATTLE_HUD -> MAP ->
+  NODE_PANEL -> GIFT_GET` over 179 frames: the GUI Start chain is now observed live, not only wired.
+- The live run before this one (`dist/MaaLimbus/evidence/runtime/pi-20261014-053727`, 5 inputs) had stopped on
+  `Grace purchase successor balance not proven`, and its own frames say why: the STAR_GRACES reader is right and
+  the OCR missed one glyph -- `frame-0010`/`frame-0011` read the counter at `[1515,45,54,40]` ('95'), while
+  `frame-0012` emitted no counter token at all (only 'Available' `[1392,49,84,30]` and the yellow `375`), so the
+  successor balance could not be proven from a single frame. That run was executed by an older install
+  (`fd78ca8`); the bounded re-read (`grace_successor_balance_read_retry`, added in `252c0d2` with the zero-input
+  `GraceTransaction.recover`) is in the source since, so the fix is installed but not yet exercised live.
+- The learning path was audited offline (card ⑤): the shipped sinner model
+  `assets/resource/base/model/detect/sinners.onnx` (10,634,896 bytes, sha256
+  `859b8546292fc32007a22ac1723dded382bbb77a25d34246369d78200ebc1a59`) runs in production only as a shadow --
+  `src/maalimbus/neural_shadow.py:130` refuses any mode but `shadow`, `agent/recognition.py:366-374` journals it
+  and degrades to `status='unavailable', input_authorized=False` on any error, and its only consumer is
+  label-proposal persistence (`agent/recognition.py:378-380`). Its model card records
+  `fit_validation_uses_training_images: true` and the native evaluation's samples are `split: "train"`, so its
+  metrics do not generalise. The shop-value shadow cannot reorder purchases -- `src/maalimbus/shop_value_shadow.py`
+  returns `list(offers)` unchanged on every branch (lines 11, 53, 56) and no `assets/resource/base/model/shop-value`
+  exists, so the trace reads `purchase_value_model_missing_rule_fallback`; in the real packaged run
+  (`evidence/runtime/packaged-mirror-20261014-065112`) all five `shop_decision_ranking` events carry
+  `learning: None` and the two purchases were chosen by `the_gift_plan_asked_for_this_offer_and_the_shop_covers_it`.
+- Still open: the five-floor completion and the saved-run count's live stop; the resource-diagnostics panel (④);
+  the lesson-review/apply path (⑤); and the named-anchor re-resolution of wiki citations into `runner.py` (⑥).
