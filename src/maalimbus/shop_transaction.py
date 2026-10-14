@@ -40,7 +40,7 @@ def _key(name):
 # by the shelf's own history plus its badge and price, never by one glyph of its
 # title.  This fold is *not* a fuzzy title match: ``matching_purchase_question``
 # still demands the complete name, and two titles must be the same string after the
-# confusable class alone is folded.
+# confusable class and the typeface's own spacing are folded.
 #
 # The condensed face also closes ``rn`` into the one stem pair a reader can take for
 # ``m``: live ``pi-20261014-080122`` reserved a purchase on a six-slot shelf whose own
@@ -49,17 +49,52 @@ def _key(name):
 # called a card the shelf had held all along an offer it "never held" and stopped the
 # run at floor 3.  Folding the ligature compares the card, not the reader's opinion of
 # its fourth glyph.
+#
+# The same reader also loses the space the typeface draws between two words: live
+# ``pi-20261014-082326`` reserved a card from a shelf whose own frame-0002 read the
+# 144-coin slot as "Crownof Roses", and the returning shelf (frame-0008) printed the
+# catalogue spacing "Crown of Roses".  Two keys then differed by one blank and the run
+# stopped after 3 inputs on the very refusal above.  Folding the whitespace compares the
+# card, not the reader's spacing; it cannot shorten a title, because the letters and
+# digits still have to agree one for one.
 _CONFUSABLE = str.maketrans({'i': '1', 'l': '1', '!': '1', '|': '1', 'o': '0',
                              '\u2019': "'", '\u02bc': "'", '\u00b4': "'", '`': "'"})
 
 
 def _fold(name):
-    return _key(name).translate(_CONFUSABLE).replace('rn', 'm')
+    return _key(name).translate(_CONFUSABLE).replace('rn', 'm').replace(' ', '')
 
 
 def _same_title(one, other):
     """Whether a re-read shelf row is still the card an intent was written for."""
     return _key(one) == _key(other) or _fold(one) == _fold(other)
+
+
+def _context(context):
+    """Copy a decision context, keeping the bought *names* and never the records.
+
+    A record carries its own decision context, so storing the records made every purchase
+    embed the previous one: live ``pi-20261014-082856`` could not start at all because
+    ``config/user-shop-<scope>.json`` had reached 2,464,332 bytes and the reader refused
+    its own state (``Configuration/state exceeds 2 MiB``).  The store keeps what the value
+    model reads -- names, which is also what ``shop_value_training._text_list`` accepts.
+    """
+    out = copy.deepcopy(context)
+    owned = out.get('owned_bought')
+    if owned is None:
+        return out
+    if not isinstance(owned, list):
+        raise ValueError('Invalid shop decision context')
+    names = []
+    for row in owned:
+        if isinstance(row, str) and row:
+            names.append(row)
+        elif isinstance(row, dict) and isinstance(row.get('name'), str) and row['name']:
+            names.append(row['name'])
+        else:
+            raise ValueError('Invalid shop decision context')
+    out['owned_bought'] = names
+    return out
 
 
 def _frame(path):
@@ -296,7 +331,7 @@ class ShopTransaction:
                                shelf=shelf, click=matching[0]['click'])
         if decision_context is not None:
             if not isinstance(decision_context,dict):raise ValueError('Invalid shop decision context')
-            data['pending']['decision_context']=copy.deepcopy(decision_context)
+            data['pending']['decision_context']=_context(decision_context)
         self._save(data)
         return matching[0]['click']
 

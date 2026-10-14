@@ -1855,3 +1855,28 @@ counter, the diagnostics panel and the lesson-apply path remain open.
   against the returning frame `frame-0202.json` now returns `reconcile_purchase: True` with
   `bought[-1] = Rusted Cutting Knife` and `pending` cleared, and
   `tests/test_shop_transaction.py` pins both the fold and its refusal to shorten a title.
+
+## The shop shelf's second reader gap, and the state guard (2026-10-14)
+
+- The relaunched folded build stopped after 3 inputs on the same refusal (`pi-20261014-082326`, 41 events,
+  `mirror_loop_stopped` reason `Shop successor shows an offer the shelf never held`, steps 4 / clicks 3). That run's
+  own reservation `frame-0002` read the 144-coin slot as `Crownof Roses` and its returning `frame-0008` printed the
+  catalogue spacing `Crown of Roses`, so the two keys differed by one blank. `src/maalimbus/shop_transaction.py::_fold`
+  now drops the blanks beside the confusable class and the `rn` ligature (a title still cannot be shortened), pinned by
+  `tests/test_shop_transaction.py::test_a_space_the_reader_dropped_still_names_the_same_slot` and
+  `::test_the_space_fold_is_not_a_licence_to_shorten_a_title`. Replaying the stopped store against `frame-0002` and
+  `frame-0008` lists no offending offer at all.
+- The launch after that never took a step: `pi-20261014-082856` recorded `mirror_loop_error`
+  `ValueError: Configuration/state exceeds 2 MiB`, raised from `src/maalimbus/shop_transaction.py:172` through
+  `storage.py:43`, because `config/user-shop-3122877b....json` had reached 2,464,332 bytes. The cause was the decision
+  context: `owned_bought` held the whole purchase records and every record carries its own decision context, so each
+  purchase embedded the previous ones. `src/maalimbus/runner.py` now records their names,
+  `shop_transaction._context` enforces that shape at the store boundary (names are what
+  `shop_value_training._text_list` accepts), and `tools/prune_shop_state.py` rewrote the two live state files
+  (2,464,332 -> 46,950 and 375,287 -> 36,674 bytes) touching only that field. Pinned by
+  `tests/test_prune_shop_state.py`. The pruned store reads under the ordinary 2 MiB guard with all seven bought cards
+  and the pending `Tangled Bundle` intent intact.
+- The app was rebuilt once more so the frozen agent carries both fixes (`tools/make_local_app.py --mxu-exe
+  build/mxu-interactive-artifact/mxu.exe --mxu-proof build/mxu-interactive-artifact/build-proof.json`, backup
+  `dist/MaaLimbus.backup-17fd3ae48e124a06969f277e49945a44`, 3912 private files preserved, `agent_self_test: true`).
+  The GUI Start that has to prove them live is the next entry.

@@ -2262,3 +2262,26 @@ This is a source test result, not complete game or production-value acceptance.
   `test_the_ligature_fold_is_not_a_licence_to_shorten_a_title`), and replaying the stopped store against
   `frame-0202.json` settles it: `reconcile_purchase` returns True, `bought[-1]` is `Rusted Cutting Knife`, `pending`
   is cleared. The installed app still has to carry this fold before a five-floor clear can be attempted again.
+- The same reader gap then showed itself once more, one blank wide, and this time on the shelf the run had just
+  written itself: the app relaunched on the folded build stopped after 3 inputs (`pi-20261014-082326`, 41 events)
+  on the identical `Shop successor shows an offer the shelf never held`. Its own reservation frame-0002 read the
+  144-coin slot as `Crownof Roses`, its returning frame-0008 printed the catalogue spacing `Crown of Roses`, and the
+  two keys differed by a single space. `src/maalimbus/shop_transaction.py::_fold` now drops the blanks beside the
+  confusable class and the `rn` ligature (it still cannot shorten a title, because the letters and digits have to
+  agree one for one). Pinned by
+  `tests/test_shop_transaction.py::test_a_space_the_reader_dropped_still_names_the_same_slot` and
+  `::test_the_space_fold_is_not_a_licence_to_shorten_a_title`; replaying the stopped store against frame-0002 and
+  frame-0008 now lists no offending offer at all. 55 tests pass in `tests/test_shop_transaction.py` +
+  `tests/test_prune_shop_state.py`.
+- Under that lay a state bug that could have ended the live acceptance for good: the next launch raised before its
+  first step. `mirror_loop_error` recorded `ValueError: Configuration/state exceeds 2 MiB` straight out of
+  `maalimbus/shop_transaction.py:172` -> `storage.py:43` (`pi-20261014-082856`, 0 steps), because
+  `config/user-shop-3122877b….json` had grown to 2,464,332 bytes. The cause was the decision context: it recorded
+  `owned_bought` as the *whole* purchase records, and every record carries its own decision context, so each purchase
+  embedded the previous ones. `src/maalimbus/runner.py` now records their names, `shop_transaction._context` enforces
+  that shape at the store boundary (names are also what `shop_value_training._text_list` accepts), and
+  `tools/prune_shop_state.py` rewrites the files an earlier version left behind -- it reported
+  2,464,332 -> 46,950 bytes for the live scope and 375,287 -> 36,674 for the other, touching only that one field, and
+  is pinned by `tests/test_prune_shop_state.py` (dry-run, idempotence, an unknown shape it refuses). The pruned store
+  reads under the ordinary 2 MiB guard again, with all seven bought cards and the pending `Tangled Bundle` intent
+  intact.

@@ -419,6 +419,75 @@ def test_the_ligature_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
     assert tx.bought_names == []
 
 
+def test_a_space_the_reader_dropped_still_names_the_same_slot(tmp_path):
+    """A word gap the reader lost folds away, so the slot is not a new card.
+
+    Live ``pi-20261014-082326`` reserved a card from a shelf whose own frame-0002 read
+    the 144-coin slot as "Crownof Roses"; the returning shelf (frame-0008) printed the
+    catalogue spacing "Crown of Roses", the two keys differed by one blank, and the run
+    stopped after 3 inputs as a successor showing an offer "the shelf never held".
+    """
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Crownof Roses')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Oracle', 'Crown of Roses'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ['Oracle']
+    assert tx.data['pending'] is None
+
+
+def test_the_space_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
+    """A lost blank folds away; a lost letter still refuses."""
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Crown of Roses')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Oracle', 'Crown of Rose'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    original = tx.path.read_bytes()
+    with pytest.raises(ValueError, match='never held'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', after)
+    assert tx.path.read_bytes() == original
+    assert tx.bought_names == []
+
+
+def test_a_decision_context_keeps_bought_names_and_never_their_records(tmp_path):
+    """A record embeds its own context, so the store keeps names.
+
+    Live ``pi-20261014-082856`` could not start: the state had reached 2,464,332 bytes
+    because each purchase's context embedded the whole earlier records.
+    """
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Thorny Path')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    record = dict(name='Emerald Elytra', price=160,
+                  decision_context=dict(owned_bought=[dict(name='Stone Tomb', price=5)]))
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before,
+                        decision_context=dict(keywords=['Bleed'],
+                                              owned_bought=[dict(name='Emerald Elytra', price=160),
+                                                            'Stone Tomb'],
+                                              offer=record))
+    context = tx.data['pending']['decision_context']
+    assert context['owned_bought'] == ['Emerald Elytra', 'Stone Tomb']
+    assert context['keywords'] == ['Bleed']
+
+
+def test_a_decision_context_of_an_unknown_shape_is_refused(tmp_path):
+    before = frame(tmp_path, 'before', shelf(('Oracle', 'Thorny Path')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    with pytest.raises(ValueError, match='Invalid shop decision context'):
+        tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Oracle', price=20), 100, before,
+                            decision_context=dict(owned_bought=[7]))
+    assert tx.data['pending'] is None
+
+
 def test_the_confusable_fold_never_adopts_a_card_with_a_different_glyph(tmp_path):
     """The fold covers the typeface's own pairs, not titles in general."""
     tx, before = setup(tmp_path)

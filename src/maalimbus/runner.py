@@ -2507,7 +2507,12 @@ class MirrorRunner:
                                   'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
                 target=shop_tx.reserve_purchase(self.run_id,visit,plan['detail'],shop['currency'],frame_file(directory),
                     reserve_coins=settings.shop_reserve_coins,decision_context=dict(team=self.store.team_slot,
-                    keywords=keywords,floor=state['floor_now'],owned_bought=list(state['shop_bought']),
+                    keywords=keywords,floor=state['floor_now'],
+                    # Names, not the records: a record carries its own decision context, so
+                    # embedding them made each purchase embed the last and the store passed
+                    # the 2 MiB state guard after seven of them (live pi-20261014-082856
+                    # could then no longer start: the loop raised on its own shop store).
+                    owned_bought=[row.get('name') for row in state['shop_bought']],
                     wanted=list(shop['wanted']),
                     policy=settings.shop_policy,policy_trace=shop.get('policy_trace'),
                     reserve_coins=settings.shop_reserve_coins,refresh_limit=settings.shop_refreshes,
