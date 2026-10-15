@@ -167,6 +167,40 @@ CustomAction已经占用框架worker，不能在里面改回 `context.tasker.pos
 
 **等货架重画完再判（2026-10-14）**：重装后的应用再次由自己的按钮启动（`pi-20261014-193945`，本地19:39），只走了1次输入就停下——货架上没有计划想要的藏品，于是它付了15币刷新（`[1478,168,86,28]`，金币1127），而后继帧 `frame-0004` 只读到六个槽位中的两个、计数仍是刷新前的数，既证不出差额也证不出完整的变更货架。交易规则拒收这样一帧是对的（`ShopTransaction.reconcile_refresh`，`src/maalimbus/shop_transaction.py`），所以 runner 改为等待而不是停车：同一次造访里最多三帧未证成的后继帧会记为 `shop_refresh_settling` 并重新观察，意图在等待期间始终未被认领，第四帧仍然停车（`src/maalimbus/runner.py`，由 `tests/test_runner.py::test_a_refresh_successor_read_mid_change_waits_before_it_stops` 钉住）。实机证明要等下一次在同一商店启动。
 
+### 9.3.2 新版镜牢界面的适配计划（2026-10-15）
+
+<a id="feature-9-3-2"></a>
+
+游戏在 2026-10 整体换掉了镜牢界面：入口改名 `Mirror of Sisyphus`（`DUNGEON 08`），右侧改为 `Exploring / Weekly Bonuses / Parallel Superposition Mode / INFINITY MIRROR`，星光页与买星确认框全部重绘。识别层不比对美术，只读 OCR 文本与归一化框（`src/maalimbus/vision.py:19` 的 `find`、`src/maalimbus/vision.py:63` 的 `classify`），所以这次改版只在**文本形态**和**绘制细节**上打穿它；适配按“先只读、后真输入、只修实机证明坏了的那一处”推进。
+
+只读证法：`python tools/verify_packaged_mirror_loop.py --app dist/MaaLimbus --address 127.0.0.1:16416 --adb "<MuMu>/adb.exe" --observe-only --stop-page MIRROR_ENTRY` 以 `input_enabled=False` 构造控制器（`tools/verify_packaged_mirror_loop.py:117`），不点任何东西；要放真输入则加 `--authorize <nonce>`，门控在 `src/maalimbus/runner.py` 的 `AUTHORIZATION` 与 `authorized(nonce)`。
+
+| 页面 | 改版打穿的方式 | 实机证据 | 状态 |
+| --- | --- | --- | --- |
+| MIRROR_ENTRY / ENTRY_CONFIRM / DUNGEON_TEAM / LEVEL_WARNING | 未受影响 | `evidence/runtime/packaged-mirror-20261015-071912/frame-0001..0009` | 已实机连续走通 |
+| STAR_GRACES | 页面整体重画：OCR 把 `Select All Graces` 读成 `Select Al Graoes`，卡框几何与角标偏移也变了 | 同上 `frame-0010`，判定脚本 `build/probe_star_page.py`、`build/probe_grace_grid.py` | 已修 `45adac7` |
+| STAR_CONFIRM | 勾选框重绘：旧图 1.00 → 勾选 0.83 / 空白 0.15，0.92 的严格门判成未知 | 同上 `frame-0011`，两态对照 `evidence/runtime/star-confirm-20261015/{checked,unchecked}.png` | 已修 `c6df293` |
+| INITIAL_GIFTS / GIFT_GET / GIFT_SEARCH / GIFT_SEARCH_FORGO / THEME_PACKS / MAP / NODE_PANEL / CUTSCENE / EVENT_CHOICE / EVENT_RESULT_READY / EVENT_CHECK / EVENT_CHECK_RESULT | 未受影响 | 同上 `frame-0012..0036` 的 `map_observed.scene` 序列 | 已实机连续走通 |
+| 过渡帧 `UNKNOWN` | 页面切换中的中间帧无身份 | 同上，出现 2 帧后自行重读继续 | 允许等待，不输入 |
+
+`45adac7` 的修法是把“逐字对齐”放宽为**有界容错**（`src/maalimbus/vision.py` 的 `close_to` / `find_read`，编辑距离上限 2，且仍要求一段文本只命中一个候选），同时让星光页先按已证几何判、失败再按实测边界（±24px、密度下限 0.04）定位卡框，读不到十张带框卡片就返回失败而不是猜。`c6df293` 的修法是把勾选状态改成**两道独立证据**：保留模板与框内亮笔画（勾选 0.17、空白 0.00），两者不一致时仍返回未知并拒绝（`src/maalimbus/grace_vision.py:206` 的 `conversion_state`）。
+
+仍待实机证明的部分（本计划未完成项）：完整五层一周目与到账页；按保存局数停止的路径（本次钉的是 `mirror_run_count=3`、`mirror_run_bounds=2000`、单队第 2 队）尚无实机证据；GUI Start 自己按下后走满五层。另外，本机没有 Rust 工具链，`desktop/mxu` 的叠加层改动让 `tools/make_local_app.py` 以 `Modified MXU artifact is stale` 拒绝重装（`src/maalimbus/mxu_distribution.py:10`），因此这一阶段的验证走 `build/refreeze_agent.py` 重冻 agent（保留 agent 备份与自检），MXU 面板本身仍属未验收。
+
+本节的回写纪律：改版适配只按实机帧重标锚点，不按猜测定坐标；每一处修改都必须再用真实脚本启动一次验证，才可写入“已实机走通”。
+
+```mermaid
+flowchart TD
+    A["只读观察：--observe-only（input_enabled=False）"] --> B{"当前页面能读出身份吗"}
+    B -->|不能| C["按实机帧定位根因：文本形态还是绘制细节"]
+    B -->|能| D["--authorize 放真输入，连续观察后继帧"]
+    C --> E["有界容错读字 / 双通道证据，仍以拒绝为默认"]
+    E --> D
+    D --> F{"连续走通且没有拒绝吗"}
+    F -->|否| C
+    F -->|是| G["写入已实机走通，并再启动一次脚本复验"]
+```
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

@@ -165,6 +165,7 @@ Overview diagrams are navigation; local diagrams explain specific guards, intera
 | 启动意图与前台确认 / Launch intent and foreground confirmation | [4.2.1](zh_cn/4-business-flows.md#feature-4-2-1) | [4.2.1](en_us/4-business-flows.md#feature-4-2-1) |
 | 入场与列表上下查找 / Entry and bidirectional team-list search | [4.3.2](zh_cn/4-business-flows.md#feature-4-3-2) | [4.3.2](en_us/4-business-flows.md#feature-4-3-2) |
 | GUI Start原生适配链 / GUI Start native subtask adapter | [9.3.1](zh_cn/9-execution-plan.md#feature-9-3-1) | [9.3.1](en_us/9-execution-plan.md#feature-9-3-1) |
+| 新版镜牢界面的适配计划 / Plan for adapting to the redesigned Mirror Dungeon | [9.3.2](zh_cn/9-execution-plan.md#feature-9-3-2) | [9.3.2](en_us/9-execution-plan.md#feature-9-3-2) |
 | 每场部署：复用、修正与提交 / Encounter deployment: reuse, correction and submission | [4.3.3](zh_cn/4-business-flows.md#feature-4-3-3) | [4.3.3](en_us/4-business-flows.md#feature-4-3-3) |
 | 楼层礼物选择、到账与恢复 / Floor gifts: selection, receipts and recovery | [4.3.4](zh_cn/4-business-flows.md#feature-4-3-4) | [4.3.4](en_us/4-business-flows.md#feature-4-3-4) |
 | 初始礼物、搜索与楼层主题 / Initial gifts, search and floor themes | [4.3.5](zh_cn/4-business-flows.md#feature-4-3-5) | [4.3.5](en_us/4-business-flows.md#feature-4-3-5) |
