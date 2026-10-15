@@ -24,9 +24,23 @@ def main():
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument('--rotation-status', action='store_true')
     actions.add_argument('--skip-team', metavar='REQUEST_ID')
+    actions.add_argument('--resource-diagnostics', action='store_true',
+        help='Print one read-only CPU/RAM/GPU snapshot as JSON and exit')
     parser.add_argument('--expected-rotation', type=int)
+    parser.add_argument('--interval-ms', type=int,
+        help='Sampling window for --resource-diagnostics; 100 = one fully busy core')
     args = parser.parse_args()
     executable = plain_path(sys.executable)
+    if args.resource_diagnostics:
+        # Read-only and independent: this path never opens the controller lease,
+        # never writes state and never launches the client or an update.
+        if args.check_only or args.parent:
+            parser.error('Resource diagnostics cannot run an update or launch')
+        from maalimbus.resource_diagnostics import (DEFAULT_INTERVAL_MS, NvidiaSmiProvider,
+                                                    sample)
+        interval = DEFAULT_INTERVAL_MS if args.interval_ms is None else args.interval_ms
+        print(json.dumps(sample(interval, gpu_provider=NvidiaSmiProvider())))
+        return
     if args.rotation_status or args.skip_team is not None:
         if args.check_only or args.parent:
             parser.error('Rotation management cannot run an update or launch')

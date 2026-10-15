@@ -136,7 +136,7 @@ flowchart TD
   I -->|unproven| G
 ```
 
-源码落点：`src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1` (`MainTaskAction.run`).
+源码落点：`src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1571` (`MainTaskAction.run`).
 
 ## 4.3 `mirror`：自动镜牢
 
@@ -304,7 +304,7 @@ stateDiagram-v2
   Completed --> [*]
 ```
 
-源码落点：`src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:3046` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
+源码落点：`src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:3070` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
 
 
 <a id="feature-4-3-5"></a>

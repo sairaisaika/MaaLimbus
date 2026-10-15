@@ -136,7 +136,7 @@ flowchart TD
   I -->|unproven| G
 ```
 
-Source boundaries: `src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1` (`MainTaskAction.run`).
+Source boundaries: `src/maalimbus/game_launch.py:8` (`open_game`); `agent/recognition.py:1571` (`MainTaskAction.run`).
 
 ## 4.3 `mirror`: Automatic Mirror Dungeon
 
@@ -304,7 +304,7 @@ stateDiagram-v2
   Completed --> [*]
 ```
 
-Source boundaries: `src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:3046` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
+Source boundaries: `src/maalimbus/floor_gift_transaction.py:10` (`RECEIPT_SUCCESSOR_PAGES`, `observe_receipt`); `src/maalimbus/runner.py:3070` (`_receipt_successor_offers`, `_resolve_floor_receipt`).
 
 
 <a id="feature-4-3-5"></a>

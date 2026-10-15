@@ -30,6 +30,15 @@ def patch(source):
         needle="<><SoftwareUpdatePanel />"
         if needle not in s:raise ValueError('Pinned MXU rotation panel hook changed')
         s=s.replace(needle,"<><RotationPanel /><SoftwareUpdatePanel />",1)
+    if './ResourceDiagnosticsPanel' not in s:
+        s=s.replace("import { RotationPanel } from './RotationPanel';", "import { RotationPanel } from './RotationPanel';\nimport { ResourceDiagnosticsPanel } from './ResourceDiagnosticsPanel';",1)
+        s=s.replace("  Globe,\n} from 'lucide-react';","  Globe,\n  Activity,\n} from 'lucide-react';",1)
+        devices="      {id:'devices',icon:Settings2,labelKey:language.startsWith('zh')?'设备连接':language.startsWith('ja')?'デバイス接続':'Device connections'},\n"
+        if devices not in s:raise ValueError('Pinned MXU diagnostics nav hook changed')
+        s=s.replace(devices,devices+"      {id:'diagnostics',icon:Activity,labelKey:language.startsWith('zh')?'本机资源诊断':language.startsWith('ja')?'ローカル診断':'Local diagnostics'},\n",1)
+        needle="<><RotationPanel /><SoftwareUpdatePanel />"
+        if needle not in s:raise ValueError('Pinned MXU diagnostics panel hook changed')
+        s=s.replace(needle,"<><RotationPanel /><SoftwareUpdatePanel /><ResourceDiagnosticsPanel />",1)
     p.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/TeamBuildEditor.tsx',source/'src/components/TeamBuildEditor.tsx')
     shutil.copyfile(ROOT/'desktop/mxu/teamOrder.ts',source/'src/utils/teamOrder.ts')
@@ -56,6 +65,8 @@ function StandardOptionEditor({''',1)
         option.write_text(o,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/SoftwareUpdatePanel.tsx',source/'src/components/SoftwareUpdatePanel.tsx')
     shutil.copyfile(ROOT/'desktop/mxu/RotationPanel.tsx',source/'src/components/RotationPanel.tsx')
+    shutil.copyfile(ROOT/'desktop/mxu/ResourceDiagnosticsPanel.tsx',source/'src/components/ResourceDiagnosticsPanel.tsx')
+    shutil.copyfile(ROOT/'desktop/mxu/resourceDiagnostics.ts',source/'src/utils/resourceDiagnostics.ts')
     rust=source/'src-tauri/src/lib.rs';s=rust.read_text(encoding='utf8')
     if 'mod limbus_update;' not in s:
         s=s.replace('pub mod commands;', 'pub mod commands;\nmod limbus_update;',1)
@@ -65,6 +76,13 @@ function StandardOptionEditor({''',1)
         s=s.replace('tauri::generate_handler![','tauri::generate_handler![\n            limbus_update::limbus_rotation_manage,',1)
         rust.write_text(s,encoding='utf8')
     shutil.copyfile(ROOT/'desktop/mxu/limbus_update.rs',source/'src-tauri/src/limbus_update.rs')
+    if 'mod limbus_diagnostics;' not in s:
+        s=s.replace('pub mod commands;', 'pub mod commands;\nmod limbus_diagnostics;',1)
+        rust.write_text(s,encoding='utf8')
+    if 'limbus_diagnostics::limbus_resource_diagnostics,' not in s:
+        s=s.replace('tauri::generate_handler![','tauri::generate_handler![\n            limbus_diagnostics::limbus_resource_diagnostics,',1)
+        rust.write_text(s,encoding='utf8')
+    shutil.copyfile(ROOT/'desktop/mxu/limbus_diagnostics.rs',source/'src-tauri/src/limbus_diagnostics.rs')
     # MaaLimbus settings and ADB do not need administrator privileges. The
     # existing explicit restart_as_admin command remains available for Win32.
     main=source/'src-tauri/src/main.rs';s=main.read_text(encoding='utf8')

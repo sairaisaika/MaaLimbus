@@ -144,12 +144,12 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
 - **拒答**：`src/maalimbus/window.py:106 def _refuse(page, reason)` 返回 `_plan(page, RECORD, reason=...)`。
 - **二次判决**：`plan_step` 本体只做一件事——把落在 `FORBIDDEN_CONTROLS`（`src/maalimbus/window.py:50-63`）里的 target 改判为 `control_is_forbidden`（`src/maalimbus/window.py:128-135`）。两个例外白名单：`STAR_CONFIRM` 的 `star_confirm.cancel_button` 与 `GIFT_PICK` 的 `gift_pick.refuse_button`（`src/maalimbus/window.py:129-133`）。
 - **实现分工**：`src/maalimbus/window.py:139 def _plan_step(...)` 与入口同签名，承载「page → 输入」的全部分派；`plan_step` 只是禁区判决 + 委派（`src/maalimbus/window.py:120-127`）。
-- **调用方**：`src/maalimbus/runner.py:2302-2312`，在 `MirrorRunner.step`（`src/maalimbus/runner.py:1456`）内：`plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`。
+- **调用方**：`src/maalimbus/runner.py:2415-2425`，在 `MirrorRunner.step`（`src/maalimbus/runner.py:1490`）内：`plan = plan_step(page, controls=plan_controls, arrows=arrows, difficulty=difficulty, start_box=record.get('start_box'), auto_assign=record.get('auto_assign_buttons'), battle_assignment=settings.battle_assignment, candidates=candidates, candidate_index=choice_index, team=team, reward=reward, gift=gift, cards=cards, graces=graces, initial=initial, check=check, defeat=defeat, search={'mode': settings.gift_search}, shop=shop, bonus={'spend': state['run_settled_itself']})`。
 - 导入点在 `src/maalimbus/runner.py:67`（`from maalimbus.window import ...` 那一行）。`src/maalimbus/runner.py:1-31` 的顶部 docstring 另点名 `tools/window_step.py` 是第二个前端；该文件本轮已打开并核实可用（419 行，`tools/window_step.py:62-209` 是它的 `build_parser()`，`C:\Python313\python.exe tools\window_step.py --help` 能正常打印用法），细节见 3.5。
 
 ### 3.2.2 一个真实的数据形状示例
 
-下面这份按 `_plan` 的真实字段定义（`src/maalimbus/window.py:1013-1016`）与 `UNKNOWN_DIALOG` 上 `confirm_proven_owned_gift_refusal` 这个真实分支（`src/maalimbus/runner.py:2321`）组装；字段名逐字来自代码：
+下面这份按 `_plan` 的真实字段定义（`src/maalimbus/window.py:93-96`）与 `UNKNOWN_DIALOG` 上 `confirm_proven_owned_gift_refusal` 这个真实分支（`src/maalimbus/runner.py:2434`）组装；字段名逐字来自代码：
 
 ```python
 plan = {
@@ -171,16 +171,16 @@ plan = {
 | `action` | `'click'` / `SWIPE` / `NODE` / `RECORD` | `window.py:93`；常量从 `src/maalimbus/runner.py:67` import |
 | `target` | 点击/drag 的框（`None` = 不发输入） | `window.py:94` |
 | `node` | 走 pipeline 节点时不设 target | `window.py:95` |
-| `expect` | 成功后继页集合，`ANY` 表示「只要变」 | `window.py:95`、`window.py:978-980` |
+| `expect` | 成功后继页集合，`ANY` 表示「只要变」 | `window.py:95`、`window.py:1046-1048` |
 | `reason` | 决策理由字符串，同时是日志键 | `window.py:95` |
-| `advance` | 本页预期不变，帧变化即证据 | `window.py:96`、`window.py:190` |
+| `advance` | 本页预期不变，帧变化即证据 | `window.py:96`、`window.py:1064` |
 | `to` / `duration_ms` / `detail` | 仅 drag 与带附件的分支 | `window.py:97-102` |
 
 判决记录由 `src/maalimbus/window.py:1052 def step_result(plan, *, sent, before, after, page, frame_changed=False)` 组装，返回 `{action, reason, passed, page_before, page_after, expect, clicks_sent}`（`window.py:1050-1056`）。
 
 ### 3.2.3 loop guard（防重复动作）
 
-实现在 `MirrorRunner.step` 的收尾处：`src/maalimbus/runner.py:2820-2843`。
+实现在 `MirrorRunner.step` 的收尾处：`src/maalimbus/runner.py:2985-2995`。
 
 ```python
 if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT_REASONS:
@@ -194,17 +194,17 @@ if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT
         return self._result(page, plan.get('target'), True, entry['stopped'], done=True)
 ```
 
-- 计数以「(页, 动作, 节点, 目标框)」为键；页面一换就清零（`src/maalimbus/runner.py:2814`）。
+- 计数以「(页, 动作, 节点, 目标框)」为键；页面一换就清零（`src/maalimbus/runner.py:2968`）。
 - 默认阈值 `loop_guard = 3`（`src/maalimbus/runner.py:160`），CLI `--loop-guard`（`src/maalimbus/runner.py:3271`）。判据是 `>= max(2, loop_guard)`，所以最小有效值是 2。
 - 豁免名单：页面级 `LOOP_GUARD_EXEMPT = ('TUTORIAL','BATTLE_HUD','BATTLE_PLANNING')`（`src/maalimbus/runner.py:77`）；理由级 `LOOP_GUARD_EXEMPT_REASONS`（`src/maalimbus/runner.py:88-117`，含教程翻卡、战斗交替、剧情连点等，每条都留了 live 证据）。
-- 跨页的「领奖家族」另有一个计数器：`CLAIM_FAMILY = ('RUN_CLAIM','RUN_REWARD_DIALOG','RUN_REWARD_CONFIRM')`（`src/maalimbus/runner.py:83`），`claim_steps > max(1, settings.claim_tries)` 时以 `'claim_family_made_no_progress'` 停止（`src/maalimbus/runner.py:2817-2824`）。
+- 跨页的「领奖家族」另有一个计数器：`CLAIM_FAMILY = ('RUN_CLAIM','RUN_REWARD_DIALOG','RUN_REWARD_CONFIRM')`（`src/maalimbus/runner.py:83`），`claim_steps > max(1, settings.claim_tries)` 时以 `'claim_family_made_no_progress'` 停止（`src/maalimbus/runner.py:2974-2978`）。
 
 ### 3.2.4 budget（步数 / 时间 / 花费）
 
 三类预算，互不相干：
 
-1. **步数预算**：`src/maalimbus/runner.py:2907 def run(self, *, steps=300, interval=6.0, round_limit=5, deadline=None)`；主循环条件 `while self.state['step'] < goal and walked < max(0, int(round_limit))`（`src/maalimbus/runner.py:2922`）。CLI 默认 `steps = 1`、`rounds = 3`（`src/maalimbus/runner.py:154`）。
-2. **时间预算**：`deadline`（`src/maalimbus/runner.py:2907`）。Agent 侧由动作参数算出：`budget = loop_budget(params)`、`deadline = time.monotonic() + budget`（`agent/recognition.py:1503-1504`）；`loop_budget` 读 `params['budget']` → 环境变量 → 默认 `LOOP_BUDGET_SECONDS`（`agent/recognition.py:1318-1323`）。超时是 `TimeoutError`，收敛为 `result['reason'] = 'loop_deadline_exceeded'`（`agent/recognition.py:1540`）。
+1. **步数预算**：`src/maalimbus/runner.py:2999 def run(self, *, steps=300, interval=6.0, round_limit=5, deadline=None)`；主循环条件 `while self.state['step'] < goal and walked < max(0, int(round_limit))`（`src/maalimbus/runner.py:3014`）。CLI 默认 `steps = 1`、`rounds = 3`（`src/maalimbus/runner.py:154`）。
+2. **时间预算**：`deadline`（`src/maalimbus/runner.py:2999`）。Agent 侧由动作参数算出：`budget = loop_budget(params)`、`deadline = time.monotonic() + budget`（`agent/recognition.py:1503-1504`）；`loop_budget` 读 `params['budget']` → 环境变量 → 默认 `LOOP_BUDGET_SECONDS`（`agent/recognition.py:1318-1323`）。超时是 `TimeoutError`，收敛为 `result['reason'] = 'loop_deadline_exceeded'`（`agent/recognition.py:1540`）。
 3. **花费预算**（Enkephalin / Modules）：`src/maalimbus/budget.py`。`src/maalimbus/budget.py:66 def plan_spend(amount, *, budget, spent=None, purpose='module_conversion') -> dict` 给「能不能花」，`src/maalimbus/budget.py:101 def apply_spend(...)` 再补上要落盘的账。拒绝原因按顺序是 `budget_not_configured` / `budget_amount_must_be_positive` / `purpose_not_allowed` / `budget_zero` / `budget_exhausted` / `request_exceeds_remaining` / `amount_not_multiple_of_step`（`src/maalimbus/budget.py:11-15`）。默认 `status='pending'` ⇒ 一律回答「否」（`src/maalimbus/budget.py:70-93` 与 `budget.py:11` 的说明）。静态表在 `assets/resource/base/budget.json`。
 
 ### 3.2.5 动作下发
@@ -215,7 +215,7 @@ if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT
 - `SWIPE` → 起点在目标框内抖动、终点在 `plan['to']` 附近 ±8px 抖动，`self.device.swipe(point[0], point[1], drop[0], drop[1], duration)`（`runner.py:2504-2517`）。
 - 其它 → `box = inset_box(tuple(plan['target']), .3)`，框内抖动一点，`self.device.click(*point)`（`runner.py:2518-2524`）。
 
-输入发出前先落意图：`self.note('window_intent', page=..., target=..., reason=..., point=..., delay_ms=...)`（`runner.py:2445` / `:2460` / `:2468`），`note` 转手 `Journal.record`（`src/maalimbus/runner.py:1378`）。
+输入发出前先落意图：`self.note('window_intent', page=..., target=..., reason=..., point=..., delay_ms=...)`（`runner.py:2564` / `:2579` / `:2587`），`note` 转手 `Journal.record`（`src/maalimbus/runner.py:1413`）。
 
 ---
 
@@ -268,7 +268,7 @@ sequenceDiagram
     Action->>Tasker: return bool(result.get('passed'))
 ```
 
-对应代码：`agent/recognition.py:1494-1553`（动作主体）、`src/maalimbus/runner.py:1456 def step`、`src/maalimbus/runner.py:598 class MaaObserver`、`agent/recognition.py:1410 class AgentTasker`、`src/maalimbus/runner.py:622 def observe`、`agent/recognition.py:1119 class MapObservation`、`agent/recognition.py:143 LimbusRecognition.observe`。
+对应代码：`agent/recognition.py:1499-1561`（动作主体）、`src/maalimbus/runner.py:1490 def step`、`src/maalimbus/runner.py:604 class MaaObserver`、`agent/recognition.py:1410 class AgentTasker`、`src/maalimbus/runner.py:628 def observe`、`agent/recognition.py:1119 class MapObservation`、`agent/recognition.py:143 LimbusRecognition.observe`。
 
 **为什么观察要绕 `AgentTasker` 而不是 `context.tasker.post_task`**：`context.tasker` 的任务执行器是单 worker，在自定义动作里 post 一个节点会排在「正在等它的那个任务」后面，等待最终以 stop 结束、杀掉本次运行；`Context.run_task` 是框架自己提供的「从回调里同步跑一个节点」的口子。这段理由逐字写在 `agent/recognition.py:1424-1431`，而 `post_task` 里额外做了一件事：读一次性节点 `WindowMapObserve` / `WindowBattleObserve` 前必须 `context.clear_hit_count(entry)`，否则 `max_hit=1` 会让下一次观察被永久跳过（`agent/recognition.py:1440-1446`）。
 
@@ -304,18 +304,18 @@ flowchart TD
 
 | 类别 | 触发 | `stopped` / `reason` 值 | 锚点 |
 |---|---|---|---|
-| 成功/正常收尾 | 预算走完或本页已无事可做，循环自然返回 | 由 `run()` 返回 `summary()` | `src/maalimbus/runner.py:2907-2929`、`:2875` |
-| 预算耗尽（步数） | `state['step'] >= goal` 或 `walked >= round_limit` | 无 stop 字符串，`done=False` | `src/maalimbus/runner.py:2922` |
+| 成功/正常收尾 | 预算走完或本页已无事可做，循环自然返回 | 由 `run()` 返回 `summary()` | `src/maalimbus/runner.py:3014-3021`、`:3187` |
+| 预算耗尽（步数） | `state['step'] >= goal` 或 `walked >= round_limit` | 无 stop 字符串，`done=False` | `src/maalimbus/runner.py:3014` |
 | 预算耗尽（时间） | `deadline` 到期抛 `TimeoutError` | `'loop_deadline_exceeded'` | `agent/recognition.py:1540` |
-| 拒绝（planner 拒答） | `plan['action']` 不是可执行动作 | `'observe_only'` 或 `plan['reason']` | `src/maalimbus/runner.py:2331-2332` |
-| 拒绝（页面没动 / 重读用尽） | `step_result` 判 `passed=False` 且不再重读 | 该步自己的 `reason`（如 `unexpected_successor`） | `src/maalimbus/runner.py:2562`、`:2345` |
-| 拒绝（协议守门） | loop guard / claim family | `'the_same_plan_repeated'` / `'claim_family_made_no_progress'` | `src/maalimbus/runner.py:2837` / `:2824` |
-| 拒绝（调用方点名的页） | `stop_page` 到达 | `'stop_page_reached'` | `src/maalimbus/runner.py:1492`、`:2744` |
+| 拒绝（planner 拒答） | `plan['action']` 不是可执行动作 | `'observe_only'` 或 `plan['reason']` | `src/maalimbus/runner.py:2445-2446` |
+| 拒绝（页面没动 / 重读用尽） | `step_result` 判 `passed=False` 且不再重读 | 该步自己的 `reason`（如 `unexpected_successor`） | `src/maalimbus/runner.py:2876`、`:2914` |
+| 拒绝（协议守门） | loop guard / claim family | `'the_same_plan_repeated'` / `'claim_family_made_no_progress'` | `src/maalimbus/runner.py:2991` / `:2978` |
+| 拒绝（调用方点名的页） | `stop_page` 到达 | `'stop_page_reached'` | `src/maalimbus/runner.py:1538`、`:2898` |
 | 错误 | 任何未捕获异常 | `'mirror_loop_failed'` + `journal mirror_loop_error`（带 traceback） | `agent/recognition.py:1538-1546` |
 
-`_result` 的 `done` 语义：`'done': bool(done or stopped is not None)`（`src/maalimbus/runner.py:3091`）——只要这一步产生了停止字符串，就结束。
+`_result` 的 `done` 语义：`'done': bool(done or stopped is not None)`（`src/maalimbus/runner.py:3183`）——只要这一步产生了停止字符串，就结束。
 
-**未验收项**：`MirrorLoopAction.run` 的返回值是 `bool(result.get('passed'))`（`agent/recognition.py:1553`），而 `passed` 的完整赋值路径（含「整局成功」的正向判据）本次未逐行验收；已知相关的是 `record_ledger_event` 在 `final_victory` / `reward_received` 事件上置 `state['run_settled_itself'] = True`（`src/maalimbus/runner.py:2690`）。
+**未验收项**：`MirrorLoopAction.run` 的返回值是 `bool(result.get('passed'))`（`agent/recognition.py:1553`），而 `passed` 的完整赋值路径（含「整局成功」的正向判据）本次未逐行验收；已知相关的是 `record_ledger_event` 在 `final_victory` / `reward_received` 事件上置 `state['run_settled_itself'] = True`（`src/maalimbus/runner.py:2821`）。
 
 ---
 
@@ -405,9 +405,9 @@ sequenceDiagram
 - 一次整局一个目录，Agent 侧默认 `evidence/runtime/pi-<yyyymmdd-hhmmss>`（`agent/recognition.py:1337`）；本项目证据目录的统一形态是 `evidence/runtime/<任务名>-<yyyymmdd-hhmmss>/`。
 - 整局摘要写 `agent-result.json`：`agent/recognition.py:1361 def write_loop_result(directory, result)`。
 - 人类可读日志写 `run.log`：`agent/recognition.py:1377 def write_run_log(directory, result)`。
-- 每步的 `observation` / `plan` / `frame` / `passed` / `clicks_sent` 攒在 `artifacts['steps']` 里，随 `summary()` 一起返回（`src/maalimbus/runner.py:2867-2898`）。
+- 每步的 `observation` / `plan` / `frame` / `passed` / `clicks_sent` 攒在 `artifacts['steps']` 里，随 `summary()` 一起返回（`src/maalimbus/runner.py:2894`）。
 - 崩溃路径也会落盘：`mirror_loop_error` 事件（带 traceback）之后仍然 `write_loop_result` + `write_run_log`（`agent/recognition.py:1538-1546`）。
-- 模块级 `_load_registry()` 读的也是同一份锚点表（`src/maalimbus/runner.py:3185`）。
+- 模块级 `_load_registry()` 读的也是同一份锚点表（`src/maalimbus/runner.py:3292`）。
 
 ## 3.5 如何本地驱动一次运行
 
@@ -449,15 +449,15 @@ sequenceDiagram
 | 现象 | 到哪里看 | 依据 |
 | --- | --- | --- |
 | 每步一行的人类可读日志 | `run.log` | `agent/recognition.py:1377 def write_run_log` |
-| 机器可读的逐事件流 | `events.jsonl`（`window_intent` / `map_observed` / `battle_observed`） | `src/maalimbus/runner.py:1374 def note` |
+| 机器可读的逐事件流 | `events.jsonl`（`window_intent` / `map_observed` / `battle_observed`） | `src/maalimbus/runner.py:1409 def note` |
 | 结果摘要 | `agent-result.json` | `agent/recognition.py:1361 def write_loop_result` |
 | 停止原因的一句话解释与建议 | `src/maalimbus/event_log.py:20-73` 的 `GLOSSARY` 表（取词函数 `explain()` 在 `:79-89`） | 该表把每个 reason 映射成「什么意思、下一步看什么」 |
-| 同一页同一动作反复走、停不下来 | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2967` |
-| 领奖家族原地打转 | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2954` |
-| 输入发出去了但页面没动 | reason `unexpected_successor` | `src/maalimbus/runner.py:2722`、`src/maalimbus/runner.py:2722` |
+| 同一页同一动作反复走、停不下来 | reason `the_same_plan_repeated` | `src/maalimbus/runner.py:2991` |
+| 领奖家族原地打转 | reason `claim_family_made_no_progress` | `src/maalimbus/runner.py:2978` |
+| 输入发出去了但页面没动 | reason `unexpected_successor` | `src/maalimbus/window.py:1065`、`src/maalimbus/runner.py:2914` |
 | 时间预算用尽 | reason `loop_deadline_exceeded` | `agent/recognition.py:1528-1533` |
 | 循环抛异常而不是正常停止 | 事件 `mirror_loop_error`（带 traceback），reason `mirror_loop_failed` | `agent/recognition.py:1534-1546` |
-| 走到调用方点名的页就停 | reason `stop_page_reached` | `src/maalimbus/runner.py:2744` |
+| 走到调用方点名的页就停 | reason `stop_page_reached` | `src/maalimbus/runner.py:1538` |
 | 页面没有可靠控件，只记录不发输入 | reason `page_is_observe_only` | `src/maalimbus/event_log.py:47-50` |
 | 打包 / 控制台日志 | `build/*.log`（例如 `build/mirror-console-*.log`） | 仓库 `build/` 下的运行日志 |
 | 测试报 `PermissionError [Errno 13]`，路径是 `%LOCALAPPDATA%\MaaLimbus\controller.lock` | 先确认本机是否真有一个 app 或 agent 实例在跑；这是锁被占用，不是代码缺陷 | 锁路径由 `src/maalimbus/controller_lease.py:12-14` 决定；`docs/wiki/zh_cn/7-quality.md` 的「套件与真实实例的资源竞争」一行记着这个现象 |
@@ -494,7 +494,7 @@ flowchart TD
   K -.-> N["Human review; not ground truth / 人工复核，尚非真值"]
 ```
 
-源码落点：`src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:3000` (`_explore_unknown`).
+源码落点：`src/maalimbus/unknown_exploration.py:1` (`candidates`, `Exploration.choose/reserve/finish`); `src/maalimbus/runner.py:3024` (`_explore_unknown`).
 
 
 <a id="feature-3-8"></a>

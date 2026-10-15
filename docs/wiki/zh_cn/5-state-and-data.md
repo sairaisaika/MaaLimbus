@@ -74,7 +74,7 @@ stateDiagram-v2
 | `BATTLE_RESULT` | 任何输入 | 结果演出期输入会被吞掉（`src/maalimbus/window.py:328`） |
 | `UNKNOWN` | 任何输入 | 未命名页面只有 `UNKNOWN_DIALOG` 的关闭控件一种安全输入 |
 
-同一类「只有一个安全方向」的写法还有两处对照：`WINDOW_RESET` 只允许点 Cancel（`src/maalimbus/window.py:385`，周记录重置通知上的 Confirm 永远不点），`EXPIRED_SESSION` 只允许点 Confirm（`src/maalimbus/window.py:190`，会话过期只有领奖一条路）。
+同一类「只有一个安全方向」的写法还有两处对照：`WINDOW_RESET` 只允许点 Cancel（`src/maalimbus/window.py:375`，周记录重置通知上的 Confirm 永远不点），`EXPIRED_SESSION` 只允许点 Confirm（`src/maalimbus/window.py:180`，会话过期只有领奖一条路）。
 
 <details>
 <summary>5.1 证据索引</summary>
@@ -161,9 +161,9 @@ stateDiagram-v2
 | `phase` | 谁写 | 前置条件 |
 | --- | --- | --- |
 | `preparing` | `RunStore.start()`（`src/maalimbus/storage.py:177`） | 没有 active 时才建 |
-| `entry_pending` | `RunStore.entry_intent()`（`src/maalimbus/storage.py:186`），调用点 `src/maalimbus/runner.py:2356` | 必须先有 Enter 前那一帧的 sha256 |
-| `entry_pending`（加警告） | `RunStore.entry_warning_intent()`（`src/maalimbus/storage.py:213`），调用点 `src/maalimbus/runner.py:2358` | 同一 phase 内只允许一次 |
-| `entered` | `RunStore.entry_observed()`（`src/maalimbus/storage.py:199`），调用点 `src/maalimbus/runner.py:1464` | 后继页只能是 `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` 之一 |
+| `entry_pending` | `RunStore.entry_intent()`（`src/maalimbus/storage.py:186`），调用点 `src/maalimbus/runner.py:2469` | 必须先有 Enter 前那一帧的 sha256 |
+| `entry_pending`（加警告） | `RunStore.entry_warning_intent()`（`src/maalimbus/storage.py:213`），调用点 `src/maalimbus/runner.py:2471` | 同一 phase 内只允许一次 |
+| `entered` | `RunStore.entry_observed()`（`src/maalimbus/storage.py:199`），调用点 `src/maalimbus/runner.py:1533` | 后继页只能是 `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` 之一 |
 
 推进（或回退）轮换的三条路径，都在 `src/maalimbus/run_wiring.py`：
 

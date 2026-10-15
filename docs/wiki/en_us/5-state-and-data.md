@@ -74,7 +74,7 @@ Some pages look like they offer several buttons, but one of them spends irrevers
 | `BATTLE_RESULT` | every input | inputs are swallowed during the result presentation (`src/maalimbus/window.py:328`) |
 | `UNKNOWN` | every input | for an unnamed page the only safe input is the `UNKNOWN_DIALOG` close control |
 
-Two further examples of the same "only one safe direction" rule: `WINDOW_RESET` allows only Cancel (`src/maalimbus/window.py:385` — Confirm on the weekly reset notice is never tapped), and `EXPIRED_SESSION` allows only Confirm (`src/maalimbus/window.py:190` — session expiry leaves claiming rewards as the only path).
+Two further examples of the same "only one safe direction" rule: `WINDOW_RESET` allows only Cancel (`src/maalimbus/window.py:375` — Confirm on the weekly reset notice is never tapped), and `EXPIRED_SESSION` allows only Confirm (`src/maalimbus/window.py:180` — session expiry leaves claiming rewards as the only path).
 
 <details>
 <summary>5.1 evidence index</summary>
@@ -161,9 +161,9 @@ The four phase values (`active.phase`) and their writers:
 | `phase` | written by | precondition |
 | --- | --- | --- |
 | `preparing` | `RunStore.start()` (`src/maalimbus/storage.py:177`) | only when there is no active run |
-| `entry_pending` | `RunStore.entry_intent()` (`src/maalimbus/storage.py:186`), called at `src/maalimbus/runner.py:2356` | requires the sha256 of the frame before Enter |
-| `entry_pending` (warning added) | `RunStore.entry_warning_intent()` (`src/maalimbus/storage.py:213`), called at `src/maalimbus/runner.py:2358` | allowed only once per phase |
-| `entered` | `RunStore.entry_observed()` (`src/maalimbus/storage.py:199`), called at `src/maalimbus/runner.py:1464` | the successor page must be one of `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` |
+| `entry_pending` | `RunStore.entry_intent()` (`src/maalimbus/storage.py:186`), called at `src/maalimbus/runner.py:2469` | requires the sha256 of the frame before Enter |
+| `entry_pending` (warning added) | `RunStore.entry_warning_intent()` (`src/maalimbus/storage.py:213`), called at `src/maalimbus/runner.py:2471` | allowed only once per phase |
+| `entered` | `RunStore.entry_observed()` (`src/maalimbus/storage.py:199`), called at `src/maalimbus/runner.py:1533` | the successor page must be one of `STAR_GRACES` / `INITIAL_GIFTS` / `THEME_PACKS` / `MAP` |
 
 The three paths that advance (or roll back) the rotation all live in `src/maalimbus/run_wiring.py`:
 

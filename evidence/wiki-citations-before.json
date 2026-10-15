@@ -1,0 +1,118 @@
+{
+  "totals": {
+    "citations": 1280,
+    "named": 188,
+    "landed": 180,
+    "drifted": 8,
+    "unnamed": 383,
+    "unresolvable": 300,
+    "crowded": 397,
+    "unattributed": 12
+  },
+  "rows": [
+    {
+      "page": "docs/wiki/en_us/4-business-flows.md",
+      "wiki_line": 139,
+      "file": "agent/recognition.py",
+      "cited": 1571,
+      "cited_end": null,
+      "symbol": "open_game",
+      "occurrences": 3,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "def run(self,context,argv):",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/2.3-decisions.md",
+      "wiki_line": 107,
+      "file": "src/maalimbus/run_wiring.py",
+      "cited": 81,
+      "cited_end": null,
+      "symbol": "ValueError",
+      "occurrences": 10,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "def settle(store, *, page, reason=None, floor=None, proof, on_event=None, on_refusal=None):",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/3-runtime.md",
+      "wiki_line": 152,
+      "file": "src/maalimbus/window.py",
+      "cited": 93,
+      "cited_end": 96,
+      "symbol": "UNKNOWN_DIALOG",
+      "occurrences": 1,
+      "only_occurrence": 1013,
+      "definitions": [],
+      "cited_line": "plan = {'page': page, 'action': action,",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/4-business-flows.md",
+      "wiki_line": 89,
+      "file": "agent/recognition.py",
+      "cited": 1334,
+      "cited_end": 1335,
+      "symbol": "custom_action_param",
+      "occurrences": 8,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "stamp = datetime.now().strftime('%Y%m%d-%H%M%S')",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/4-business-flows.md",
+      "wiki_line": 139,
+      "file": "agent/recognition.py",
+      "cited": 1571,
+      "cited_end": null,
+      "symbol": "open_game",
+      "occurrences": 3,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "def run(self,context,argv):",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/5-state-and-data.md",
+      "wiki_line": 22,
+      "file": "agent/recognition.py",
+      "cited": 169,
+      "cited_end": 201,
+      "symbol": "TURN",
+      "occurrences": 2,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "records.append(Text(result.text,box,result.score))",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/5-state-and-data.md",
+      "wiki_line": 77,
+      "file": "src/maalimbus/window.py",
+      "cited": 375,
+      "cited_end": null,
+      "symbol": "EXPIRED_SESSION",
+      "occurrences": 2,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "if page == 'WINDOW_RESET':",
+      "verdict": "drifted"
+    },
+    {
+      "page": "docs/wiki/zh_cn/5-state-and-data.md",
+      "wiki_line": 171,
+      "file": "src/maalimbus/run_wiring.py",
+      "cited": 129,
+      "cited_end": 153,
+      "symbol": "abandoned_at",
+      "occurrences": 2,
+      "only_occurrence": null,
+      "definitions": [],
+      "cited_line": "def expire(store, *, page, reason=None, proof=None, note=None, on_event=None):",
+      "verdict": "drifted"
+    }
+  ]
+}
