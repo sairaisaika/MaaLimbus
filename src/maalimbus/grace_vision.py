@@ -204,11 +204,30 @@ def plan_purchases(wanted, available, *, bought=(), costs=COSTS):
 
 
 def conversion_state(image, records, template_dir):
-    """Current modal checkbox and displayed conversion cost, with no title/art anchor."""
+    """Current modal checkbox and displayed conversion cost, with no title/art anchor.
+
+    The 2026-10 redesign kept the box in place but redrew it, so the old artwork
+    still scores 0.83 when the box is ticked and 0.15 when it is not: too close to
+    the old 0.92 proof gate, and low enough that an exact-match reader calls the
+    ticked box unknown and refuses the run. The state is therefore read from two
+    independent channels -- the retained template and the bright stroke inside the
+    box, which is 0.17 when ticked and 0.00 when empty -- and only accepted when
+    they agree; a disagreement refuses instead of guessing at a purchase the run
+    may not make. Live evidence: evidence/runtime/packaged-mirror-20261015-071416/
+    frame-0011.png (ticked) and evidence/runtime/star-confirm-20261015/README.md
+    (ticked and unticked captures of the same dialog).
+    """
     import cv2
     from .vision import find
     if image is None or image.shape[:2]!=(1080,1920):return {}
     crop=image[516:581,1060:1116]
+    gray=cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
+    bright=gray>170
+    best,corner=0.0,(1060,516)
+    for y in range(0,max(1,gray.shape[0]-33)):
+        for x in range(0,max(1,gray.shape[1]-33)):
+            value=float(bright[y:y+34,x:x+34].mean())
+            if value>best:best,corner=value,(1060+x,516+y)
     scores={}
     for state in ('checked','unchecked'):
         candidates=[template_dir / ('star-convert-'+state+'.png')]
@@ -218,8 +237,15 @@ def conversion_state(image, records, template_dir):
             if template is None or template.shape[0]>crop.shape[0] or template.shape[1]>crop.shape[1]:continue
             score=float(cv2.matchTemplate(crop,template,cv2.TM_CCOEFF_NORMED).max())
             scores[state]=max(scores.get(state,0),score)
-    hits=[state for state,score in scores.items() if score>=.92]
-    costs=find(records,r'^\d{1,4}$',(.67,.415,.735,.473),(1920,1080),.85)
-    return dict(conversion=hits[0] if len(hits)==1 else None,
-                conversion_box=[1072,530,34,34],
-                cost=int(costs[0].text) if len(costs)==1 else None,scores=scores)
+    marked=scores.get('checked',0)>=.60
+    filled=best>=.05
+    conversion='checked' if marked or filled else 'unchecked'
+    if marked!=filled:conversion=None
+    costs=find(records,r'^\D{0,2}\s*(\d{1,4})$',(.67,.415,.735,.473),(1920,1080),.80)
+    cost=None
+    if len(costs)==1:
+        digits=re.fullmatch(r'^\D{0,2}\s*(\d{1,4})$',costs[0].text)
+        cost=int(digits.group(1)) if digits else None
+    box=[corner[0],corner[1],34,34] if best>=.02 else [1072,530,34,34]
+    return dict(conversion=conversion,conversion_box=box,cost=cost,scores=scores,
+                stroke=round(best,4))

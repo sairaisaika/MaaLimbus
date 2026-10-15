@@ -6,8 +6,8 @@ import cv2
 import pytest
 
 from maalimbus.grace_vision import (COSTS, agreeing_number, available_starlight, card_index,
-                                    cost_of, observed_board, plan_purchases, plus_points,
-                                    read_cost)
+                                    conversion_state, cost_of, observed_board, plan_purchases,
+                                    plus_points, read_cost)
 from maalimbus.vision import Text
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -193,3 +193,30 @@ def test_the_redesigned_page_is_located_not_assumed():
     board = observed_board(image, records, list(range(1, 11)))
     assert board is not None and tuple(board['costs']) == COSTS
     assert board['points'][1] != board['points'][6]
+
+def test_the_redesigned_conversion_box_is_read_in_both_states():
+    # The 2026-10 redesign redrew the "Continue with selected effects?" box: the old
+    # artwork scores 0.83 ticked and 0.15 empty, so an exact-match reader cannot tell
+    # the states apart. frame-0011 is where the live run stopped on
+    # 'starlight_conversion_off_and_cost_zero_not_proven'; the two captures are the
+    # same dialog ticked and unticked on a live device.
+    live = ROOT / 'evidence/runtime/packaged-mirror-20261015-071416/frame-0011.png'
+    checked = ROOT / 'evidence/runtime/star-confirm-20261015/checked.png'
+    unchecked = ROOT / 'evidence/runtime/star-confirm-20261015/unchecked.png'
+    if not all(path.is_file() for path in (live, checked, unchecked)):
+        pytest.skip('the redesigned confirm dialog captures are not retained')
+    templates = ROOT / 'assets/resource/base/image/navigation'
+
+    def state(path):
+        image = cv2.imread(str(path))
+        if image.shape[:2] != (1080, 1920):
+            image = cv2.resize(image, (1920, 1080), interpolation=cv2.INTER_AREA)
+        return conversion_state(image, [], templates)
+
+    for path in (live, checked):
+        assert state(path)['conversion'] == 'checked', path.name
+    off = state(unchecked)
+    assert off['conversion'] == 'unchecked'
+    assert off['stroke'] < .02
+    # A ticked box also anchors the click that would clear it, on the box itself.
+    assert state(live)['conversion_box'][:2] == [1079, 516]
