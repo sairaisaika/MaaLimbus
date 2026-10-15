@@ -38,6 +38,17 @@ def test_catalog_hashes_names_keywords_and_fuzzy_ambiguity(catalog):
     assert catalog.text_identity('A Dream') is None
 
 
+def test_one_slip_in_a_long_title_is_still_that_gift(catalog):
+    # The 2026-10 floor gift page printed 'Arrested Hymn' while the mirror catalogue
+    # spelled the entry 'Arrested Hymm' (ratio .917), which stopped a live run with
+    # 'floor_gift_identity_unknown' on dist/MaaLimbus/evidence/runtime/pi-20261015-180214.
+    # The name is corrected, and a lone long name one edit away still resolves the
+    # slip, while a short near-match or two candidates refuse.
+    assert catalog.text_identity('Arrested Hymn')=='Arrested Hymn'
+    assert catalog.text_identity('Arrested Hymm')=='Arrested Hymn'
+    assert catalog.text_identity('Awee') is None
+
+
 def test_column_ownership_rank_and_blocked_gift(catalog):
     frame=np.zeros((720,1280,3),np.uint8)
     candidates=floor_candidates(frame,records(),words(),catalog)

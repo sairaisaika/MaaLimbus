@@ -166,6 +166,11 @@ Overview diagrams are navigation; local diagrams explain specific guards, intera
 | 入场与列表上下查找 / Entry and bidirectional team-list search | [4.3.2](zh_cn/4-business-flows.md#feature-4-3-2) | [4.3.2](en_us/4-business-flows.md#feature-4-3-2) |
 | GUI Start原生适配链 / GUI Start native subtask adapter | [9.3.1](zh_cn/9-execution-plan.md#feature-9-3-1) | [9.3.1](en_us/9-execution-plan.md#feature-9-3-1) |
 | 新版镜牢界面的适配计划 / Plan for adapting to the redesigned Mirror Dungeon | [9.3.2](zh_cn/9-execution-plan.md#feature-9-3-2) | [9.3.2](en_us/9-execution-plan.md#feature-9-3-2) |
+| 旧局仍在跑时的 GUI Start 入口判定 / GUI Start entry decision while the old run is still playing | [9.3.3](zh_cn/9-execution-plan.md#feature-9-3-3) | [9.3.3](en_us/9-execution-plan.md#feature-9-3-3) |
+| 参与者计数读不出时的入口与部署 / Entry and deployment when the participant counter cannot be read | [9.3.4](zh_cn/9-execution-plan.md#feature-9-3-4) | [9.3.4](en_us/9-execution-plan.md#feature-9-3-4) |
+| 新版购买确认框的货币徽章 / The redesigned purchase dialog's currency badge | [9.3.5](zh_cn/9-execution-plan.md#feature-9-3-5) | [9.3.5](en_us/9-execution-plan.md#feature-9-3-5) |
+| 按完成镜牢计数与藏品搜索开放 / Counting completed runs and opening the gift search | [9.3.6](zh_cn/9-execution-plan.md#feature-9-3-6) | [9.3.6](en_us/9-execution-plan.md#feature-9-3-6) |
+| 奖励页两处误停：目录名错字与“价”的判据 / Two false stops on the reward page: a catalogue typo and what counts as a price | [9.3.7](zh_cn/9-execution-plan.md#feature-9-3-7) | [9.3.7](en_us/9-execution-plan.md#feature-9-3-7) |
 | 每场部署：复用、修正与提交 / Encounter deployment: reuse, correction and submission | [4.3.3](zh_cn/4-business-flows.md#feature-4-3-3) | [4.3.3](en_us/4-business-flows.md#feature-4-3-3) |
 | 楼层礼物选择、到账与恢复 / Floor gifts: selection, receipts and recovery | [4.3.4](zh_cn/4-business-flows.md#feature-4-3-4) | [4.3.4](en_us/4-business-flows.md#feature-4-3-4) |
 | 初始礼物、搜索与楼层主题 / Initial gifts, search and floor themes | [4.3.5](zh_cn/4-business-flows.md#feature-4-3-5) | [4.3.5](en_us/4-business-flows.md#feature-4-3-5) |

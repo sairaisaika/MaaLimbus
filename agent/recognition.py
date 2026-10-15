@@ -277,15 +277,28 @@ class LimbusRecognition(CustomRecognition):
             # frames 0066-0068 read '8 / 12' off the pixels while (1700,754,128,58)
             # recognized nothing at all, so the run spent both re-reads and stopped on a
             # deployment it had already made. The crop keeps a margin and the OCR detects
-            # inside it, accepting only the counter's own shape.
-            roi=(1680,738,180,92)
+            # inside it, accepting only the counter's own shape. The redesigned pre-battle
+            # page moves the same row down and left: the old crop (1680,738,180,92) cut the
+            # numerator off '2 / 12', which sits at x1662-1773 y762-792 in build/live-now2.png
+            # (2026-10-15, 1920x1080 game frame), so the entry observation died on
+            # 'Maa local participant OCR returned no evidence'
+            # (dist/MaaLimbus/evidence/runtime/pi-20261015-130115). The crop now covers the
+            # whole row with margin on both sides.
+            roi=(1610,745,250,80)
             detail=context.run_recognition_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,expected=[r'\d{1,2}\s*/\s*\d{1,2}'],threshold=.8),image)
-            if detail is None:raise RuntimeError('Maa local participant OCR returned no evidence')
+            if detail is None:
+                # A frame whose counter has not settled is still a frame, not a page: the
+                # run's own deployment step re-reads a missing counter a bounded number of
+                # times and stops honestly when it never arrives. Raising here took the whole
+                # start-up down with it -- the app's own Start died on this line before it
+                # could reach the loop (dist/MaaLimbus/evidence/runtime/pi-20261015-130827)
+                # -- so the absence is recorded and let through.
+                pass
             x,y,w,h=roi
             records=[t for t in records if not (x<=t.box[0]+t.box[2]/2<=x+w and y<=t.box[1]+t.box[3]/2<=y+h)]
             found=[]
-            if detail.hit:
+            if detail is not None and detail.hit:
                 for result in detail.filtered_results:
                     records.append(Text(result.text,roi,result.score))
                     found.append(dict(text=result.text,score=result.score,box=list(roi)))
@@ -1352,7 +1365,13 @@ def loop_store(settings, journal):
         existing = read_json(ledger) if ledger.exists() else None
         slots = existing['team_slots'] if existing else [settings.team]
         preferences = TaskPreferences(ledger.parent)
-        if preferences.path.exists():
+        if preferences.path.exists() and not (existing or {}).get('active'):
+            # A run the game is still holding keeps the team it was started with: a new
+            # preference applies to the next start, never to this one. Reading it anyway
+            # aborted the resume with 'Existing run uses another rotation; do not overwrite
+            # it' -- the ledger's active run is rotation team 1 while
+            # config/user-task-settings.json now asks for single team 2
+            # (dist/MaaLimbus/evidence/runtime/pi-20261015-171658, 0 inputs).
             slots = preferences.load()['mirror']['teams']
         store = RunStore(ledger, [SimpleNamespace(slot=slot) for slot in slots])
         run_id = store.start()
@@ -1534,9 +1553,16 @@ class MirrorLoopAction(CustomAction):
                 store=store, directory=directory, journal=journal, observer=observer,
                 run_id=run_id, result=result)
             loop.configure(deadline=deadline)
-            result = loop.run(steps=1 if settings.observe_only else int(settings.steps),
+            # The player counts complete runs, not steps: the loop already stops on its own
+            # completed-run condition (`runner.py:2846`), so a named run count turns the step
+            # window into a safety net -- a five-floor dungeon must not be cut halfway by a
+            # window number the user picked to mean 'three dungeons'.
+            window = 1 if settings.observe_only else int(settings.steps)
+            if not settings.observe_only and int(getattr(settings, 'run_count', 0) or 0) > 0:
+                window = max(window, 4000)
+            result = loop.run(steps=window,
                               interval=float(settings.interval),
-                              round_limit=1 if settings.observe_only else int(settings.steps),
+                              round_limit=1 if settings.observe_only else window,
                               deadline=deadline)
         except TimeoutError as error:
             # This run's own budget, or a device job that outlived its own timeout: a
@@ -1617,14 +1643,34 @@ class MainTaskAction(CustomAction):
                             if value['active'] is not None:
                                 # Queue application used to fail before the runner could
                                 # observe that the user had ended the previous dungeon.
+                                # A run that is still playing answers with a page the entry
+                                # observation does not know (a battle, a floor node); that is
+                                # not proof the game dropped the run, so the ledger keeps it
+                                # and the loop reads the page itself. Only a freshly proven
+                                # idle entry or picker may retire the old run.
                                 print('MaaLimbus 当前阶段：启动前核对旧局与队伍设置。',flush=True)
                                 observer=runner.MaaObserver(AgentTasker(context),directory)
-                                runner.observe(observer,time.monotonic()+30)
-                                from maalimbus.run_wiring import reconcile_idle_entry
-                                store=RunStore(ledger,[SimpleNamespace(slot=s) for s in value['team_slots']])
-                                outcome=reconcile_idle_entry(store,runner.frame_file(directory))
-                                journal.record('mirror_entry_preparation',**outcome)
-                        GlobalSettingsAction(self.recognition).apply(context)
+                                try:
+                                    runner.observe(observer,time.monotonic()+30)
+                                except (RuntimeError,OSError,TimeoutError) as error:
+                                    journal.record('mirror_entry_preparation',retired=False,
+                                        reason='active_run_page_unreadable',error=str(error),
+                                        game_input=False)
+                                else:
+                                    from maalimbus.run_wiring import reconcile_idle_entry
+                                    store=RunStore(ledger,[SimpleNamespace(slot=s) for s in value['team_slots']])
+                                    outcome=reconcile_idle_entry(store,runner.frame_file(directory))
+                                    journal.record('mirror_entry_preparation',**outcome)
+                        active=read_json(ledger).get('active') if ledger.exists() else None
+                        if active is None:
+                            GlobalSettingsAction(self.recognition).apply(context)
+                        else:
+                            # Queue and team options only steer a run that is about to start;
+                            # one already in progress keeps the loadout it entered with, so the
+                            # saved settings wait for the next entry instead of refusing.
+                            print('MaaLimbus 当前阶段：旧局仍在进行，跳过开新局的设置应用。',flush=True)
+                            journal.record('mirror_entry_preparation',retired=False,
+                                reason='a_run_is_still_in_progress',game_input=False)
                     except (ValueError,KeyError,OSError,RuntimeError,TimeoutError,TypeError) as error:
                         return reject('mirror_settings_rejected',error)
                     try:

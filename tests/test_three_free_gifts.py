@@ -41,6 +41,19 @@ def test_bright_button_without_selection_outline_stops():
     with pytest.raises(ValueError):read(records+[Text('Mounting Trials',(700,650,140,28),.99)],image,catalog)
 
 
+def test_card_effect_wording_is_not_a_price_or_a_trial():
+    # The redesigned floor gift prints its own effect sentences inside the cards. This one
+    # stopped a live run whose buttons were Refuse Gift and Select
+    # (dist/MaaLimbus/evidence/runtime/pi-20261015-172214/frame-0002.json).
+    records,image,catalog=fixture()
+    baseline,_=read(records,image,catalog)
+    offers,count=read(records+[Text('Defense Level Down until',(844,534,244,25),.97)],image,catalog)
+    assert count==dict(chosen=0,required=1)
+    assert [o.title for o in offers]==[o.title for o in baseline]
+    with pytest.raises(ValueError):
+        read(records+[Text('Enemy Level +2',(844,534,244,25),.97)],image,catalog)
+
+
 def test_actual_selected_right_card_uses_visible_bottom_edge():
     path=ROOT/'evidence/runtime/window-20261008-101324/frame-0002.json'
     data=json.loads(path.read_text());records=[Text(r['text'],tuple(r['box']),r['score']) for r in data['ocr']]

@@ -201,6 +201,161 @@ flowchart TD
     F -->|是| G["写入已实机走通，并再启动一次脚本复验"]
 ```
 
+### 9.3.3 GUI Start 遇到旧局仍在跑的入口判定（2026-10-15）
+
+<a id="feature-9-3-3"></a>
+
+实机根因（本节写作时的现场）：GUI Start 在 09:55 真的按下了开始，但镜牢入口停在“启动前核对旧局与队伍设置”后以 `mirror_settings_rejected` 结束，`dist/MaaLimbus/evidence/runtime/pi-20261015-095517` 里 0 帧 0 点击。日志两条错误分别是观察节点没读出页面（`the observation node recorded no page for this frame`，`src/maalimbus/runner.py:648`、`:659`）和本机参与者 OCR 无证据（`Maa local participant OCR returned no evidence`，`agent/recognition.py:284`）。
+
+为什么现场是这个状态：只读与放行两类验证脚本（`evidence/runtime/packaged-mirror-20261015-070250`、`-071416`、`-071912`）已经进入一个真实的 Hard 周目，并把游戏留在 `PRE_BATTLE_TEAM`；账本里那条 `active`（id `616264a2…`，team 1，phase `entered`）仍在 app 自己的数据根 `D:\fgoa\MaaLimbus\config`（`dist/MaaLimbus/config/user-data-root.json` 指过去）。**进行中的周目不是空闲入口**：`reconcile_idle_entry`（`src/maalimbus/run_wiring.py:255`）只允许在刚拍到的帧明确证明是空闲 `MIRROR_ENTRY` 或 `DUNGEON_TEAM` 选人页时退休旧局；当时观察连一帧都没产出，于是整条入口被拒。
+
+本节计划：入口预检必须把两种情况分开——「账本有局，且这帧证明游戏已不持有它」照旧退休；「账本有局，但这帧读不出任何页面身份」保留该局，并把读页交给循环自己去做，绝不在读不出的帧上输入。容忍分支只记 `mirror_entry_preparation`（`retired=False` 与观察错误原文），随后与没有旧局时一样继续走 `GlobalSettingsAction.apply` 与 `MirrorLoopAction`；读不出页的帧仍然按未知页面处理，不点、只等。
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 账本 `active` 为 null | 直接按设置进镜牢 | app 日志出现 `mirror_loop_start` |
+| 账本 `active` 非空，帧证明空闲入口/选人页 | 退休旧局后按设置进镜牢 | `mirror_entry_preparation` 的 `retired=True` 与 disposition |
+| 账本 `active` 非空，帧读不出身份（本节的实机现场） | **保留该局**，继续进循环，由循环重读页面 | `mirror_entry_preparation` 的 `retired=False` 与观察错误原文，且不再出现 `mirror_settings_rejected` |
+
+同样必须记住的第二个事实：app 的真实数据根是 `D:\fgoa\MaaLimbus\config`，不是 `dist/MaaLimbus/config`。写进 `dist` 的设置只会被 GUI 显示，agent 读的是前者；要钉“单队第 2 队 / 本次 3 次 / 步数 2000”这类运行设置，必须写 app 自己的数据根。
+
+验收口径：在游戏停在进行中的镜牢页面时按下 GUI Start，必须真的进到循环（app 自己的日志可读），且不得再因为“没有证据”停在 `mirror_settings_rejected`；首帧读不出时循环仍按未知页面诚实停止。
+
+```mermaid
+flowchart TD
+    A["GUI Start 进入镜牢任务"] --> B{"账本里有 active 吗"}
+    B -->|没有| E["按设置开新局（GlobalSettingsAction.apply）"]
+    B -->|有| C{"旧局那一帧读得出身份吗"}
+    C -->|读不出| D["保留该局，记 retired=False 与错误原文"]
+    C -->|读得出且证明空闲| F["退休旧局"]
+    C -->|读得出但仍在进行中| D
+    D --> G["跳到循环，由循环重读页面"]
+    F --> E
+    E --> G
+```
+
+### 9.3.4 参与者计数读不出时的入口与部署（2026-10-15）
+
+<a id="feature-9-3-4"></a>
+
+实机根因（13:01–13:08 现场）：入口观察在 `PRE_BATTLE_TEAM` 页上以 `Maa local participant OCR returned no evidence` 抛出，异常发生在**观察节点内部**（`agent/recognition.py` 的 `PRE_BATTLE_TEAM` 分支），所以 9.3.3 那层“入口容忍”根本没有机会生效：Maa 任务先一步失败，app 显示「任务失败: 自动镜牢」（`dist/MaaLimbus/evidence/runtime/pi-20261015-130827`，0 帧）。
+
+测量：新版选人页把计数器画成 `2/12`，在实机帧里被整帧 OCR 读成 `2/12`、框 `[1610,745,250,80]`、分数 `0.997`（`evidence/runtime/packaged-mirror-20261015-131001/frame-0001.json`）。`team_vision.participants`（`src/maalimbus/team_vision.py:46-62`，模式 `:9`，ROI `:10` = `(0.86,0.66,0.97,0.78)`）在该帧上离线复算得到 `(2,12)`；曾经失效的是旧裁切 `(1680,738,180,92)` 切掉了分子，新裁切 `(1610,745,250,80)` 两侧留了余量。
+
+本节计划：计数器读到与否都不是“页面是否成立”的条件——计数未落定的那一帧仍然是帧，不是页面。节点只记录缺读并放行，由循环自己的有界重读（`src/maalimbus/runner.py:1696-1702`）决定是继续还是诚实停止；节点不再因为缺读而让整个启动失败。
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 计数器读得到 | 照常进入选人与部署判定 | 帧里出现 `2/12` 一类计数，`deployment_participants` 有结果 |
+| 计数器读不到（滚动/未落定帧） | 节点记录缺读并继续，循环做有界重读 | 帧里无计数但页面身份成立，且不再出现节点级异常 |
+| 重读用尽仍读不到 | 诚实停在部署一步，不发输入 | 停止原因为 `deployment_transaction_or_counter_missing`，`clicks_sent` 不增加 |
+
+验收口径：在停顿的 `PRE_BATTLE_TEAM` 页上再按一次 GUI Start，必须走到 `mirror_loop_start` 并进入部署判定，而不是让观察节点把整个任务判失败。
+
+```mermaid
+flowchart TD
+    A["观察一帧"] --> B{"页面是 PRE_BATTLE_TEAM 吗"}
+    B -->|不是| Z["照常分类"]
+    B -->|是| C{"计数器读到了吗"}
+    C -->|读到| D["记入 deployment_participants"]
+    C -->|读不到| E["只记缺读，不抛异常"]
+    D --> F["交给循环部署判定"]
+    E --> F
+    F --> G{"循环重读用尽"}
+    G -->|仍无| H["诚实停止，不发输入"]
+    G -->|有| I["继续选人/开打"]
+```
+
+### 9.3.5 新版购买确认框：粘在一起的货币徽章（2026-10-15）
+
+<a id="feature-9-3-5"></a>
+
+现场：17:31 那次 GUI 启动一路打到第三个商店，在购买确认框上停住，理由是 `the_shop_asked_about_a_purchase_and_its_confirm_was_not_read`（`src/maalimbus/window.py:614`），停在 `SHOP_PURCHASE` 两帧（`dist/MaaLimbus/evidence/runtime/pi-20261015-173132/frame-0250/0251.png`）。
+
+根因（已离线复现）：新版确认框标题是 `Purchase E.G.O Gifts`、按钮是 `Purchase`，`native_purchase_dialog` 三个锚点都读到了；但货币转变徽章 `1102 ▶ 895` 被识别成一个粘连 token `'1102895'`，于是 `purchase_balances` 找不到「前一个数字」而返回 None，`matching_purchase_question`（它是花钱的授权入口）随之返回 None，页面只能拒绝。
+
+修法：`src/maalimbus/shop_vision.py` 的 `purchase_balances` 先按老版式读分开的两个数字；读不到时，用旁边的 after 数字去**切开粘连 token**（`^\d{1,4}` + 那个 after 数字 + `$`），切不出来就返回 None。真正的授权仍然要求 `before - after == price` 且 `before == 意向里记的 coins`，所以切错也买不成。
+
+```mermaid
+flowchart TD
+  A[SHOP_PURCHASE 帧] --> B{native_purchase_dialog 三锚点齐?}
+  B -->|齐| C[读货币徽章]
+  C --> D{before-after == 意向价格?}
+  D -->|是| E[交出 Purchase 按钮]
+  D -->|否| F[不知道就拒绝]
+  B -->|不齐| F
+```
+
+| 锚点 | 新版读数 | 判据 |
+| --- | --- | --- |
+| 标题 | `Purchase E.G.O Gifts` [674,236,292,34] .999 | `^Purchase E\.G\.O Gifts$` 在 (.32,.20,.55,.27) |
+| 确认 | `Purchase` [1092,706,128,34] 1.000 | `^Purchase$` 在 (.50,.58,.70,.80) |
+| 取消 | `X Cancel` [710,702,156,42] .912 | `^[X×]?\s*Cancel$` 在 (.31,.58,.50,.80) |
+| 徽章 | `1102895` + `895` | after 数字切出 before，且 before-after=207=价格 |
+
+验收：同一帧上 `purchase_balances` 返回 (1102,895)、`matching_purchase_question(records,'Awe',207,coins=1102)` 返回 `Purchase` 的框；价格改成 208 必须返回 None。测试在 `tests/test_shop_vision.py`（含无留帧时 skip 的实机帧用例）。
+
+### 9.3.6 按完成镜牢计数，以及把藏品搜索开放出来（2026-10-15）
+
+<a id="feature-9-3-6"></a>
+
+用户口径（m01434）：别再用步数上限当目标，**按完成镜牢算**；步数当安全网就行。藏品搜索要**开放**，让它自己学购买策略；但金币不能攒太多、也不能一点不留。
+
+已经有效的部分：停止条件是循环自己的完成局计数（`src/maalimbus/runner.py:2846` `_run_count_reached`，目标写在 `runner.py:3237` 的 `verified_runs`），不是步数；步数窗口来自 `MirrorRunBounds`（`src/maalimbus/mirror_task_options.py:27-30`，1..2000）。因此入口在**点名了次数**时把窗口抬成至少 4000（`agent/recognition.py` 的 `loop.run(steps=...)` 调用处），让五层镜牢不会被一个“你想跑三次”的数字中途截断。金币平衡规则本来就在：`CARRY_CAP_COINS = 1500`（`src/maalimbus/shop_settings.py`）与保留默认 500（同文件 `:74`）——留一部分、把溢出的花掉，正是“不能攒太多、不能一点不留”。
+
+尚未实现的部分（不得写成已实现）：藏品搜索页现在只有两条路——`refuse` 或“用 Select 离场、不花星光”（`src/maalimbus/window.py:763-785`），而任务设置只接受 `saved`/`refuse`（`src/maalimbus/mirror_task_options.py:22-26`）。要真正“开放”，必须新增：按评分从池子里挑不超过三件、付出星光、支出用带回执的持久事务证明，并且没有回执就不算买过。
+
+```mermaid
+flowchart TD
+  A[入口读到运行计数] -->|点名了次数| B[步数窗口抬到 >= 4000 当安全网]
+  A -->|没点名| C[沿用步数窗口]
+  B --> D[每完成一局写回执]
+  D --> E{完成数达到次数?}
+  E -->|是| F[run_count_reached 停]
+  E -->|否| D
+  C --> G[window_steps_passed 停]
+```
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 点名了完成次数 | 计数到次数才停；步数只做安全网 | `run_count_reached` 事件与 `verified_runs` |
+| 没有点名次数 | 保持原来的步数窗口行为 | 停止原因为 `window_steps_passed` |
+| 藏品搜索（开放后） | 按评分挑件并付星光 | 星光支出回执 + 页面后继帧 |
+| 藏品搜索（当前） | 只拒绝或离场，不花钱 | 事件里 `gift_search` 走的是 refuse/select 分支 |
+
+验收口径：把次数点成 3 后，一次启动能连跑到第三次完成回执；藏品搜索开放前不得在任何日志或文档里声称它已经在买。
+
+### 9.3.7 奖励页的两处误停：目录名错字与“价”的判据（2026-10-15）
+
+<a id="feature-9-3-7"></a>
+
+两次实机停止都发生在奖励页，都不是“游戏变了”而是我们自己的判据错了。
+
+**一、`floor_gift_identity_unknown`。** `dist/MaaLimbus/evidence/runtime/pi-20261015-180214` 跑了 345 帧后停在奖励页。页面确实印着标题，但镜像目录 `assets/resource/base/gift-catalog.json` 把这条藏品的名字写成了 `Arrested Hymm`，客户端印的是 `Arrested Hymn`（`build/learning-review` 的留存语料里 20 次全是 Hymn）。两者归一化后只差一个字母，而 12 字符时 `difflib` 比率只有 0.9167，低于 `src/maalimbus/gift_vision.py` `text_identity` 的 0.93 门槛，于是返回 None、整局停止。处置有两层：目录条目名改成 `Arrested Hymn`（**不改** `icons[].path` 与 `sha256`，图标哈希校验因此不受影响），并在 `text_identity` 加一条兜底——只有“唯一一个、长度 ≥ 8、编辑距离 ≤ 1”的目录名才算命中，短名或两名并列仍然拒绝，所以模糊歧义的原有防线没有放松。
+
+**二、`three_free_gift_trial_or_cost_present`。** `pi-20261015-172214` 在三选一奖励页停了，因为否决条件把 `Defense Level`、`Max HP`、`Cost` 等词当成“这是试炼/付费页”。新版把**每张卡片自己的效果文本**印在卡片里，`Defense Level Down until` `[844,534,244,25]` 就是第一张卡的效果句，页面上按钮却明明是 `Refuse Gift` 与 `Select`。否决改为判“带价的说法”：出现 `Modules`/`Purchase`/`Shop`/`Lunacy`/`Mounting`/`Trials` 这类名词，或 `Enemy Level`/`Defense Level`/`Damage Taken`/`Max HP`/`Cost` 后紧跟数字时才否决；纯效果措辞不再误伤。
+
+```mermaid
+flowchart TD
+  A[奖励页读数] --> B{标题能对上目录吗?}
+  B -->|归一化比率 >= .93 且有领先| C[命中]
+  B -->|否则| D{唯一一个长度 >= 8 的目录名 编辑距离 <= 1?}
+  D -->|是| C
+  D -->|否| E[identity_unknown 停止]
+  C --> F{页面上有带价的说法吗?}
+  F -->|名词或 试炼词+数字| G[trial_or_cost_present 停止]
+  F -->|只是效果措辞| H[按三选一继续]
+```
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 目录名有一个字母错字，客户端印刷正确 | 仍解析成该藏品 | `tests/test_gift_vision.py` 用 `Arrested Hymm` 断言得到 `Arrested Hymn` |
+| 卡片里的纯效果句 | 不否决三选一布局 | `tests/test_three_free_gifts.py` 用 `Defense Level Down until` 断言仍返回三个候选 |
+| 真试炼/真付费措辞 | 仍否决 | 同文件用 `Enemy Level +2` 与 `Mounting Trials` 断言抛出 |
+| 图标路径与哈希 | 改名不触碰它们 | `gift-catalog.json` 的 `icons[].path`/`sha256` 未变，目录加载校验通过 |
+
+验收口径：同一次启动能走过三选一奖励页与购买确认框继续往下跑；`floor_gift_identity_unknown` 与 `three_free_gift_trial_or_cost_present` 只在真的读不出、真的是付费/试炼页时出现。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

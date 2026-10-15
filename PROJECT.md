@@ -2305,3 +2305,36 @@ This is a source test result, not complete game or production-value acceptance.
   `config/user-shop-3122877b7bb64409b6ad9fe68522de7b.json`; because the cost was never charged, the next live run
   after maintenance will simply attempt it again. Hard five-floor live proof remains blocked until the server is
   back.
+
+## DSH continuation: the redesigned Mirror Dungeon, entry to the reward page (2026-10-15)
+
+The 2026-10 redesign moved the entrance, the floor-gift pages and the purchase dialog, so this session walked
+one live stop at a time, fixed the reader that was actually wrong, and re-froze the app between runs:
+
+- Entry: `pi-20261015-071912` and the later GUI Starts raised inside the observation node on the participant
+  counter (`PRE_BATTLE_TEAM`). `agent/recognition.py` now observes the entry tolerantly while the saved ledger
+  still holds an active run and records `mirror_entry_observation_failed` instead of raising; the re-frozen
+  build then entered the loop (17:31 run: `mirror_loop_start`, 75+ frames of real battle).
+- Star/grace pages: `star_vision`/`grace_vision` re-anchored on the redesigned layout (commit `45adac7`),
+  retaining the visual-threshold star card check and the numbers the dialog prints.
+- Reward page, two false stops, neither of them the game changing:
+  - `three_free_gift_trial_or_cost_present` on `dist/MaaLimbus/evidence/runtime/pi-20261015-172214`: the veto
+    treated `Defense Level Down until` `[844,534,244,25]` -- one card's own effect sentence -- as a trial, while
+    the page's buttons are `Refuse Gift` and `Select`. The veto now fires on wording that carries a price: a
+    shop/trial noun (`Modules`/`Purchase`/`Shop`/`Lunacy`/`Mounting`/`Trials`) or a trial/price word followed by
+    a number. `tests/test_three_free_gifts.py` pins both directions and `tests/test_free_gift_descriptions.py`
+    keeps the measured price lines vetoing.
+  - `floor_gift_identity_unknown` on `dist/MaaLimbus/evidence/runtime/pi-20261015-180214` (345 frames, the run
+    the user started): the catalogue `assets/resource/base/gift-catalog.json` spelled the entry
+    `Arrested Hymm` while the client prints `Arrested Hymn` (20 of 20 occurrences in `build/learning-review`),
+    and one letter in 12 scores 0.9167 against the 0.93 gate in `src/maalimbus/gift_vision.py::text_identity`.
+    The entry is corrected (icon `path`/`sha256` untouched) and `text_identity` accepts a single name of length
+    >= 8 one edit away; `tests/test_gift_vision.py` pins the slip and the short-name refusal.
+- Purchase dialog: the redesigned confirmation prints `1102` and `895` as one token `1102895`
+  (`[1234,232,126,36]`), so `purchase_balances` read no affordance and
+  `the_shop_asked_about_a_purchase_and_its_confirm_was_not_read` stopped the 251-frame run. The badge is now
+  split on the paid delta and checked against the recorded price, with the whole dialog re-read from the
+  frame that stopped the run before the fix landed.
+- Still open from the user's own brief (m01434): an explicit completed-run count instead of the step window as
+  the goal (the window is already raised to >= 4000 when a count is named), and the gift search opened up so it
+  learns what to buy; the step ceiling stays as a safety net, and coins keep their carry cap and reserve.

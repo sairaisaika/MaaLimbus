@@ -201,6 +201,161 @@ flowchart TD
     F -->|Yes| G["Write it down as driven through live, then launch the script once more to re-verify"]
 ```
 
+### 9.3.3 What a GUI Start decides when the old run is still playing (2026-10-15)
+
+<a id="feature-9-3-3"></a>
+
+Live root cause (the scene this section was written from): the GUI Start was really pressed at 09:55, but the Mirror Dungeon entry stopped right after "启动前核对旧局与队伍设置" with `mirror_settings_rejected`, and `dist/MaaLimbus/evidence/runtime/pi-20261015-095517` holds 0 frames and 0 clicks. The two log errors are the observation node reading no page (`the observation node recorded no page for this frame`, `src/maalimbus/runner.py:648`, `:659`) and the local participant OCR having no evidence (`Maa local participant OCR returned no evidence`, `agent/recognition.py:284`).
+
+Why the scene looked like that: the read-only and the live-authorized verifier runs (`evidence/runtime/packaged-mirror-20261015-070250`, `-071416`, `-071912`) had entered a real Hard run and left the game on `PRE_BATTLE_TEAM`; the ledger entry `active` (id `616264a2…`, team 1, phase `entered`) is still in the app's own data root `D:\fgoa\MaaLimbus\config` (pointed at by `dist/MaaLimbus/config/user-data-root.json`). **A run under way is not an idle entry**: `reconcile_idle_entry` (`src/maalimbus/run_wiring.py:255`) may only retire the old run when the freshly taken frame proves an idle `MIRROR_ENTRY` or a `DUNGEON_TEAM` picker; here the observation produced not even one frame, so the whole entry was refused.
+
+The plan in this section: the entry pre-flight must separate two cases -- "the ledger has a run and this frame proves the game no longer holds it" retires it as before; "the ledger has a run, but this frame names no page at all" keeps that run and leaves page reading to the loop itself, and never sends input on a frame it could not read. The tolerant branch only records `mirror_entry_preparation` (`retired=False` plus the observation error verbatim), then continues into `GlobalSettingsAction.apply` and `MirrorLoopAction` exactly as it would with no stale entry; an unreadable frame is still handled as an unknown page -- no click, wait only.
+
+| Scene | Expected behaviour | Evidence required |
+| --- | --- | --- |
+| ledger `active` is null | enter the Mirror Dungeon with the applied settings | the app log shows `mirror_loop_start` |
+| ledger `active` set, frame proves idle entry or picker | retire the old run, then enter with the applied settings | `mirror_entry_preparation` with `retired=True` and a disposition |
+| ledger `active` set, frame names no page (this section's live scene) | **keep that run**, continue into the loop and let it re-read the page | `mirror_entry_preparation` with `retired=False` plus the observation error verbatim, and no further `mirror_settings_rejected` |
+
+The second fact that must be remembered too: the app's real data root is `D:\fgoa\MaaLimbus\config`, not `dist/MaaLimbus\config`. Settings written into `dist` are only displayed by the GUI, while the agent reads the former; pinning things like "single team slot 2 / 3 runs this session / 2000 steps" must write the app's own data root.
+
+Acceptance wording: with the game parked on a Mirror Dungeon page that is under way, pressing the GUI Start must really reach the loop (readable in the app's own log), and must no longer stop at `mirror_settings_rejected` for "no evidence"; when the first frame cannot be read, the loop still stops honestly as an unknown page.
+
+```mermaid
+flowchart TD
+    A["GUI Start enters the Mirror task"] --> B{"Does the ledger have an active run"}
+    B -->|no| E["Start a new run with the settings (GlobalSettingsAction.apply)"]
+    B -->|yes| C{"Does that frame name a page"}
+    C -->|no| D["Keep the run, record retired=False and the error"]
+    C -->|yes and it proves idle| F["Retire the old run"]
+    C -->|yes but still playing| D
+    D --> G["Go straight to the loop and let it re-read the page"]
+    F --> E
+    E --> G
+```
+
+### 9.3.4 What the entrance and the deployment do when the participant counter cannot be read (2026-10-15)
+
+<a id="feature-9-3-4"></a>
+
+Live root cause (13:01-13:08 on site): the entry observation raised `Maa local participant OCR returned no evidence` on the `PRE_BATTLE_TEAM` page, and the exception happened **inside the observation node** (the `PRE_BATTLE_TEAM` branch of `agent/recognition.py`), so the tolerance in 9.3.3 never got a chance to act: the Maa task failed first and the app showed a failed Mirror task (`dist/MaaLimbus/evidence/runtime/pi-20261015-130827`, 0 frames).
+
+Measurement: the redesigned team page draws the counter as `2/12`, and a live frame reads it as `2/12` at box `[1610,745,250,80]` with score `0.997` (`evidence/runtime/packaged-mirror-20261015-131001/frame-0001.json`). `team_vision.participants` (`src/maalimbus/team_vision.py:46-62`, pattern `:9`, ROI `:10` = `(0.86,0.66,0.97,0.78)`) recomputes `(2,12)` offline on that frame; what used to fail was the old crop `(1680,738,180,92)`, which cut the numerator off, while the new crop `(1610,745,250,80)` keeps margin on both sides.
+
+The plan in this section: whether the counter was read is not a condition for the page being a page -- a frame whose counter has not settled is still a frame. The node records the missing read and lets it through, and the loop's own bounded re-read (`src/maalimbus/runner.py:1696-1702`) decides whether to continue or to stop honestly; the node never fails the whole start-up over a missing read again.
+
+| Situation | Expected behaviour | Evidence requirement |
+| --- | --- | --- |
+| The counter is readable | Judge the team and the deployment as before | A `2/12`-shaped count in the frame and a result under `deployment_participants` |
+| The counter is unreadable (a rolling or unsettled frame) | The node records the missing read and continues; the loop re-reads a bounded number of times | The frame carries no count while the page identity holds, and no node-level exception appears |
+| The re-reads run out | Stop honestly at the deployment step without sending input | Stop reason `deployment_transaction_or_counter_missing` with `clicks_sent` unchanged |
+
+Acceptance: pressing the GUI Start again while the game sits on a settled `PRE_BATTLE_TEAM` page must reach `mirror_loop_start` and the deployment decision instead of letting the observation node fail the whole task.
+
+```mermaid
+flowchart TD
+    A["Observe one frame"] --> B{"Is the page PRE_BATTLE_TEAM"}
+    B -->|no| Z["Classify as before"]
+    B -->|yes| C{"Was the counter read"}
+    C -->|yes| D["Record it under deployment_participants"]
+    C -->|no| E["Record the missing read, raise nothing"]
+    D --> F["Hand it to the loop's deployment decision"]
+    E --> F
+    F --> G{"The loop's re-reads run out"}
+    G -->|still none| H["Stop honestly, send no input"]
+    G -->|read| I["Continue with the team and the fight"]
+```
+
+### 9.3.5 The redesigned purchase dialog: a currency badge read as one token (2026-10-15)
+
+<a id="feature-9-3-5"></a>
+
+Situation: the 17:31 GUI start played all the way into its third shop and stopped on the purchase question with `the_shop_asked_about_a_purchase_and_its_confirm_was_not_read` (`src/maalimbus/window.py:614`), sitting on two `SHOP_PURCHASE` frames (`dist/MaaLimbus/evidence/runtime/pi-20261015-173132/frame-0250/0251.png`).
+
+Root cause (reproduced offline): the redesigned question is titled `Purchase E.G.O Gifts` with a `Purchase` button, and all three `native_purchase_dialog` anchors matched -- but the currency transition `1102 > 895` is read as the single glued token `'1102895'`, so `purchase_balances` cannot find a 'before' number and returns None; `matching_purchase_question` (the authorization for spending) then returns None and the page can only refuse.
+
+Fix: in `src/maalimbus/shop_vision.py`, `purchase_balances` first reads the two separated numbers of the older layout; when they are absent it splits the glued token with the after-token that sits beside it (`^\d{1,4}` plus that after-token plus `$`), and returns None when it cannot. Authorization still demands `before - after == price` and `before == the coins recorded with the intent`, so a wrong split cannot buy anything.
+
+```mermaid
+flowchart TD
+  A[A SHOP_PURCHASE frame] --> B{all three native_purchase_dialog anchors?}
+  B -->|yes| C[read the currency badge]
+  C --> D{before-after == the recorded price?}
+  D -->|yes| E[hand over the Purchase button]
+  D -->|no| F[refuse what cannot be proven]
+  B -->|no| F
+```
+
+| Anchor | Redesigned reading | Rule |
+| --- | --- | --- |
+| Title | `Purchase E.G.O Gifts` [674,236,292,34] .999 | `^Purchase E\.G\.O Gifts$` in (.32,.20,.55,.27) |
+| Confirm | `Purchase` [1092,706,128,34] 1.000 | `^Purchase$` in (.50,.58,.70,.80) |
+| Cancel | `X Cancel` [710,702,156,42] .912 | `^[X×]?\s*Cancel$` in (.31,.58,.50,.80) |
+| Badge | `1102895` plus `895` | the after-token splits out the before, and before-after=207=the price |
+
+Acceptance: on that same frame `purchase_balances` returns (1102,895) and `matching_purchase_question(records,'Awe',207,coins=1102)` returns the `Purchase` box; with the price changed to 208 it must return None. Tests live in `tests/test_shop_vision.py`, including a live-frame case that skips when the frame is not retained.
+
+### 9.3.6 Counting completed Mirror Dungeons, and opening the gift search (2026-10-15)
+
+<a id="feature-9-3-6"></a>
+
+The user's rule (m01434): stop counting steps as the goal -- **count completed Mirror Dungeons** and keep the step window as a safety net; and **open up the gift search** so it learns its own purchase strategy, while the coins are neither hoarded nor drained to nothing.
+
+What already holds: the stop condition is the loop's own completed-run count (`src/maalimbus/runner.py:2846` `_run_count_reached`, target recorded by `runner.py:3237` in `verified_runs`), not the step count; the step window comes from `MirrorRunBounds` (`src/maalimbus/mirror_task_options.py:27-30`, 1..2000). So when a run count is named the entry raises that window to at least 4000 (the `loop.run(steps=...)` call in `agent/recognition.py`), which keeps a five-floor dungeon from being cut halfway by a number the user picked to mean 'three dungeons'. The coin balance rules already exist: `CARRY_CAP_COINS = 1500` (`src/maalimbus/shop_settings.py`) with a reserve default of 500 (`:74` of the same file) -- keep a part, spend the excess, which is exactly 'not hoarded too much, not left at nothing'.
+
+What is not implemented (and must not be written as if it were): the gift search page has only two paths today -- `refuse`, or leaving through Select without spending starlight (`src/maalimbus/window.py:763-785`) -- and the task option accepts only `saved`/`refuse` (`src/maalimbus/mirror_task_options.py:22-26`). To really open it, the run needs: pick at most three gifts off the pool by their score, pay starlight, prove the spend with a receipt-backed durable transaction, and never count a purchase without a receipt.
+
+```mermaid
+flowchart TD
+  A[the entry reads the run count] -->|a count was named| B[raise the step window to >= 4000 as a safety net]
+  A -->|none named| C[keep the step window]
+  B --> D[record a receipt per completed run]
+  D --> E{completed == the named count?}
+  E -->|yes| F[stop on run_count_reached]
+  E -->|no| D
+  C --> G[stop on window_steps_passed]
+```
+
+| Situation | Expected behaviour | Evidence requirement |
+| --- | --- | --- |
+| A completed-run count was named | Stop on the count; steps only as a safety net | The `run_count_reached` event with `verified_runs` |
+| No count was named | Keep the original step-window behaviour | Stop reason `window_steps_passed` |
+| The gift search once open | Pick by score and pay the starlight | A starlight-spend receipt plus the successor frame |
+| The gift search today | Only refuse or leave, spending nothing | The event shows the refuse/select branch |
+
+Acceptance: with the count set to three, one start must run through to the third completion receipt; until the search is open, neither a log nor a document may claim it is buying.
+
+### 9.3.7 Two false stops on the reward page: a catalogue typo and what counts as a price (2026-10-15)
+
+<a id="feature-9-3-7"></a>
+
+Both live stops happened on a reward page, and neither was the game changing: our own predicates were wrong.
+
+**One: `floor_gift_identity_unknown`.** `dist/MaaLimbus/evidence/runtime/pi-20261015-180214` played 345 frames and then stopped on the reward page. The page did print a title, but the mirror catalogue `assets/resource/base/gift-catalog.json` spelled that gift `Arrested Hymm` while the client prints `Arrested Hymn` (all 20 occurrences in the retained `build/learning-review` corpus are Hymn). Normalised, the two differ by one letter, and over 12 characters `difflib` scores only 0.9167, under the 0.93 gate in `src/maalimbus/gift_vision.py` `text_identity`, so it returned None and the run stopped. Two things were done: the catalogue entry is now `Arrested Hymn` (**without** touching `icons[].path` or `sha256`, so icon integrity is unaffected), and `text_identity` gained a fallback that only accepts a single name of length ≥ 8 one edit away; a short name or two candidates still refuse, so the original ambiguity guard is not loosened.
+
+**Two: `three_free_gift_trial_or_cost_present`.** `pi-20261015-172214` stopped on the three-choice reward page because the veto treated `Defense Level`, `Max HP`, `Cost` and similar words as evidence of a trial or a purchase page. The redesign prints **each card's own effect text inside the card**, and `Defense Level Down until` `[844,534,244,25]` is the first card's effect sentence on a page whose buttons are plainly `Refuse Gift` and `Select`. The veto now reads for wording that carries a price: a shop/trial noun (`Modules`/`Purchase`/`Shop`/`Lunacy`/`Mounting`/`Trials`) or a trial/price word immediately followed by a number (`Enemy Level`/`Defense Level`/`Damage Taken`/`Max HP`/`Cost`); plain effect phrasing no longer vetoes.
+
+```mermaid
+flowchart TD
+  A[Read the reward page] --> B{Does the title match the catalogue?}
+  B -->|ratio >= .93 with a lead| C[Identified]
+  B -->|otherwise| D{Single name of length >= 8 one edit away?}
+  D -->|yes| C
+  D -->|no| E[Stop with identity_unknown]
+  C --> F{Does the page print a price or a trial?}
+  F -->|noun, or trial word plus number| G[Stop with trial_or_cost_present]
+  F -->|only effect phrasing| H[Continue as the three-choice layout]
+```
+
+| Situation | Expected behaviour | Evidence required |
+| --- | --- | --- |
+| One wrong letter in the catalogue, client prints the right title | Still resolves to that gift | `tests/test_gift_vision.py` asserts `Arrested Hymm` resolves to `Arrested Hymn` |
+| A plain effect sentence inside a card | Does not veto the three-choice layout | `tests/test_three_free_gifts.py` asserts the offers still come back for `Defense Level Down until` |
+| Real trial or price wording | Still vetoes | The same file asserts it raises for `Enemy Level +2` and `Mounting Trials` |
+| Icon paths and hashes | The rename touches neither | `gift-catalog.json` `icons[].path`/`sha256` unchanged, catalogue integrity check still passes |
+
+Acceptance: one start gets past the three-choice reward page and the purchase confirmation and keeps playing; `floor_gift_identity_unknown` and `three_free_gift_trial_or_cost_present` appear only when something truly cannot be read or the page really is a trial or a purchase.
+
 ## 9.4 Learning and policy architecture
 
 <a id="feature-9-4"></a>

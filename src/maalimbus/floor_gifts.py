@@ -232,9 +232,6 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     ):
         if len(find(records,'^'+re.escape(title)+'$',(region[0],.245,region[2],.30),size,.9))==1:
             descriptions.update(r.box for r in find(records,'^'+re.escape(clause)+'$',region,size,.9))
-    if any(re.search(r'Mounting|Trials|Enemy Level|Defense Level|Damage Taken|Max HP|Lunacy|Modules?|Purchase|Cost',r.text,re.I)
-           and r.box not in descriptions for r in records):
-        raise ValueError('three_free_gift_trial_or_cost_present')
     select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
     refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
     if len(select)!=1 or len(refuse)!=1 or select_box is None:
@@ -246,6 +243,18 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     if any(abs(a-b)>.02 for a,b in zip(centers,(.292,.500,.708))):
         raise ValueError('three_free_gift_geometry_unknown')
     bounds=[.18]+[(a+b)/2 for a,b in zip(centers,centers[1:])]+[.81]
+    # A payment or a trial is read from the wording that carries it, not from the gift's own
+    # effect sentence: a price or mounting line names a shop/trial noun, or puts a number on
+    # its trial word, while the redesigned floor gift prints plain effect phrasing --
+    # 'Defense Level Down until' [844,534,244,25] on
+    # dist/MaaLimbus/evidence/runtime/pi-20261015-172214/frame-0002.json stopped a run whose
+    # buttons are Refuse Gift and Select. Measured price/trial lines keep vetoing this free
+    # layout ('Cost 10 Modules', 'Max HP +10%', 'Shop Skill Replacement Cost').
+    price_noun = re.compile(r'Modules?|Purchase|Shop|Lunacy|Mounting|Trials', re.I)
+    priced = re.compile(r'(Enemy Level|Defense Level|Damage Taken|Max HP|Cost)\s*\+?\d', re.I)
+    if any(r.box not in descriptions and (price_noun.search(r.text) or priced.search(r.text))
+           for r in records):
+        raise ValueError('three_free_gift_trial_or_cost_present')
     offers=[];states=[]
     for index,box in enumerate(boxes):
         titles=find(records,r'.+',(bounds[index],.245,bounds[index+1],.30),size,.9)

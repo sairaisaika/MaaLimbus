@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 from .policies import Gift, rank_gifts
-from .vision import Text, find, inset_box
+from .vision import Text, close_to, find, inset_box
 
 
 def normalized(text):
@@ -58,14 +58,20 @@ class GiftCatalog:
 
     def text_identity(self, text):
         target = normalized(text)
+        names = [name for name in self.entries
+                 if name not in self.observed_names or target == normalized(name)]
         scores = sorted([(difflib.SequenceMatcher(None,target,normalized(name)).ratio(),name)
-                         for name in self.entries
-                         if name not in self.observed_names or target == normalized(name)],reverse=True)
-        if not scores or scores[0][0] < .93:
-            return None
-        if len(scores)>1 and scores[0][0]-scores[1][0]<.04:
-            return None
-        return scores[0][1]
+                         for name in names],reverse=True)
+        if scores and scores[0][0] >= .93 and (len(scores) < 2 or scores[0][0]-scores[1][0] >= .04):
+            return scores[0][1]
+        # One character in a long title is worth more than three in a short one: the ratio
+        # gate is length-blind, so the 2026-10 client's own print of a title scores .917
+        # against the gift it obviously is (see docs/acceptance.md). Only a single long
+        # name one edit away is forgiven; two candidates or a short one still refuse.
+        near = [name for name in names if len(normalized(name)) >= 8 and close_to(text, name, 1)]
+        if len(near) == 1:
+            return near[0]
+        return None
 
     def icon_identity(self, crop, width):
         if crop.size == 0 or float(crop.std()) < 1:

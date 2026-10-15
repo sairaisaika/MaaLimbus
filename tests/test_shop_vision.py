@@ -17,8 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.shop_vision import (Offer, click_box, currency, offers,  # noqa: E402
-                                   price_value, purchase_confirm_target, refreshes,
-                                   shelf_tokens, wanted_offers)
+                                   matching_purchase_question, native_purchase_dialog,
+                                   price_value, purchase_balances,
+                                   purchase_confirm_target, refreshes, shelf_tokens,
+                                   wanted_offers)
 from maalimbus.vision import Text  # noqa: E402
 
 SHOP_FRAME = ROOT / 'evidence/runtime/window-20261012-024300/frame-0173.json'
@@ -156,6 +158,43 @@ def test_a_question_that_covers_the_offers_is_not_read_as_a_purchase():
     drawn.append(Text('Confirm', (1040, 760, 120, 34), .99))
     drawn.append(Text('X Cancel', (700, 760, 120, 34), .99))
     assert purchase_confirm_target(drawn, size) is None
+
+
+# The 2026-10-15 redesign: the purchase question is titled ``Purchase E.G.O Gifts``
+# with a ``Purchase`` button, and the currency transition ``1102 > 895`` is read as
+# one glued token.  The 17:31 GUI run stopped on exactly this dialog because the
+# badge reader could not price it (``the_shop_asked_about_a_purchase_and_its_confirm
+# _was_not_read``), so this frame is the reader's live evidence.
+REDESIGN_DIALOG = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261015-173132/frame-0251.json'
+
+
+def redesigned_dialog():
+    """The redesigned purchase dialog as the reader sees it, or skip."""
+    if not REDESIGN_DIALOG.exists():
+        pytest.skip('the retained redesigned purchase dialog is not present')
+    record = json.loads(REDESIGN_DIALOG.read_text(encoding='utf-8'))
+    records = [Text(token['text'], tuple(token['box']), token['score'])
+               for token in record['ocr']]
+    return records, tuple(record.get('size') or (1920, 1080))
+
+
+def test_the_redesigned_dialog_reads_its_glued_price_badge():
+    records, size = redesigned_dialog()
+    assert native_purchase_dialog(records, size) is not None
+    assert purchase_balances(records, size) == (1102, 895)
+    # The button may only be handed over with the reserved gift, its price and the
+    # currency the intent was written against: a different price is not that buy.
+    assert matching_purchase_question(records, 'Awe', 207, size, coins=1102) == \
+        [1092, 706, 128, 34]
+    assert matching_purchase_question(records, 'Awe', 208, size, coins=1102) is None
+
+
+def test_a_glued_badge_is_only_split_against_the_token_beside_it():
+    # The split has to be confirmed by the after-token that sits next to it; a
+    # badge whose tail does not match is left unread rather than guessed at.
+    records = [Text('1102895', (1234, 232, 126, 36), .99),
+               Text('896', (1305, 235, 57, 35), .99)]
+    assert purchase_balances(records, (1920, 1080)) is None
 
 
 def test_an_offer_without_a_price_is_not_bought_on_a_guessed_number():

@@ -1997,6 +1997,15 @@ class MirrorRunner:
                         frame_file(directory),self.floor_gift_catalog)
                     self.note('floor_gift_pending_pick_reconciled',input_sent=False,
                               successor=str(frame_file(directory)),count=gift)
+                elif pending and pending.get('kind')=='receipt':
+                    # The notice that pick produced was never booked before the attempt that
+                    # made it ended. A fresh floor gift page proves that receipt's successor
+                    # the same way the settling path would, and the retained notice frame is
+                    # re-read by hash, so nothing is assumed and no input is replayed
+                    # (dist/MaaLimbus/evidence/runtime/pi-20261015-172554 stopped with
+                    # floor_gift_previous_transaction_unresolved on exactly this page).
+                    self._resolve_floor_receipt(self.floor_gift_transaction,'GIFT_PICK','',
+                                                directory,record)
                 d=self.floor_gift_transaction.prepare(self.run_id,floor_offers,gift,frame_file(directory))
                 profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
                               if p.slot==self.store.team_slot),None)

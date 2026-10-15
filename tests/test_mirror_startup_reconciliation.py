@@ -30,6 +30,27 @@ def old_run(config):
     write_json(store.path,store.data);return store,scope
 
 
+def entry_nodes(name,mode='rotation',queue=(1,2,3,4,5)):
+    """The real nodes a GUI Start reads while it applies its settings."""
+    if name.startswith('Global_global_team_'):return dict(attach=dict(global_build=dict(edit=False)))
+    if name=='MirrorTaskTeamMode':return dict(attach=dict(team_mode=mode))
+    if name=='MirrorTaskSingleTeam':return dict(attach=dict(slot=2))
+    if name=='MirrorTaskQueueCount':return dict(attach=dict(count=len(queue)))
+    if name.startswith('MirrorTaskQueue'):return dict(attach=dict(slot=queue[int(name[len('MirrorTaskQueue'):])-1]))
+    if name=='MirrorPreferenceEdit':return dict(attach=dict(enabled=False))
+    if name=='MirrorStarSource':return dict(attach=dict(source='saved'))
+    if name=='MirrorTeamStarEdit':return dict(attach=dict(edit=False))
+    if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='saved'))
+    if name=='MirrorGiftSearch':return dict(attach=dict(mode='saved'))
+    if name=='MirrorRunBounds':return dict(attach=dict(steps='saved'))
+    if name=='MirrorRunCount':return dict(attach=dict(run_count='saved'))
+    if name=='MirrorBattleAssignment':return dict(attach=dict(mode='saved'))
+    for n,f in [('MirrorShopPolicy','shop_policy'),('MirrorShopRefreshLimit','shop_refreshes'),('MirrorShopCoinReserve','shop_reserve_coins')]:
+        if name==n:return dict(attach={f:'saved'})
+    if name=='MirrorLoop':return dict(action=dict(param=dict(custom_action_param=dict(steps=120,run_store='config/user-run-ledger.json'))))
+    raise KeyError(name)
+
+
 def test_independent_idle_entry_retires_old_scope_without_inventing_payout(tmp_path):
     store,scope=old_run(tmp_path/'config');proof=frame(tmp_path/'evidence')
     result=reconcile_idle_entry(store,proof)
@@ -71,24 +92,7 @@ def test_gui_start_prepares_old_run_before_applying_both_real_option_shapes(tmp_
     monkeypatch.setattr(recognition.InputPreflight,'run',lambda *a:True)
     monkeypatch.setattr(recognition.runner,'observe',lambda *a:read_json(proof))
     # Exercise the real GlobalSettingsAction.apply and actual option collectors.
-    def node(name):
-        if name.startswith('Global_global_team_'):return dict(attach=dict(global_build=dict(edit=False)))
-        if name=='MirrorTaskTeamMode':return dict(attach=dict(team_mode=mode))
-        if name=='MirrorTaskSingleTeam':return dict(attach=dict(slot=2))
-        if name=='MirrorTaskQueueCount':return dict(attach=dict(count=len(queue)))
-        if name.startswith('MirrorTaskQueue'):return dict(attach=dict(slot=queue[int(name[len('MirrorTaskQueue'):])-1]))
-        if name=='MirrorPreferenceEdit':return dict(attach=dict(enabled=False))
-        if name=='MirrorStarSource':return dict(attach=dict(source='saved'))
-        if name=='MirrorTeamStarEdit':return dict(attach=dict(edit=False))
-        if name=='MirrorInitialKeyword':return dict(attach=dict(keyword='saved'))
-        if name=='MirrorGiftSearch':return dict(attach=dict(mode='saved'))
-        if name=='MirrorRunBounds':return dict(attach=dict(steps='saved'))
-        if name=='MirrorRunCount':return dict(attach=dict(run_count='saved'))
-        if name=='MirrorBattleAssignment':return dict(attach=dict(mode='saved'))
-        for n,f in [('MirrorShopPolicy','shop_policy'),('MirrorShopRefreshLimit','shop_refreshes'),('MirrorShopCoinReserve','shop_reserve_coins')]:
-            if name==n:return dict(attach={f:'saved'})
-        if name=='MirrorLoop':return dict(action=dict(param=dict(custom_action_param=dict(steps=120,run_store='config/user-run-ledger.json'))))
-        raise KeyError(name)
+    def node(name):return entry_nodes(name,mode=mode,queue=queue)
     seen=[]
     def loop(self,context,argv):
         parameters=json.loads(argv.custom_action_param)
@@ -102,6 +106,39 @@ def test_gui_start_prepares_old_run_before_applying_both_real_option_shapes(tmp_
     assert recognition.MainTaskAction(owner).run(context,args)
     assert seen[0][0]==queue and seen[0][1]==queue[0] and seen[0][2]!=scope
     assert read_json(store.path)['completed_runs']==0 and owner.callback_failure is None
+
+
+def test_an_unreadable_run_page_keeps_the_old_run_and_still_reaches_the_loop(tmp_path,monkeypatch):
+    import sys
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'agent'))
+    import recognition
+    import maalimbus.controller_lease as leases
+    monkeypatch.setattr(leases,'lease_path',lambda p:tmp_path/'unit-start.lock')
+    config=tmp_path/'config';store,scope=old_run(config);evidence=tmp_path/'evidence'
+    monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(config))
+    monkeypatch.setattr(recognition,'data_directory',lambda *a:config)
+    monkeypatch.setattr(recognition.InputPreflight,'run',lambda *a:True)
+    def unreadable(*a):raise RuntimeError('the observation node recorded no page for this frame')
+    monkeypatch.setattr(recognition.runner,'observe',unreadable)
+    seen=[]
+    def loop(self,context,argv):
+        parameters=json.loads(argv.custom_action_param)
+        settings,_=recognition.loop_parameters(parameters)
+        current,run=recognition.loop_store(settings,self.recognition.journal)
+        seen.append(current.data['active']['id']);return True
+    monkeypatch.setattr(recognition.MirrorLoopAction,'run',loop)
+    owner=SimpleNamespace(callback_failure=None,journal=None)
+    context=SimpleNamespace(get_node_data=entry_nodes,tasker=SimpleNamespace(controller=SimpleNamespace()))
+    args=SimpleNamespace(custom_action_param=json.dumps(dict(task='mirror',directory=str(evidence))),node_name='MirrorTask')
+    assert recognition.MainTaskAction(owner).run(context,args)
+    assert seen==[scope]
+    events=[json.loads(line) for line in (evidence/'events.jsonl').read_text(encoding='utf-8').splitlines()]
+    prepared=[e for e in events if e['event']=='mirror_entry_preparation']
+    assert prepared and all(e['retired'] is False for e in prepared)
+    unreadable=[e for e in prepared if e['reason']=='active_run_page_unreadable']
+    assert unreadable and 'no page for this frame' in unreadable[-1]['error']
+    assert prepared[-1]['reason']=='a_run_is_still_in_progress'
+    assert store.data['active']['id']==scope and owner.callback_failure is None
 
 
 def test_settings_refusal_has_result_human_log_and_no_callback_poison(tmp_path,monkeypatch):

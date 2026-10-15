@@ -299,12 +299,29 @@ def native_purchase_dialog(records,size=None):
 
 
 def purchase_balances(records,size=None):
+    """The dialog's own before -> after currency badge.
+
+    The redesigned dialog (2026-10-15, retained live frame
+    ``dist/MaaLimbus/evidence/runtime/pi-20261015-173132/frame-0251.json``)
+    prints the transition as a single badge, ``1102 > 895``, which the
+    recogniser reads as the one token ``1102895`` beside the after-token
+    ``895``.  The glued token is only split when it really ends with the
+    after-token that was read next to it, and the caller still has to find
+    ``before - after == price`` before anything is clicked: a wrong split can
+    never authorize a purchase.
+    """
     from .vision import find
     size=size or REFERENCE
-    before=find(records,r'^\d{1,4}$',(.639,.213,.672,.251),size,.9)
     after=find(records,r'^\d{1,4}$',(.679,.213,.711,.251),size,.9)
-    if len(before)!=1 or len(after)!=1:return None
-    return int(before[0].text),int(after[0].text)
+    if len(after)!=1:
+        after=find(records,r'^\d{1,4}$',(.675,.213,.715,.251),size,.9)
+    if len(after)!=1:return None
+    tail=after[0].text
+    before=find(records,r'^\d{1,4}$',(.639,.213,.672,.251),size,.9)
+    if len(before)==1:return int(before[0].text),int(tail)
+    glued=find(records,r'^\d{1,4}'+re.escape(tail)+r'$',(.635,.213,.715,.251),size,.9)
+    if len(glued)==1:return int(glued[0].text[:-len(tail)]),int(tail)
+    return None
 
 
 def purchase_confirm_target(records, size=None, require_offers=True):
