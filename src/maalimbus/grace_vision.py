@@ -92,8 +92,15 @@ def cost_of(index):
 #: inside the box only because vision.find judges by centre point, so a lone reading was
 #: never stronger proof than two readings that agree: readings that agree are one glyph
 #: read twice, and readings that disagree are two different numbers and prove nothing.
-COST_PATTERN = r'^\d{1,3}$'
-COST_FLOOR = 0.85
+#: A cost is those digits, with up to the two glyphs the badge may draw beside them:
+#: the 2026-10 client puts the starlight icon inside the same OCR box (live frame
+#: runtime/packaged-mirror-20261015-070250/frame-0010 reads card 1 as '本10' at .86),
+#: and the same box is what the tight cost_roi hands back. The digits are the plan.
+COST_PATTERN = r'^\D{0,2}\s*(\d{1,3})$'
+#: The glyph sharing the badge lowers the reading: live 2026-10 frames score the
+#: glued costs .82-.87 against .99+ for the clean ones, so the floor admits them and
+#: the agreeing-readings rule still refuses a box that reads as two numbers.
+COST_FLOOR = 0.80
 
 
 def agreeing_number(values):
@@ -112,9 +119,9 @@ def read_cost(records, box, size):
     region = (x / size[0], y / size[1], (x + w) / size[0], (y + h) / size[1])
     values = []
     for item in vision.find(records, COST_PATTERN, region, size, COST_FLOOR):
-        text = (item.text or '').strip()
-        if re.fullmatch(COST_PATTERN, text):
-            values.append(int(text))
+        match = re.fullmatch(COST_PATTERN, (item.text or '').strip())
+        if match:
+            values.append(int(match.group(1)))
     return agreeing_number(values)
 
 

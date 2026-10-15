@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from maalimbus.vision import Text, classify, inset_box
+from maalimbus.vision import Text, classify, close_to, find, find_read, inset_box
 
 
 LOCALES = Path(__file__).resolve().parents[1] / 'assets/resource'
@@ -769,3 +769,21 @@ def test_the_revived_sinners_notice_is_named_off_the_words_it_prints():
     # own ask or nothing at all, never this state.
     other = [Text('Hong Lu, returns to battle.', (108, 573, 340, 28), .98)] + done[1:]
     assert classify(other, words, (1920, 1080)) != 'REVIVE_DONE'
+
+
+def test_a_token_read_with_a_character_slip_is_read_again_not_guessed():
+    # Live 2026-10 redesign: the star page's own control comes back as 'Select Al
+    # Graoes' at .92 (evidence/runtime/packaged-mirror-20261015-070250/frame-0010.json).
+    assert close_to('Select Al Graoes', 'Select All Graces')
+    assert close_to('Select All Graces', 'Select All Graces')
+    # Words that are actually different stay different: this forgives spelling, not
+    # another button, and the caller still anchors on the band and the page's other
+    # controls.
+    assert not close_to('Enhance All', 'Select All Graces')
+    assert not close_to('Enter', 'Rental')
+    assert not close_to('', 'Enter')
+    records = [Text('Select Al Graoes', (1732, 744, 122, 32), .924),
+               Text('Select All Graces', (1730, 100, 122, 32), .99)]
+    band = (.88, .66, .99, .75)
+    assert find(records, r'^Select\s*A(?:ll|I)\s*Graces$', band, (1920, 1080), .8) == []
+    assert find_read(records, 'Select All Graces', band, (1920, 1080)) == [records[0]]

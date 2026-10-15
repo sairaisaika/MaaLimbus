@@ -331,8 +331,10 @@ class LimbusRecognition(CustomRecognition):
             if boxes is not None:
                 for box in boxes:
                     roi=star_vision.cost_roi(box)
+                    # The badge may put the starlight glyph in the same crop the digits
+                    # are read from (2026-10 client); the digits are the cost.
                     detail=context.run_recognition_direct(JRecognitionType.OCR,
-                        JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,3}$'],threshold=.85),image)
+                        JOCR(roi=roi,only_rec=True,expected=[r'^\D{0,2}\s*\d{1,3}\s*$'],threshold=.85),image)
                     if detail is None:raise RuntimeError('Maa local grace cost OCR returned no evidence')
                     found=[]
                     if detail.hit:
@@ -798,12 +800,15 @@ class LimbusRecognition(CustomRecognition):
         return CustomRecognition.AnalyzeResult(box, result)
 
     def read_number(self,context,image,roi):
+        # A crop may carry up to two leading glyphs beside the digits (the 2026-10
+        # starlight badge draws its icon inside the box); the digits are the number.
         detail=context.run_recognition_direct(JRecognitionType.OCR,
-            JOCR(roi=roi,only_rec=True,expected=[r'^\s*\d{1,4}\s*$'],threshold=.85),image)
+            JOCR(roi=roi,only_rec=True,expected=[r'^\D{0,2}\s*\d{1,4}\s*$'],threshold=.85),image)
         if detail is None or not detail.hit:return None
         results=[r for r in detail.filtered_results if hasattr(r,'text')]
         if len(results)!=1:return None
-        return int(results[0].text.strip())
+        digits=re.sub(r'\D','',results[0].text)
+        return int(digits) if digits else None
 
 
 class DifficultyProof(CustomAction):

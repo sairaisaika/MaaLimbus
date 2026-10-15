@@ -27,6 +27,48 @@ def find(records, pattern, roi, size, threshold=.65):
     return matches
 
 
+def normalise(text):
+    """Letters and digits only, folded: 'Select Al Graoes' -> 'selectalgraoes'."""
+    return re.sub(r'[^a-z0-9]+', '', text.casefold())
+
+
+def close_to(text, phrase, budget=2):
+    """A token the page prints, allowing the character slips the client font makes.
+
+    The 2026-10 redesign reads 'Select All Graces' as 'Select Al Graoes' (0.92) and
+    'Starlight' as 'tarlight' on live frames (see docs/acceptance.md), which an exact
+    pattern refuses. Only a bounded edit distance on the normalised forms is
+    forgiven, so a different word still fails; the caller keeps the position band and
+    the page's other tokens as the real anchor.
+    """
+    left, right = normalise(text), normalise(phrase)
+    if not left or not right or abs(len(left) - len(right)) > budget:
+        return False
+    previous = list(range(len(right) + 1))
+    for i, a in enumerate(left, 1):
+        current = [i]
+        for j, b in enumerate(right, 1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1,
+                               previous[j - 1] + (a != b)))
+        if min(current) > budget:
+            return False
+        previous = current
+    return previous[-1] <= budget
+
+
+def find_read(records, phrase, roi, size, threshold=.8, budget=2):
+    """find(), for a page token read with the current font's own misspellings."""
+    w, h = size
+    matches = []
+    for record in records:
+        x, y, bw, bh = record.box
+        cx, cy = (x + bw / 2) / w, (y + bh / 2) / h
+        if (record.score >= threshold and roi[0] <= cx <= roi[2] and roi[1] <= cy <= roi[3]
+                and close_to(record.text, phrase, budget)):
+            matches.append(record)
+    return matches
+
+
 def inset_box(box, ratio=.2):
     x, y, w, h = box
     dx, dy = int(w * ratio), int(h * ratio)

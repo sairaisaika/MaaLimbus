@@ -164,3 +164,32 @@ def test_the_available_counter_survives_a_duplicated_read():
     # A reading that disagrees with the counter is not a second opinion to average.
     disagreeing = records[:2] + [Text('600', (1180, 42, 64, 26), .88)]
     assert available_starlight(disagreeing, (1920, 1080)) is None
+
+
+#: The 2026-10 redesign, caught live on the way into a Hard run: same ten cards, but
+#: the borders are drawn thinner and the cost badge sits further left with the
+#: starlight glyph inside the same OCR box as its digits.
+REDESIGN = ROOT / 'evidence/runtime/packaged-mirror-20261015-070250'
+
+
+def test_the_redesigned_page_is_located_not_assumed():
+    """The page is read by its own words and edges, so a redraw still reads."""
+    payload = REDESIGN / 'frame-0010.json'
+    picture = REDESIGN / 'frame-0010.png'
+    if not payload.exists() or not picture.exists():
+        pytest.skip('the 2026-10 live frame is not retained in this checkout')
+    from maalimbus import star_vision
+
+    frame = json.loads(payload.read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in frame['ocr']]
+    size = tuple(frame['size'])
+    locale = json.loads((ROOT / 'assets/resource/en/locale.json').read_text(encoding='utf-8'))
+    assert star_vision.page(records, size, locale) is True
+    image = cv2.imread(str(picture))
+    boxes = star_vision.grid(image)
+    assert boxes is not None and len(boxes) == 10
+    # The same ten prices the board order was proved on, read through the moved badge
+    # whose readings carry the glyph and score .82-.87.
+    board = observed_board(image, records, list(range(1, 11)))
+    assert board is not None and tuple(board['costs']) == COSTS
+    assert board['points'][1] != board['points'][6]
