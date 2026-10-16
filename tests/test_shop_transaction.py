@@ -507,18 +507,31 @@ def test_a_decision_context_of_an_unknown_shape_is_refused(tmp_path):
 
 
 def test_the_confusable_fold_never_adopts_a_card_with_a_different_glyph(tmp_path):
-    """The fold covers the typeface's own pairs, not titles in general."""
+    """The fold covers the typeface's own pairs, not titles in general.
+
+    The exact coin delta still receipts the purchase, but the *identity* of what was
+    bought comes from the reservation, never from a successor slot whose name merely
+    looks similar, so the successor can neither adopt nor rename the card.
+
+    Live: run ``pi-20261015-215812`` resumed the reservation an earlier run left behind,
+    paid its 390 (1809 -> 1419), and its successor shelf kept printing the truncated
+    title at the same price with no badge; that mismatch is now recorded instead of
+    ending the run.
+    """
     tx, before = setup(tmp_path)
     reserve(tx, before)
     tx.reserve_confirm('scope', 'floor1:shop1',
                        frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
     after = frame(tmp_path, 'after', shelf(('Orach',), 80)
                   + [row('Purchased', (870, 320, 120, 40))])
-    original = tx.path.read_bytes()
-    with pytest.raises(ValueError, match='Independent complete successor shelf not proven'):
-        tx.reconcile_purchase('scope', 'floor1:shop1', after)
-    assert tx.path.read_bytes() == original
-    assert tx.bought_names == []
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    bought = tx.data['bought'][-1]
+    assert bought['name'] == 'Oracle' and bought['price'] == 20
+    assert bought['shelf_evidence'] == 'exact_currency_delta'
+    assert bought['successor_note']['reason'] == (
+        'the_successor_shelf_could_not_corroborate_the_exact_currency_delta')
+    assert tx.bought_names == ['Oracle']
+    assert tx.data['pending'] is None
 
 
 LIVE_CONFUSABLE_BEFORE = ROOT / 'evidence/runtime/window-20261012-221212/frame-0002.json'

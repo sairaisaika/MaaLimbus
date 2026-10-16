@@ -446,6 +446,39 @@ flowchart TD
 
 验收口径：一次启动里，购买框无论是"读不出来"还是"没预留过"，都只走 Cancel 并继续跑；交易层拒绝不可授权的按钮时不再结束整局。**授权这一步也要认得新版对话框**：它不再要求那句 `Would you like to purchase …?`（新版根本不印），而是用与计划完全相同的证据 —— 礼物名按词、徽章正好花掉预留下价格、金币落在预留意向里（`ShopTransaction.reserve_confirm` 先问 `purchase_dialog_answer`，读不出来时才回落到旧版问句）。实机 `pi-20261015-214921`（21:49:21 启动，11 秒后停，inputs=1）就是死在旧问句上：计划已经授权了这一个购买框，交易层却找不到那句问句，于是整局结束。
 
+### 9.3.11 购买标签来自这一局自己后来的观测：价值模型的门控式参与（2026-10-15）
+
+<a id="feature-9-3-11"></a>
+
+**症状**：商店样本一直在记录（`dist/MaaLimbus/evidence/runtime/pi-*/agent-result.json` 里 `shop_purchase_learning_samples.neural_policy_applied=false`，日志写"购买学习样本已记录：7；价值神经模型尚未应用"），但运行目录 `assets/resource/base/model/shop-value` 根本不存在，因此 `shop_value_shadow.rank_preview` 每次都走 `purchase_value_model_missing_rule_fallback`。样本被记下，却没有任何东西给它们打标签；"人的复核"是一个没人执行的门。
+
+**规则**：一次购买的收益**不由人写**，就是这一局在它之后自己观测到的东西 —— `shop_value_training.label_from_outcomes()` 重新推导：过层按层数（一层 0.2）、通关 1.0、只拿到奖励或原路退出 0.1；标签摘要只覆盖被哈希绑定的那些位（`outcomes_digest`），所以证据到达的顺序不会改变标签。`review_sample()` 只在存在**被运行账本绑定过的后续观测**时才写 `review.json`/`outcome.json`（`approved_by=observed_run_return_in_scope`，`training_eligible=true`，`human_approved` 仍为 false）；没有后续观测的目录保持 pending 并计数（`delayed_outcome_evidence_missing`），不编造收益。加载侧（`load_reviewed_episodes`）不信任盘上的标签：它会重新推导，标称收益与证据不一致的样本以 `objective_label_mismatch` 排除，再次检查 `action_executed`、`training_eligible`、内容地址与账本绑定。
+
+**参与是门控的**：训练器用 `split_by_scope` 按整局留出，只有在留出对比里自己证明了排序能力（对数 ≥ 4 且准确率 ≥ 0.6）才把 `participation` 写成 `ranked`；否则写 `shadow`。`rank_preview` 每次加载都重验哈希链（`weights_sha256`、`dataset_sha256` 三处一致、`evidence_verified`、`reviewed_episodes` 与 `verified_episodes` 相等、权重有限且界内），再按参与方式返回：`ranked` 在**计划已经批准的候选内部**按分数排序，`shadow` 只报分数、顺序不动。两者都不会覆盖"计划指定的那个礼物"（`the_gift_plan_asked_for_this_offer`）——模型只在计划自己划出的集合里决定先买哪个。
+
+```mermaid
+flowchart TD
+    A["run's later observations<br/>floor_clear / final_victory"] --> B["label_from_outcomes<br/>floor 0.2, victory 1.0"]
+    B --> C["review_sample<br/>only if the ledger bound them"]
+    C -->|no bound observation| P["stays pending<br/>delayed_outcome_evidence_missing"]
+    C --> D["load_reviewed_episodes<br/>re-derives, rejects mismatch"]
+    D --> E["split_by_scope<br/>whole-run holdout"]
+    E -->|pairs>=4 and accuracy>=0.6| R["participation=ranked<br/>reorders the plan's own set"]
+    E -->|otherwise| S["participation=shadow<br/>scores only, order unchanged"]
+    R --> L["rank_preview re-verifies<br/>digest chain on every load"]
+    S --> L
+```
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 购买后这一局过了一层 | 标签按层数推导，写入复核文件 | `tests/test_shop_value_review.py::test_the_label_is_the_runs_own_later_observation` |
+| 证据缺哈希绑定 | 不算标签 | `tests/test_shop_value_review.py::test_a_later_observation_without_a_bound_digest_is_not_a_label` |
+| 购买后没有被绑定的观测 | 保持 pending，不编造 | `tests/test_shop_value_review.py::test_a_purchase_the_run_never_followed_up_stays_pending` |
+| 候选证明不了留出排序 | 只做影子，顺序不变 | `tests/test_shop_value_review.py::test_a_promoted_candidate_reorders_the_offers_and_a_shadow_one_does_not` |
+| 盘上标签与证据不一致 | 加载时重新推导并排除 | `tests/test_shop_value_review.py::test_a_candidate_with_a_dataset_digest_that_does_not_re_derive_is_ignored` |
+
+验收口径：`python tools/shop_value_review.py --install` 会复核目录、训练、并把 `weights.json` 与 `modelcard.json` 装进 `assets/resource/base/model/shop-value`。2026-10-15 的实测状态：10 个目录中 7 个已按观测标注、3 个仍待核（缺后续观测）；已核样本 1 局 / 6 行，留出 0 对、准确率未知，因此参与方式为 **shadow**（分数已可见，顺序不变）。**这不是"神经网络已上线"**：要开始参与，需要第二个被核验的局形成留出对比；缺的就是能跑完的实机局数，而不是人的复核。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

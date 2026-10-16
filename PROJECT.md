@@ -2433,3 +2433,35 @@ was the one still asking for the retired question sentence (`ShopTransaction.res
 `mirror_loop_failed; Full matching purchase title/price/question not proven`. `reserve_confirm` now asks
 `purchase_dialog_answer` first (gift band by its words, badge spending exactly the reserved price, coin counter on
 the reserved intent) and keeps the older wording only as a fallback for the pre-redesign client.
+
+## DSH continuation: the receipt is the currency delta, and the value model is labelled by the run itself (2026-10-15/16)
+
+The user's report (m08801) was that a purchase *succeeded* and the run then died immediately, and that the neural
+network must actually be implemented ("你没有这个东西，我们搞一些硬边界都没有用"). Two changes answer it.
+
+First, the receipt. `ShopTransaction.reconcile_purchase` used to require the successor shelf to still show the
+bought card (`bought` matched through `_same_title`); on `pi-20261015-215812` the shelf re-printed the truncated
+title `Clear Mirror, Calm Wate`, the fold could not adopt it, and the run ended on
+`mirror_loop_failed; Independent complete successor shelf not proven` even though the currency delta proved the
+purchase exactly (1809 -> 1419 = the reserved 390). The exact delta is now the receipt: `shelf_evidence` is
+`own_purchased_badge`, `removed_offer` or `exact_currency_delta`, and a shelf that cannot corroborate the delta is
+recorded as `successor_note` instead of ending the run. Folded-glyph adoption is still refused.
+
+Second, the network. Nothing ever labelled the recorded purchases and the runtime model root did not exist, so
+`rank_preview` always took `purchase_value_model_missing_rule_fallback`. Now:
+
+- `shop_value_training.label_from_outcomes()` derives the label from the run's own later observations (floor 0.2,
+  victory 1.0, reward/early return 0.1) with a digest over the bound bits only;
+- `review_sample()` approves a folder only when a ledger-bound later observation exists, and the loader re-derives
+  the label and excludes `objective_label_mismatch`;
+- the trainer gates participation on its own whole-run holdout (`split_by_scope`, >= 4 pairs and accuracy >= 0.6 ->
+  `ranked`, otherwise `shadow`), and a ranked model only reorders inside the set the plan already approved;
+- `tools/shop_value_review.py --install` copies the candidate into `assets/resource/base/model/shop-value`.
+
+Measured 2026-10-15: 10 folders, 7 labelled from observation, 3 pending (no later observation), 1 verified run /
+6 rows, 0-pair holdout -> participation **shadow**; the candidate scores offers (Awe 0.5488, Clear Mirror, Calm
+Water 0.5397, Tangled Bundle 0.5316) and does not reorder. Steering begins when a second verified run makes a
+hold-out comparison possible.
+
+Tests: `tests/test_shop_value_review.py` (6 new), `tests/test_shop_transaction.py` updated; shop/vision/value/
+learning/window/runner 232 passed. Docs: chapter 9 section 9.3.11 in both languages plus the README row.

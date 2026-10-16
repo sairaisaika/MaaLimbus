@@ -524,23 +524,34 @@ class ShopTransaction:
                     if not _same_title(offer['name'], pending['name'])
                     and _key(offer['name']) not in held and _fold(offer['name']) not in held]:
                 raise ValueError('Shop successor shows an offer the shelf never held')
+            successor_note = None
         else:
-            # Without the card's own badge the disappearance is the only evidence, so
-            # every other slot must be retained; a sparse OCR read cannot masquerade as
-            # the disappearance of the chosen card.  The baseline is re-read rather than
-            # trusted from bytes an older reader wrote.  Retained slots are compared
-            # under the same confusable fold, so a misread glyph is not a lost slot.
+            # Without the card's own badge the *exact currency delta* proven above is the
+            # receipt: the account paid exactly the reserved price for exactly the
+            # reserved card.  The successor shelf can only corroborate that, and the
+            # redesigned client does not always let it: live run pi-20261015-215812
+            # resumed a reservation the previous run left behind, paid its 390
+            # (1809 -> 1419), and the successor shelf still printed the truncated title
+            # ("Clear Mirror, Calm Wate") at the same price with no Purchased badge, so
+            # demanding a complete successor shelf ended a run that had just bought
+            # correctly.  The difference is now recorded on the receipt instead of raised;
+            # the card's *identity* never comes from the shelf, only from the reservation
+            # and the dialog the click answered, so a successor cannot rename the purchase.
             remaining = sorted((_fold(o['name']), o['price']) for o in baseline
                                if not _same_title(o['name'], pending['name']))
             actual = sorted((_fold(o['name']), o['price']) for o in shelf
                             if not _same_title(o['name'], pending['name']))
-            if actual != remaining:
-                raise ValueError('Independent complete successor shelf not proven')
+            successor_note = None if actual == remaining else dict(
+                expected=[list(row) for row in remaining], observed=[list(row) for row in actual],
+                reason='the_successor_shelf_could_not_corroborate_the_exact_currency_delta')
         data = copy.deepcopy(self.data)
         data['bought'].append(dict(name=pending['name'], price=pending['price'],
                                    visit=visit, before=pending['before'],
                                    question=pending.get('question'), successor=proof,
-                                   shelf_evidence='own_purchased_badge' if bought else 'removed_offer',
+                                   shelf_evidence=('own_purchased_badge' if bought else
+                                                   'removed_offer' if successor_note is None else
+                                                   'exact_currency_delta'),
+                                   successor_note=successor_note,
                                    decision_context=pending.get('decision_context'),
                                    overlay_acknowledgement=pending.get('overlay_acknowledgement')))
         data['pending'] = None

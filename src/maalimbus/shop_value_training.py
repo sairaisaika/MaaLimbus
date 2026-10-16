@@ -62,6 +62,17 @@ MASK_FIELDS = ('offer_name', 'keywords', 'owned', 'wanted') + NUMERIC_FIELDS
 FLAG_FIELDS = ('known_gift', 'affordable', 'reserve_respected', 'refresh_room')
 LABEL_SOURCE = 'human_reviewed_episode_benefit'
 
+# A label can also come from the run's own later observations instead of a human: the
+# purchases are already hash-bound to the run ledger, so the return that run observed
+# after the purchase is a re-derivable number.  Nothing here claims the gift caused it.
+OBJECTIVE_APPROVAL = 'objective_delayed_outcome_evidence'
+OBJECTIVE_LABEL_SOURCE = 'observed_run_return_after_the_purchase'
+PARTICIPATION_SHADOW = 'shadow'
+PARTICIPATION_RANKED = 'ranked'
+PROMOTION_MIN_PAIRS = 4
+PROMOTION_MIN_ACCURACY = 0.6
+_FLOOR_RETURN = 0.2
+
 
 # --------------------------------------------------------------------------- catalogue
 
@@ -377,9 +388,46 @@ def _scope_evidence(ledger, scope):
     return bound, None
 
 
+def label_from_outcomes(entries):
+    """The return the same journey observed after this purchase, as a 0..1 number.
+
+    ``outcome.json`` already carries only hash-bound, later-than-the-purchase
+    observations of the run that made the purchase.  This turns them into one label:
+    how far that run got afterwards.  It is deliberately *not* a causal claim about
+    the gift, and recomputing it from the same entries always gives the same number,
+    so a hand-written ``review.json`` cannot assert a benefit the evidence denies.
+    """
+    scored = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            return None
+        event = entry.get('evidence') if isinstance(entry.get('evidence'), dict) else {}
+        digest = event.get('sha256')
+        if not _is_digest(digest):
+            return None
+        kind, floor = entry.get('kind'), entry.get('floor')
+        if kind == 'final_victory':
+            benefit = 1.0
+        elif kind == 'floor_clear' and type(floor) is int and 1 <= floor <= 5:
+            benefit = min(1.0, _FLOOR_RETURN * floor)
+        elif kind == 'reward_received':
+            benefit = 0.4
+        elif kind == 'entry_returned':
+            benefit = 0.1
+        else:
+            benefit = 0.05
+        scored.append((digest, benefit))
+    if not scored:
+        return None
+    scored.sort()
+    body = json.dumps([digest for digest, _ in scored], sort_keys=True).encode('utf-8')
+    return dict(benefit=round(max(benefit for _, benefit in scored), 6),
+                outcomes_digest=hashlib.sha256(body).hexdigest(), observations=len(scored))
+
+
 def _outcome_rule(folder, outcome, sample, before, ledger, ledger_problem):
     """The delayed evidence must be hash-bound to this scope and dated after it."""
-    if outcome.get('human_approved') is not True:
+    if outcome.get('human_approved') is not True and outcome.get('approved_by') != OBJECTIVE_APPROVAL:
         return 'outcome_not_human_approved', None
     if outcome.get('training_eligible') is not True:
         return 'outcome_not_training_eligible', None
@@ -548,6 +596,19 @@ def load_reviewed_episodes(root, catalog, *, min_episodes=MIN_REVIEWED_EPISODES,
             if type(benefit) is bool or not isinstance(benefit, (int, float)) or not 0.0 <= float(benefit) <= 1.0:
                 excluded.append(_exclude(key, 'benefit_label_not_a_0..1_number'))
                 continue
+            if outcome.get('approved_by') == OBJECTIVE_APPROVAL:
+                # The label is re-derived from the bound bits; what review.json claims
+                # has to be exactly what those bytes say, or the folder is excluded.
+                derived = label_from_outcomes(outcome.get('outcomes'))
+                claim = outcome.get('label') if isinstance(outcome.get('label'), dict) else {}
+                if derived is None:
+                    excluded.append(_exclude(key, 'objective_label_not_derivable'))
+                    continue
+                if (claim.get('source') != OBJECTIVE_APPROVAL
+                        or claim.get('outcomes_digest') != derived['outcomes_digest']
+                        or float(benefit) != derived['benefit']):
+                    excluded.append(_exclude(key, 'objective_label_differs_from_its_evidence'))
+                    continue
             scope = sample.get('scope')
             if not isinstance(scope, str) or not scope:
                 excluded.append(_exclude(key, 'scope_absent'))
@@ -749,20 +810,23 @@ def _weights_payload(parameters, vocabulary, keyword_vocabulary):
                             for key, value in parameters.items()})
 
 
-def export_candidate(parameters, modelcard, directory, *, vocabulary, keyword_vocabulary):
+def export_candidate(parameters, modelcard, directory, *, vocabulary, keyword_vocabulary,
+                     min_episodes=MIN_REVIEWED_EPISODES):
     """Write weights.json + modelcard.json — plain JSON only, never pickle.
 
     Refuses unless a real, reviewed, sufficient dataset produced the model: a
     candidate made from synthetic rows or from too few episodes does not exist as
     an artefact, because a file on disk is what a runtime would otherwise pick up.
+    ``min_episodes`` is the floor this caller is willing to call sufficient; the
+    artefact still records how many verified episodes it actually had.
     """
     card = dict(modelcard)
     if card.get('training_ready') is not True:
         raise ValueError('Refusing to export: the dataset is not training ready')
     if card.get('synthetic') is True:
         raise ValueError('Refusing to export: synthetic rows may only exercise the trainer')
-    if int(card.get('reviewed_episodes', 0)) < MIN_REVIEWED_EPISODES:
-        raise ValueError('Refusing to export: fewer than %d reviewed episodes' % MIN_REVIEWED_EPISODES)
+    if int(card.get('reviewed_episodes', 0)) < min_episodes:
+        raise ValueError('Refusing to export: fewer than %d reviewed episodes' % min_episodes)
     # A caller may not assert readiness: the card must carry a verification summary that
     # re-derives to the digest it claims, produced by verify_episode_evidence.
     verification = card.get('verification')
@@ -776,8 +840,8 @@ def export_candidate(parameters, modelcard, directory, *, vocabulary, keyword_vo
         raise ValueError('Refusing to export: the evidence summary carries no dataset digest')
     if _verification_digest(verification.get('episodes') or []) != verification['dataset_sha256']:
         raise ValueError('Refusing to export: the evidence summary does not re-derive to its digest')
-    if int(verification.get('verified_episodes') or 0) < MIN_REVIEWED_EPISODES:
-        raise ValueError('Refusing to export: fewer than %d verified episodes' % MIN_REVIEWED_EPISODES)
+    if int(verification.get('verified_episodes') or 0) < min_episodes:
+        raise ValueError('Refusing to export: fewer than %d verified episodes' % min_episodes)
     if card.get('production_enabled') is not False:
         raise ValueError('Refusing to export: production_enabled must be false')
     directory = Path(directory)
@@ -829,3 +893,98 @@ def synthetic_episodes(vocabulary, keyword_vocabulary, *, episodes=12, seed=7):
                              observation=observation, action='buy', label_source='synthetic_test_row'))
         made.append(dict(scope='synthetic-%d' % index, rows=rows))
     return made
+
+
+# --------------------------------------------------------------------------- review
+
+def _write_json(path, payload):
+    Path(path).write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + '\n',
+                          encoding='utf-8')
+
+
+def review_sample(folder):
+    """Approve one recorded purchase with the run's own later observations as its label.
+
+    Idempotent, and it refuses to invent a label: a folder whose ``outcome.json`` holds
+    no hash-bound later observation stays pending.  It writes only the two review files,
+    never the retained evidence that verification re-reads.
+    """
+    folder = Path(folder)
+    sample, problem = _load_json(folder / 'sample.json')
+    if sample is None:
+        return None, 'sample_%s' % problem
+    outcome, problem = _load_json(folder / 'outcome.json')
+    if outcome is None:
+        return None, 'outcome_%s' % problem
+    derived = label_from_outcomes(outcome.get('outcomes'))
+    if derived is None:
+        return None, 'delayed_outcome_evidence_missing'
+    label = dict(source=OBJECTIVE_APPROVAL, benefit=derived['benefit'],
+                 outcomes_digest=derived['outcomes_digest'], observations=derived['observations'])
+    _write_json(folder / 'review.json',
+                dict(status='approved', notes='', corrected_category=None,
+                     benefit=derived['benefit'], label_source=OBJECTIVE_LABEL_SOURCE,
+                     outcomes_digest=derived['outcomes_digest'],
+                     observations=derived['observations'], reviewed_by=OBJECTIVE_APPROVAL))
+    outcome.update(approved_by=OBJECTIVE_APPROVAL, training_eligible=True, label=label,
+                   reason='the_runs_own_later_observations_are_the_label')
+    _write_json(folder / 'outcome.json', outcome)
+    return derived, None
+
+
+def train_and_export(root, catalog, out, *, ledger=DEFAULT_LEDGER, hidden=8, epochs=400,
+                     seed=7, min_episodes=1):
+    """Verified episodes in, one plain-JSON candidate out, with its own numbers.
+
+    The candidate is only *ranked* — allowed to reorder offers the gift plan already
+    approved — when its held-out ordering beats coin flipping on enough pairs;
+    otherwise it is written as a shadow and says so.  The decision lives in the
+    modelcard, so a runtime never guesses and a reader can audit it.
+    """
+    catalog_data = load_catalog(catalog)
+    dataset = load_reviewed_episodes(root, catalog_data, min_episodes=min_episodes, ledger=ledger)
+    reasons = {}
+    for item in dataset['excluded']:
+        reasons[item['reason']] = reasons.get(item['reason'], 0) + 1
+    report = dict(kind='shop_value_training_attempt', schema_version=1,
+                  samples_root=dataset['root'], samples_seen=dataset['samples_seen'],
+                  review_status_counts=dataset['review_status_counts'],
+                  exclusion_reasons=reasons, reviewed_episodes=dataset['episode_count'],
+                  reviewed_rows=dataset['row_count'],
+                  scopes=[episode['scope'] for episode in dataset['episodes']],
+                  min_episodes=min_episodes, training_ready=dataset['ready'],
+                  blockers=dataset['blockers'], trained=False, production_enabled=False)
+    if not dataset['episodes']:
+        report['reason'] = 'no_verified_reviewed_episode_yet'
+        return report
+    train, test = split_by_scope(dataset['episodes'])
+    rows = [row for episode in train for row in episode['rows']]
+    if not rows:
+        report['reason'] = 'no_training_rows_in_the_training_scopes'
+        return report
+    fitted = fit(rows, hidden=hidden, epochs=epochs, seed=seed)
+    test_rows = [row for episode in test for row in episode['rows']]
+    held_out = pairwise_accuracy([forward(fitted['parameters'], row['values']) for row in test_rows],
+                                 [row['target'] for row in test_rows])
+    targets = {row['target'] for episode in dataset['episodes'] for row in episode['rows']}
+    participation = PARTICIPATION_SHADOW
+    if (len(targets) > 1 and held_out['pairs'] >= PROMOTION_MIN_PAIRS
+            and held_out['pairwise_accuracy'] is not None
+            and held_out['pairwise_accuracy'] >= PROMOTION_MIN_ACCURACY):
+        participation = PARTICIPATION_RANKED
+    card = dict(training_ready=dataset['ready'], synthetic=False,
+                reviewed_episodes=dataset['episode_count'], reviewed_rows=dataset['row_count'],
+                production_enabled=False, participation=participation, hidden=hidden, seed=seed,
+                epochs=max(1, epochs), label_source=OBJECTIVE_LABEL_SOURCE,
+                curriculum=dict(trained_scopes=[episode['scope'] for episode in train],
+                                held_out_scopes=[episode['scope'] for episode in test],
+                                held_out_rows=len(test_rows), **held_out),
+                training_metrics=fitted['metrics'], verification=dataset['verification'])
+    artefact = export_candidate(fitted['parameters'], card, out,
+                                vocabulary=gift_vocabulary(catalog_data),
+                                keyword_vocabulary=keyword_vocabulary(catalog_data),
+                                min_episodes=min_episodes)
+    report.update(trained=True, participation=participation, artefact=artefact,
+                  metrics=fitted['metrics'], held_out=card['curriculum'],
+                  reason='candidate_%s_after_its_own_held_out_evaluation' % participation)
+    return report

@@ -317,7 +317,11 @@ def test_the_real_sample_root_is_not_training_ready(tmp_path):
     report = training.readiness_report(real, catalog)
     assert report['training_ready'] is False
     assert report['production_enabled'] is False
-    assert report['reviewed_episodes'] == 0
+    # The retained root may carry labels now: they come from each run's own later observations, never from a
+    # human reviewer, and they stay far below the bar the readiness report sets. Folders the run never followed
+    # up remain pending, which is what the exclusions below still have to report.
+    assert report['reviewed_episodes'] < training.MIN_REVIEWED_EPISODES
+    assert report['review_status_counts'].get('pending', 0) > 0
     assert any(item['reason'] in ('review_not_approved', 'benefit_label_absent')
                for item in training.load_reviewed_episodes(real, catalog)['excluded'])
 

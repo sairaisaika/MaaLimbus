@@ -174,6 +174,7 @@ Overview diagrams are navigation; local diagrams explain specific guards, intera
 | 视图读不动与识别卡死：视角恢复阶梯与停滞看门狗 / A page that cannot be read, and a recognition call that never returns: the viewport ladder and the stall watchdog | [9.3.8](zh_cn/9-execution-plan.md#feature-9-3-8) | [9.3.8](en_us/9-execution-plan.md#feature-9-3-8) |
 | 读不出来的模态不结束整局：对话框自己的 Cancel 与目录外的藏品 / A modal that cannot be read does not end the run: the dialog's own Cancel, and gifts outside the catalogue | [9.3.9](zh_cn/9-execution-plan.md#feature-9-3-9) | [9.3.9](en_us/9-execution-plan.md#feature-9-3-9) |
 | 场景读数不是授权：购买页上的按钮与退役的预留 / A scene read is not an authorization: the button on the purchase page, and the retired reservation | [9.3.10](zh_cn/9-execution-plan.md#feature-9-3-10) | [9.3.10](en_us/9-execution-plan.md#feature-9-3-10) |
+| 购买标签来自这一局后来的观测：价值模型的门控式参与 / A purchase is labelled by what the same run later observed: gated participation of the value model | [9.3.11](zh_cn/9-execution-plan.md#feature-9-3-11) | [9.3.11](en_us/9-execution-plan.md#feature-9-3-11) |
 | 每场部署：复用、修正与提交 / Encounter deployment: reuse, correction and submission | [4.3.3](zh_cn/4-business-flows.md#feature-4-3-3) | [4.3.3](en_us/4-business-flows.md#feature-4-3-3) |
 | 楼层礼物选择、到账与恢复 / Floor gifts: selection, receipts and recovery | [4.3.4](zh_cn/4-business-flows.md#feature-4-3-4) | [4.3.4](en_us/4-business-flows.md#feature-4-3-4) |
 | 初始礼物、搜索与楼层主题 / Initial gifts, search and floor themes | [4.3.5](zh_cn/4-business-flows.md#feature-4-3-5) | [4.3.5](en_us/4-business-flows.md#feature-4-3-5) |

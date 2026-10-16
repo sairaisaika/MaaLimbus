@@ -20,7 +20,20 @@ def lines(event, fields):
         for row in fields.get('ranking') or []:
             result.append(f"{row['name']}：价格={row['price']}；手动权重={row.get('manual_weight',0)}；队列分={row.get('score')}；{row['status']}"+('；选择购买' if row.get('chosen') else ''))
         trace=fields.get('learning') or {}
-        result.append('学习参与：'+('仅影子预测，不改变购买顺序' if trace.get('neural_value_shadow_applied') else '未使用神经价值模型')+'；'+str(trace.get('refresh_reason') or trace.get('reason') or '规则回退'))
+        if trace.get('neural_value_ranked'):
+            state='价值神经模型已参与购买顺序'
+        elif trace.get('neural_value_shadow_applied'):
+            state='仅影子预测，不改变购买顺序'
+        else:
+            state='未使用神经价值模型'
+        episodes=trace.get('reviewed_episodes')
+        held=trace.get('held_out') or {}
+        if state!='未使用神经价值模型' and isinstance(episodes,int):
+            state+='（%d局已核样本' % episodes
+            if isinstance(held.get('pairwise_accuracy'),(int,float)) and held.get('pairs'):
+                state+='，留出准确率%.2f/%d对' % (held['pairwise_accuracy'],held['pairs'])
+            state+='）'
+        result.append('学习参与：'+state+'；'+str(trace.get('refresh_reason') or trace.get('reason') or '规则回退'))
         return result
     return []
 

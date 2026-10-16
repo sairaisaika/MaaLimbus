@@ -446,6 +446,39 @@ Three structural changes:
 
 Acceptance: within one start, a purchase question is answered with its own Cancel and the run continues, whether it could not be read or was never reserved; a button the transaction layer cannot authorize no longer ends the run. **The authorization step itself must also know the redesigned dialog**: it no longer asks for the `Would you like to purchase ...?` sentence the new client does not print, but uses the same evidence the plan does - the gift band matched by its words, the badge spending exactly the reserved price, the coin counter on the reserved intent (`ShopTransaction.reserve_confirm` asks `purchase_dialog_answer` first and falls back to the older question sentence only when the dialog cannot be read that way). The live `pi-20261015-214921` run died on that sentence (started 21:49:21, stopped eleven seconds later, inputs=1): the plan had authorized the dialog, the transaction layer could not find the question, and the run ended.
 
+### 9.3.11 A purchase is labelled by what the same run later observed: gated participation of the value model (2026-10-15)
+
+<a id="feature-9-3-11"></a>
+
+**Symptom**: the purchase samples kept being recorded (`shop_purchase_learning_samples.neural_policy_applied=false` in `dist/MaaLimbus/evidence/runtime/pi-*/agent-result.json`, the log line "购买学习样本已记录：7；价值神经模型尚未应用"), but the runtime root `assets/resource/base/model/shop-value` did not exist, so `shop_value_shadow.rank_preview` took `purchase_value_model_missing_rule_fallback` every time. Samples were captured and nothing labelled them; "human review" was a gate nobody operated.
+
+**The rule**: the benefit of a purchase is **not written by a human**, it is what that same run observed *after* it — `shop_value_training.label_from_outcomes()` derives it: a floor clear is worth its floor (0.2 each), a victory 1.0, a reward or an early return 0.1. The label digest covers only the hash-bound bits (`outcomes_digest`), so the order the evidence arrived in cannot change the label. `review_sample()` writes `review.json`/`outcome.json` only when a **ledger-bound later observation** exists (`approved_by=observed_run_return_in_scope`, `training_eligible=true`, `human_approved` still false); a folder with no bound later observation stays pending and is counted (`delayed_outcome_evidence_missing`) instead of inventing a benefit. The loading side (`load_reviewed_episodes`) trusts nothing on disk: it re-derives, excludes a sample whose claimed benefit disagrees with its evidence as `objective_label_mismatch`, and re-checks `action_executed`, `training_eligible`, content address and ledger binding.
+
+**Participation is gated**: the trainer holds out whole runs with `split_by_scope` and only writes `participation=ranked` when the candidate proved its own ordering on that holdout (at least 4 pairs and accuracy 0.6); otherwise it writes `shadow`. `rank_preview` re-verifies the hash chain on every load (`weights_sha256`, `dataset_sha256` equal in three places, `evidence_verified`, `reviewed_episodes` equal to `verified_episodes`, weights finite and in bounds) and then honours the participation: `ranked` sorts **inside the set the plan already approved**, `shadow` reports scores and leaves the order alone. Neither overrides "the gift the plan asked for" (`the_gift_plan_asked_for_this_offer`) — the model only decides which of the plan's own candidates is bought first.
+
+```mermaid
+flowchart TD
+    A["run's later observations<br/>floor_clear / final_victory"] --> B["label_from_outcomes<br/>floor 0.2, victory 1.0"]
+    B --> C["review_sample<br/>only if the ledger bound them"]
+    C -->|no bound observation| P["stays pending<br/>delayed_outcome_evidence_missing"]
+    C --> D["load_reviewed_episodes<br/>re-derives, rejects mismatch"]
+    D --> E["split_by_scope<br/>whole-run holdout"]
+    E -->|pairs>=4 and accuracy>=0.6| R["participation=ranked<br/>reorders the plan's own set"]
+    E -->|otherwise| S["participation=shadow<br/>scores only, order unchanged"]
+    R --> L["rank_preview re-verifies<br/>digest chain on every load"]
+    S --> L
+```
+
+| Situation | Expected behaviour | Evidence required |
+| --- | --- | --- |
+| The run cleared a floor after the purchase | the label follows the floor, written into the review file | `tests/test_shop_value_review.py::test_the_label_is_the_runs_own_later_observation` |
+| Evidence without a bound digest | not a label | `tests/test_shop_value_review.py::test_a_later_observation_without_a_bound_digest_is_not_a_label` |
+| Nothing bound was observed after the purchase | stays pending, nothing invented | `tests/test_shop_value_review.py::test_a_purchase_the_run_never_followed_up_stays_pending` |
+| The candidate cannot prove held-out ordering | shadow only, order unchanged | `tests/test_shop_value_review.py::test_a_promoted_candidate_reorders_the_offers_and_a_shadow_one_does_not` |
+| The stored label disagrees with its evidence | re-derived and excluded at load | `tests/test_shop_value_review.py::test_a_candidate_with_a_dataset_digest_that_does_not_re_derive_is_ignored` |
+
+Acceptance: `python tools/shop_value_review.py --install` reviews the folders, trains, and installs `weights.json` and `modelcard.json` into `assets/resource/base/model/shop-value`. Measured state on 2026-10-15: of 10 folders, 7 are labelled from observation and 3 stay pending (no later observation); 1 verified run / 6 rows, a 0-pair holdout with unknown accuracy, therefore participation is **shadow** (scores visible, order unchanged). **This is not "the network is live"**: steering starts when a second verified run makes a held-out comparison possible — what is missing is runs that finish, not a human reviewer.
+
 ## 9.4 Learning and policy architecture
 
 <a id="feature-9-4"></a>

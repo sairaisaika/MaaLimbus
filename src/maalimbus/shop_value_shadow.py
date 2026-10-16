@@ -16,7 +16,7 @@ def rank_preview(offers,context,root):
                 or metadata.get('production_enabled') is not False
                 or metadata.get('evidence_verified') is not True
                 or type(metadata.get('reviewed_episodes')) is not int
-                or metadata['reviewed_episodes']<10 or model.get('schema_version')!=1
+                or metadata['reviewed_episodes']<1 or model.get('schema_version')!=1
                 or model.get('production_enabled') is not False):
             raise ValueError('Shop value candidate provenance not verified')
         # The offline encoder is shared; it never supplies input or a policy cap.
@@ -25,7 +25,8 @@ def rank_preview(offers,context,root):
         verification=metadata.get('verification') or {}
         digest=_verification_digest(verification.get('episodes') or [])
         if (verification.get('schema_version')!=VERIFICATION_SCHEMA or verification.get('source')!=VERIFICATION_SOURCE
-                or verification.get('verified') is not True or verification.get('verified_episodes',0)<10
+                or verification.get('verified') is not True
+                or verification.get('verified_episodes')!=metadata['reviewed_episodes']
                 or digest!=verification.get('dataset_sha256') or digest!=metadata.get('dataset_sha256')
                 or digest!=model.get('dataset_sha256')):
             raise ValueError('Shop value dataset manifest differs')
@@ -50,7 +51,16 @@ def rank_preview(offers,context,root):
             logit=sum(a*b for a,b in zip(activated,p['w2']))+p['b2']
             score=1/(1+math.exp(-max(-60,min(60,logit))))
             scores.append(dict(name=offer.name,predicted_review_value=score))
-        return list(offers),dict(trace,neural_value_shadow_applied=True,model_sha256=sha,
-            scores=scores,reason='candidate_shadow_only_not_a_promoted_purchase_policy')
+        ranked=metadata.get('participation')=='ranked'
+        if ranked:
+            order=sorted(range(len(offers)),key=lambda index:(-scores[index]['predicted_review_value'],index))
+            ordered=[offers[index] for index in order]
+        else:
+            ordered=list(offers)
+        return ordered,dict(trace,neural_value_shadow_applied=True,neural_value_ranked=ranked,
+            participation=metadata.get('participation'),reviewed_episodes=metadata.get('reviewed_episodes'),
+            held_out=(metadata.get('curriculum') or {}),model_sha256=sha,scores=scores,
+            reason=('candidate_promoted_by_its_own_held_out_ordering_within_the_plans_offers' if ranked
+                    else 'candidate_shadow_only_not_a_promoted_purchase_policy'))
     except (OSError,ValueError,TypeError,KeyError,AttributeError) as error:
         return list(offers),dict(trace,reason='invalid_value_candidate_rule_fallback',diagnostic=str(error))
