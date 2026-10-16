@@ -118,3 +118,18 @@ def test_external_launcher_ignores_only_its_own_outside_process(tmp_path,monkeyp
     own['ExecutablePath']=str(app/'launcher/MaaLimbusLauncher.exe')
     records([own])
     with pytest.raises(StageError):closed_app(app,external_launcher_pid=os.getpid())
+
+
+@pytest.mark.skipif(os.name!='nt',reason='Windows CIM process identity')
+def test_a_process_that_only_mentions_the_path_is_not_the_application(tmp_path,monkeypatch):
+    # The freeze compares command lines, so a process that merely carries the folder
+    # in its own arguments used to look like a running app: on 2026-10-15 the harness
+    # that started the freeze blocked it with no app process alive.
+    app=app_fixture(tmp_path)
+    def records(items):
+        monkeypatch.setattr('maalimbus.update_install.subprocess.run',
+            lambda *a,**kw:SimpleNamespace(returncode=0,stdout=json.dumps(items)))
+    records([{'ProcessId':99998,'Name':'DeepSeek Harness.exe',
+              'ExecutablePath':r'C:\Program Files\Harness\Harness.exe',
+              'CommandLine':'Harness.exe --workspace '+str(app/'MaaLimbus.exe')}])
+    closed_app(app)

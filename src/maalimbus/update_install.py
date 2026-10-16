@@ -66,10 +66,18 @@ def closed_app(app, *, external_launcher_pid=None):
                     executable.startswith(prefix)):
                 raise StageError('Updater must execute outside the installation')
             continue
-        if ((record.get('Name') or '').casefold() in
-                ('maalimbus.exe', 'maalimbusagent.exe', 'maalimbusrunner.exe') and not executable):
+        name = (record.get('Name') or '').casefold()
+        if name in ('maalimbus.exe', 'maalimbusagent.exe', 'maalimbusrunner.exe') and not executable:
             raise StageError('Application process identity unavailable')
-        if executable.startswith(prefix) or prefix in command:
+        # Only the installation's own executable, or a copy of one that names the
+        # installation with its own ``--app`` argument, is the application.  Matching
+        # the path anywhere in a command line made every process that merely mentions
+        # the folder look like the app: the 2026-10-15 21:41 freeze of dist/MaaLimbus
+        # refused because the harness that started it carries the path in its own
+        # command line, and no app process existed at all.
+        names_app = (name in ('maalimbus.exe', 'maalimbusagent.exe', 'maalimbusrunner.exe')
+                     and '--app' in command and prefix in command)
+        if executable.startswith(prefix) or names_app:
             raise StageError('Application is still running')
 
 
