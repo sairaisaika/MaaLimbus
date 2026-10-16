@@ -22,7 +22,7 @@ Queries recompute source positions. Navigation aid, not completion proof or work
 | **payout** — 领奖、返回和一次轮换记账 | `src/maalimbus/reward_task.py:27` `finish`<br>`src/maalimbus/storage.py:249` `RunStore.record` | [feature-4-6-1](zh_cn/4-business-flows.md#feature-4-6-1)<br>[feature-4-6-1](en_us/4-business-flows.md#feature-4-6-1) |
 | **settings** — 头像编队和星光卡片编辑器 | `desktop/mxu/TeamBuildEditor.tsx:9` `export function TeamBuildEditor`<br>`desktop/mxu/StarCardsEditor.tsx:8` `export function StarCardsEditor` | [feature-9-2](zh_cn/9-execution-plan.md#feature-9-2)<br>[feature-9-2](en_us/9-execution-plan.md#feature-9-2) |
 | **updater** — GitHub更新按钮与安装分发 | `desktop/mxu/SoftwareUpdatePanel.tsx:6` `export function SoftwareUpdatePanel` | [feature-6-4-5](zh_cn/6-deployment.md#feature-6-4-5)<br>[feature-6-4-5](en_us/6-deployment.md#feature-6-4-5) |
-| **recovery** — 一步没落地时的视角手势与识别卡死看门狗 | `src/maalimbus/runner.py:315` `pinch_out`<br>`src/maalimbus/runner.py:3321` `MirrorRunner._recover`<br>`src/maalimbus/runner.py:342` `stall_watchdog` | [feature-9-3-8](zh_cn/9-execution-plan.md#feature-9-3-8)<br>[feature-9-3-8](en_us/9-execution-plan.md#feature-9-3-8) |
+| **recovery** — 一步没落地时的视角手势与识别卡死看门狗 | `src/maalimbus/runner.py:315` `pinch_out`<br>`src/maalimbus/runner.py:3356` `MirrorRunner._recover`<br>`src/maalimbus/runner.py:342` `stall_watchdog` | [feature-9-3-8](zh_cn/9-execution-plan.md#feature-9-3-8)<br>[feature-9-3-8](en_us/9-execution-plan.md#feature-9-3-8) |
 | **plan** — 实施计划、依赖、工程图和完成标准 | Planned; see specification | [feature-9-2](zh_cn/9-execution-plan.md#feature-9-2)<br>[feature-9-2](en_us/9-execution-plan.md#feature-9-2) |
 
 ## Evidence and checks

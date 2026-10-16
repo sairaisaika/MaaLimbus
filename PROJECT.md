@@ -2359,6 +2359,12 @@ Live evidence for both: `dist/MaaLimbus/evidence/runtime/pi-20261015-193010` sto
 `unexpected_successor` on the map after 24 clicks, where the correct move was a zoom-out, and `maafw.log` shows
 the 19:16:07 recognition call burning 0 s of CPU for 12 idle minutes: the hung case the watchdog now names.
 
+A third live run (`pi-20261015-200848`) showed the ladder arriving too late on the map: it clicked five candidate
+nodes in ninety seconds while `Exploring Floor 3` never changed, and the run looked wedged until the user stopped
+it. On the map the pinch is therefore spent on the *first* stalled click (`_map_zoom_once`,
+`src/maalimbus/runner.py:3304`), booked as the ladder's rung 0 so the ladder cannot spend it twice, and only the
+next stalled click falls back to another candidate.
+
 Docs: chapter 9 section 9.3.8 in both languages (`docs/wiki/zh_cn/9-execution-plan.md`,
 `docs/wiki/en_us/9-execution-plan.md`), the `recovery` route in `docs/wiki/routes.json`, and the rebuilt
 `docs/wiki/agent-index.md` / `docs/wiki/agent-index.json`. `tools/check_wiki.py` reports 0 problems.

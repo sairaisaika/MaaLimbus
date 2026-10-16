@@ -3050,6 +3050,10 @@ class MirrorRunner:
             retryable = (page == 'MAP' and settled_page in ('MAP', 'UNKNOWN')
                          and (plan.get('target') is not None or no_candidate)
                          and state['map_attempts'] + 1 < max(1, settings.map_tries))
+            zoomed = (self._map_zoom_once(page, state, entry, plan)
+                      if page == 'MAP' and settled_page in ('MAP', 'UNKNOWN') else None)
+            if zoomed is not None:
+                return zoomed
             if not retryable:
                 recovered = self._recover(page, state, entry, plan)
                 if recovered is not None:
@@ -3079,6 +3083,7 @@ class MirrorRunner:
         state['swallowed_attempts'] = 0
         state['recovery_for'] = None
         state['recovery_rung'] = 0
+        state['map_zoom_for'] = None
         if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
             state['gift_picks'] += 1
         if detail.get('keyword') and entry.get('passed'):
@@ -3301,6 +3306,36 @@ class MirrorRunner:
         time.sleep(self.settings.interval)
         return self._result(page, None, False, None, waiting=True)
 
+    def _map_zoom_once(self, page, state, entry, plan):
+        """Move the map view before spending another candidate node.
+
+        A map click that leaves the page exactly where it was means the node the plan
+        aimed at was not on screen: live run pi-20261015-200848 clicked five candidates
+        in ninety seconds with ``Exploring Floor 3`` never changing, because the map was
+        still zoomed in on the panel it had opened. The map's own remedy -- a pinch-out,
+        the first rung of :data:`RECOVERY_LADDER` -- is therefore spent once per stalled
+        click, before the next candidate is tried, instead of only after every candidate
+        has failed. Nothing is clicked, so it stays safe on a view the reader cannot
+        classify yet.
+        """
+        signature = f'{page}|{entry.get("reason")}'
+        if state.get('map_zoom_for') == signature:
+            return None
+        state['map_zoom_for'] = signature
+        # The pinch *is* the ladder's first rung; booking it here keeps the ladder from
+        # spending it a second time on the same stop and lets the later rungs follow.
+        state['recovery_for'] = signature
+        state['recovery_rung'] = 1
+        entry['handled_retry'] = True
+        entry['stopped'] = 'the_map_view_is_pinched_out_before_another_candidate'
+        self.note('window_recovery', page=page, gesture='pinch_out', rung=0,
+                  before_another_candidate=True, stopped_reason=entry.get('reason'),
+                  plan_reason=plan.get('reason'),
+                  input_helpers=self.input_helper_line())
+        self._recovery_gesture('pinch_out')
+        time.sleep(self.settings.interval)
+        return self._result(page, plan.get('target'), True, None, waiting=True)
+
     def _recovery_gesture(self, name):
         """Send one gesture that moves the view and presses no game control."""
         if name == 'pinch_out':
@@ -3499,7 +3534,7 @@ def _fresh_state(settings, store=None):
             map_points.append((int(pieces[0]), int(pieces[1])))
     return {'step': 0, 'unknown_seen': 0, 'battle_sig': None, 'battle_rounds': 0,
             'map_progress': MapProgress(), 'floor_now': None, 'map_attempts': 0,
-            'recovery_for': None, 'recovery_rung': 0,
+            'recovery_for': None, 'recovery_rung': 0, 'map_zoom_for': None,
             'page_attempts': 0, 'gift_picks': 0, 'initial_picked': 0,
             'swallowed_attempts': 0, 'grace_read_attempts': 0, 'deployment_read_attempts': 0,
             'shop_bought': [], 'shop_refreshes': 0,

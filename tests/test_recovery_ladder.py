@@ -119,6 +119,24 @@ def test_a_map_that_will_not_move_is_pinched_out_before_the_run_stops(tmp_path):
     assert device.pinches, 'the run pinches the map out instead of stopping on it'
 
 
+def test_the_map_view_moves_before_another_candidate_is_tried(tmp_path):
+    """A stalled map click spends the pinch first, then falls back to another node.
+
+    Live run pi-20261015-200848 clicked five map candidates in ninety seconds while
+    ``Exploring Floor 3`` never changed, because the map was still zoomed in on the
+    panel it had opened. The view move now comes first and the candidate retry second.
+    """
+    runner, device, notes = map_window(tmp_path, frames=60, map_tries=3)
+    for _ in range(10):
+        runner.step()
+        if 'window_map_retry' in [event for event, _ in notes.events]:
+            break
+    events = [event for event, _ in notes.events]
+    assert 'window_map_retry' in events, 'the candidate retry still happens'
+    assert events.index('window_recovery') < events.index('window_map_retry')
+    assert len(device.pinches) >= 1
+
+
 def test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends(tmp_path):
     """A page that refuses the whole ladder is a real stop, not an endless gesture."""
     runner, device, notes = map_window(tmp_path, frames=44)

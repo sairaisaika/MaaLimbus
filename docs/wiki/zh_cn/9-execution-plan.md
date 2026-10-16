@@ -364,6 +364,8 @@ flowchart TD
 
 **通解一：任何一步没落地，先花一档视角手势，而不是直接结束整局。** `RECOVERY_LADDER`（`src/maalimbus/runner.py:301-306`）四档依次是 `pinch_out`（缩小地图）、`drag_down`、`drag_up`、`wait`。缩小地图这一档直接复用实机标定过的双指手势：`pinch_out`（`runner.py:315`）配 `MAP_ZOOM_OUT = {'centre': (960, 540), 'radius': 320, 'factor': 0.55, 'seconds': 0.9}`（`runner.py:290`，与 `tools/map_zoom.py` 标定值一致），两指从 ±320 走拢到 ±176，共 12 步；控制器不支持双指时抛 `NotImplementedError`，**不会退化成在地图上乱点**。`_recover`（`runner.py:3321`）以 `页面|停止原因` 作为签名，同一个停止一次只花一档（`state['recovery_rung']`），花完整个梯子才允许整局结束，事件分别是 `window_recovery` 与 `window_recovery_exhausted`，另计 `artifacts['recoveries']`。关键安全性质写在注释里也写在测试里：**四档全部只移动视角、不按任何游戏控件**，所以在布局还没学过的页面上也可以放心试。想关掉这套行为就把 `recovery_tries` 设为 0。
 
+**地图上先花掉第一档，再去试下一个候选节点。** 地图上一次点击之后页面完全没动，说明计划瞄的那个节点根本不在屏幕上：实机 `pi-20261015-200848` 在 90 秒里点了五个候选节点，`Exploring Floor 3` 一直没变，看起来就像卡死，用户于是手动停掉了它。所以 `_map_zoom_once`（`runner.py:3304`）在第一次"点了没动"时就直接花掉缩小地图这一档，并按第 0 档记账（写 `state['recovery_for']` 且 `recovery_rung = 1`），使梯子不会把同一档花两遍；只有**再下一次**仍然没动才退回换候选节点（`window_map_retry`）。事件是带 `gesture=pinch_out`、`before_another_candidate=true` 的 `window_recovery`；一旦真的落地成功，`map_zoom_for` 与其它恢复状态一起清零。
+
 **通解二：识别调用卡死时，任何手势都救不回来，于是从循环外把进程结束掉。** `dist/MaaLimbus/evidence/runtime` 里 `pi-20261015-191205` 在 19:16:07 卡在一次 OCR 调用上，此后 12 分钟没有新帧、没有事件、没有结果，GUI 侧表现为「停了，甚至没法打开」（用户 m02283）——进程还在，线程全在等，是挂死不是循环。`stall_watchdog`（`runner.py:342`）用帧心跳判定：`_observe` 每次拿到帧就刷新 `artifacts['heartbeat']`（`runner.py:1582`），守护线程在超过 `stall_seconds`（默认 300 秒，`STALL_SECONDS` 见 `runner.py:3358`）没有心跳时先 `_record_stall`（`runner.py:3382`）把停止记录写进本次运行目录，再 `os._exit(4)`，让 GUI 如实报「任务失败」而不是静默挂着。
 
 ```mermaid
@@ -380,6 +382,7 @@ flowchart TD
 | 现场 | 期望行为 | 证据要求 |
 | --- | --- | --- |
 | 地图被拉近、节点在屏幕外 | 先双指缩小地图再重读该页 | `window_recovery` 事件 `gesture=pinch_out`，`artifacts['recoveries']` 递增 |
+| 地图点击后画面完全没动 | **先**缩小地图，再考虑换下一个节点；同一次停滞只缩一次 | `window_recovery` 带 `before_another_candidate=true`；`tests/test_recovery_ladder.py::test_the_map_view_moves_before_another_candidate_is_tried` |
 | 同一页同一原因连续失败 | 一次只花一档，四档花完才结束 | `tests/test_recovery_ladder.py::test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends` |
 | 识别调用永不返回 | 超时后写记录并结束进程，GUI 报失败 | `stall_watchdog` 用例传入 `rounds` 后有界返回；实机帧心跳见 `artifacts['heartbeat']` |
 | 控制器不支持双指 | 抛错而不是退化成点击 | `test_a_controller_that_cannot_simulate_two_fingers_refuses_instead_of_clicking` |

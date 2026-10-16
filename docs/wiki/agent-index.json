@@ -64,13 +64,13 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
           "line": 373,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
           "line": 1249,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         },
         {
           "path": "agent/recognition.py",
@@ -578,7 +578,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 182,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         }
       ]
     },
@@ -763,19 +763,19 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
           "line": 315,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 3321,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "line": 3356,
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
           "line": 342,
-          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+          "sha256": "7ad1e1b6ba7f55d5e4860c176092e2569a6d30be025bfd0e58311874bfd0f674"
         }
       ]
     },
