@@ -2411,9 +2411,18 @@ it, and the refusal ended the whole run. 9.3.9 fixed "cannot be read"; 9.3.10 fi
 - `ShopTransaction.retire_pending` (`src/maalimbus/shop_transaction.py:390`) clears the reservation before that
   Cancel lands and records why in `visits[...]['retired']`; without it every later purchase would be refused as
   'already reserved' and the run would sit on the same dialog.
+- A wrapped gift name is proof by its words, not by the order its lines arrived in. The 21:34:16 run
+  (`dist/MaaLimbus/evidence/runtime/pi-20261015-213416`, 5 inputs) looped SHOP <-> SHOP_PURCHASE on one card and
+  stopped with `mirror_loop_failed; the observation node recorded no page for this frame`: the dialog's name band
+  had been read as the boxes `Mirror, Calm`, `Clear`, `Water` for the gift `Clear Mirror, Calm Water`, so the name
+  check never held, every frame answered the dialog with its own Cancel, and the shelf chose the same offer again.
+  `names_match` (`src/maalimbus/shop_vision.py`) compares the band as a word multiset instead - the order of the
+  lines is not part of the proof, the client font's single-glyph slips still are - and the same live frame with the
+  390-coin reservation answers `purchase` on its first frame.
 - Tests: `tests/test_shop_vision.py::test_the_purchase_pages_own_button_is_never_an_authorization`,
-  `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired`, and the new
-  contract pinned in `tests/test_runner.py::test_the_purchase_question_offers_only_the_confirm_it_printed`.
-  Full suite 1754 passed, 1 skipped.
+  `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired`, the new
+  contract pinned in `tests/test_runner.py::test_the_purchase_question_offers_only_the_confirm_it_printed`, and
+  `tests/test_shop_vision.py::test_a_wrapped_gift_name_is_read_in_whatever_order_its_lines_came`.
+  Full suite 1754 passed, 1 skipped; the two shop files 86 passed, runner+window 132 passed.
 
 Docs: chapter 9 section 9.3.10 in both languages and the README row.

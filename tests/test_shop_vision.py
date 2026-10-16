@@ -238,6 +238,25 @@ def test_a_frame_without_the_purchase_dialog_has_no_answer():
     assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1102) is None
 
 
+def test_a_wrapped_gift_name_is_read_in_whatever_order_its_lines_came():
+    # The modal wraps a long name over stacked lines and the recogniser orders the
+    # boxes by where they land: the live pi-20261015-213416/frame-0001.json read
+    # 'Clear Mirror, Calm Water' as 'Mirror, Calm', 'Clear', 'Water'.  The printed
+    # words are the proof, so the order the lines arrived in is not.
+    frame = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261015-213416/frame-0001.json'
+    if not frame.exists():
+        pytest.skip('the retained live frame is not part of this checkout')
+    record = json.loads(frame.read_text(encoding='utf-8'))
+    size = record.get('size') or (1920, 1080)
+    records = [Text(row['text'], tuple(row['box']), row['score'])
+               for row in record['ocr'] if row['score'] >= .9]
+    assert purchase_dialog_answer(records, 'Clear Mirror, Calm Water', 390, size,
+                                  coins=1809)[0] == 'purchase'
+    # A different gift at the same price is still not the reserved one.
+    assert purchase_dialog_answer(records, 'Tangled Bundle', 390, size,
+                                  coins=1809)[0] == 'cancel'
+
+
 def test_a_glued_badge_is_only_split_against_the_token_beside_it():
     # The split has to be confirmed by the after-token that sits next to it; a
     # badge whose tail does not match is left unread rather than guessed at.

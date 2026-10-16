@@ -279,7 +279,7 @@
           "path": "src/maalimbus/shop_vision.py",
           "symbol": "matching_purchase_question",
           "line": 354,
-          "sha256": "d697b39a5c3cd595890802098ead6265308837927aa0134ca152c7301d06ab05"
+          "sha256": "11130aa7f16d358ae3c463aec635cf07ad89efc6edc2abea0eccfad34dbe1a80"
         },
         {
           "path": "src/maalimbus/shop_transaction.py",

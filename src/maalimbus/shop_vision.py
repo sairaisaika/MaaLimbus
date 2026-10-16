@@ -405,6 +405,29 @@ def matching_purchase_question(records, name, price, size=None, threshold=.9, co
 COIN_DRIFT = 2
 
 
+def names_match(printed, name, budget=1):
+    """Whether the dialog's gift band prints this name, whatever order its lines came in.
+
+    The modal wraps a long gift name across two or three stacked lines, and the
+    recogniser segments and orders those lines by where their boxes land, not by
+    reading order: the live frame pi-20261015-213416/frame-0001.json read
+    ``Clear Mirror, Calm Water`` as the three boxes ``Mirror, Calm``, ``Clear``,
+    ``Water``.  The printed band is proof by its words, not by the order its
+    lines arrived in, so the comparison is a word multiset that still forgives
+    the client font's single-glyph slips.
+    """
+    from .vision import close_to
+    if not isinstance(printed, str) or not printed.strip():
+        return False
+    if close_to(printed, name, budget):
+        return True
+    words = re.findall(r'[0-9a-z]+', printed.lower())
+    wanted = re.findall(r'[0-9a-z]+', str(name).lower())
+    if len(words) != len(wanted):
+        return False
+    return sum(1 for a, b in zip(sorted(words), sorted(wanted)) if a != b) <= budget
+
+
 def purchase_dialog_answer(records, name, price, size=None, threshold=.9, coins=None,
                            coin_drift=COIN_DRIFT):
     """Which of the redesigned dialog's own two buttons answers the question.
@@ -420,7 +443,7 @@ def purchase_dialog_answer(records, name, price, size=None, threshold=.9, coins=
     means the frame carries no purchase dialog at all -- that is the shop's own
     page, where nothing is asked and nothing may be answered.
     """
-    from .vision import close_to, find
+    from .vision import find
 
     dialog = native_purchase_dialog(records, size)
     if dialog is None:
@@ -431,12 +454,12 @@ def purchase_dialog_answer(records, name, price, size=None, threshold=.9, coins=
         return 'cancel', cancel
     # The dialog quotes the gift as its own wrapped name field; a band that prints
     # anything else is not that gift, with the client font's single-glyph slips
-    # forgiven on the normalised forms.
+    # forgiven on the normalised forms and the line order left out of the proof.
     names = find(records, r'.+', (.26, .51, .41, .59), size, threshold)
     names = sorted(names, key=lambda row: (row.box[1], row.box[0]))
     printed = ' '.join(row.text for row in names)
     balances = purchase_balances(records, size)
-    named = bool(printed.strip()) and close_to(printed, name, 1)
+    named = names_match(printed, name, 1)
     spent = (balances is not None and balances[1] >= 0
              and balances[0] - balances[1] == price
              and (coins is None or abs(balances[0] - coins) <= coin_drift))

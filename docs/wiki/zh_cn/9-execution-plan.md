@@ -435,12 +435,14 @@ flowchart TD
 - **场景读数不再冒充授权。** `shop_state`（`src/maalimbus/runner.py:1111`）在 `SHOP_PURCHASE` 页面上不再交出 `confirm`：对话框的 `Purchase` 只当场景锚点，读到的结果（`readable`）只用来写 trace 理由。购买页唯一的授权来自 `_observe` 的 `SHOP_PURCHASE` 分支（`runner.py:2074`），它按预留意向的名字、价格与金币算出 `purchase_dialog_answer`；账目对不上就退成 `shop['cancel']`。
 - **没有预留的问答也有出口。** 页面上压根没有本局预留时（操作者自己点的购买框，或上一局死在框上），`native_purchase_dialog` 读到的 `Cancel` 就是唯一输入（理由 `a_purchase_question_this_run_never_reserved`）。
 - **预留必须跟着 Cancel 一起退役。** `ShopTransaction.retire_pending`（`shop_transaction.py:390`）在点 Cancel 前清掉 `pending`，并把原因记进本次访问（`visits[...]['retired']`）。不清掉的话，货架下一帧会因为"已有预留"拒绝任何新购买，整局就卡在同一个对话框上。
+- **换行的礼物名按词读，不按行的先后读。** 购买框把自己的礼物名折成两三行叠着印，识别器按框落点排序，读出来的顺序不是印刷顺序：实机 `pi-20261015-213416/frame-0001.json` 把 `Clear Mirror, Calm Water` 读成了 `Mirror, Calm`、`Clear`、`Water` 三个框，于是名字核对永远不成立，每一帧都拿对话框自己的 Cancel 作答，货架下一帧又挑同一个礼物 —— 21:34 那一局就这样在同一张卡上打了 5 次，最后停在 `the observation node recorded no page for this frame`。`names_match`（`src/maalimbus/shop_vision.py`）改成**词的多重集合**比较：行的先后不参与证明，客户端的单字滑落仍然宽容。同一条实机的 390 币预留，第一帧就被确认。
 
 | 现场 | 期望行为 | 证据要求 |
 | --- | --- | --- |
 | 场景读到购买框上的 `Purchase` | 不交给计划，只有账目证明才交 | `tests/test_shop_vision.py::test_the_purchase_pages_own_button_is_never_an_authorization` |
 | 页面上有本局没预留的购买框 | 点它自己的 Cancel，不买也不结束整局 | `runner.py:2074` 的 `SHOP_PURCHASE` 分支 |
 | Cancel 之后 | 预留退役、货架可再次购买 | `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired` |
+| 礼物名折成多行、识别框顺序被打乱 | 仍按词认定为同一个礼物并确认购买 | `tests/test_shop_vision.py::test_a_wrapped_gift_name_is_read_in_whatever_order_its_lines_came` |
 
 验收口径：一次启动里，购买框无论是"读不出来"还是"没预留过"，都只走 Cancel 并继续跑；交易层拒绝不可授权的按钮时不再结束整局。
 
