@@ -2465,3 +2465,26 @@ hold-out comparison possible.
 
 Tests: `tests/test_shop_value_review.py` (6 new), `tests/test_shop_transaction.py` updated; shop/vision/value/
 learning/window/runner 232 passed. Docs: chapter 9 section 9.3.11 in both languages plus the README row.
+
+## DSH continuation: the page-identity side counts differing glyphs instead of listing them (2026-10-16)
+
+The next Start after the refreeze (`dist/MaaLimbus/evidence/runtime/pi-20261016-011659`, 01:16:59, inputs=0) stopped on
+`Shop successor shows an offer the shelf never held`. It was reconciling the reservation `pi-20261015-214921` had left
+behind (Clear Mirror, Calm Water 390, 1809 -> 1419 `own_purchased_badge`) and the only stray row was the same page's own
+`Voodoo Doll` 149, which this frame's reader had named `Vaodoo Doll`: the typeface draws `a` and `o` one bowl apart,
+`_fold` folds `o` but not `a`, and the check at `src/maalimbus/shop_transaction.py:553` therefore called the successor a
+different page and ended the run before its first input. (The log line "旧局仍在进行，跳过开新局的设置应用" is the
+expected stale-session behaviour, not part of this stop.)
+
+`_one_glyph_apart` (`src/maalimbus/shop_transaction.py:73`) and `held_offer` (`:541`) now answer the page-identity
+question by counting differing positions -- equal length, exactly one folded position differs, and the price agrees --
+instead of enumerating glyph pairs one at a time, which is what let this class of stop recur (i/l/1, o/0, rn/m, spacing,
+now a/o). It is deliberately not a title match: the bought card is still matched by `_same_title`, the receipt still
+needs its own `Purchased` badge plus the exact coin delta, a title cannot shorten, and a different price is not the same
+row.
+
+Tests: `tests/test_shop_transaction.py::test_a_neighbouring_slot_read_with_one_glyph_of_noise_is_still_the_same_page`,
+`::test_one_glyph_of_noise_is_not_a_licence_to_shorten_or_repricing`, and the live replay
+`::test_the_live_resumed_purchase_across_runs_is_receipted` (the three real frames of the round trip, skipped when the
+retained evidence is absent). Wiki: decision D14 gained the continuation in both languages, and its item 8 now says
+which side no longer enumerates.

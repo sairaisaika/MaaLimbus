@@ -558,3 +558,69 @@ def test_the_live_confusable_successor_is_receipted(tmp_path):
     assert bought['shelf_evidence'] == 'own_purchased_badge'
     assert tx.data['pending'] is None
 
+
+def test_a_neighbouring_slot_read_with_one_glyph_of_noise_is_still_the_same_page(tmp_path):
+    """The page-identity check counts differing glyphs instead of listing them.
+
+    Live ``pi-20261016-011659`` started, found the reservation an earlier run had left
+    behind, read the successor shelf as "Vaodoo Doll" where its own baseline had read
+    "Voodoo Doll" -- same slot, same 149, same visit -- and stopped at zero inputs.  The
+    bought card's own badge plus the exact delta is the receipt; a neighbouring row read
+    one position differently at the same price is the same page, not a different one.
+    """
+    before = frame(tmp_path, 'before', shelf(('Voodoo Doll', 'Scalpel')))
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    tx.begin_visit('scope', 'floor1:shop1', before)
+    tx.reserve_purchase('scope', 'floor1:shop1', dict(name='Scalpel', price=20), 100, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question('Scalpel'), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Vaodoo Doll', 'Scalpel'), 80)
+                  + [row('Purchased', (1100, 320, 120, 40))])
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    bought = tx.data['bought'][-1]
+    assert bought['name'] == 'Scalpel' and bought['price'] == 20
+    assert bought['shelf_evidence'] == 'own_purchased_badge'
+    assert tx.data['pending'] is None
+
+
+def test_one_glyph_of_noise_is_not_a_licence_to_shorten_or_repricing(tmp_path):
+    """The tolerance is one position long at the same price, so a different card stays refused."""
+    tx, before = setup(tmp_path)
+    reserve(tx, before)
+    tx.reserve_confirm('scope', 'floor1:shop1',
+                       frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
+    after = frame(tmp_path, 'after', shelf(('Oracle', 'Wobbling Keg'), 80)
+                  + [row('Purchased', (870, 320, 120, 40))])
+    original = tx.path.read_bytes()
+    with pytest.raises(ValueError, match='never held'):
+        tx.reconcile_purchase('scope', 'floor1:shop1', after)
+    assert tx.path.read_bytes() == original
+
+
+LIVE_RESUMED_BEFORE = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261015-214921/frame-0002.json'
+LIVE_RESUMED_QUESTION = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261015-215812/frame-0002.json'
+LIVE_RESUMED_AFTER = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261016-011659/frame-0002.json'
+
+
+def test_the_live_resumed_purchase_across_runs_is_receipted(tmp_path):
+    """The round trip that exposed the check, replayed from its own three frames.
+
+    A reservation one run left behind is reconciled by the next: 1809 -> 1419 for its 390,
+    the card still under its own Purchased badge, and a neighbouring slot the successor
+    read one glyph differently ("Vaodoo Doll" for "Voodoo Doll") at the same 149.
+    """
+    if not all(path.exists() for path in (LIVE_RESUMED_BEFORE, LIVE_RESUMED_QUESTION,
+                                          LIVE_RESUMED_AFTER)):
+        pytest.skip('retained live shop evidence is not present')
+    tx = ShopTransaction(tmp_path / 'tx.json')
+    assert tx.begin_visit('scope', 'floor4:shop1', LIVE_RESUMED_BEFORE)
+    assert tx.reserve_purchase('scope', 'floor4:shop1',
+                               dict(name='Clear Mirror, Calm Water', price=390), 1809,
+                               LIVE_RESUMED_BEFORE)
+    assert tx.reserve_confirm('scope', 'floor4:shop1', LIVE_RESUMED_QUESTION)
+    assert tx.reconcile_purchase('scope', 'floor4:shop1', LIVE_RESUMED_AFTER) is True
+    bought = tx.data['bought'][-1]
+    assert bought['name'] == 'Clear Mirror, Calm Water' and bought['price'] == 390
+    assert bought['shelf_evidence'] == 'own_purchased_badge'
+    assert tx.data['pending'] is None
+

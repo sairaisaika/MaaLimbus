@@ -70,6 +70,23 @@ def _same_title(one, other):
     return _key(one) == _key(other) or _fold(one) == _fold(other)
 
 
+def _one_glyph_apart(one, other):
+    """Equal-length titles whose folded keys differ in exactly one position.
+
+    This is the page-identity comparison's tolerance, not a title match: it is only ever
+    asked between two rows a single shelf read on one page, never to name a purchase.  The
+    typeface draws ``a`` and ``o`` with the same bowl at this size, so live
+    ``pi-20261016-011659`` re-read the very slot its own reservation had read as "Voodoo
+    Doll" as "Vaodoo Doll" -- same slot, same 149, same visit -- and the successor check
+    called it an offer the shelf never held and stopped the run before its first input.
+    Enumerating glyph pairs one at a time is what let that class of stop recur, so this
+    side counts differing positions instead.  The title still cannot shorten and the price
+    still has to agree, because both are checked beside this.
+    """
+    first, second = _fold(one), _fold(other)
+    return len(first) == len(second) and sum(a != b for a, b in zip(first, second)) == 1
+
+
 def _context(context):
     """Copy a decision context, keeping the bought *names* and never the records.
 
@@ -520,9 +537,20 @@ class ShopTransaction:
             # typeface's own confusable glyph counts as the card that was held.
             held = {_key(offer['name']) for offer in baseline}
             held |= {_fold(offer['name']) for offer in baseline}
+
+            def held_offer(offer):
+                if _key(offer['name']) in held or _fold(offer['name']) in held:
+                    return True
+                # One reading of the typeface's own noise still names the card the shelf
+                # held; see _one_glyph_apart.  The bought card is not asked here -- it is
+                # matched by _same_title above -- so this can never rename a purchase.
+                return any(offer['price'] == kept['price']
+                           and _one_glyph_apart(offer['name'], kept['name'])
+                           for kept in baseline)
+
             if [offer['name'] for offer in shelf
                     if not _same_title(offer['name'], pending['name'])
-                    and _key(offer['name']) not in held and _fold(offer['name']) not in held]:
+                    and not held_offer(offer)]:
                 raise ValueError('Shop successor shows an offer the shelf never held')
             successor_note = None
         else:
