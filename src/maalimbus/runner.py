@@ -2072,10 +2072,21 @@ class MirrorRunner:
                 self.note('shop_decision_ranking',ranking=rows,currency=shop['currency'],reserve=settings.shop_reserve_coins,
                     refresh_limit=settings.shop_refreshes,reason=shop['reason'],learning=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP_PURCHASE' and shop:
-                from .shop_vision import matching_purchase_question
+                from .shop_vision import matching_purchase_question, purchase_dialog_answer
                 pending=shop_tx.data['pending']
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
-                shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending['coins'])
+                answer=purchase_dialog_answer(texts,pending['name'],pending['price'],record['size'],
+                                              coins=pending['coins'])
+                if answer is None:
+                    shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending['coins'])
+                elif answer[0]=='purchase':
+                    shop['confirm']=answer[1]
+                else:
+                    # The modal's own Cancel answers a question this project did not
+                    # reserve, so the shelf is re-read on the next frame instead of the
+                    # run ending over one unreadable band or a drifted coin counter.
+                    shop['cancel']=answer[1]
+                    shop['cancel_reason']='the_dialog_does_not_name_the_reserved_gift_at_its_price'
             self.note('shop_offers', currency=shop['currency'] if shop else None,
                       reason=shop['reason'] if shop else 'shop_page_not_read',
                       buy=shop['buy'] if shop else None,

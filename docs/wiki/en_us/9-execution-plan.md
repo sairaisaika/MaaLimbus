@@ -354,7 +354,7 @@ flowchart TD
 | Real trial or price wording | Still vetoes | The same file asserts it raises for `Enemy Level +2` and `Mounting Trials` |
 | Icon paths and hashes | The rename touches neither | `gift-catalog.json` `icons[].path`/`sha256` unchanged, catalogue integrity check still passes |
 
-Acceptance: one start gets past the three-choice reward page and the purchase confirmation and keeps playing; `floor_gift_identity_unknown` and `three_free_gift_trial_or_cost_present` appear only when something truly cannot be read or the page really is a trial or a purchase.
+Acceptance: one start gets past the three-choice reward page and the purchase confirmation and keeps playing; `three_free_gift_trial_or_cost_present` still appears when the page really is a trial or a purchase, while a gift outside the catalogue now falls back to the title the page printed (9.3.9) instead of stopping the run.
 
 ### 9.3.8 A page that cannot be read, and a recognition call that never returns: the viewport ladder and the stall watchdog (2026-10-15)
 
@@ -389,6 +389,32 @@ flowchart TD
 | The old behavior is wanted | with `recovery_tries = 0` a failed step ends the run immediately | the legacy cases pass that setting and still assert their original stop reason |
 
 Acceptance: on the live game, failing on a zoomed-in map must first stop the step with `the_view_is_pinched_out_so_the_page_shows_all_of_itself` and a `window_recovery` event instead of ending the run; a wedged recognition must end as a failure within `stall_seconds` instead of hanging silently. This ladder only covers "the view cannot be read"; it does not fix a wrong criterion (that is 9.3.5 and 9.3.7).
+
+### 9.3.9 A modal that cannot be read does not end the run: the dialog's own Cancel, and gifts outside the catalogue (2026-10-15)
+
+<a id="feature-9-3-9"></a>
+
+```mermaid
+flowchart TD
+  A[A page cannot be read] --> B{Does the page offer a safe exit or a safe default?}
+  B -->|the dialog has its own Cancel| C[Click Cancel and re-read the shelf next frame]
+  B -->|the gift is not in the catalogue| D[Use the printed title as the identity and keep ranking]
+  B -->|neither| E[Hand it to the viewport ladder of 9.3.8]
+```
+
+User wording (m08238): "be more structured, more frameworked -- this plainly has a more fault-tolerant upstream implementation", plus the direct question "surely every gift that is not in the catalogue will not stop the run?". Both stops share one upstream fact: **the page already offered a safe exit or a safe default, and the criterion treated it as nothing to continue with.**
+
+**The purchase dialog: its own Cancel is the answer.** The live run `dist/MaaLimbus/evidence/runtime/pi-20261015-202635` stopped on the redesigned purchase dialog (`Purchase E.G.O Gifts` + `Purchase` / `✗ Cancel`) with `the_shop_asked_about_a_purchase_and_its_confirm_was_not_read`. The criterion chain, `matching_purchase_question` (`src/maalimbus/shop_vision.py:354`), demanded the gift name, `before - after == price` and `balances[0] == coins` all strictly equal; the shop had just read `1808` while the dialog badge read `1809`, and one token of drift refused the purchase. The new `purchase_dialog_answer` (`shop_vision.py:408`) treats the modal as a question with a safe exit: only a name that is adjacent (`close_to(..., 1)`) **and** a badge that spends exactly the reserved price answers `('purchase', box)`; every other reading answers `('cancel', box)`, with `COIN_DRIFT = 2`. `window.py:610` clicks that Cancel and re-reads the shelf on the next frame instead of ending the run, and the old refusal survives only for a dialog whose Cancel cannot be read either.
+
+**A gift outside the catalogue: the page's own printed title is the identity.** `floor_gifts.observe` (`src/maalimbus/floor_gifts.py`) used to raise `floor_gift_identity_unknown` whenever `catalog.text_identity` returned `None`, so any gift missing from `assets/resource/base/gift-catalog.json` ended the run. `identity_of` now falls back to the title the page itself printed: no string is invented, the offer still ranks and still reaches the receipts, and its keyword set is simply empty (`keywords_of`) -- `rank` already treats "no keywords" as no roster benefit, and learning records the sample under the name it saw.
+
+| Situation | Expected behaviour | Evidence |
+| --- | --- | --- |
+| The dialog cannot be read as the reserved purchase | Click its own Cancel and re-read the shelf next frame | `tests/test_shop_vision.py::test_the_dialogs_own_cancel_answers_a_question_it_cannot_authorize` |
+| Shop currency and dialog badge differ by a token or two | Still confirm the reserved purchase | `COIN_DRIFT = 2`; `test_a_drifted_coin_counter_is_the_reader_not_another_purchase` |
+| A reward page offers a gift the catalogue lacks | Use the printed title as the identity and keep ranking | `identity_of` / `keywords_of`; `tests/test_floor_gifts.py` green |
+
+Acceptance: neither an unreadable modal nor a gift outside the catalogue may end a run by itself; the only remaining single-run ender is an exhausted viewport ladder (9.3.8).
 
 ## 9.4 Learning and policy architecture
 

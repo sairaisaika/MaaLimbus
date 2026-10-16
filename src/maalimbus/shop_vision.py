@@ -396,3 +396,50 @@ def matching_purchase_question(records, name, price, size=None, threshold=.9, co
     if len(questions) == 1 and named.fullmatch(normalized(questions[0].text)):
         return target
     return None
+
+
+# The dialog's badge and the shelf's own currency are read off different frames, and
+# the client font costs the recogniser a token now and then: the 20:26 run's dialog
+# badge printed 1809 beside the shelf that had just read 1808.  Two
+# tokens of drift is the reader, not a different purchase.
+COIN_DRIFT = 2
+
+
+def purchase_dialog_answer(records, name, price, size=None, threshold=.9, coins=None,
+                           coin_drift=COIN_DRIFT):
+    """Which of the redesigned dialog's own two buttons answers the question.
+
+    The modal always offers a safe way out -- its own ``Cancel`` beside ``Purchase``
+    -- so a reading this project cannot authorize is answered with Cancel and
+    re-read on the next frame instead of ending the run: the gift band printing
+    another name, a badge that does not spend the reserved price, or a coin
+    counter that drifted past ``coin_drift``.  Only a dialog that names the
+    reserved gift *and* spends exactly its price is confirmed.
+
+    ``('purchase', box)`` and ``('cancel', box)`` are those two answers.  ``None``
+    means the frame carries no purchase dialog at all -- that is the shop's own
+    page, where nothing is asked and nothing may be answered.
+    """
+    from .vision import close_to, find
+
+    dialog = native_purchase_dialog(records, size)
+    if dialog is None:
+        return None
+    cancel = list(dialog['cancel'].box)
+    if (not isinstance(name, str) or not name.strip()
+            or type(price) is not int or price <= 0):
+        return 'cancel', cancel
+    # The dialog quotes the gift as its own wrapped name field; a band that prints
+    # anything else is not that gift, with the client font's single-glyph slips
+    # forgiven on the normalised forms.
+    names = find(records, r'.+', (.26, .51, .41, .59), size, threshold)
+    names = sorted(names, key=lambda row: (row.box[1], row.box[0]))
+    printed = ' '.join(row.text for row in names)
+    balances = purchase_balances(records, size)
+    named = bool(printed.strip()) and close_to(printed, name, 1)
+    spent = (balances is not None and balances[1] >= 0
+             and balances[0] - balances[1] == price
+             and (coins is None or abs(balances[0] - coins) <= coin_drift))
+    if named and spent:
+        return 'purchase', list(dialog['purchase'].box)
+    return 'cancel', cancel

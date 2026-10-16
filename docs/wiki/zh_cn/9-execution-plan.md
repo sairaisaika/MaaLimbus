@@ -354,7 +354,7 @@ flowchart TD
 | 真试炼/真付费措辞 | 仍否决 | 同文件用 `Enemy Level +2` 与 `Mounting Trials` 断言抛出 |
 | 图标路径与哈希 | 改名不触碰它们 | `gift-catalog.json` 的 `icons[].path`/`sha256` 未变，目录加载校验通过 |
 
-验收口径：同一次启动能走过三选一奖励页与购买确认框继续往下跑；`floor_gift_identity_unknown` 与 `three_free_gift_trial_or_cost_present` 只在真的读不出、真的是付费/试炼页时出现。
+验收口径：同一次启动能走过三选一奖励页与购买确认框继续往下跑；`three_free_gift_trial_or_cost_present` 只在真的是付费/试炼页时出现，而目录外的藏品现在退回页面自己印的标题（见 9.3.9），不再结束整局。
 
 ### 9.3.8 页面读不动与识别卡死：视角恢复阶梯与停滞看门狗（2026-10-15）
 
@@ -389,6 +389,32 @@ flowchart TD
 | 想恢复旧行为 | `recovery_tries = 0` 时一步不落地就立即结束 | 老用例显式传该设置后仍断言原停止原因 |
 
 验收口径：实机在拉近的地图上失败时，停止原因应先是 `the_view_is_pinched_out_so_the_page_shows_all_of_itself` 并伴随 `window_recovery` 事件，而不是直接结束；识别卡死时应在 `stall_seconds` 内以失败结束而非静默挂着。这套阶梯只解决「视图读不动」，不解决「判据本身错」（那属于 9.3.5 与 9.3.7）。
+
+### 9.3.9 读不出来的模态不结束整局：对话框自己的 Cancel 与目录外的藏品（2026-10-15）
+
+<a id="feature-9-3-9"></a>
+
+```mermaid
+flowchart TD
+  A[页面读不动] --> B{页面上有安全出口或安全默认值吗?}
+  B -->|对话框有自己的 Cancel| C[点 Cancel, 下一帧重读货架]
+  B -->|藏品不在目录里| D[用页面印的标题当身份, 继续排名]
+  B -->|两样都没有| E[交给 9.3.8 的视角恢复阶梯]
+```
+
+用户口径（m08238）：「你能不能做事情结构化一点，框架化一点，这种东西明明有容错更高的上游实现方法」，并直接问「不会所有没有录入的藏品都会给我停了吧」。两处停止共享同一个上游事实：**页面上本来就有安全出口或安全默认值，是判据把它们当成了不可继续。**
+
+**买确认框：它自己的 Cancel 就是答案。** 实机 `dist/MaaLimbus/evidence/runtime/pi-20261015-202635` 停在新版购买框（`Purchase E.G.O Gifts` + `Purchase` / `✗ Cancel`），原因是 `the_shop_asked_about_a_purchase_and_its_confirm_was_not_read`。判据链 `matching_purchase_question`（`src/maalimbus/shop_vision.py:354`）要求礼物名、`before - after == price`、`balances[0] == coins` 三者严格相等；同一局商店刚读到 `1808`，对话框徽章读成 `1809`，一个 token 的漂移就否掉了这次购买。新的 `purchase_dialog_answer`（`shop_vision.py:408`）把这个模态当成有安全出口的问答：只有名字相邻（`close_to(..., 1)`）**且**正好花掉预留价格才回 `('purchase', box)`，其余一律回 `('cancel', box)`，货币容差 `COIN_DRIFT = 2`。`window.py:610` 在 `shop['cancel']` 存在时点它自己的 Cancel、下一帧重读货架，不再结束整局；只有 Cancel 也读不到时才保留原来的拒绝。
+
+**目录外的藏品：用页面自己印的名字当身份。** `floor_gifts.observe`（`src/maalimbus/floor_gifts.py`）以前在 `catalog.text_identity` 返回 `None` 时抛 `floor_gift_identity_unknown`，于是任何没进 `assets/resource/base/gift-catalog.json` 的藏品都会结束整局。现在 `identity_of` 在查不到目录条目时退回**页面自己印的标题**当身份：不发明字符串，藏品照样进排名与回执，只是关键字为空（`keywords_of`），而 `rank` 本来就把"没有关键字"当作没有队伍收益，学习也按它看到的这个名字记样本。
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 购买框读不出预留的那件商品 | 点它自己的 Cancel，下一帧重读货架 | `tests/test_shop_vision.py::test_the_dialogs_own_cancel_answers_a_question_it_cannot_authorize` |
+| 商店货币与对话框徽章差一两个 token | 仍按预留购买确认 | `COIN_DRIFT = 2`；`test_a_drifted_coin_counter_is_the_reader_not_another_purchase` |
+| 奖励页出现目录外的藏品 | 用页面印的标题当身份，继续参与排名 | `identity_of` / `keywords_of`；`tests/test_floor_gifts.py` 全绿 |
+
+验收口径：读不动的模态与目录外的藏品都不得单独结束整局；能结束整局的仍然只有「整条恢复阶梯花完」（9.3.8）。
 
 ## 9.4 学习与策略的架构边界
 

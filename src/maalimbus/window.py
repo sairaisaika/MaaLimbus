@@ -608,9 +608,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                          expect=('SHOP', 'SHOP_PURCHASE', 'GIFT_GET', 'MAP', 'UNKNOWN'),
                          reason='confirming_the_purchase_the_shop_asked_about')
         if page == 'SHOP_PURCHASE':
-            # A purchase question is up and its Confirm was not read: buying, refreshing
-            # or leaving behind it would spend or cancel a purchase nobody asked for, so
-            # the frame is recorded instead of clicked.
+            # A purchase question is up that this project did not reserve: the dialog's
+            # own Cancel is the answer, and it is the safe one -- buying or refreshing
+            # behind the modal would spend currency nobody asked for, while a refusal
+            # would end the run over one reading.  Only a dialog whose own Cancel could
+            # not be read at all is recorded instead of clicked.
+            cancel = (shop or {}).get('cancel')
+            if cancel:
+                return _plan(page, CLICK, target=cancel,
+                             expect=('SHOP', 'SHOP_PURCHASE', 'MAP', 'UNKNOWN'),
+                             reason='the_dialogs_own_cancel_answers_a_question_this_project_did_not_reserve',
+                             detail={'why': (shop or {}).get('cancel_reason')})
             return _refuse(page, 'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read')
         revive = (shop or {}).get('revive')
         if revive and revive.get('box'):

@@ -28,10 +28,17 @@ def test_actual_city_trial_has_no_invented_healing_or_keywords():
 
 
 @pytest.mark.parametrize('replacement', ['For You Who Love the', 'For You Who Love a City', 'For You Who Love the City II'])
-def test_observed_title_requires_complete_identity(replacement):
+def test_a_mangled_title_is_carried_under_its_own_printed_name(replacement):
+    # A title the catalogue cannot confirm is no longer a stop (wiki 9.3.9): the offer
+    # keeps the name the page printed as its identity and ranks with no keywords.  What
+    # it must never do is stand in for the catalogued gift -- the identity stays the
+    # page's own string, so a mangled title and the real one never merge.
     changed = [Text(replacement,r.box,r.score) if r.text=='For You Who Love the City' else r for r in records()]
-    with pytest.raises(ValueError):
-        observe(changed,(1920,1080),GiftCatalog(ROOT/'assets/resource/base'))
+    offers, _ = observe(changed,(1920,1080),GiftCatalog(ROOT/'assets/resource/base'))
+    carried = [offer for offer in offers if offer.title == replacement]
+    assert len(carried) == 1
+    assert carried[0].canonical == replacement
+    assert carried[0].keywords == frozenset()
 
 
 def test_missing_trial_amount_refuses_entire_offer():

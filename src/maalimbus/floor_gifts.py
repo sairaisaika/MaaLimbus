@@ -103,6 +103,25 @@ def parse_trial(level, records):
     return Trial(level,'compound',0,tuple(effects))
 
 
+def identity_of(catalog, title):
+    """The catalogue's name for a printed title, or the title the page printed.
+
+    A reward page can offer a gift the bundled catalogue does not carry -- a new
+    collection, a renamed entry, a title the font mangled.  The printed title is
+    then the identity the run uses: nothing is invented (it is the page's own
+    string), the offer still ranks and is still recorded in the receipts, and an
+    unlisted gift is judged on an empty keyword set instead of stopping the run.
+    """
+    canonical = catalog.text_identity(title)
+    return canonical or title
+
+
+def keywords_of(catalog, canonical):
+    """The catalogue keywords behind an identity, empty when it is unlisted."""
+    entry = catalog.entries.get(canonical) or {}
+    return frozenset(entry.get('keywords') or ())
+
+
 def observe(records, size, catalog, *, image=None, select_box=None):
     """Require complete one-to-one title/card/trial correspondence and a counter."""
     state = counter_state({'ocr': [dict(text=r.text, box=r.box, score=r.score)
@@ -130,9 +149,7 @@ def observe(records, size, catalog, *, image=None, select_box=None):
             if rows and abs(cy-rows[-1][0])<=12:rows[-1][1].append(token)
             else:rows.append((cy,[token]))
         title=' '.join(' '.join(r.text for r in sorted(row,key=lambda r:r.box[0])) for _,row in rows)
-        canonical = catalog.text_identity(title)
-        if canonical is None:
-            raise ValueError('floor_gift_identity_unknown')
+        canonical = identity_of(catalog, title)
         trials = find(records, r'^Mounting Trials$', (left,.57,right,.62),size,.9)
         levels = find(records, r'^\+\s*\d+$', (left,.62,right,.67),size,.85)
         # Three-effect trials start a row higher than two-effect trials. Keep
@@ -149,7 +166,7 @@ def observe(records, size, catalog, *, image=None, select_box=None):
             trial=Trial(level,'unpriced',0)
             unpriced=trial_text(effects)
         owned = bool(find(records,r'^Owned$',(left,.13,right,.25),size,.9))
-        offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),
+        offers.append(Offer(title,canonical,keywords_of(catalog,canonical),
                             tuple(box),trial,owned,unpriced=unpriced))
     if len({normalized(o.title) for o in offers})!=len(offers):
         raise ValueError('floor_gift_duplicate_identity')
@@ -174,9 +191,7 @@ def observe_single_free(records, size, catalog, box, image, select_box):
     refuse = find(records, r'^Refuse Gift$', (.68,.77,.80,.84), size,.9)
     if len(titles)!=1 or len(select)!=1 or len(refuse)!=1:
         raise ValueError('single_free_gift_identity_or_controls_missing')
-    canonical = catalog.text_identity(titles[0].text)
-    if canonical is None:
-        raise ValueError('floor_gift_identity_unknown')
+    canonical = identity_of(catalog, titles[0].text)
     # Require the configured button patch to belong to the freshly read Select.
     if select_box is None or not (select[0].box[0] <= select_box[0]+select_box[2]/2 <= select[0].box[0]+select[0].box[2]
         and select[0].box[1] <= select_box[1]+select_box[3]/2 <= select[0].box[1]+select[0].box[3]):
@@ -187,7 +202,7 @@ def observe_single_free(records, size, catalog, box, image, select_box):
     lit = mean is not None and mean >= 45 and edges and min(edges)>=.25
     if not (dim or lit):
         raise ValueError('single_free_gift_selection_ambiguous')
-    offer = Offer(titles[0].text, canonical, frozenset(catalog.entries[canonical]['keywords']),
+    offer = Offer(titles[0].text, canonical, keywords_of(catalog, canonical),
                   tuple(box), Trial(0,'none',0), bool(find(records,r'^Owned$',(.40,.20,.47,.245),size,.9)), 'single_free_select_button')
     return [offer], dict(chosen=int(lit), required=1)
 
@@ -259,8 +274,7 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     for index,box in enumerate(boxes):
         titles=find(records,r'.+',(bounds[index],.245,bounds[index+1],.30),size,.9)
         if len(titles)!=1:raise ValueError('three_free_gift_title_not_unique')
-        title=titles[0].text;canonical=catalog.text_identity(title)
-        if canonical is None:raise ValueError('floor_gift_identity_unknown')
+        title=titles[0].text;canonical=identity_of(catalog,title)
         # The right card's lower edge is partly covered by Refuse Gift. Probe
         # its visible left segment; never count that overlay as an absent edge.
         edges=single_free_selection_edges(image,box,size,bottom_span=110)
@@ -278,7 +292,7 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
             if all(len(find(records,'^'+line+'$',
                             (bounds[index],.40,bounds[index+1],.55),size,.9))==1 for line in healing):
                 benefit=25  # Bounded survival preference, not predicted healing.
-        offers.append(Offer(title,canonical,frozenset(catalog.entries[canonical]['keywords']),tuple(box),
+        offers.append(Offer(title,canonical,keywords_of(catalog,canonical),tuple(box),
                             Trial(0,'none',0),False,'three_free_select_button',benefit))
     mean=button_mean(image,select_box);chosen=sum(states)
     if mean is None or not ((chosen==0 and mean<=25) or (chosen==1 and mean>=45)):

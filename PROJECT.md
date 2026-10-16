@@ -2371,3 +2371,26 @@ Docs: chapter 9 section 9.3.8 in both languages (`docs/wiki/zh_cn/9-execution-pl
 
 Still open from the user's brief (m01434, m07672): count completed Mirror Dungeons instead of the step window,
 and open the gift search so the planner learns what to buy; the wiki is to be used and updated, not only code.
+
+## DSH continuation: a modal that cannot be read no longer ends the run (2026-10-15)
+
+User wording (m08238): be structured and frameworked, and the direct question "surely every gift that is not in
+the catalogue will not stop the run?". The two new stops are the same thing: the page already offered a safe exit
+or a safe default, and the criterion treated it as nothing to continue with.
+
+- The purchase dialog (`the_shop_asked_about_a_purchase_and_its_confirm_was_not_read`, live run
+  `dist/MaaLimbus/evidence/runtime/pi-20261015-202635`): the criterion chain `matching_purchase_question`
+  (`src/maalimbus/shop_vision.py:354`) demanded the name, `before - after == price` and `balances[0] == coins` all
+  strictly equal, while in that same run the shop read `1808` and the dialog badge read `1809`. The new
+  `purchase_dialog_answer` (`src/maalimbus/shop_vision.py:408`) answers `('purchase', box)` only for a name that is
+  adjacent (`close_to(..., 1)`) and a badge that spends exactly the reserved price, and `('cancel', box)` for every
+  other reading, with `COIN_DRIFT = 2`; `src/maalimbus/window.py:610` clicks that Cancel and re-reads the shelf on
+  the next frame, and the old refusal survives only for a dialog whose Cancel cannot be read either.
+- Gifts outside the catalogue: `floor_gifts.observe` (`src/maalimbus/floor_gifts.py`) used to raise
+  `floor_gift_identity_unknown` whenever `text_identity` returned `None`, so any gift missing from
+  `assets/resource/base/gift-catalog.json` ended the run. `identity_of` / `keywords_of` now fall back to the title
+  the page itself printed (empty keyword set), so the offer still ranks and still reaches the receipts and learning
+  records it under the name it saw.
+
+Docs: chapter 9 section 9.3.9 in both languages, the README row, and the corrected 9.3.7 acceptance line.
+`tools/check_wiki.py` reports 0 problems; `tools/verify_wiki_routes.py --check` passes.

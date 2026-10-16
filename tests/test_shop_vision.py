@@ -19,8 +19,8 @@ sys.path.insert(0, str(ROOT / 'src'))
 from maalimbus.shop_vision import (Offer, click_box, currency, offers,  # noqa: E402
                                    matching_purchase_question, native_purchase_dialog,
                                    price_value, purchase_balances,
-                                   purchase_confirm_target, refreshes, shelf_tokens,
-                                   wanted_offers)
+                                   purchase_confirm_target, purchase_dialog_answer,
+                                   refreshes, shelf_tokens, wanted_offers)
 from maalimbus.vision import Text  # noqa: E402
 
 SHOP_FRAME = ROOT / 'evidence/runtime/window-20261012-024300/frame-0173.json'
@@ -187,6 +187,37 @@ def test_the_redesigned_dialog_reads_its_glued_price_badge():
     assert matching_purchase_question(records, 'Awe', 207, size, coins=1102) == \
         [1092, 706, 128, 34]
     assert matching_purchase_question(records, 'Awe', 208, size, coins=1102) is None
+
+
+def test_the_dialogs_own_cancel_answers_a_question_it_cannot_authorize():
+    records, size = redesigned_dialog()
+    # The reserved gift at the reserved price on the currency the intent was written
+    # against: the dialog's own Purchase is the answer.
+    assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1102) == \
+        ('purchase', [1092, 706, 128, 34])
+    # Anything else the modal may be asking is answered with its own Cancel, which is
+    # the safe way out: the shelf is re-read next frame instead of the run ending over
+    # one reading it could not authorize.
+    dialog = native_purchase_dialog(records, size)
+    for name, price in (('Awe', 208), ('Clear Mirror, Calm Water', 207)):
+        verdict, box = purchase_dialog_answer(records, name, price, size, coins=1102)
+        assert verdict == 'cancel'
+        assert box == list(dialog['cancel'].box)
+
+
+def test_a_drifted_coin_counter_is_the_reader_not_another_purchase():
+    records, size = redesigned_dialog()
+    # The dialog's badge and the shelf's own currency are read off different frames:
+    # two tokens of drift is the client font, and the reserved buy is still that buy.
+    assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1104)[0] == 'purchase'
+    assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1100)[0] == 'purchase'
+    assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1200)[0] == 'cancel'
+
+
+def test_a_frame_without_the_purchase_dialog_has_no_answer():
+    # The shop's own page asks nothing, so there is nothing to answer there.
+    records, size = shop_page()
+    assert purchase_dialog_answer(records, 'Awe', 207, size, coins=1102) is None
 
 
 def test_a_glued_badge_is_only_split_against_the_token_beside_it():
