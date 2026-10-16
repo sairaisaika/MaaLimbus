@@ -1107,11 +1107,18 @@ def shop_state(record, wanted=(), bought=(), refreshes_used=0, refresh_limit=2,
     refresh = None
     # On the shop's own purchase question the only readable input is its own Confirm:
     # buying, refreshing or leaving behind it would spend or cancel a purchase nobody
-    # asked for, so no other answer is offered there.
-    confirm = purchase_confirm_target(records, size, require_offers=not question)
+    # asked for, so no other answer is offered there.  The modal's own Purchase button
+    # is a *scene* anchor and never an authorization: on this page the runner's
+    # SHOP_PURCHASE branch may only hand a confirm over when the account proves it
+    # (a reserved gift at its price on the currency the intent was written against).
+    # The live 21:24:38 run died here -- a resumed 159-coin reservation met a dialog
+    # whose own badge asked 390, the scene's button was planned anyway, and the
+    # transaction layer refused it, ending the whole run.
+    readable = purchase_confirm_target(records, size, require_offers=not question)
+    confirm = None if question else readable
     if question:
         reason = ('the_shop_asked_about_a_purchase_and_its_confirm_is_the_only_input'
-                  if confirm else
+                  if readable else
                   'the_shop_asked_about_a_purchase_and_its_confirm_was_not_read')
         return {'currency': cash, 'buy': None, 'refresh': None, 'confirm': confirm,
                 'reason': reason, 'wanted': list(wanted),
@@ -2072,21 +2079,31 @@ class MirrorRunner:
                 self.note('shop_decision_ranking',ranking=rows,currency=shop['currency'],reserve=settings.shop_reserve_coins,
                     refresh_limit=settings.shop_refreshes,reason=shop['reason'],learning=shop.get('policy_trace'),input_sent=False)
             if page=='SHOP_PURCHASE' and shop:
-                from .shop_vision import matching_purchase_question, purchase_dialog_answer
-                pending=shop_tx.data['pending']
+                from .shop_vision import (matching_purchase_question, native_purchase_dialog,
+                                          purchase_dialog_answer)
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
-                answer=purchase_dialog_answer(texts,pending['name'],pending['price'],record['size'],
-                                              coins=pending['coins'])
-                if answer is None:
-                    shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending['coins'])
-                elif answer[0]=='purchase':
-                    shop['confirm']=answer[1]
+                pending=shop_tx.data.get('pending') if shop_tx is not None else None
+                if pending and pending.get('name') and pending.get('price'):
+                    answer=purchase_dialog_answer(texts,pending['name'],pending['price'],record['size'],
+                                                  coins=pending.get('coins'))
+                    if answer is None:
+                        shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending.get('coins'))
+                    elif answer[0]=='purchase':
+                        shop['confirm']=answer[1]
+                    else:
+                        # The modal's own Cancel answers a question this project did not
+                        # reserve, so the shelf is re-read on the next frame instead of
+                        # the run ending over one unreadable band or a drifted counter.
+                        shop['cancel']=answer[1]
+                        shop['cancel_reason']='the_dialog_does_not_name_the_reserved_gift_at_its_price'
                 else:
-                    # The modal's own Cancel answers a question this project did not
-                    # reserve, so the shelf is re-read on the next frame instead of the
-                    # run ending over one unreadable band or a drifted coin counter.
-                    shop['cancel']=answer[1]
-                    shop['cancel_reason']='the_dialog_does_not_name_the_reserved_gift_at_its_price'
+                    # A question nobody reserved (the operator's own click, or a run that
+                    # died mid-dialog): nothing may authorize a purchase this project did
+                    # not plan, so the modal's own Cancel is the only input offered here.
+                    dialog=native_purchase_dialog(texts,record['size'])
+                    if dialog is not None:
+                        shop['cancel']=list(dialog['cancel'].box)
+                        shop['cancel_reason']='a_purchase_question_this_run_never_reserved'
             self.note('shop_offers', currency=shop['currency'] if shop else None,
                       reason=shop['reason'] if shop else 'shop_page_not_read',
                       buy=shop['buy'] if shop else None,
@@ -2648,6 +2665,16 @@ class MirrorRunner:
             kind='clear' if plan['reason'].startswith('clear_inherited') else 'card'
             self.deployment_transaction.intent(kind,tuple(team['participants']),(plan.get('detail') or {}).get('card_index'))
         point = None
+        if page == 'SHOP_PURCHASE' and plan.get('reason') == (
+                'the_dialogs_own_cancel_answers_a_question_this_project_did_not_reserve'):
+            # The modal is not the question this project reserved, so the reservation
+            # is retired with the Cancel that answers it (shop_transaction.
+            # retire_pending): a stale intent would otherwise keep the shelf from
+            # being bought from at all -- every purchase would be refused as already
+            # reserved -- and the run would loop on this one dialog.
+            if shop_tx is not None and shop_tx.data.get('pending'):
+                shop_tx.retire_pending(self.run_id, shop_tx.data['current_visit'],
+                                       (plan.get('detail') or {}).get('why'))
         if page in ('SHOP','SHOP_PURCHASE') and plan.get('reason') in (
                 'buying_the_gift_the_gift_plan_asked_for',
                 'spending_the_coins_this_visit_would_carry_out_on_the_shelf',

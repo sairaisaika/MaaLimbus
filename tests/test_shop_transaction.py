@@ -68,6 +68,24 @@ def test_reservation_survives_restart_without_claiming_purchase(tmp_path):
     assert tx.path.read_bytes() == original
 
 
+def test_a_reservation_the_modal_never_asked_about_is_retired(tmp_path):
+    # Live 21:24:38: a resumed 159-coin reservation met a dialog whose own badge asked
+    # 390.  The modal's Cancel answers it and the stale intent is dropped with it --
+    # nothing is credited as bought, and the shelf can be read again next frame
+    # instead of every later purchase being refused as 'already reserved'.
+    tx, before = setup(tmp_path)
+    reserve(tx, before)
+    assert tx.retire_pending('scope', 'floor1:shop1', 'the_modal_asks_another_price') is True
+    assert tx.data['pending'] is None
+    assert tx.bought_names == []
+    assert tx.data['visits']['floor1:shop1']['retired'] == [
+        dict(name='Oracle', price=20, why='the_modal_asks_another_price')]
+    restarted = ShopTransaction(tx.path)
+    with pytest.raises(ValueError, match='No pending shop action'):
+        restarted.retire_pending('scope', 'floor1:shop1')
+    assert tx.path.read_bytes() == restarted.path.read_bytes()
+
+
 @pytest.mark.parametrize('change', ['price', 'name', 'currency', 'lowname', 'ambiguouscoins'])
 def test_changed_or_incomplete_fresh_offer_refuses_before_write(tmp_path, change):
     tx, before = setup(tmp_path)

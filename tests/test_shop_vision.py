@@ -205,6 +205,24 @@ def test_the_dialogs_own_cancel_answers_a_question_it_cannot_authorize():
         assert box == list(dialog['cancel'].box)
 
 
+def test_the_purchase_pages_own_button_is_never_an_authorization():
+    # The modal prints 'Purchase', and on the purchase page that button still
+    # authorizes nothing: only the runner's SHOP_PURCHASE branch may hand a confirm
+    # over, and only from the account it can prove.  Without this the 21:24:38 run
+    # planned the button straight off the scene read and died in the transaction layer
+    # with 'Full matching purchase title/price/question not proven'.
+    from maalimbus.runner import shop_state
+    if not REDESIGN_DIALOG.exists():
+        pytest.skip('the retained redesigned purchase dialog is not present')
+    record = json.loads(REDESIGN_DIALOG.read_text(encoding='utf-8'))
+    record['scene'] = 'SHOP_PURCHASE'
+    assert shop_state(record)['confirm'] is None
+    # The shelf's own page keeps it: a plain shop bears no purchase question at all,
+    # and the reader is what answers there.
+    record['scene'] = 'SHOP'
+    assert shop_state(record)['confirm'] == [1092, 706, 128, 34]
+
+
 def test_a_drifted_coin_counter_is_the_reader_not_another_purchase():
     records, size = redesigned_dialog()
     # The dialog's badge and the shelf's own currency are read off different frames:

@@ -416,6 +416,34 @@ User wording (m08238): "be more structured, more frameworked -- this plainly has
 
 Acceptance: neither an unreadable modal nor a gift outside the catalogue may end a run by itself; the only remaining single-run ender is an exhausted viewport ladder (9.3.8).
 
+### 9.3.10 A scene read is not an authorization: the button on the purchase page, and the retired reservation (2026-10-15)
+
+<a id="feature-9-3-10"></a>
+
+```mermaid
+flowchart TD
+  A[The scene read finds Purchase on the dialog] --> B{Did this run reserve this purchase?}
+  B -->|reserved, and the account matches| C[Hand the button to the plan; the transaction layer verifies again]
+  B -->|not reserved / account does not match| D[The plan clicks the dialog's own Cancel]
+  D --> E[Retire the reservation; the shelf is re-read next frame]
+```
+
+The operator's wording (m08238): 'how does *this* fail too?', asking for the more fault-tolerant upstream implementation. 9.3.9 fixed the "cannot be read" half; this section fixes the other half: **a reading was treated as an authorization**. The live run `dist/MaaLimbus/evidence/runtime/pi-20261015-212438` started at 21:24:38 and stopped two seconds later with `mirror_loop_failed; Full matching purchase title/price/question not proven` (`src/maalimbus/shop_transaction.py:384`): a 159-coin reservation left by the previous run met a dialog whose own badge asked 390, the button the scene read was planned anyway, the transaction layer refused to authorize it, and the whole run ended.
+
+Three structural changes:
+
+- **A scene read no longer poses as an authorization.** On the `SHOP_PURCHASE` page `shop_state` (`src/maalimbus/runner.py:1111`) no longer hands a `confirm` over: the dialog's `Purchase` is only a scene anchor, and what was read (`readable`) only writes the trace reason. The page's only authorization comes from the `SHOP_PURCHASE` branch of `_observe` (`runner.py:2074`), which computes `purchase_dialog_answer` from the reserved intent's name, price and coin count, and falls back to `shop['cancel']` when the account does not match.
+- **A question nobody reserved also has an exit.** When the page carries no reservation at all (the operator clicked the card, or the previous run died on the dialog), the `Cancel` that `native_purchase_dialog` reads is the only input offered (`a_purchase_question_this_run_never_reserved`).
+- **The reservation must be retired together with the Cancel.** `ShopTransaction.retire_pending` (`shop_transaction.py:390`) clears `pending` before the Cancel lands and records why in the visit (`visits[...]['retired']`). Without it the shelf would refuse every later purchase as 'already reserved' and the run would sit on the same dialog forever.
+
+| Situation | Expected behaviour | Evidence required |
+| --- | --- | --- |
+| The scene read finds `Purchase` on the dialog | Not handed to the plan; only a proven account is | `tests/test_shop_vision.py::test_the_purchase_pages_own_button_is_never_an_authorization` |
+| The page carries a question this run never reserved | Its own Cancel is clicked; nothing is bought and the run continues | the `SHOP_PURCHASE` branch at `runner.py:2074` |
+| After the Cancel | The reservation is retired and the shelf can be bought from again | `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired` |
+
+Acceptance: within one start, a purchase question is answered with its own Cancel and the run continues, whether it could not be read or was never reserved; a button the transaction layer cannot authorize no longer ends the run.
+
 ## 9.4 Learning and policy architecture
 
 <a id="feature-9-4"></a>

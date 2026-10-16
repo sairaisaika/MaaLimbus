@@ -387,6 +387,29 @@ class ShopTransaction:
         self._save(data)
         return target
 
+    def retire_pending(self, scope, visit, reason=None):
+        """Drop a reserved intent the page itself never asked about.
+
+        The live 21:24:38 run resumed a 159-coin reservation onto a dialog whose own
+        badge asked 390: the modal on screen is not the question this project
+        reserved, so its Cancel is the answer and the reservation is retired with it
+        *before* the click.  Without this the stale intent would keep the shelf
+        unreadable -- a fresh purchase would be refused as 'already reserved' -- so
+        the visit is left able to read itself again.  Nothing is recorded as bought:
+        the reason is written into the visit instead.
+        """
+        self._bound(scope, visit)
+        pending = self.data['pending']
+        if not pending:
+            raise ValueError('No pending shop action to retire')
+        data = copy.deepcopy(self.data)
+        data['pending'] = None
+        row = data['visits'][visit]
+        row['retired'] = list(row.get('retired') or []) + [
+            dict(name=pending.get('name'), price=pending.get('price'), why=reason)]
+        self._save(data)
+        return True
+
     def reserve_overlay_acknowledgement(self, scope, visit, frame_path):
         """Anchor the one input that clears a purchase's own ``E.G.O Gift GET!`` notice.
 

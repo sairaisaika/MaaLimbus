@@ -1054,7 +1054,11 @@ def test_the_purchase_question_offers_only_the_confirm_it_printed():
                                           {'text': 'X Cancel', 'box': [706, 720, 138, 36],
                                            'score': .94}])
     state = shop_state(page, wanted=['Prejudice'])
-    assert state['confirm'] == [1116, 722, 110, 34]
+    # The frame still carries the question's own Confirm and the scene read still finds
+    # it -- but the shop state never hands it over: only the runner's SHOP_PURCHASE
+    # branch may, and only from an account it can prove.  The live 21:24:38 run ended
+    # because a scene read was planned as an authorization.
+    assert state['confirm'] is None
     assert state['buy'] is None and state['refresh'] is None
     assert state['reason'] == 'the_shop_asked_about_a_purchase_and_its_confirm_is_the_only_input'
     # A question whose Confirm the frame did not carry is not answered at all: the

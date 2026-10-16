@@ -416,6 +416,34 @@ flowchart TD
 
 验收口径：读不动的模态与目录外的藏品都不得单独结束整局；能结束整局的仍然只有「整条恢复阶梯花完」（9.3.8）。
 
+### 9.3.10 场景读数不是授权：购买页上的按钮，与退役的预留（2026-10-15）
+
+<a id="feature-9-3-10"></a>
+
+```mermaid
+flowchart TD
+  A[场景读出购买框上的 Purchase] --> B{这一局预留了这次购买吗?}
+  B -->|预留了, 且账目对得上| C[把按钮交给计划, 交易层再复核一次]
+  B -->|没预留 / 账目对不上| D[计划点对话框自己的 Cancel]
+  D --> E[退役这条预留, 货架下一帧重读]
+```
+
+用户口径（m08238）：「这怎么也会失败的？？？」，要的是**更上游的容错**。9.3.9 修的是"读不出来"，这一条修的是另一半：**读数被当成了授权**。实机 `dist/MaaLimbus/evidence/runtime/pi-20261015-212438` 在 21:24:38 启动、2 秒后停，理由是 `mirror_loop_failed; Full matching purchase title/price/question not proven`（`src/maalimbus/shop_transaction.py:384`）：上一局留下的 159 币预留，遇上一个自己徽章写着 390 的对话框，场景读到的按钮照样进了计划，交易层拒绝授权，整局就结束了。
+
+三处结构性改动：
+
+- **场景读数不再冒充授权。** `shop_state`（`src/maalimbus/runner.py:1111`）在 `SHOP_PURCHASE` 页面上不再交出 `confirm`：对话框的 `Purchase` 只当场景锚点，读到的结果（`readable`）只用来写 trace 理由。购买页唯一的授权来自 `_observe` 的 `SHOP_PURCHASE` 分支（`runner.py:2074`），它按预留意向的名字、价格与金币算出 `purchase_dialog_answer`；账目对不上就退成 `shop['cancel']`。
+- **没有预留的问答也有出口。** 页面上压根没有本局预留时（操作者自己点的购买框，或上一局死在框上），`native_purchase_dialog` 读到的 `Cancel` 就是唯一输入（理由 `a_purchase_question_this_run_never_reserved`）。
+- **预留必须跟着 Cancel 一起退役。** `ShopTransaction.retire_pending`（`shop_transaction.py:390`）在点 Cancel 前清掉 `pending`，并把原因记进本次访问（`visits[...]['retired']`）。不清掉的话，货架下一帧会因为"已有预留"拒绝任何新购买，整局就卡在同一个对话框上。
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 场景读到购买框上的 `Purchase` | 不交给计划，只有账目证明才交 | `tests/test_shop_vision.py::test_the_purchase_pages_own_button_is_never_an_authorization` |
+| 页面上有本局没预留的购买框 | 点它自己的 Cancel，不买也不结束整局 | `runner.py:2074` 的 `SHOP_PURCHASE` 分支 |
+| Cancel 之后 | 预留退役、货架可再次购买 | `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired` |
+
+验收口径：一次启动里，购买框无论是"读不出来"还是"没预留过"，都只走 Cancel 并继续跑；交易层拒绝不可授权的按钮时不再结束整局。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

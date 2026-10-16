@@ -2394,3 +2394,26 @@ or a safe default, and the criterion treated it as nothing to continue with.
 
 Docs: chapter 9 section 9.3.9 in both languages, the README row, and the corrected 9.3.7 acceptance line.
 `tools/check_wiki.py` reports 0 problems; `tools/verify_wiki_routes.py --check` passes.
+
+## DSH continuation: a scene read is not an authorization (2026-10-15)
+
+The run after that freeze (`dist/MaaLimbus/evidence/runtime/pi-20261015-212438`, started 21:24:38) stopped after
+two seconds with `mirror_loop_failed; Full matching purchase title/price/question not proven`
+(`src/maalimbus/shop_transaction.py:384`). A 159-coin reservation left by an earlier run met a dialog whose own
+badge asked 390; the button the scene read was planned anyway, the transaction layer rightly refused to authorize
+it, and the refusal ended the whole run. 9.3.9 fixed "cannot be read"; 9.3.10 fixes the other half.
+
+- `shop_state` (`src/maalimbus/runner.py:1111`) no longer hands a `confirm` over on the `SHOP_PURCHASE` page: the
+  dialog's `Purchase` is a scene anchor only (`readable` writes the trace reason). The page's only authorization is
+  computed by the `SHOP_PURCHASE` branch of `_observe` (`runner.py:2074`) from the reserved intent's name, price
+  and coin count, falling back to `shop['cancel']` when the account does not match; with no reservation at all the
+  dialog's own `Cancel` is the only input offered (`a_purchase_question_this_run_never_reserved`).
+- `ShopTransaction.retire_pending` (`src/maalimbus/shop_transaction.py:390`) clears the reservation before that
+  Cancel lands and records why in `visits[...]['retired']`; without it every later purchase would be refused as
+  'already reserved' and the run would sit on the same dialog.
+- Tests: `tests/test_shop_vision.py::test_the_purchase_pages_own_button_is_never_an_authorization`,
+  `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired`, and the new
+  contract pinned in `tests/test_runner.py::test_the_purchase_question_offers_only_the_confirm_it_printed`.
+  Full suite 1754 passed, 1 skipped.
+
+Docs: chapter 9 section 9.3.10 in both languages and the README row.
