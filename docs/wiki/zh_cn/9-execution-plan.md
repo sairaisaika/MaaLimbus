@@ -444,7 +444,7 @@ flowchart TD
 | Cancel 之后 | 预留退役、货架可再次购买 | `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired` |
 | 礼物名折成多行、识别框顺序被打乱 | 仍按词认定为同一个礼物并确认购买 | `tests/test_shop_vision.py::test_a_wrapped_gift_name_is_read_in_whatever_order_its_lines_came` |
 
-验收口径：一次启动里，购买框无论是"读不出来"还是"没预留过"，都只走 Cancel 并继续跑；交易层拒绝不可授权的按钮时不再结束整局。
+验收口径：一次启动里，购买框无论是"读不出来"还是"没预留过"，都只走 Cancel 并继续跑；交易层拒绝不可授权的按钮时不再结束整局。**授权这一步也要认得新版对话框**：它不再要求那句 `Would you like to purchase …?`（新版根本不印），而是用与计划完全相同的证据 —— 礼物名按词、徽章正好花掉预留下价格、金币落在预留意向里（`ShopTransaction.reserve_confirm` 先问 `purchase_dialog_answer`，读不出来时才回落到旧版问句）。实机 `pi-20261015-214921`（21:49:21 启动，11 秒后停，inputs=1）就是死在旧问句上：计划已经授权了这一个购买框，交易层却找不到那句问句，于是整局结束。
 
 ## 9.4 学习与策略的架构边界
 

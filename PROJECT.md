@@ -2426,3 +2426,10 @@ it, and the refusal ended the whole run. 9.3.9 fixed "cannot be read"; 9.3.10 fi
   Full suite 1754 passed, 1 skipped; the two shop files 86 passed, runner+window 132 passed.
 
 Docs: chapter 9 section 9.3.10 in both languages and the README row.
+
+On the next Start (`dist/MaaLimbus/evidence/runtime/pi-20261015-214921`, 21:49:21, inputs=1) the *transaction* layer
+was the one still asking for the retired question sentence (`ShopTransaction.reserve_confirm` ->
+`matching_purchase_question`), so the modal the plan had just authorized could not be paid for and the run ended on
+`mirror_loop_failed; Full matching purchase title/price/question not proven`. `reserve_confirm` now asks
+`purchase_dialog_answer` first (gift band by its words, badge spending exactly the reserved price, coin counter on
+the reserved intent) and keeps the older wording only as a fallback for the pre-redesign client.

@@ -444,7 +444,7 @@ Three structural changes:
 | After the Cancel | The reservation is retired and the shelf can be bought from again | `tests/test_shop_transaction.py::test_a_reservation_the_modal_never_asked_about_is_retired` |
 | A gift name wrapped over several lines, its boxes out of order | Still read as that gift and the purchase confirmed | `tests/test_shop_vision.py::test_a_wrapped_gift_name_is_read_in_whatever_order_its_lines_came` |
 
-Acceptance: within one start, a purchase question is answered with its own Cancel and the run continues, whether it could not be read or was never reserved; a button the transaction layer cannot authorize no longer ends the run.
+Acceptance: within one start, a purchase question is answered with its own Cancel and the run continues, whether it could not be read or was never reserved; a button the transaction layer cannot authorize no longer ends the run. **The authorization step itself must also know the redesigned dialog**: it no longer asks for the `Would you like to purchase ...?` sentence the new client does not print, but uses the same evidence the plan does - the gift band matched by its words, the badge spending exactly the reserved price, the coin counter on the reserved intent (`ShopTransaction.reserve_confirm` asks `purchase_dialog_answer` first and falls back to the older question sentence only when the dialog cannot be read that way). The live `pi-20261015-214921` run died on that sentence (started 21:49:21, stopped eleven seconds later, inputs=1): the plan had authorized the dialog, the transaction layer could not find the question, and the run ended.
 
 ## 9.4 Learning and policy architecture
 

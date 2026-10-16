@@ -379,9 +379,25 @@ class ShopTransaction:
             raise ValueError('Shop Confirm already reserved; never repeat')
         if record.get('scene') != 'SHOP_PURCHASE':
             raise ValueError('Independent shop purchase question required')
-        target = matching_purchase_question(texts, pending['name'], pending['price'], size, coins=pending['coins'])
-        if target is None:
-            raise ValueError('Full matching purchase title/price/question not proven')
+        # The redesigned client prints no question sentence at all: the modal is the
+        # gift's own band, the before -> after badge and the two buttons.  The proof is
+        # therefore the same one the runner's SHOP_PURCHASE branch computes (gift band
+        # matched by its words, badge spending exactly the reserved price, coin counter
+        # on the reserved intent), never the retired ``Would you like to purchase ...?``
+        # wording the live pi-20261015-214921 run died on.
+        from .shop_vision import purchase_dialog_answer
+        answer = purchase_dialog_answer(texts, pending['name'], pending['price'], size,
+                                        coins=pending['coins'])
+        if answer is not None and answer[0] == 'purchase':
+            target = list(answer[1])
+        else:
+            # The older client printed the reservation as its own question sentence
+            # ("Would you like to purchase ...?"), and both generations are proofs of
+            # the same thing, so either one may carry the reservation.
+            target = matching_purchase_question(texts, pending['name'], pending['price'], size,
+                                                coins=pending['coins'])
+            if target is None:
+                raise ValueError('Full matching purchase title/price/question not proven')
         data = copy.deepcopy(self.data)
         data['pending'].update(stage='confirm_intent', question=proof, confirm=target)
         self._save(data)
