@@ -493,6 +493,53 @@
       "boundary": "按钮存在不等于公开新版下载/安装/重启已验收。"
     },
     {
+      "id": "recovery",
+      "title": "一步没落地时的视角手势与识别卡死看门狗",
+      "aliases": [
+        "缩小地图",
+        "地图拉近",
+        "只看到一格",
+        "视角",
+        "视图",
+        "恢复",
+        "卡死",
+        "挂了",
+        "没反应",
+        "停滞",
+        "recovery",
+        "zoom out",
+        "pinch",
+        "stall",
+        "watchdog",
+        "hang"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "pinch_out"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "MirrorRunner._recover"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "stall_watchdog"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3-8",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-8"
+      ],
+      "tests": [
+        "tests/test_recovery_ladder.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_recovery_ladder.py"
+      ],
+      "boundary": "阶梯只移动视角、不按游戏控件，也不修判据错误（见 9.3.5/9.3.7）；停滞看门狗只在没有新帧时结束进程。"
+    },
+    {
       "id": "plan",
       "title": "实施计划、依赖、工程图和完成标准",
       "aliases": [

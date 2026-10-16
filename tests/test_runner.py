@@ -337,7 +337,8 @@ def test_a_swallowed_click_is_retried_before_the_run_gives_up(tmp_path):
     device=FakeDevice(frames)
     observer=FrameObserver(tmp_path,[str(CLAIM_FRAME)]*6)
     notes=Notes()
-    runner=MirrorRunner(device,settings={'rounds':1,'interval':0.0,'page_tries':2},
+    runner=MirrorRunner(device,settings={'rounds':1,'interval':0.0,'page_tries':2,
+                                         'recovery_tries':0},
                         registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                         directory=tmp_path,observer=observer,journal=notes)
     result=runner.run(steps=4,interval=0.0,round_limit=4)
@@ -454,6 +455,7 @@ def test_a_configured_set_the_page_cannot_pay_for_narrows_and_leaves_the_page(tm
     observer = FrameObserver(tmp_path, [str(GRACE_CLEAN)] * 4)
     monkeypatch.setattr(runner_module, 'available_starlight', lambda records, size, **o: 0)
     runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                            'recovery_tries': 0,
                                             'graces': '2,4,5,7', 'grace_budget': 100},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                           directory=tmp_path, observer=observer, journal=notes,
@@ -595,7 +597,8 @@ def test_a_pre_battle_frame_without_its_counter_is_reread(tmp_path):
     observer = FrameObserver(tmp_path, [str(frame) for frame in frames])
     notes = Notes()
     runner = MirrorRunner(device,
-                          settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+                          settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                    'recovery_tries': 0},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                           directory=tmp_path, observer=observer, journal=notes,
                           store=store, run_id=scope)
@@ -701,7 +704,8 @@ def deployment_window(tmp_path, record):
     device = FakeDevice([image, image, image])
     observer = FrameObserver(tmp_path, [record, record, record])
     notes = Notes()
-    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                            'recovery_tries': 0},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                           directory=tmp_path, observer=observer, journal=notes,
                           store=store, run_id=scope)
@@ -883,7 +887,8 @@ def shop_window(tmp_path, record, extras=None):
                else [dict(extra,image=image) for extra in extras])
     observer = FrameObserver(tmp_path, records)
     notes = Notes()
-    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                            'recovery_tries': 0},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                           directory=tmp_path, observer=observer, journal=notes,
                           store=store, run_id=scope)
@@ -1244,7 +1249,8 @@ def revive_window(tmp_path, frames):
     device = FakeDevice([frame['image'] for frame in frames])
     observer = FrameObserver(tmp_path, [dict(frame) for frame in frames])
     notes = Notes()
-    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2},
+    runner = MirrorRunner(device, settings={'rounds': 1, 'interval': 0.0, 'page_tries': 2,
+                                            'recovery_tries': 0},
                           registry=json.loads(REGISTRY.read_text(encoding='utf-8')),
                           directory=tmp_path, observer=observer, journal=notes,
                           store=store, run_id=scope)

@@ -356,6 +356,37 @@ flowchart TD
 
 验收口径：同一次启动能走过三选一奖励页与购买确认框继续往下跑；`floor_gift_identity_unknown` 与 `three_free_gift_trial_or_cost_present` 只在真的读不出、真的是付费/试炼页时出现。
 
+### 9.3.8 页面读不动与识别卡死：视角恢复阶梯与停滞看门狗（2026-10-15）
+
+<a id="feature-9-3-8"></a>
+
+用户口径：一天之内连着四次停在不同页面，用户要求先停下来总结规律，而不是再逐个打补丁——「不要遇到问题改一个遇到问题改一个」，并明确「只要在这种界面失败了一律尝试缩小地图」（m02370、m02456–m02457）。四次停止（购买确认框的货币徽章、被拉近到只剩一格的地图、还没淡入的技能检定条、迟迟没等到计划里那件商品的商店）确实共享同一个形状：**都是"这个视图现在读不出东西"，而视图是可以被手势移动的**。所以处置不是再加四条特判，而是两条通解。
+
+**通解一：任何一步没落地，先花一档视角手势，而不是直接结束整局。** `RECOVERY_LADDER`（`src/maalimbus/runner.py:301-306`）四档依次是 `pinch_out`（缩小地图）、`drag_down`、`drag_up`、`wait`。缩小地图这一档直接复用实机标定过的双指手势：`pinch_out`（`runner.py:315`）配 `MAP_ZOOM_OUT = {'centre': (960, 540), 'radius': 320, 'factor': 0.55, 'seconds': 0.9}`（`runner.py:290`，与 `tools/map_zoom.py` 标定值一致），两指从 ±320 走拢到 ±176，共 12 步；控制器不支持双指时抛 `NotImplementedError`，**不会退化成在地图上乱点**。`_recover`（`runner.py:3321`）以 `页面|停止原因` 作为签名，同一个停止一次只花一档（`state['recovery_rung']`），花完整个梯子才允许整局结束，事件分别是 `window_recovery` 与 `window_recovery_exhausted`，另计 `artifacts['recoveries']`。关键安全性质写在注释里也写在测试里：**四档全部只移动视角、不按任何游戏控件**，所以在布局还没学过的页面上也可以放心试。想关掉这套行为就把 `recovery_tries` 设为 0。
+
+**通解二：识别调用卡死时，任何手势都救不回来，于是从循环外把进程结束掉。** `dist/MaaLimbus/evidence/runtime` 里 `pi-20261015-191205` 在 19:16:07 卡在一次 OCR 调用上，此后 12 分钟没有新帧、没有事件、没有结果，GUI 侧表现为「停了，甚至没法打开」（用户 m02283）——进程还在，线程全在等，是挂死不是循环。`stall_watchdog`（`runner.py:342`）用帧心跳判定：`_observe` 每次拿到帧就刷新 `artifacts['heartbeat']`（`runner.py:1582`），守护线程在超过 `stall_seconds`（默认 300 秒，`STALL_SECONDS` 见 `runner.py:3358`）没有心跳时先 `_record_stall`（`runner.py:3382`）把停止记录写进本次运行目录，再 `os._exit(4)`，让 GUI 如实报「任务失败」而不是静默挂着。
+
+```mermaid
+flowchart TD
+  A[一步输入后页面变了吗?] -->|变了| B[继续下一步]
+  A -->|没变| C{这一步的停止原因还剩梯子吗?}
+  C -->|有| D[花一档: 缩小地图 / 下拉 / 上拉 / 等一轮]
+  D --> A
+  C -->|花完了| E[window_recovery_exhausted 结束整局]
+  F[帧心跳] -->|超过 stall_seconds| G[写停止记录后 os._exit, GUI 报失败]
+  F -->|有帧| H[继续循环]
+```
+
+| 现场 | 期望行为 | 证据要求 |
+| --- | --- | --- |
+| 地图被拉近、节点在屏幕外 | 先双指缩小地图再重读该页 | `window_recovery` 事件 `gesture=pinch_out`，`artifacts['recoveries']` 递增 |
+| 同一页同一原因连续失败 | 一次只花一档，四档花完才结束 | `tests/test_recovery_ladder.py::test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends` |
+| 识别调用永不返回 | 超时后写记录并结束进程，GUI 报失败 | `stall_watchdog` 用例传入 `rounds` 后有界返回；实机帧心跳见 `artifacts['heartbeat']` |
+| 控制器不支持双指 | 抛错而不是退化成点击 | `test_a_controller_that_cannot_simulate_two_fingers_refuses_instead_of_clicking` |
+| 想恢复旧行为 | `recovery_tries = 0` 时一步不落地就立即结束 | 老用例显式传该设置后仍断言原停止原因 |
+
+验收口径：实机在拉近的地图上失败时，停止原因应先是 `the_view_is_pinched_out_so_the_page_shows_all_of_itself` 并伴随 `window_recovery` 事件，而不是直接结束；识别卡死时应在 `stall_seconds` 内以失败结束而非静默挂着。这套阶梯只解决「视图读不动」，不解决「判据本身错」（那属于 9.3.5 与 9.3.7）。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>

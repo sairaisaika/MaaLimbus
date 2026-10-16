@@ -51,32 +51,32 @@
         {
           "path": "agent/recognition.py",
           "symbol": "MainTaskAction.run",
-          "line": 1571,
-          "sha256": "8dfb623637709a9f971136e4e979a9fbc735d227d20eb2faec31026aa6ad0f42"
+          "line": 1602,
+          "sha256": "954c96b58088fecf7fe8d9ddfe0ac9c278431a80881868d2bf2e45bebe359729"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "MirrorLoopAction.run",
-          "line": 1499,
-          "sha256": "8dfb623637709a9f971136e4e979a9fbc735d227d20eb2faec31026aa6ad0f42"
+          "line": 1523,
+          "sha256": "954c96b58088fecf7fe8d9ddfe0ac9c278431a80881868d2bf2e45bebe359729"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 289,
-          "sha256": "e509d110d0b760b0b66c93d2481bc5e7aae3608925c31a50c80d81672a85d2e4"
+          "line": 373,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1142,
-          "sha256": "e509d110d0b760b0b66c93d2481bc5e7aae3608925c31a50c80d81672a85d2e4"
+          "line": 1249,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "AgentTasker.post_task",
-          "line": 1428,
-          "sha256": "8dfb623637709a9f971136e4e979a9fbc735d227d20eb2faec31026aa6ad0f42"
+          "line": 1452,
+          "sha256": "954c96b58088fecf7fe8d9ddfe0ac9c278431a80881868d2bf2e45bebe359729"
         }
       ]
     },
@@ -278,20 +278,20 @@
         {
           "path": "src/maalimbus/shop_vision.py",
           "symbol": "matching_purchase_question",
-          "line": 337,
-          "sha256": "a26892bb028961257c95264e8020c6ebcc48fefc58f01338d41910cb776591d0"
+          "line": 354,
+          "sha256": "b96a8fddb18fdd801fccd158ef6fa6f64fa72a761b28ed4670bb10374d813903"
         },
         {
           "path": "src/maalimbus/shop_transaction.py",
           "symbol": "ShopTransaction.reconcile_purchase",
-          "line": 388,
-          "sha256": "61a1a0628094d5acc12ef4f9aec754e70f1fe7244f74de23dcac1c8fef92bde3"
+          "line": 431,
+          "sha256": "e415282aab3a15f831fa5c43ba821b3edd838fedfc958d974e686db1308cda17"
         },
         {
           "path": "src/maalimbus/shop_transaction.py",
           "symbol": "ShopTransaction.reconcile_refresh",
-          "line": 468,
-          "sha256": "61a1a0628094d5acc12ef4f9aec754e70f1fe7244f74de23dcac1c8fef92bde3"
+          "line": 511,
+          "sha256": "e415282aab3a15f831fa5c43ba821b3edd838fedfc958d974e686db1308cda17"
         }
       ]
     },
@@ -379,8 +379,8 @@
         {
           "path": "src/maalimbus/floor_gifts.py",
           "symbol": "rank",
-          "line": 280,
-          "sha256": "c64acf6bbddc76f33166fcdaf3a4fb60db6f95074c211adcea5e32e6fd3d7b02"
+          "line": 289,
+          "sha256": "5b861c2686a72a5c92a8d342706d3c2015674aa59ea62abdefe3a39be906ea06"
         },
         {
           "path": "src/maalimbus/theme_vision.py",
@@ -577,8 +577,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
-          "line": 174,
-          "sha256": "e509d110d0b760b0b66c93d2481bc5e7aae3608925c31a50c80d81672a85d2e4"
+          "line": 182,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
         }
       ]
     },
@@ -709,6 +709,73 @@
           "needle": "export function SoftwareUpdatePanel",
           "line": 6,
           "sha256": "24637919184d30d09d0f0fdb8c339b843e0c91df13ce8bb947caa1a7d7c07b46"
+        }
+      ]
+    },
+    {
+      "id": "recovery",
+      "title": "一步没落地时的视角手势与识别卡死看门狗",
+      "aliases": [
+        "缩小地图",
+        "地图拉近",
+        "只看到一格",
+        "视角",
+        "视图",
+        "恢复",
+        "卡死",
+        "挂了",
+        "没反应",
+        "停滞",
+        "recovery",
+        "zoom out",
+        "pinch",
+        "stall",
+        "watchdog",
+        "hang"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "pinch_out"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "MirrorRunner._recover"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "stall_watchdog"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3-8",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-8"
+      ],
+      "tests": [
+        "tests/test_recovery_ladder.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_recovery_ladder.py"
+      ],
+      "boundary": "阶梯只移动视角、不按游戏控件，也不修判据错误（见 9.3.5/9.3.7）；停滞看门狗只在没有新帧时结束进程。",
+      "locations": [
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "pinch_out",
+          "line": 315,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "MirrorRunner._recover",
+          "line": 3321,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "stall_watchdog",
+          "line": 342,
+          "sha256": "99b17603d8d52f284fcaf25b23612339ab2dcc35d229830b2cbb16f7ab53df50"
         }
       ]
     },

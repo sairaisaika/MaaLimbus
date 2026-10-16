@@ -2338,3 +2338,30 @@ one live stop at a time, fixed the reader that was actually wrong, and re-froze 
 - Still open from the user's own brief (m01434): an explicit completed-run count instead of the step window as
   the goal (the window is already raised to >= 4000 when a count is named), and the gift search opened up so it
   learns what to buy; the step ceiling stays as a safety net, and coins keep their carry cap and reserve.
+
+
+## DSH continuation: one general answer to "the page did not move" (2026-10-15)
+
+The redesigned client keeps producing pages the old tree never saw, and each one used to end the run with its own
+reason string. Two general mechanisms now cover the whole family, both in `src/maalimbus/runner.py`:
+
+- `RECOVERY_LADDER` (`src/maalimbus/runner.py:301`) is an ordered list of page-independent gestures: the map
+  pinch-out whose two finger tracks were proven live by `tools/map_zoom.py` (`tools/map_zoom.py:52-70`), a
+  swipe-back, and a plain tap. `_recover` (`src/maalimbus/runner.py:3321`) tries them in turn, records
+  `recovery_attempt` with the gesture and the page, and only after the ladder is exhausted ends the run with the
+  original reason plus the gestures it tried. `recovery_tries` (`src/maalimbus/runner.py:167`) bounds the ladder
+  and can be set to 0 to switch it off; the legacy runner tests pin exactly that so they stay deterministic.
+- `stall_watchdog` (`src/maalimbus/runner.py:342`) watches the heartbeat the runner already writes and, when no
+  page changed for its limit, ends the run with a distinct reason instead of leaving the app hung; it runs as the
+  daemon thread `maalimbus-stall` (`src/maalimbus/runner.py:3375`).
+
+Live evidence for both: `dist/MaaLimbus/evidence/runtime/pi-20261015-193010` stopped with
+`unexpected_successor` on the map after 24 clicks, where the correct move was a zoom-out, and `maafw.log` shows
+the 19:16:07 recognition call burning 0 s of CPU for 12 idle minutes: the hung case the watchdog now names.
+
+Docs: chapter 9 section 9.3.8 in both languages (`docs/wiki/zh_cn/9-execution-plan.md`,
+`docs/wiki/en_us/9-execution-plan.md`), the `recovery` route in `docs/wiki/routes.json`, and the rebuilt
+`docs/wiki/agent-index.md` / `docs/wiki/agent-index.json`. `tools/check_wiki.py` reports 0 problems.
+
+Still open from the user's brief (m01434, m07672): count completed Mirror Dungeons instead of the step window,
+and open the gift search so the planner learns what to buy; the wiki is to be used and updated, not only code.

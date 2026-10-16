@@ -37,6 +37,7 @@ import hashlib
 import json
 import os
 import random
+import threading
 import time
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -157,6 +158,13 @@ def _defaults():
         # player did not name a number and the window walks until another bound stops it.
         'run_count': 0,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
+        # A wedged recognition never returns, so the loop is watched from outside it:
+        # with no new frame for this many seconds the process ends itself loudly
+        # instead of sitting silent (live run pi-20261015-191205, 19:16:07).
+        'stall_seconds': 300.0,
+        # How many viewport gestures a step that did not land may spend before the run
+        # ends. The default is the whole ladder; zero leaves the whole mechanism off.
+        'recovery_tries': len(RECOVERY_LADDER),
         'gift_keyword': 'bleed', 'gift_plan': 'assets/resource/base/gift-plan.json',
         'gift_search': 'refuse', 'shop_refreshes': 2,
         'shop_policy': 'manual', 'shop_reserve_coins': 500,
@@ -275,6 +283,82 @@ class Device(Protocol):
     def key(self, code: int) -> None:
         """Press one key by Maa keycode; optional, may raise NotImplementedError."""
 
+    def pinch(self, centre, radius, factor, seconds=0.9) -> None:
+        """Close two simulated fingers towards each other; taps nothing."""
+
+
+MAP_ZOOM_OUT = {'centre': (960, 540), 'radius': 320, 'factor': 0.55, 'seconds': 0.9}
+"""The calibrated map pinch-out, in the 1920x1080 recognition space.
+
+``tools/map_zoom.py`` proved this gesture on the live game and the runner sends the
+same vector; the tool's one-off nonce is not needed here, because the runner is
+already the authorized driver of the run it is pinching for.
+"""
+
+RECOVERY_DRAG = (960, 380, 960, 760)
+"""The vertical drag a recovery gesture uses, in the same 1920x1080 space."""
+
+RECOVERY_LADDER = (
+    ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
+    ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
+    ('drag_up', 'the_page_is_dragged_on_towards_its_later_rows'),
+    ('wait', 'the_page_is_given_one_more_round_to_settle'),
+)
+"""What a step that did not land gets before the run is allowed to end.
+
+Every rung moves the viewport and presses no game control, so the ladder is safe on
+a page whose layout the reader does not know yet. ``_recover`` spends one rung per
+stop, and the run ends only once the ladder is spent for that stop.
+"""
+
+
+def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
+              radius=MAP_ZOOM_OUT['radius'], factor=MAP_ZOOM_OUT['factor'],
+              seconds=MAP_ZOOM_OUT['seconds'], steps=12):
+    """Close two simulated fingers towards each other until the view zooms out.
+
+    Nothing is clicked: the emulator sees two touch points (ids 0 and 1) go down at
+    ``centre`` +/- ``radius`` and walk in to +/- ``radius * factor``, which is what
+    the game reads as "zoom out". A controller without touch simulation raises
+    :class:`NotImplementedError` instead of falling back to a click on the map.
+    """
+    if getattr(controller, 'post_touch_down', None) is None or getattr(controller, 'post_touch_move', None) is None:
+        raise NotImplementedError('this controller cannot simulate two fingers')
+    cx, cy = (int(value) for value in centre)
+    reach = max(1, int(radius))
+    target = max(1, int(reach * float(factor)))
+    steps = max(1, int(steps))
+    wait(controller.post_touch_down(cx - reach, cy, 0), timeout=10)
+    wait(controller.post_touch_down(cx + reach, cy, 1), timeout=10)
+    for index in range(1, steps + 1):
+        offset = reach - (reach - target) * index / steps
+        wait(controller.post_touch_move(int(cx - offset), cy, 0), timeout=10)
+        wait(controller.post_touch_move(int(cx + offset), cy, 1), timeout=10)
+        time.sleep(float(seconds) / steps)
+    wait(controller.post_touch_up(0), timeout=10)
+    wait(controller.post_touch_up(1), timeout=10)
+
+
+def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
+                   sleep=time.sleep, exit=os._exit):
+    """End a process that has stopped producing frames.
+
+    ``heartbeat_of`` returns the monotonic stamp of the newest frame. A recognition
+    call that never returns cannot be recovered by any gesture -- live run
+    pi-20261015-191205 wedged in one at 19:16:07 and sat silent for twelve minutes
+    with no frame, no event and no result -- so the loop is watched from outside it
+    and the process ends itself loudly rather than hanging. ``rounds`` bounds the
+    watch so a test can run it without arranging a real hang.
+    """
+    looked = 0
+    while rounds is None or looked < rounds:
+        sleep(every)
+        looked += 1
+        if time.monotonic() - float(heartbeat_of()) > limit:
+            on_stall()
+            exit(4)
+    return looked
+
 
 class MaaDevice:
     """A :class:`Device` over a MaaFramework controller.
@@ -324,6 +408,15 @@ class MaaDevice:
         if post is None:
             raise NotImplementedError('this controller has no key input')
         self._wait(post(int(code)))
+
+    def pinch(self, centre, radius, factor, seconds=0.9):
+        """Pinch the view out with the calibrated two-finger vector.
+
+        The runner reaches for this when the map refuses to move: the same gesture
+        ``tools/map_zoom.py`` sent when it was calibrated on the live game.
+        """
+        pinch_out(self.controller, self._wait, centre=centre, radius=radius,
+                  factor=factor, seconds=seconds)
 
 
 class LocalDevice:
@@ -375,6 +468,15 @@ class LocalDevice:
             raise NotImplementedError('this controller has no key input')
         self._wait(post(int(code)))
 
+    def pinch(self, centre, radius, factor, seconds=0.9):
+        """Pinch the view out with the calibrated two-finger vector.
+
+        The runner reaches for this when the map refuses to move: the same gesture
+        ``tools/map_zoom.py`` sent when it was calibrated on the live game.
+        """
+        pinch_out(self.controller, self._wait, centre=centre, radius=radius,
+                  factor=factor, seconds=seconds)
+
     def foreground(self):
         """The foreground window of the ADB device, or ``None`` when unknown."""
         if self.device is None:
@@ -398,6 +500,7 @@ class FakeDevice:
         self.clicks = []
         self.swipes = []
         self.keys = []
+        self.pinches = []
         self._foreground = foreground
 
     def push(self, frame):
@@ -414,6 +517,10 @@ class FakeDevice:
 
     def key(self, code):
         self.keys.append(int(code))
+
+    def pinch(self, centre, radius, factor, seconds=0.9):
+        self.pinches.append((tuple(int(value) for value in centre), int(radius),
+                             float(factor), float(seconds)))
 
     def foreground(self):
         return self._foreground
@@ -1467,7 +1574,12 @@ class MirrorRunner:
         return input_helpers.line(input_helpers.report(ROOT))
 
     def _observe(self, deadline=None):
-        """One page, from the injected observer, with the journal details attached."""
+        """One page, from the injected observer, with the journal details attached.
+
+        The frame that comes back is the stall watch's heartbeat: a loop that cannot
+        produce a frame is exactly the loop the watch exists for.
+        """
+        self.artifacts['heartbeat'] = time.monotonic()
         return observe(self.observer, self.deadline if deadline is None else deadline)
 
     def _flow(self, deadline, steps, observe_only):
@@ -2939,6 +3051,9 @@ class MirrorRunner:
                          and (plan.get('target') is not None or no_candidate)
                          and state['map_attempts'] + 1 < max(1, settings.map_tries))
             if not retryable:
+                recovered = self._recover(page, state, entry, plan)
+                if recovered is not None:
+                    return recovered
                 entry['stopped'] = entry['reason']
                 return self._result(page, plan.get('target'), True, entry['stopped'],
                                     done=True)
@@ -2962,6 +3077,8 @@ class MirrorRunner:
         if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
         state['page_attempts'] = 0
         state['swallowed_attempts'] = 0
+        state['recovery_for'] = None
+        state['recovery_rung'] = 0
         if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
             state['gift_picks'] += 1
         if detail.get('keyword') and entry.get('passed'):
@@ -3016,6 +3133,7 @@ class MirrorRunner:
         settings = self.settings
         if deadline is not None:
             self.deadline = deadline
+        self._start_stall_watch()
         goal = max(0, int(steps))
         if goal == 0 and not settings.observe_only:
             goal = max(0, int(settings.steps))
@@ -3183,6 +3301,107 @@ class MirrorRunner:
         time.sleep(self.settings.interval)
         return self._result(page, None, False, None, waiting=True)
 
+    def _recovery_gesture(self, name):
+        """Send one gesture that moves the view and presses no game control."""
+        if name == 'pinch_out':
+            self.device.pinch(MAP_ZOOM_OUT['centre'], MAP_ZOOM_OUT['radius'],
+                              MAP_ZOOM_OUT['factor'], MAP_ZOOM_OUT['seconds'])
+        elif name == 'drag_down':
+            self.device.swipe(RECOVERY_DRAG[0], RECOVERY_DRAG[1],
+                              RECOVERY_DRAG[2], RECOVERY_DRAG[3], 400)
+        elif name == 'drag_up':
+            self.device.swipe(RECOVERY_DRAG[2], RECOVERY_DRAG[3],
+                              RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400)
+        else:
+            time.sleep(1.5)
+        # A gesture is not a click: ``clicks_sent`` keeps counting the taps that were
+        # aimed at something, and the recovery is counted on its own.
+        self.artifacts['recoveries'] = self.artifacts.get('recoveries', 0) + 1
+
+    def _recover(self, page, state, entry, plan):
+        """Spend the next recovery rung instead of ending the run; ``None`` when spent.
+
+        The live runs of 2026-10-15 stopped on one page shape after another -- a
+        purchase dialog whose badge the reader could not balance, a zoomed-in floor
+        whose nodes were off screen, a skill check whose strip had not faded in, a
+        shop whose offer never became the one the plan was waiting for. Each of them
+        was a *view* that a gesture moves, so a step that did not land no longer ends
+        the run by itself: the page first gets the same ladder of viewport gestures,
+        one rung per stop, and only a stop that has already spent the whole ladder
+        ends the run. No rung presses a game control, which is what makes the ladder
+        safe to try on a page whose layout is unknown yet.
+        """
+        signature = f'{page}|{entry.get("reason")}'
+        if state.get('recovery_for') != signature:
+            state['recovery_for'] = signature
+            state['recovery_rung'] = 0
+        raw = self.settings.get('recovery_tries')
+        ladder = RECOVERY_LADDER[:(len(RECOVERY_LADDER) if raw is None
+                                   else max(0, int(raw)))]
+        rung = state['recovery_rung']
+        if rung >= len(ladder):
+            self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),
+                      rungs=[name for name, _ in ladder],
+                      input_helpers=self.input_helper_line())
+            return None
+        name, why = ladder[rung]
+        state['recovery_rung'] = rung + 1
+        entry['handled_retry'] = True
+        entry['stopped'] = why
+        self.note('window_recovery', page=page, gesture=name, rung=rung,
+                  stopped_reason=entry.get('reason'), plan_reason=plan.get('reason'),
+                  input_helpers=self.input_helper_line())
+        self._recovery_gesture(name)
+        time.sleep(self.settings.interval)
+        return self._result(page, plan.get('target'), True, None, waiting=True)
+
+    STALL_SECONDS = 300.0
+    """How long the loop may go without a new frame before the process ends itself."""
+
+    def _start_stall_watch(self):
+        """Watch the frame heartbeat so a wedged recognition ends the run loudly.
+
+        No gesture recovers a call that never returns, so the loop is watched from
+        outside it: a daemon thread ends the process once no frame has arrived for
+        ``settings.stall_seconds``, and leaves the record of where it stopped in the
+        run's own directory first.
+        """
+        raw = self.settings.get('stall_seconds')
+        limit = self.STALL_SECONDS if raw is None else float(raw)
+        if limit <= 0 or getattr(self, '_stall_watch', None) is not None:
+            return None
+        self.artifacts['heartbeat'] = time.monotonic()
+        watch = threading.Thread(
+            target=stall_watchdog, name='maalimbus-stall', daemon=True,
+            args=(lambda: self.artifacts.get('heartbeat', 0.0),),
+            kwargs={'limit': limit, 'on_stall': lambda: self._record_stall(limit)})
+        watch.start()
+        self._stall_watch = watch
+        return watch
+
+    def _record_stall(self, limit):
+        """Leave the evidence of the wedge before the process ends itself."""
+        heartbeat = self.artifacts.get('heartbeat', 0.0)
+        record = {'reason': 'the_run_stalled_without_a_new_frame',
+                  'limit_seconds': limit,
+                  'heartbeat_age_seconds': round(time.monotonic() - heartbeat, 1),
+                  'step': self.state.get('step'), 'page': self.state.get('page'),
+                  'last_event': self.last_event,
+                  'steps_recorded': len(self.artifacts.get('steps', []))}
+        try:
+            self.note('window_stall', reason=record['reason'],
+                      limit_seconds=record['limit_seconds'],
+                      heartbeat_age=record['heartbeat_age_seconds'],
+                      step=record['step'])
+        except Exception:  # pragma: no cover - a journal may be closing
+            pass
+        try:
+            (Path(self.directory) / 'agent-stall.json').write_text(
+                json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception:  # pragma: no cover - the directory may be gone
+            pass
+        return record
+
     def _result(self, page, target, sent, stopped, *, done=False, waiting=False):
         """The public shape of one step."""
         entry = self.artifacts['steps'][-1] if self.artifacts['steps'] else None
@@ -3280,6 +3499,7 @@ def _fresh_state(settings, store=None):
             map_points.append((int(pieces[0]), int(pieces[1])))
     return {'step': 0, 'unknown_seen': 0, 'battle_sig': None, 'battle_rounds': 0,
             'map_progress': MapProgress(), 'floor_now': None, 'map_attempts': 0,
+            'recovery_for': None, 'recovery_rung': 0,
             'page_attempts': 0, 'gift_picks': 0, 'initial_picked': 0,
             'swallowed_attempts': 0, 'grace_read_attempts': 0, 'deployment_read_attempts': 0,
             'shop_bought': [], 'shop_refreshes': 0,

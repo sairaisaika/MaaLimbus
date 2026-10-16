@@ -356,6 +356,37 @@ flowchart TD
 
 Acceptance: one start gets past the three-choice reward page and the purchase confirmation and keeps playing; `floor_gift_identity_unknown` and `three_free_gift_trial_or_cost_present` appear only when something truly cannot be read or the page really is a trial or a purchase.
 
+### 9.3.8 A page that cannot be read, and a recognition call that never returns: the viewport ladder and the stall watchdog (2026-10-15)
+
+<a id="feature-9-3-8"></a>
+
+The spoken rule: four stops in one day, and the user asked for the pattern instead of a fifth patch — "do not fix one problem per problem" — and stated the rule directly: on a screen like this, always try zooming the map out first (m02370, m02456–m02457). The four stops (a purchase dialog whose currency badge could not be balanced, a floor zoomed in until a single tile filled the screen, a skill-check strip that had not faded in, a shop that never offered what the plan was waiting for) share one shape: **the view currently yields nothing, and a view can be moved by a gesture**. So the answer is two general mechanisms, not four more special cases.
+
+**First mechanism: a step that did not land spends one rung of a viewport gesture before the run is allowed to end.** `RECOVERY_LADDER` (`src/maalimbus/runner.py:301-306`) is `pinch_out`, `drag_down`, `drag_up`, `wait`. The zoom-out rung reuses the gesture calibrated on the live game: `pinch_out` (`runner.py:315`) with `MAP_ZOOM_OUT = {'centre': (960, 540), 'radius': 320, 'factor': 0.55, 'seconds': 0.9}` (`runner.py:290`, the same values `tools/map_zoom.py` proved), two fingers walking in from +/-320 to +/-176 over 12 steps; a controller that cannot simulate two fingers raises `NotImplementedError` and **never degrades into clicking the map**. `_recover` (`runner.py:3321`) keys on `page|stop reason`, spends one rung per stop (`state['recovery_rung']`), and only a stop that has spent the whole ladder ends the run; the events are `window_recovery` and `window_recovery_exhausted`, counted on their own as `artifacts['recoveries']`. The safety property is in the comment and in the tests: **every rung moves the view and presses no game control**, which is what makes the ladder safe on a page whose layout is not known yet. Set `recovery_tries` to 0 to turn the behavior off.
+
+**Second mechanism: a recognition call that never returns cannot be recovered by any gesture, so the process is ended from outside the loop.** In `dist/MaaLimbus/evidence/runtime`, run `pi-20261015-191205` wedged inside one OCR call at 19:16:07 and then produced no frame, no event and no result for twelve minutes; the user saw "it stopped and cannot even be opened" (m02283). The process was alive with every thread waiting: a hang, not a loop. `stall_watchdog` (`runner.py:342`) watches the frame heartbeat: `_observe` refreshes `artifacts['heartbeat']` on every frame (`runner.py:1582`), and once no frame has arrived for `stall_seconds` (default 300, `STALL_SECONDS` at `runner.py:3358`) a daemon thread writes the stop through `_record_stall` (`runner.py:3382`) into the run's own directory and then calls `os._exit(4)`, so the GUI reports a failed task instead of hanging silently.
+
+```mermaid
+flowchart TD
+  A[did the page change after that input?] -->|yes| B[continue with the next step]
+  A -->|no| C{does this stop still have a rung left?}
+  C -->|yes| D[spend one: zoom out / drag down / drag up / wait a round]
+  D --> A
+  C -->|no| E[window_recovery_exhausted ends the run]
+  F[frame heartbeat] -->|older than stall_seconds| G[write the stop record, then os._exit, GUI reports failure]
+  F -->|a frame arrived| H[keep looping]
+```
+
+| Situation | Expected behavior | Evidence required |
+| --- | --- | --- |
+| The map is zoomed in and the nodes are off screen | pinch the map out first, then read the page again | `window_recovery` with `gesture=pinch_out`, `artifacts['recoveries']` rising |
+| The same page fails again for the same reason | one rung per stop; only a spent ladder ends the run | `tests/test_recovery_ladder.py::test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends` |
+| A recognition call never returns | after the limit, write the record and end the process; the GUI reports failure | the `stall_watchdog` cases return once given `rounds`; live heartbeat is `artifacts['heartbeat']` |
+| The controller cannot simulate two fingers | raise instead of degrading to a click | `test_a_controller_that_cannot_simulate_two_fingers_refuses_instead_of_clicking` |
+| The old behavior is wanted | with `recovery_tries = 0` a failed step ends the run immediately | the legacy cases pass that setting and still assert their original stop reason |
+
+Acceptance: on the live game, failing on a zoomed-in map must first stop the step with `the_view_is_pinched_out_so_the_page_shows_all_of_itself` and a `window_recovery` event instead of ending the run; a wedged recognition must end as a failure within `stall_seconds` instead of hanging silently. This ladder only covers "the view cannot be read"; it does not fix a wrong criterion (that is 9.3.5 and 9.3.7).
+
 ## 9.4 Learning and policy architecture
 
 <a id="feature-9-4"></a>
