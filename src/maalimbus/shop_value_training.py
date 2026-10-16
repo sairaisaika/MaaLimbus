@@ -371,11 +371,28 @@ def _resolve_ledger(ledger):
     return data, None
 
 
+def _ledger_runs(ledger):
+    """Every run the ledger still vouches for, however that run stopped.
+
+    ``active`` is the run in play and ``receipts`` are the ones that finished;
+    ``abandoned`` is where a session is filed when it expires or a later Start finds no
+    dungeon in progress (``run_wiring.expire``).  An abandoned run is not a disowned
+    one: the events and digests :func:`_scope_evidence` reads are the same evidence, and
+    consulting only the first two lists meant a purchase could be labelled only while
+    its own scope was still the active one.  The corpus could therefore never hold two
+    scopes, so the held-out evaluation in :func:`train_and_export` never had a pair to
+    score and the candidate could never leave its shadow whatever it had learned.
+    """
+    runs = [ledger.get('active')]
+    for key in ('receipts', 'abandoned'):
+        if isinstance(ledger.get(key), list):
+            runs.extend(ledger[key])
+    return [run for run in runs if isinstance(run, dict)]
+
+
 def _scope_evidence(ledger, scope):
     """Every piece of evidence the ledger binds to this scope."""
-    runs = [run for run in [ledger.get('active'), *(ledger.get('receipts')
-            if isinstance(ledger.get('receipts'), list) else [])]
-            if isinstance(run, dict) and run.get('id') == scope]
+    runs = [run for run in _ledger_runs(ledger) if run.get('id') == scope]
     if len(runs) > 1:
         return None, 'run_ledger_scope_ambiguous'
     if not runs:
@@ -967,18 +984,24 @@ def train_and_export(root, catalog, out, *, ledger=DEFAULT_LEDGER, hidden=8, epo
     held_out = pairwise_accuracy([forward(fitted['parameters'], row['values']) for row in test_rows],
                                  [row['target'] for row in test_rows])
     targets = {row['target'] for episode in dataset['episodes'] for row in episode['rows']}
+    observed_labels = sorted(targets)
+    ranking_signal = len(observed_labels) > 1
     participation = PARTICIPATION_SHADOW
-    if (len(targets) > 1 and held_out['pairs'] >= PROMOTION_MIN_PAIRS
+    reason = ('blocked_because_every_row_in_the_corpus_carries_the_same_outcome_value_%g'
+              % observed_labels[0] if not ranking_signal
+              else 'blocked_below_the_held_out_promotion_threshold')
+    if (ranking_signal and held_out['pairs'] >= PROMOTION_MIN_PAIRS
             and held_out['pairwise_accuracy'] is not None
             and held_out['pairwise_accuracy'] >= PROMOTION_MIN_ACCURACY):
-        participation = PARTICIPATION_RANKED
+        participation, reason = PARTICIPATION_RANKED, 'ranked_by_its_own_held_out_ordering'
     card = dict(training_ready=dataset['ready'], synthetic=False,
                 reviewed_episodes=dataset['episode_count'], reviewed_rows=dataset['row_count'],
                 production_enabled=False, participation=participation, hidden=hidden, seed=seed,
                 epochs=max(1, epochs), label_source=OBJECTIVE_LABEL_SOURCE,
                 curriculum=dict(trained_scopes=[episode['scope'] for episode in train],
                                 held_out_scopes=[episode['scope'] for episode in test],
-                                held_out_rows=len(test_rows), **held_out),
+                                held_out_rows=len(test_rows), label_values=observed_labels,
+                                **held_out),
                 training_metrics=fitted['metrics'], verification=dataset['verification'])
     artefact = export_candidate(fitted['parameters'], card, out,
                                 vocabulary=gift_vocabulary(catalog_data),
@@ -986,5 +1009,6 @@ def train_and_export(root, catalog, out, *, ledger=DEFAULT_LEDGER, hidden=8, epo
                                 min_episodes=min_episodes)
     report.update(trained=True, participation=participation, artefact=artefact,
                   metrics=fitted['metrics'], held_out=card['curriculum'],
-                  reason='candidate_%s_after_its_own_held_out_evaluation' % participation)
+                  label_values=observed_labels,
+                  reason='candidate_%s_%s' % (participation, reason))
     return report

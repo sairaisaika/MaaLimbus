@@ -464,6 +464,38 @@ def test_a_delayed_outcome_from_another_scope_is_an_exclusion(tmp_path):
     assert 'delayed_outcome_scope_not_in_run_ledger' in reasons
 
 
+def test_a_scope_the_ledger_filed_as_abandoned_still_carries_its_label(tmp_path):
+    """Where a run stopped does not decide whether its own observations count.
+
+    A session expires or a later Start finds no dungeon in progress and the run is
+    filed under ``abandoned``; its events are the same hash-bound evidence, so reading
+    only ``active`` and ``receipts`` meant a purchase could be labelled only while its
+    own scope was still the active one -- and the corpus could never hold two scopes.
+    """
+    def build(samples):
+        folder = sample_folder(samples, 'mine', scope='scope-1')
+        ledger_path = ledger_for(samples)
+        ledger = json.loads(ledger_path.read_text(encoding='utf-8'))
+        ledger['abandoned'] = [ledger['receipts'].pop(0)]
+        ledger_path.write_text(json.dumps(ledger), encoding='utf-8')
+        return folder
+    dataset, _ = _dataset(tmp_path, ('mine', build))
+    assert (dataset['episode_count'], dataset['row_count']) == (1, 1), dataset['excluded']
+    assert dataset['excluded'] == []
+
+
+def test_a_scope_the_ledger_files_twice_is_still_ambiguous(tmp_path):
+    def build(samples):
+        folder = sample_folder(samples, 'mine', scope='scope-1')
+        ledger_path = ledger_for(samples)
+        ledger = json.loads(ledger_path.read_text(encoding='utf-8'))
+        ledger['abandoned'] = [dict(ledger['receipts'][0])]
+        ledger_path.write_text(json.dumps(ledger), encoding='utf-8')
+        return folder
+    dataset, _ = _dataset(tmp_path, ('mine', build))
+    assert _only_reason(dataset) == 'run_ledger_scope_ambiguous'
+
+
 def test_a_missing_delayed_outcome_evidence_copy_is_an_exclusion(tmp_path):
     def build(samples):
         folder = sample_folder(samples, 'nocopy')
@@ -649,3 +681,37 @@ def test_the_cli_trains_and_labels_its_candidate_when_the_data_is_ready(tmp_path
     assert payload['exported']['production_enabled'] is False
     card = json.loads((tmp_path / 'out/modelcard.json').read_text(encoding='utf-8'))
     assert card['production_enabled'] is False and card['reviewed_episodes'] == 12
+
+
+def _corpus(tmp_path, benefits):
+    """A two-scope corpus whose only difference is the return each row was labelled."""
+    catalog_path = tiny_catalog(tmp_path / 'gift-catalog.json')
+    samples = tmp_path / 'samples'
+    for scope, benefit in benefits:
+        sample_folder(samples, '%s-%g' % (scope, benefit), scope=scope, benefit=benefit)
+    return samples, catalog_path
+
+
+def test_one_outcome_value_in_the_whole_corpus_cannot_teach_a_ranking(tmp_path):
+    """A run's later return is a property of the run, so every row of it repeats.
+
+    The candidate is still written, but it is written as a shadow and says why: with a
+    single value in the targets there is no pair to be right or wrong about.
+    """
+    samples, catalog_path = _corpus(tmp_path, [('scope-01', 0.8), ('scope-02', 0.8)])
+    report = training.train_and_export(samples, catalog_path,
+                                       tmp_path / 'out', ledger=ledger_for(samples), epochs=20)
+    assert report['participation'] == training.PARTICIPATION_SHADOW
+    assert report['label_values'] == [0.8]
+    assert 'same_outcome_value' in report['reason']
+
+
+def test_two_outcome_values_are_reported_however_the_fit_turns_out(tmp_path):
+    """Two values make the ordering a question the held-out rows can answer."""
+    samples, catalog_path = _corpus(tmp_path, [('scope-01', 0.8), ('scope-02', 0.4)])
+    report = training.train_and_export(samples, catalog_path,
+                                       tmp_path / 'out', ledger=ledger_for(samples), epochs=20)
+    assert report['label_values'] == [0.4, 0.8]
+    assert report['participation'] in (training.PARTICIPATION_SHADOW, training.PARTICIPATION_RANKED)
+    card = json.loads((tmp_path / 'out/modelcard.json').read_text(encoding='utf-8'))
+    assert card['curriculum']['label_values'] == [0.4, 0.8]

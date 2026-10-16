@@ -2488,3 +2488,29 @@ Tests: `tests/test_shop_transaction.py::test_a_neighbouring_slot_read_with_one_g
 `::test_the_live_resumed_purchase_across_runs_is_receipted` (the three real frames of the round trip, skipped when the
 retained evidence is absent). Wiki: decision D14 gained the continuation in both languages, and its item 8 now says
 which side no longer enumerates.
+
+## DSH continuation: the ledger's archived runs still label a purchase, and one label value halves the gate (2026-10-16)
+
+The value model was installed and could never rank anything, and the reason was not the corpus size.
+`_scope_evidence` (`src/maalimbus/shop_value_training.py:389`) looked for a scope's evidence binding only in the
+ledger's `active` and `receipts` lists, while `run_wiring.expire()` files an expired or superseded run under
+`abandoned` -- where `f855ac82c2b1429aae9c747a122213b8` sat with its own four `floor_clear` events, the very
+observations that label that visit's purchase. Reading two of the three lists meant a purchase could be labelled only
+while its own scope was still active, so the corpus could never hold two scopes and the held-out comparison could
+never exist. `_ledger_runs()` (`:374`) now reads all three, still refusing a scope the ledger files twice as
+`run_ledger_scope_ambiguous`; the live corpus goes from 1 run / 6 rows / 0 held-out pairs to 2 runs / 7 rows / 6
+held-out rows.
+
+The second half is not a bug. `label_from_outcomes` takes the run's own maximum later return, so every row of one run
+carries essentially the same number -- how far that run eventually got. The live corpus reports `label_values`
+`[0.6]`, one distinct value, and `len(targets) > 1` correctly keeps the candidate a shadow rather than promoting a
+ranker whose only lesson is a constant. `train_and_export` now writes `label_values` and a reason that says which gate
+held (`..._blocked_because_every_row_in_the_corpus_carries_the_same_outcome_value_0.6`) into the report and the
+modelcard. The confound this exposes is recorded too: a label that measures the run can teach which gifts appeared in
+strong teams rather than which gifts are worth buying, so `ranked` needs a within-team control before it is handed
+over.
+
+Tests: `tests/test_shop_value_training.py::test_a_scope_the_ledger_filed_as_abandoned_still_carries_its_label`,
+`::test_a_scope_the_ledger_files_twice_is_still_ambiguous`, `::test_one_outcome_value_in_the_whole_corpus_cannot_teach_a_ranking`,
+`::test_two_outcome_values_are_reported_however_the_fit_turns_out`. Wiki: the 9.3.11 continuation in both languages
+now records both halves and names the confound.

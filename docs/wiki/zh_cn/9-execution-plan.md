@@ -479,6 +479,14 @@ flowchart TD
 
 验收口径：`python tools/shop_value_review.py --install` 会复核目录、训练、并把 `weights.json` 与 `modelcard.json` 装进 `assets/resource/base/model/shop-value`。2026-10-15 的实测状态：10 个目录中 7 个已按观测标注、3 个仍待核（缺后续观测）；已核样本 1 局 / 6 行，留出 0 对、准确率未知，因此参与方式为 **shadow**（分数已可见，顺序不变）。**这不是"神经网络已上线"**：要开始参与，需要第二个被核验的局形成留出对比；缺的就是能跑完的实机局数，而不是人的复核。
 
+**续（2026-10-16）：账本的 `abandoned` 也是账本；而标签只有一个值时，门控拒绝得对。** 上一段把缺口记成"缺的是能跑完的实机局数"。核对之后它分成两件不同的事。
+
+1. **当时被核样本不可能有两局，这是结构问题。** `_scope_evidence`（`src/maalimbus/shop_value_training.py:389`）只在 `active` 与 `receipts` 里找这一局的证据绑定，而 `run_wiring.expire()` 把到期或重开的旧局归入 `abandoned`——`f855ac82c2b1429aae9c747a122213b8` 就在那里（备注：画出选人页时镜牢里没有进行中的局）。它自己的 4 条 `floor_clear` 正是给那次商店购买打标签的后续观测，却因为不在前两个列表里被判 `delayed_outcome_scope_not_in_run_ledger` 排除。只读前两个列表意味着一次购买只在**自己那一局还是 active 的时候**才能被标注：语料永远只有一局，留出比较永远没有对可比，`ranked` 于是不是"还没到"，而是结构上到不了。`_ledger_runs()`（`:374`）现在把 `active`/`receipts`/`abandoned` 一起读，重复登记仍按 `run_ledger_scope_ambiguous` 拒绝；实机语料从 1 局 6 行变成 2 局 7 行、留出 6 行。
+
+2. **两局之后标签仍然只有一个值，而这一次门控拒绝得对。** `label_from_outcomes` 取的是**这一局**在购买之后观测到的最大收益，所以一次运行里每一行拿到的基本是同一个数：这局后来到过哪一层，就是这局所有购买的标签。实机 7 行的 `label_values` 是 `[0.6]`，`len(targets) > 1` 这道门因此照旧把它写成 shadow。这不是缺陷：只有单一取值的语料没有任何"谁更好"的对比可学，强行晋级只会得到一个把常数写在脸上的排序器。训练报告与 modelcard 现在直接写出 `label_values` 与原因（`candidate_shadow_blocked_because_every_row_in_the_corpus_carries_the_same_outcome_value_0.6`），不再只留一个 `shadow` 结论。
+
+   要让它真的开始参与，缺的不是更多次同样的购买，而是**结果有差别**的局：同一种礼物有时买、有时不买，且两局的后续不同。这里还有一个必须承认的混淆：因为标签是"这局后来到得多远"，跨局样本教出来的可能是"**哪些礼物出现在强队里**"，而不是"哪些礼物值得买"。在把 `ranked` 交给它之前，这条混淆要有对照（例如同一队伍下的购买对比），否则 `ranked` 只是把一条相关性写进顺序。
+
 ## 9.4 学习与策略的架构边界
 
 <a id="feature-9-4"></a>
