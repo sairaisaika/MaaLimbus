@@ -2539,3 +2539,18 @@ Tests: `tests/test_map_vision.py::test_the_offer_mark_is_read_by_its_gold_not_by
 `::test_the_live_floor_one_offers_the_five_gold_badged_nodes` (the retained frame replayed, all five node coordinates
 compared). Wiki: decision D15 in both languages. **No live run has exercised this yet** -- the frame replay is the only
 evidence, because a Start can only come from the user.
+
+## DSH continuation: the gold reader becomes a labeler, so its false positives matter (2026-10-22)
+
+Same 389 retained map frames replayed: 3831 marks, about half of which cannot be a node the floor
+offers. Two structural causes were fixed in `src/maalimbus/map_vision.py` -- `GOLD_MARK_MERGE = 25`
+folds a ring the badge icon split in two (`[1448,342]` / `[1449,345]`), and the exclusion band now
+ends at `.80` instead of `.84` because the party strip starts at about `.78` and its twelve gold
+avatar frames were read as badges. The replay now yields 3014 boxes, 5 per frame modal, 18 max; the
+live frame still reads its five nodes and `tests/test_map_vision.py` is 50 passed.
+
+`tools/export_map_dataset.py` turns that reader into a dataset labeler: per-run splits, unmarked map
+frames kept as negatives, manifest under `build/map-dataset/samples.jsonl`. It labels only -- the
+`NeuralNetworkDetect` candidate still has to beat the rule on held-out runs before it is enabled.
+The discriminator still missing is structural: a node (dark hexagon) must exist directly below the
+ring, or the mark is dropped. Wiki: D15 continuation in both languages.
