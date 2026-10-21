@@ -875,6 +875,9 @@ GOLD_MARK_SIDE = (14, 46)
 # A badge is drawn above the node it marks, not on it: on the same frame the ring at
 # (863,404) sits over the node whose hexagon is centred at (863,448).
 GOLD_MARK_DROP = 44
+# One ring is not always one connected component: an icon inside the badge and a
+# bright pixel row can split it.  Nearest marks closer than this are the same ring.
+GOLD_MARK_MERGE = 25
 
 
 def gold_marks(image):
@@ -896,7 +899,8 @@ def gold_marks(image):
             & (saturation >= GOLD_MARK_MIN_SATURATION)
             & (value >= GOLD_MARK_MIN_VALUE)).astype(np.uint8)
     mask[:int(.10 * height), :] = 0
-    mask[int(.84 * height):, :] = 0
+    # The party strip starts at about .78 of the height and its frames are gold too.
+    mask[int(.80 * height):, :] = 0
     mask[:, :int(.10 * width)] = 0
     mask[:, int(.84 * width):] = 0
     count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
@@ -910,7 +914,14 @@ def gold_marks(image):
             continue
         marks.append((int(round(centres[index][0])), int(round(centres[index][1]))))
     marks.sort(key=lambda point: (point[1], point[0]))
-    return marks
+    merged = []
+    for point in marks:
+        close = [other for other in merged
+                 if abs(other[0] - point[0]) <= GOLD_MARK_MERGE
+                 and abs(other[1] - point[1]) <= GOLD_MARK_MERGE]
+        if not close:
+            merged.append(point)
+    return merged
 
 
 def gold_badge_drop(image):
