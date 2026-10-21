@@ -858,6 +858,67 @@ def neutral_node_outlines(image):
     return points
 
 
+# The gold ring is the offer mark the game draws over a node it will let the run step
+# to, and it is painted the same gold on every floor -- so it is read off the colour
+# rather than off one stored badge bitmap, which is only ever one floor's art. Live
+# evidence/runtime/pi-20261021-185251/frame-0119.png (floor 1) is why: five rings 24 px
+# across sat on the offered nodes at (863,404), (1055,403), (1247,403), (1247,564) and
+# (1055,723) while `node_badge_template` matched nothing on that floor, so the only
+# candidates the page handed the runner were the player's own icon, a path chevron and
+# two lattice guesses in the empty black panel beside the map. Every click was a no-op
+# and the run stopped with `no_candidate_node_observed` after 48 inputs.
+# The badge's own gold is BGR (21,140,223) -- OpenCV hue 13-16, saturation 231.
+GOLD_MARK_HUE = (10, 40)
+GOLD_MARK_MIN_SATURATION = 120
+GOLD_MARK_MIN_VALUE = 140
+GOLD_MARK_SIDE = (14, 46)
+# A badge is drawn above the node it marks, not on it: on the same frame the ring at
+# (863,404) sits over the node whose hexagon is centred at (863,448).
+GOLD_MARK_DROP = 44
+
+
+def gold_marks(image):
+    """Centres of the gold rings the game draws over the nodes it offers; no input.
+
+    Read off hue, saturation and brightness so a floor whose badge art the stored
+    template does not match is still readable. The reward bar, the star count and the
+    party strip are gold as well and are kept out by the canvas band here, and the
+    right-hand command buttons by the width bound.
+    """
+    if image is None:
+        return []
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hue, saturation, value = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+    mask = ((hue >= GOLD_MARK_HUE[0]) & (hue <= GOLD_MARK_HUE[1])
+            & (saturation >= GOLD_MARK_MIN_SATURATION)
+            & (value >= GOLD_MARK_MIN_VALUE)).astype(np.uint8)
+    mask[:int(.10 * height), :] = 0
+    mask[int(.84 * height):, :] = 0
+    mask[:, :int(.10 * width)] = 0
+    mask[:, int(.84 * width):] = 0
+    count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    shortest, longest = GOLD_MARK_SIDE
+    marks = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if not shortest <= box_w <= longest or not shortest <= box_h <= longest:
+            continue
+        if area < shortest * shortest // 2:
+            continue
+        marks.append((int(round(centres[index][0])), int(round(centres[index][1]))))
+    marks.sort(key=lambda point: (point[1], point[0]))
+    return marks
+
+
+def gold_badge_drop(image):
+    """How far below a badge its node sits, at this frame's scale."""
+    height, width = image.shape[:2]
+    return int(round(GOLD_MARK_DROP * width / 1920.0))
+
+
 def map_clicks(image, *, template=None, node_side=190, player=None):
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
@@ -1023,6 +1084,20 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
             point=item['point']
             if not corroborated or (point[0]-corroborated[0])**2+(point[1]-corroborated[1])**2>90*90:
                 add(point,'bright_lit_icon',CLICK_SIDE)
+    # The gold ring is the game's own offer mark, and it is the one reading that names a
+    # node on a floor whose badge art the stored template does not match: live
+    # pi-20261021-185251/frame-0119 above. It comes after the readings a live run has
+    # proven opens the panel (the walked path, the lit ring, the lit icon) and before the
+    # neutral outline, the badge lift and the lattice, which on that frame were a path
+    # chevron, nothing and two guesses in the empty black panel.
+    # It is only consulted when the badge scan found no node at all, because on the
+    # floors where that scan does work its marks are already the better reading and the
+    # gold on a gold-painted floor is everywhere (live window-20261006-212950/frame-0058:
+    # a lit ring read as a badge and would have deduped the shop node away).
+    if not markers:
+        lift = gold_badge_drop(image)
+        for point in gold_marks(image):
+            add((point[0], point[1] + lift), 'gold_badge_node', node_side)
     for point in neutral_node_outlines(image):
         add(point,'neutral_outline_candidate',CLICK_SIDE)
     for point in icons:

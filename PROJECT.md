@@ -2514,3 +2514,28 @@ Tests: `tests/test_shop_value_training.py::test_a_scope_the_ledger_filed_as_aban
 `::test_a_scope_the_ledger_files_twice_is_still_ambiguous`, `::test_one_outcome_value_in_the_whole_corpus_cannot_teach_a_ranking`,
 `::test_two_outcome_values_are_reported_however_the_fit_turns_out`. Wiki: the 9.3.11 continuation in both languages
 now records both halves and names the confound.
+
+## DSH continuation: the map offers its steps by colour, not by one floor's badge bitmap (2026-10-21)
+
+The next Start (`dist/MaaLimbus/evidence/runtime/pi-20261021-185251`, 18:52:51) walked floor 1 `Dregs of the Manor`
+for eight minutes and stopped at 19:00:56 on `no_candidate_node_observed`, 51 steps and 48 inputs in. The journal is
+unambiguous about the cause: `window_map_retry` reached `remaining: 0` on a target of `[1521,307,190,190]`, and the
+four candidates the page ever offered were the player's own icon, a path chevron and two lattice guesses inside the
+empty black panel beside the map. Every one of them was a click on nothing.
+
+`frame-0119.png` shows what the reader missed. The floor marks the nodes it offers with five gold rings, 24 px across,
+BGR (21,140,223), drawn on each node's top edge: (863,404), (1055,403), (1247,403), (1247,564), (1055,723), over the
+nodes at (863,448), (1055,447), (1247,447), (1247,608) and (1055,767). `node_badge_template()`'s stored bitmap matched
+none of them on this floor, so the badge channel contributed nothing and the lattice guess was left carrying the page.
+
+`gold_marks` (`src/maalimbus/map_vision.py:880`) reads the ring off its colour instead -- hue 10-40, saturation >= 120,
+brightness >= 140, a blob 14-46 px -- and `gold_badge_drop` (`:916`) lifts each mark onto the node it is drawn over
+(+44 px, measured on that frame). The candidates come out as `gold_badge_node` (`:1097-1100`), ranked behind the walked
+path, the lit ring and the lit icon, and ahead of the neutral outline, the badge lift and the lattice. The reading is
+gated on `node_markers` having found nothing at all: on a gold-painted floor (`window-20261006-212950/frame-0058.png`)
+gold is everywhere, and without the gate a lit ring read as a badge would dedupe the shop node away.
+
+Tests: `tests/test_map_vision.py::test_the_offer_mark_is_read_by_its_gold_not_by_one_stored_bitmap`,
+`::test_the_live_floor_one_offers_the_five_gold_badged_nodes` (the retained frame replayed, all five node coordinates
+compared). Wiki: decision D15 in both languages. **No live run has exercised this yet** -- the frame replay is the only
+evidence, because a Start can only come from the user.

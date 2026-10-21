@@ -215,7 +215,7 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
                                 'node_away_from_player', 'badge_mark', 'lit_node',
-                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node', 'neutral_outline_candidate')
+                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node', 'neutral_outline_candidate', 'gold_badge_node')
                for item in clicks)
 
 
@@ -253,7 +253,7 @@ def test_the_cyan_lit_node_is_the_first_candidate_on_the_floor_that_stalled():
     assert any(item['kind'] == 'node_away_from_player' for item in clicks)
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring', 'neutral_outline_candidate')
+                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring', 'neutral_outline_candidate', 'gold_badge_node')
                for item in clicks)
 
 
@@ -279,7 +279,7 @@ def test_the_offered_question_node_outranks_the_lifted_badge_boxes():
                if item['kind'] == 'node_away_from_player') >= 2
     assert all(item['kind'] in ('cyan_node', 'highlighted_node', 'chevron_target',
                                 'node_away_from_player', 'lattice_step', 'badge_mark',
-                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring')
+                                'lit_node', 'lit_icon', 'bright_lit_icon', 'path_node', 'lit_ring', 'gold_badge_node')
                for item in clicks)
 
 
@@ -1091,3 +1091,59 @@ def test_the_offered_ring_is_named_first_on_a_floor_painted_the_same_gold():
     # The icons that used to be offered first are still on the page, behind the ring.
     icons = [index for index, item in enumerate(clicks) if item['kind'] == 'lit_icon']
     assert icons and min(icons) > 0, clicks[:3]
+
+
+def test_the_offer_mark_is_read_by_its_gold_not_by_one_stored_bitmap():
+    """The ring is the game's mark on a node it offers, and it is the same gold on
+    every floor; a stored badge bitmap is only ever one floor's art.
+
+    Live pi-20261021-185251/frame-0119: five rings 24 px across at (863,404),
+    (1055,403), (1247,403), (1247,564) and (1055,723), each drawn BGR (21,140,223),
+    over the nodes at (863,448), (1055,447), (1247,447), (1247,608) and (1055,767) --
+    while the template matched none of them, which is why the run had no candidate to
+    click but the player's own icon, a path chevron and two guesses in the empty panel.
+    """
+    pytest.importorskip('cv2')
+    import cv2
+    import numpy as np
+    from maalimbus.map_vision import GOLD_MARK_DROP, gold_marks
+    image = np.full((1080, 1920, 3), (62, 54, 58), dtype=np.uint8)
+    rng = np.random.default_rng(7)
+    image = cv2.add(image, rng.integers(0, 14, image.shape, dtype=np.int16).astype(np.uint8))
+    # The badge as the game draws it: the same gold, a ring 24 px across.
+    cv2.circle(image, (800, 400), 11, (21, 140, 223), 4)
+    # A gold that is not the mark must not be read as one: the reward bar's plate.
+    cv2.rectangle(image, (40, 20), (120, 60), (21, 140, 223), -1)
+    assert gold_marks(image) == [(800, 400)]
+    # The badge is drawn above its node, so the click is lifted onto the hexagon.
+    assert GOLD_MARK_DROP == 44
+
+
+def test_the_live_floor_one_offers_the_five_gold_badged_nodes():
+    """The frame the 2026-10-21 run stopped on, read back."""
+    pytest.importorskip('cv2')
+    import cv2
+    from pathlib import Path
+    from maalimbus.map_vision import gold_marks, map_clicks
+    root = Path(__file__).resolve().parents[1]
+    path = None
+    for candidate in (root / 'evidence/runtime/pi-20261021-185251/frame-0119.png',
+                      root / 'dist/MaaLimbus/evidence/runtime/pi-20261021-185251/frame-0119.png'):
+        if candidate.exists():
+            path = candidate
+            break
+    if path is None:
+        pytest.skip('retained live map evidence is not present')
+    image = cv2.imread(str(path))
+    marks = gold_marks(image)
+    assert len(marks) == 5, marks
+    clicks = map_clicks(image)
+    nodes = [item for item in clicks if item['kind'] == 'gold_badge_node']
+    assert len(nodes) == 5, clicks
+    expected = {(863, 448), (1055, 447), (1247, 447), (1247, 608), (1055, 767)}
+    found = {(item['point'][0], item['point'][1]) for item in nodes}
+    assert found == expected, found
+    # The page's only other candidates were the player's own icon, a path chevron and
+    # two lattice guesses in the empty panel, so the five nodes are the whole head of
+    # the list: the run now has a real node to click before it wastes a turn on them.
+    assert [item['kind'] for item in clicks[:5]] == ['gold_badge_node'] * 5, clicks[:6]
