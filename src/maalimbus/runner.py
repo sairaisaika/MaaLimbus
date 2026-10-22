@@ -3564,8 +3564,17 @@ class MirrorRunner:
         # player's own point is the evidence -- it moves when the step is spent, and a
         # click the game refused leaves it exactly where it was.
         if page == 'MAP' and state.get('map_pending'):
-            here = map_vision.player_of(latest_frame(directory)[0],
-                                        map_vision.player_marker(latest_frame(directory)[0]))
+            # `player_of` takes a list of markers; handing it the single value
+            # `player_marker` returns makes `player_readings` fail on `marker.node`
+            # (an int, not a marker).  An empty list is the supported "no markers"
+            # case and was measured to agree with the train reading on a live MAP
+            # frame (evidence/runtime/packaged-mirror-20261022-063646/frame-0023:
+            # both give (694,384)), so ask that way and keep the dot check honest.
+            frame_image = latest_frame(directory)[0]
+            try:
+                here = map_vision.player_of(frame_image, [])
+            except (AttributeError, TypeError, ValueError):
+                here = None
             was = state.get('map_player')
             if here and was and abs(here[0] - was[0]) + abs(here[1] - was[1]) > 20:
                 self.note('map_click_result', target=state['map_pending'], page=page,
