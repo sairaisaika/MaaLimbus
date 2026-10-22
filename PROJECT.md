@@ -2588,3 +2588,24 @@ game will not step on is not a map with no nodes, and retrying a target that pro
 nothing is the ladder keeping books instead of diagnosing. The rule recorded in D15: a page
 whose inputs are provably inert must be handed over rather than retried.
 
+## DSH continuation: the floor was paused, not dead -- and the game reports its own progress (2026-10-22)
+
+The run that produced `evidence/runtime/packaged-mirror-20261021-202503` looked like a floor
+that refused every click: seven inputs on ringed, chevron-marked and `?` nodes, every frame
+pixel-identical. Opening the game's own pause menu on that same screen disproved the reading:
+**Dungeon Progress: Floor 1 (HARD) 4/5**. The party had already stepped four times this floor;
+the clicks were landing, the map simply had no next step to give, and the identical frames
+were the map at rest rather than a map that ignored input. The dungeon was also *paused*,
+which is why a fresh driver run had nothing to advance either.
+
+Two things out of this that outlive the coordinates:
+
+1. **The pause menu is a ground-truth progress oracle.** `Dungeon Progress` names the floor,
+   its difficulty and `N/5`, and the panel stays readable while pausing. The library has no
+   reader for it yet, and it is the only in-game statement of how far a run actually got --
+   worth reading before a run (does the floor still have steps?) and after one (did it move?).
+2. **`no_candidate_node_observed` is still the wrong name for "the floor has nothing left to
+   give".** `map_stop_reason` (commit `a95b1e4`) already separates "no candidate in this
+   frame" from "candidates were clicked and nothing moved"; a third case is now known -- the
+   floor is at its last step and the only marker left is not a step at all.
+
