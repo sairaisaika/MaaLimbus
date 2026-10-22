@@ -1898,6 +1898,18 @@ class MirrorRunner:
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
+        # When a MAP page yields no candidate the reason is one of two very different
+        # things -- the image handed to the reading is not the one the evidence file
+        # holds, or the party was not read in it.  Record both so the next live stop
+        # answers it instead of being guessed at: the offline reading of the same PNG
+        # gives the party every time (evidence/runtime/packaged-mirror-20261022-092529/
+        # frame-0002.png -> (1628,558)) while the packaged loop reported no candidate.
+        if page=='MAP' and not candidates and hasattr(frame,'shape'):
+            from .map_vision import party_point
+            here=party_point(frame)
+            self.note('map_candidates_empty',size=[int(frame.shape[1]),int(frame.shape[0])],
+                      party=list(here) if here else None,
+                      ocr=len(record.get('ocr') or []))
         # The participant screen (maalimbus/party_vision.py): a node opens it and
         # nothing leaves it until the party is full.  Read here, before the page
         # switch, so a frame the classifier has no name for is still answered --
