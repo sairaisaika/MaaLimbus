@@ -3091,3 +3091,20 @@ record a failure that names a page.
 
 Tests: `tests/test_stall_watch.py` 5 passed; full suite `1811 passed in 146.27s`. Wiki: D24 in both
 languages.
+
+## DSH iteration: an animation is waited out, an unreadable page still stops (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261022-043142` (AdbShell input, 167 events) fought a
+whole battle and then stopped as `page_unreadable_after_waiting`. The frames show the stop
+was mis-booked: `frame-0069` is a skill's impact animation -- eight fragmentary OCR reads,
+no control of any kind, and a different picture one frame later. The loop counted every
+`UNKNOWN` frame into `unknown_seen`, so the animation spent the unreadable-page budget.
+
+`looks_like_transition` (`src/maalimbus/runner.py`) now asks two things: no control word in
+the frame's reads, and a frame that moved since the last unknown one. Both make a
+transition -- waited out under its own bound (`window_transition_wait`), never charged to
+`unknown_seen`. The same unnameable frame twice is still a page, and still stops the run.
+
+Tests: `tests/test_runner.py::test_an_animation_that_moves_does_not_spend_the_unknown_budget`
+plus the existing `::test_a_run_waits_out_an_unreadable_page_and_then_stops`, 58 passed.
+Wiki: decision `D26` in both languages.
