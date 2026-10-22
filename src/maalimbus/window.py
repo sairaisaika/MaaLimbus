@@ -539,6 +539,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     if page == 'MAP':
         if not candidates:
             return _refuse(page, 'no_candidate_node_observed')
+        # A page that is read as MAP but refuses every click is a state, not a reading
+        # error: the controlled experiment on one device clicked nine times before
+        # `entry -> Enter -> Dungeon Progress -> Resume` (300..2000 px of animation only)
+        # and the first click after the resume opened the node panel (107860 px).  When the
+        # runner has seen that refusal streak it offers the map's own progress control,
+        # and the resume behind it is what makes the next node click land.
+        resume = controls.get('map.progress_button')
+        if resume is not None:
+            return _plan(page, CLICK, target=resume,
+                         expect=('MAP', 'UNKNOWN'),
+                         reason='the_exploration_must_be_resumed_before_a_node_click',
+                         detail={'candidate_count': len(candidates)})
         if not 0 <= candidate_index < len(candidates):
             return _refuse(page, 'candidate_index_out_of_range')
         # The map is the run's hub: a node opens its own panel (the proven case), and a

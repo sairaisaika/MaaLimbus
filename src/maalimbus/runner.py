@@ -312,6 +312,7 @@ last two steps sat off screen looked exactly like a floor with nowhere to go --
 which is the shape every stop of that session took.
 """
 
+MAP_PROGRESS_CONTROL = (1780, 8, 128, 104)   # the map page's progress button, agent space
 FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE')
 """Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
 
@@ -2596,6 +2597,12 @@ class MirrorRunner:
                     return self._result(page,None,False,stopped,done=True)
                 receipt_booked=True
         plan_controls=dict(self.controls)
+        if page=='MAP' and int(state.get('map_refused_streak') or 0)>=3:
+            # Nine refusals before `entry -> Enter -> Dungeon Progress -> Resume` and one
+            # click after it (see `window.plan_map`): a map that is read but refuses every
+            # node is a run that was never resumed, and the resume lives behind the map's
+            # own progress control at the top right of the page.
+            plan_controls['map.progress_button']=list(MAP_PROGRESS_CONTROL)
         if page=='TUTORIAL' and record.get('overlay_dismissal',{}):
             closer=record['overlay_dismissal']
             if closer.get('kind')=='tutorial_book':

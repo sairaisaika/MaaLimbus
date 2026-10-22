@@ -1536,3 +1536,24 @@ def test_the_revived_sinners_notice_leaves_through_the_modals_own_button():
     refused = plan_step('REVIVE_DONE', controls=SHOP_CONTROLS)
     assert refused['action'] == RECORD
     assert refused['reason'] == 'the_revived_sinners_notice_has_no_bound_leave'
+
+
+def test_a_map_that_refuses_every_click_offers_its_own_resume_control():
+    """A page read as MAP that refuses every node is a run that was never resumed.
+
+    Controlled experiment on one device: nine clicks before
+    `entry -> Enter -> Dungeon Progress -> Resume` produced only 300..2000 px of
+    animation, and the first click after the resume opened the node panel (107860 px).
+    So when the runner has seen the refusal streak it hands the plan a progress control,
+    and the plan must use it instead of another node.
+    """
+    from maalimbus.window import plan_step
+    from maalimbus.run_wiring import MAP_FORWARD_REASON
+    candidates = [[100, 100, 40, 40]]
+    plain = plan_step('MAP', candidates=candidates, candidate_index=0, controls={})
+    assert plain['reason'] == MAP_FORWARD_REASON
+    resume = [1780, 8, 128, 104]
+    plan = plan_step('MAP', candidates=candidates, candidate_index=0,
+                     controls={'map.progress_button': resume})
+    assert plan['reason'] == 'the_exploration_must_be_resumed_before_a_node_click'
+    assert list(plan['target']) == resume
