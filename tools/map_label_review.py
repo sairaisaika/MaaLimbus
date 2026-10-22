@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 from maalimbus.map_vision import gold_badge_drop, gold_marks  # noqa: E402
 
 NODE_TYPES = ('battle', 'event', 'shop', 'reward', 'rest', 'unknown')
-OUT = ROOT / 'build/map-dataset/hand-reviewed.jsonl'
+OUT = ROOT / 'assets/resource/base/map-labels/hand-reviewed.jsonl'
 
 
 def parse_boxes(text):

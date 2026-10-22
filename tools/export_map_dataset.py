@@ -60,7 +60,7 @@ def reviewed(root):
     unoffered nodes are left out, so an empty list here means "nothing to click", which is
     different from "the rule found nothing".
     """
-    path = root / 'build/map-dataset/hand-reviewed.jsonl'
+    path = root / 'assets/resource/base/map-labels/hand-reviewed.jsonl'
     if not path.is_file():
         return {}
     out = {}
