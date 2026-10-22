@@ -971,11 +971,21 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
                 break
     clicks = []
 
+    # The right column of circular buttons (info, guide, party, help) is page furniture, not
+    # map: live packaged-mirror-20261021-200907/frame-0053 had two guesses land on it at
+    # (1791,324) and (1801,254) while the floor's three offered nodes sat at (1247,264),
+    # (1439,264) and (1055,424).  A guess may not propose that column at all.
+    def _furniture(point):
+        return point[0] >= .88*width and point[1] < .45*height
+
     def add(point, kind, side):
         # Candidate probes belong to the map canvas, never the header or party.
         if not .10*height<=point[1]<.84*height or point[0]>=.94*width:return
         if (kind in ('neutral_outline_candidate','lit_icon','bright_lit_icon','lattice_step')
                 and point[0]<.30*width and point[1]<.215*height):return
+        if (kind in ('node_away_from_player','badge_mark','lattice_step',
+                     'bright_lit_icon','neutral_outline_candidate') and _furniture(point)):
+            return
         x = min(max(0, point[0] - side // 2), max(0, width - side))
         y = min(max(0, point[1] - side // 2), max(0, height - side))
         for item in clicks:
@@ -1101,14 +1111,40 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # proven opens the panel (the walked path, the lit ring, the lit icon) and before the
     # neutral outline, the badge lift and the lattice, which on that frame were a path
     # chevron, nothing and two guesses in the empty black panel.
-    # It is only consulted when the badge scan found no node at all, because on the
-    # floors where that scan does work its marks are already the better reading and the
-    # gold on a gold-painted floor is everywhere (live window-20261006-212950/frame-0058:
-    # a lit ring read as a badge and would have deduped the shop node away).
-    if not markers:
-        lift = gold_badge_drop(image)
-        for point in gold_marks(image):
-            add((point[0], point[1] + lift), 'gold_badge_node', node_side)
+    # It used to be consulted only when the badge scan found no node at all, and that gate
+    # is what let a live run spend its click retries on the settings column: live
+    # packaged-mirror-20261021-200907/frame-0053 prints three rings -- (1247,220),
+    # (1439,220), (1055,380) -- while the badge scan still produced a path node and two
+    # right-edge guesses at (1791,324) and (1801,254), so the one reading that names a
+    # walkable node was skipped, the run tapped the UI column, and it stopped on
+    # `unexpected_successor` after the recovery ladder ran out.  The gate is gone: rings
+    # are always offered, still after the readings a live run has proven (walked path, lit
+    # ring, lit icon) and still before the neutral outline, the badge lift and the lattice,
+    # so a ring can take the place of a guess but never of a proven reading -- and the
+    # earlier worry (window-20261006-212950/frame-0058, where the lit ring read as a badge
+    # would have deduped the shop node away) cannot recur from this position.
+    # The gold ring is the game's own offer mark: the one reading that names a node on a
+    # floor whose badge art the stored template does not match, and the reading that keeps
+    # a run off the settings column -- live packaged-mirror-20261021-200907/frame-0053 had
+    # three rings at (1247,264), (1439,264), (1055,424) while the badge scan only guessed a
+    # path node and two right-edge points, so nine click retries went to the UI and the run
+    # stopped on `unexpected_successor`.  A ring is skipped when the badge/ornament readings
+    # already name the node under it (window-20261006-212950/frame-0058: the lit ring node is
+    # (318,140) and the lift lands (304,201), 62 px away -- two candidates, one node), which
+    # is why those points are computed before the rings are added even though the readings
+    # themselves are added after them.
+    named = [(marker.node[0] + marker.node[2] // 2, marker.node[1] + marker.node[3] // 2)
+             for marker in advance_candidates(markers, player)]
+    named += [(marker.ornament[0] + marker.ornament[2] // 2,
+               marker.ornament[1] + marker.ornament[3] // 2)
+              for marker in advance_candidates(markers, player)]
+    named += list(highlighted) + list(icons)
+    lift = gold_badge_drop(image)
+    for point in gold_marks(image):
+        lifted = (point[0], point[1] + lift)
+        if any((lifted[0]-x)**2 + (lifted[1]-y)**2 <= 90*90 for x, y in named):
+            continue
+        add(lifted, 'gold_badge_node', node_side)
     for point in neutral_node_outlines(image):
         add(point,'neutral_outline_candidate',CLICK_SIDE)
     for point in icons:
