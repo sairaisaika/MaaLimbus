@@ -111,7 +111,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
-              shop=None, battle_assignment='win_rate'):
+              shop=None, battle_assignment='win_rate', battle_previous=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -124,7 +124,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       team=team, reward=reward, gift=gift, cards=cards, graces=graces,
                       initial=initial, search=search, check=check, defeat=defeat,
                       bonus=bonus, difficulty=difficulty, shop=shop,
-                      battle_assignment=battle_assignment)
+                      battle_assignment=battle_assignment,
+                      battle_previous=battle_previous)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -140,7 +141,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
-               shop=None, battle_assignment='win_rate'):
+               shop=None, battle_assignment='win_rate', battle_previous=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -1008,6 +1009,20 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # BATTLE_PLANNING is the same battle screen in its skill-planning sub-state
         # (agent/recognition.py:198 names it when the WAVE/TURN captions are not read
         # on that frame), so the forward input is unchanged: assign, then submit.
+        # The dial only submits a turn whose skills are already assigned: measured live
+        # on packaged-mirror-20261022-015843, a tap on it with the turn unassigned changed
+        # only the animation, and the same tap after `Win Rate` submitted the turn. Every
+        # new turn starts unassigned, so pressing the dial first is a no-op -- live run
+        # packaged-mirror-20261022-022144 pressed it into floor 3 and the turn stayed at 1
+        # until the stall guard ended the run. So the order alternates: submit, and if the
+        # page comes back with the same turn, assign first. `battle_previous` is what this
+        # run last sent on this battle page; without it the two intents cannot alternate
+        # and the page would sit on one of them forever.
+        if battle_previous == 'submit' and auto_assign and auto_assign.get(battle_assignment):
+            return _plan(page, CLICK, target=auto_assign[battle_assignment],
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
+                                 'UNKNOWN'),
+                         reason=battle_assignment+'_is_the_proven_auto_assign_control')
         if start_box:
             return _plan(page, CLICK, target=start_box,
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',

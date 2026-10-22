@@ -2994,3 +2994,16 @@ Tests: the two new cases in `tests/test_runner.py`. Full suite `1796 passed`.
 随后用点击实验定位：未分配时点齿轮盘只有动画，`Win Rate` 之后再点就把回合交了出去（TURN 6 → 攻击序列）。
 这既证明盘就是提交控件，也说明"点亮/不点亮"不是判据。最终改法是 `dial_beside_caption()`：锚定`Win Rate`
 说明，取其左侧、纵向跨度内的最大暖色块。全量 `1796 passed`，决策 D20 中英各一节。
+
+## DSH iteration: the battle intents alternate instead of repeating (2026-10-22)
+
+`packaged-mirror-20261022-022144` 到了 floor 3（此前最好 floor 2），13 次提交成功，但最后一场战斗卡住：
+`TURN` 一直是 1，循环反复对齿轮盘 `[1340,800,86,79]` 发提交。原因是新回合开始时技能未分配，而盘只在分配后
+才提交——所以每次都是空击，直到停滞守卫收局。
+
+`window.py` 原来的顺序是"有盘就点盘"，没有记忆。现在 `plan_step` 接受 `battle_previous`，`runner` 用
+`state['battle_previous']` 记住本回合上一次发的是提交还是分配：提交回来还是同一回合就改发 `Win Rate`，
+分配之后再发提交；离开战斗页清空。判据见
+`tests/test_battle_touch.py::test_a_turn_that_did_not_move_is_answered_with_the_auto_assignment_first`。
+
+全量 `1797 passed`。决策 D21 中英各一节。

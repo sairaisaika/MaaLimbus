@@ -2704,6 +2704,7 @@ class MirrorRunner:
                          start_box=record.get('start_box'),
                          auto_assign=record.get('auto_assign_buttons'),
                          battle_assignment=settings.battle_assignment,
+                         battle_previous=state.get('battle_previous'),
                          candidates=candidates, candidate_index=choice_index,
                          team=team, reward=reward, gift=gift, cards=cards,
                          graces=graces, initial=initial, check=check, defeat=defeat,
@@ -2918,6 +2919,15 @@ class MirrorRunner:
             # because a click that did open something was never remembered.
             state['map_progress'].note_click(plan['target'])
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)
+        # Remember which of the two battle intents went out, so a page that comes back
+        # with the same turn can be answered with the other one instead of a repeat.
+        if page in ('BATTLE_HUD','BATTLE_PLANNING'):
+            if plan.get('reason')=='start_button_submits_the_assigned_turn':
+                state['battle_previous']='submit'
+            elif str(plan.get('reason','')).endswith('_is_the_proven_auto_assign_control'):
+                state['battle_previous']='assign'
+        else:
+            state['battle_previous']=None
         if plan.get('reason')=='start_button_submits_the_assigned_turn':
             # All twelve sinners can animate for longer than the ordinary page
             # read budget. Wait at most two minutes after the submitted turn;

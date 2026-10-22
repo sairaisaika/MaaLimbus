@@ -14,6 +14,7 @@ import pytest
 from maalimbus.battle_vision import (auto_assign_buttons, auto_assign_plan, battle_hud,
                                      begin_turn_plan, dial_control, start_button)
 from maalimbus.vision import Text
+from maalimbus.window import plan_step
 
 ROOT = Path(__file__).resolve().parents[1]
 BATTLE = ROOT / 'evidence/runtime/team-page-battle-20261006-010230/frame-0007.json'
@@ -217,3 +218,34 @@ def test_the_lit_dial_is_read_on_a_board_that_draws_no_start_word():
     assert box == (1439, 772, 121, 133)
     assert box[0] + box[2] <= 1584
     assert begin_turn_plan(records, size, image)['target'] == box
+
+def test_a_turn_that_did_not_move_is_answered_with_the_auto_assignment_first():
+    """Live: pressing the dial on an unassigned turn changes nothing, so alternate.
+
+    packaged-mirror-20261022-022144 reached floor 3 and then pressed the dial at
+    [1340,800,86,79] repeatedly while TURN stayed 1, because a new turn starts with no
+    skill assigned and the dial only submits an assigned turn (same board family as
+    015843, where a pre-assignment tap moved only the animation). Whatever the run sent
+    last on this page, the next plan must be the other one -- otherwise the page sits on
+    one intent until the stall guard ends the run.
+    """
+    size = (1920, 1080)
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    cv2.circle(frame, (1389, 818), 60, (40, 120, 235), -1)
+    dial = dial_control(frame)
+    records = [Text('WAVE', (88, 37, 46, 32), 1.0), Text('1/1', (150, 37, 40, 32), 1.0),
+               Text('TURN', (20, 97, 42, 22), 1.0), Text('6', (98, 95, 16, 26), 1.0),
+               Text('Win', (1486, 796, 40, 20), 1.0), Text('Rate', (1492, 818, 44, 20), 1.0),
+               Text('Damage', (1472, 863, 76, 26), 1.0)]
+    buttons = auto_assign_buttons(records, size)
+    first = plan_step('BATTLE_HUD', controls={}, start_box=dial, auto_assign=buttons,
+                      battle_assignment='win_rate')
+    assert first['reason'] == 'start_button_submits_the_assigned_turn'
+    second = plan_step('BATTLE_HUD', controls={}, start_box=dial, auto_assign=buttons,
+                       battle_assignment='win_rate', battle_previous='submit')
+    assert second['reason'] == 'win_rate_is_the_proven_auto_assign_control'
+    assert tuple(second['target']) == tuple(buttons['win_rate'])
+    # After the assignment the dial is chosen again, never two assignments in a row.
+    third = plan_step('BATTLE_HUD', controls={}, start_box=dial, auto_assign=buttons,
+                      battle_assignment='win_rate', battle_previous='assign')
+    assert third['reason'] == 'start_button_submits_the_assigned_turn'
