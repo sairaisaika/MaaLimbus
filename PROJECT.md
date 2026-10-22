@@ -3076,3 +3076,18 @@ Tests: full suite `1800 passed in 154.02s`. Wiki: decision D22 in both languages
 `src/maalimbus/party_vision.py` 只按这一页自己印的东西判断：`is_page()` 认 `Total Participants` 标签，`participants()` 收 `0/12` 与分开的 `0`、`12` 两种排版（读不出返回 None，不猜），`cards()` 给 6×2 十二个卡位，`to_battle()` 给走人按钮。
 
 判据：`n < 12` 点卡，`n == 12` 只按 `To Battle!`。满员时卡面已从 `SELECTED` 变成 `BACKUP`，再点会把已上场的身份换下去——"满员不点卡"是正确性而不是优化。`runner.py` 在页面分派之前调用它，所以分类器还没命名的帧也会被回答。
+
+## DSH iteration: a loop that is alive and no longer decides anything (2026-10-22)
+
+`packaged-mirror-20261022-033911` was the first self-driven run that actually fought: it took the
+board from `WAVE 2/10 TURN 3` to `WAVE 8/10 TURN 5`. Then its last event (`window_unknown_wait round
+3`) was written at 07:41:23 and nothing followed for twenty minutes — with frames still arriving, so
+`stall_watchdog` had nothing to fire on and `agent-stall.json` was never written.
+
+`MirrorRunner` gained a second watch over progress instead of frames: `PROGRESS_SECONDS` (900s) over
+`artifacts['event_heartbeat']`, which `note()` stamps. On trigger it writes `agent-no-progress.json`
+(reason, `last_event`, `step`, `page`, `event_age_seconds`) and ends the process, so the driver can
+record a failure that names a page.
+
+Tests: `tests/test_stall_watch.py` 5 passed; full suite `1811 passed in 146.27s`. Wiki: D24 in both
+languages.
