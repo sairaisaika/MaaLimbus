@@ -27,10 +27,10 @@ def main(argv=None):
     from ultralytics import YOLO
     model = YOLO(args.model)
     results = model.train(data=str(DATA), epochs=args.epochs, imgsz=args.imgsz,
-                          project=str(OUT), name='run', exist_ok=True, seed=7,
+                          project=str(OUT), name='run-%d' % args.imgsz, exist_ok=True, seed=7,
                           val=True, batch=8, workers=2, verbose=False)
     metrics = model.val(data=str(DATA), split='test', imgsz=args.imgsz,
-                        project=str(OUT), name='val', exist_ok=True)
+                        project=str(OUT), name='val-%d' % args.imgsz, exist_ok=True)
     report = dict(model=args.model, epochs=args.epochs, imgsz=args.imgsz,
                   precision=float(metrics.box.mp), recall=float(metrics.box.mr),
                   map50=float(metrics.box.map50), map50_95=float(metrics.box.map),

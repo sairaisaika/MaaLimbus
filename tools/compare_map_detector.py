@@ -31,8 +31,8 @@ def iou(a, b):
     return inter / float(aw * ah + bw * bh - inter)
 
 
-def model_boxes(model, image, conf):
-    result = model.predict(image, conf=conf, imgsz=960, verbose=False, device='cpu')[0]
+def model_boxes(model, image, conf, imgsz=960):
+    result = model.predict(image, conf=conf, imgsz=imgsz, verbose=False, device='cpu')[0]
     boxes = []
     for box in result.boxes:
         x1, y1, x2, y2 = (float(v) for v in box.xyxy[0].tolist())
@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--weights', default='build/map-model/run/weights/best.pt')
     parser.add_argument('--run', default=None)
     parser.add_argument('--conf', type=float, default=0.5)
+    parser.add_argument('--imgsz', type=int, default=960)
     parser.add_argument('--render', type=int, default=0)
     parser.add_argument('--report', default='build/map-compare.json')
     args = parser.parse_args()
@@ -65,13 +66,13 @@ def main():
         if image is None:
             continue
         rule = [(x - 44, y - 44, 120, 120) for (x, y) in gold_marks(image)]
-        detected = model_boxes(model, image, args.conf)
+        detected = model_boxes(model, image, args.conf, args.imgsz)
         matched = sum(1 for box in rule if any(iou(box, d) >= 0.3 for d in detected))
         rows.append({'run': str(sample.get('run', '')), 'frame': Path(image_path).stem,
                      'rule': len(rule), 'model': len(detected), 'matched': matched,
                      'rule_only': len(rule) - matched, 'model_only': len(detected) - matched,
                      'image': image_path})
-    report = {'weights': args.weights, 'conf': args.conf, 'frames': len(rows),
+    report = {'weights': args.weights, 'conf': args.conf, 'imgsz': args.imgsz, 'frames': len(rows),
               'rule_boxes': sum(r['rule'] for r in rows),
               'model_boxes': sum(r['model'] for r in rows),
               'matched': sum(r['matched'] for r in rows),
@@ -92,7 +93,7 @@ def main():
         image = cv2.imread(str(ROOT / row['image']))
         for (x, y, w, h) in [(x - 44, y - 44, 120, 120) for (x, y) in gold_marks(image)]:
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
-        for (x, y, w, h) in model_boxes(model, image, args.conf):
+        for (x, y, w, h) in model_boxes(model, image, args.conf, args.imgsz):
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 3)
         out = ROOT / 'build' / ('compare-%s-%s.png' % (row['run'][-10:], row['frame']))
         cv2.imwrite(str(out), image)
