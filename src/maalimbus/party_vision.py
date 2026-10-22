@@ -34,6 +34,23 @@ def is_page(records, size, threshold=.75):
                and close_to(r.text, 'Total Participants', 2) for r in records)
 
 
+def looks_like_page(records, size, threshold=.6):
+    """Does anything on this frame mention the counter, even if it did not parse?
+
+    `is_page` proves the page; this only asks whether the reader *saw* it at all, so
+    a refusal can say "the label was there and the numbers were not" instead of
+    looking like a frame the loop had no business touching.
+    """
+    for record in records:
+        if record.score < threshold:
+            continue
+        if re.search(r'[Pp]articipants', record.text):
+            return True
+        if _inside(record, COUNTER_ROI, size) and re.search(r'\d', record.text):
+            return True
+    return False
+
+
 def participants(records, size, threshold=.6):
     """`(selected, total)` as the page prints it, or None when it is unreadable.
 

@@ -1734,6 +1734,15 @@ class MirrorRunner:
                            for t in record.get('ocr', [])]
             party_plan = party_vision.plan(party_reads, size,
                                            state.get('party_cards_clicked', 0))
+            if party_plan is None and party_vision.is_page(party_reads, size) is False:
+                # Say why this frame was not answered instead of returning None
+                # silently: an unread counter and a page that is not this one look
+                # identical from the outside (D25's lesson, applied to the plan).
+                counted = party_vision.participants(party_reads, size)
+                if counted is not None or party_vision.looks_like_page(party_reads, size):
+                    self.note('party_plan_refused', participants=list(counted) if counted else None,
+                              reason='the_counter_and_the_label_did_not_both_read',
+                              input_sent=False)
             if party_plan is not None:
                 self.note('party_intent', target=list(party_plan['target']),
                           reason=party_plan['reason'],
