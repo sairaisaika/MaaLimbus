@@ -1231,3 +1231,29 @@ class _Row:
 
     def __init__(self, text, box, score):
         self.text, self.box, self.score = text, box, score
+
+
+def test_the_gold_mark_the_game_draws_outranks_the_inferred_ring_guesses():
+    """Live run evidence/runtime/packaged-mirror-20261022-050759.
+
+    The map named its two 40x40 `lit_ring` guesses first -- the player's own token and a
+    chevron -- and all six clicks were rejected while three real `gold_badge_node` boxes
+    sat unclicked in the same list.  The walked path (`path_node`) still leads, because a
+    live tap on the lit path's far end is what opened the panel; the game's own gold mark
+    leads everything that is only inferred.
+    """
+    import cv2
+    import pathlib
+    path = (pathlib.Path(__file__).resolve().parents[1]
+            / 'evidence/runtime/packaged-mirror-20261022-050759/frame-0004.png')
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    clicks = map_clicks(cv2.imread(str(path)))
+    kinds = [c['kind'] for c in clicks]
+    assert 'gold_badge_node' in kinds
+    first_gold = kinds.index('gold_badge_node')
+    for later in ('lit_ring', 'lit_node', 'neutral_outline_candidate', 'lit_icon'):
+        if later in kinds:
+            assert kinds.index(later) > first_gold, (later, kinds)
+    if 'path_node' in kinds:
+        assert kinds.index('path_node') < first_gold

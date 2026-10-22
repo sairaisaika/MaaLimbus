@@ -1294,6 +1294,16 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     for point in lattice_neighbours(player):
         if 0 <= point[0] < width and 0 <= point[1] < height:
             add(point, 'lattice_step', node_side)
+    # The game marks the steps it will accept with a gold ring; anything else on this
+    # page is a guess (a lit ring, a bright icon, an outline read as a node).  Live run
+    # evidence/runtime/packaged-mirror-20261022-050759 asked for the two 40x40 `lit_ring`
+    # guesses first -- the player's own token and a chevron -- and every one of the six
+    # clicks was rejected as `the_page_stayed_on_the_map_after_the_click`, while the three
+    # real `gold_badge_node` boxes were in the same list, unclicked.  So the mark the game
+    # itself draws now leads, and the inferred readings keep their relative order after it.
+    clicks = ([c for c in clicks if c['kind'] == 'path_node']
+              + [c for c in clicks if c['kind'] == 'gold_badge_node']
+              + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
     return clicks
 
 
