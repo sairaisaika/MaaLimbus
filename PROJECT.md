@@ -3108,3 +3108,9 @@ transition -- waited out under its own bound (`window_transition_wait`), never c
 Tests: `tests/test_runner.py::test_an_animation_that_moves_does_not_spend_the_unknown_budget`
 plus the existing `::test_a_run_waits_out_an_unreadable_page_and_then_stops`, 58 passed.
 Wiki: decision `D26` in both languages.
+
+## DSH iteration: a battle submit the board ignored is now a fact, not a success (2026-10-22)
+
+`advance` 默认 `False`，战斗提交意图又不传它，于是"点击被吞"的判定条件永远凑不齐；`expect` 里同时含 `BATTLE_HUD`/`BATTLE_PLANNING`/`UNKNOWN`，让"忽略"与"接受"在页面层面同形。实测 19 次 `battle_observed` 只推进到 turn 5、每回合约 43 秒，而全程没有任何 verdict 事件——这不是点击没送到，是"送到了却被忽略"压根没被观测。
+
+现在以 HUD 的 `turn` 为唯一判据：同回合同一提交超 25 秒 -> `battle_submit_not_accepted`（带 `attempts`）；满 3 次 -> `battle_submit_ignored_repeatedly` 并清 `turn_wait_until`，把页面交还进度看门狗，让这一局以记录下来的原因进入恢复，而不是在同一回合上空转。判据为 `submit_was_ignored()`，6 条断言钉住语义；`tests/test_runner.py` 60 passed，全量 1815 passed。提交 `afc3551`、`6c90b07`、`8441649`；决策 `D27`（中英）。
