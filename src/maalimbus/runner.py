@@ -312,6 +312,20 @@ stop, and the run ends only once the ladder is spent for that stop.
 """
 
 
+def map_stop_reason(*, tried, attempts):
+    """Which map failure happened: nothing to read, or nothing accepted.
+
+    A frame with no candidate means the reader missed a node and waiting is the
+    cure. A floor that refused every click it was given means the page itself
+    would not step -- live ``evidence/runtime/packaged-mirror-20261021-202503``
+    sent seven inputs to ringed, chevron-marked and ``?`` nodes that all left the
+    page identical while the gear button moved 228 435 pixels -- and calling that
+    `no_candidate_node_observed` sends the next run after the reader instead.
+    """
+    return ('map_clicks_had_no_effect' if tried and attempts
+            else 'map_candidates_not_observed_yet')
+
+
 def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
               radius=MAP_ZOOM_OUT['radius'], factor=MAP_ZOOM_OUT['factor'],
               seconds=MAP_ZOOM_OUT['seconds'], steps=12):
@@ -3103,7 +3117,22 @@ class MirrorRunner:
             entry['handled_retry']=True
             state['navigation_probe_pending']=True
             if no_candidate:
-                entry['stopped'] = 'map_candidates_not_observed_yet'
+                # A frame with no candidate is not the same failure as a floor that
+                # refused every click. Live evidence/runtime/packaged-mirror-
+                # 20261021-202503 spent seven inputs on nodes the game never accepted
+                # (ringed, chevron-marked and `?` nodes all left the page identical,
+                # while the gear button at (1229,42) moved 228 435 pixels) and then
+                # reported `no_candidate_node_observed`, which reads as "the reader
+                # missed a node" when the truth was "the page would not step". Say
+                # which one happened, so the next run does not chase the reader.
+                entry['stopped'] = map_stop_reason(
+                    tried=bool(state['map_progress'].tried),
+                    attempts=state['map_attempts'])
+                if entry['stopped'] == 'map_clicks_had_no_effect':
+                    self.note('window_map_clicks_inert', page=page,
+                              attempts=state['map_attempts'],
+                              clicked=[list(box) for box in
+                                       sorted(state['map_progress'].tried)])
                 time.sleep(settings.interval)
                 return self._result(page, plan.get('target'), True, None, waiting=True)
             # An unreachable node swallows the click and the page stays MAP, so skip it

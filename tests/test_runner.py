@@ -1315,3 +1315,20 @@ def test_the_picker_names_the_dead_card_and_the_modal_answers_its_own_pick(tmp_p
     intents = [details for event, details in notes.events if event == 'window_intent']
     assert intents[-1]['reason'] == 'the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop'
     assert intents[-1]['target'] == [1622, 943, 150, 53]
+
+
+def test_a_floor_that_refused_every_click_is_not_reported_as_an_unread_map():
+    """The two map stops are different failures and must not share a name.
+
+    Live ``evidence/runtime/packaged-mirror-20261021-202503`` sent seven inputs to
+    nodes the game never accepted and then reported ``no_candidate_node_observed``,
+    which reads as "the reader missed a node" -- so the next change chased the
+    reader instead of the page.
+    """
+    from maalimbus.runner import map_stop_reason
+
+    assert map_stop_reason(tried=(), attempts=3) == 'map_candidates_not_observed_yet'
+    assert map_stop_reason(tried=((1152, 169, 190, 190),), attempts=0) == (
+        'map_candidates_not_observed_yet')
+    assert map_stop_reason(tried=((1152, 169, 190, 190),), attempts=2) == (
+        'map_clicks_had_no_effect')
