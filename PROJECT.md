@@ -3007,3 +3007,35 @@ Tests: the two new cases in `tests/test_runner.py`. Full suite `1796 passed`.
 `tests/test_battle_touch.py::test_a_turn_that_did_not_move_is_answered_with_the_auto_assignment_first`。
 
 全量 `1797 passed`。决策 D21 中英各一节。
+
+## DSH: operator constraints on what "clearing the Mirror Dungeon" means (2026-10-22)
+
+用户 (m03811, verbatim): "我突然发现你用的是一队，而且是不是一个流血饰品都没有拿。。。你先专注nl，但是nl和成功通关一次一定要看这个，其实能够不靠你自己走到第5层最后一关就算通关了，因为视频不拿选结尾包乱选怎么都打不过镜牢的（"
+
+三条约束记在这里，后续每一局都要对：
+
+- **验收口径**：能靠脚本自己走到**第 5 层最后一关**即算通关；不要求打完关底。理由是结尾包（ending pack）与构筑选择决定成败，
+  不按构筑打，关底怎么都过不去。
+- **队伍**：目前真机跑的是**1 队**，目标是 2 队（用户长期要求"用 2 队打三次 Hard"）。
+- **构筑/礼物**：目前**没有拿任何流血（bleed）类饰品**。礼物选择必须朝流血构筑走，而不是只按"当前最便宜的可得礼物"买。
+  这条对 `src/maalimbus/floor_gifts.py` 与商店的价值模型都成立：价值模型要能表达"这件礼物属于本局正在走的构筑"，
+  而不是只表达"这一格相对同排其它格更好"。
+
+优先级：用户明确要求**先专注 NL**（地图检测模型的训练与规则对比），再回到真机通关。
+
+## DSH: the detector is judged at conf 0.5, and by disagreement frames (2026-10-22)
+
+`tools/compare_map_detector.py` now reads frames from `build/map-dataset/samples.jsonl` (the earlier version
+walked `evidence/runtime` only and silently compared nothing), defaults to `--conf 0.5`, and renders the
+worst disagreement frames with the rule in red and the detector in green.
+
+Why 0.5: on the 2-epoch checkpoint the counts are 0.25 -> 1722 boxes / 646 matched / 47 agreeing frames,
+0.5 -> 509 / 499 / 203, 0.7 -> 275 / 272 / 139. The 1722 is duplicate predictions on the same ring, not
+wrong places: at 0.5 98% of the detector's boxes land on a rule box. Comparing below 0.5 measures the
+duplication, not the reading.
+
+The criterion stays behavioural: frames where the two disagree get adjudicated by eye and bucketed into
+"model right / rule wrong" and "rule right / model wrong". One such frame is already decided
+(`pi-20261012-180805/frame-0189`, floor 4): the rule boxed two modifier icons that carry no ring, the
+detector boxed the single truly ringed node -- model right. That is one frame, not a verdict; the ratio
+over all disagreement frames is what decides whether the detector may replace the rule.
