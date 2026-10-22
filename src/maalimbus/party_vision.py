@@ -181,3 +181,32 @@ def counter_reads(run_direct, image, *, scale=COUNTER_SCALE):
                         box=[left, top, width, height]))
     return out
 
+
+
+class _Record:
+    __slots__ = ('text', 'box', 'score')
+
+    def __init__(self, text, box, score=.99):
+        self.text, self.box, self.score = str(text or ''), box, score
+
+
+def deployment_count(records, size, *, run_direct=None, image=None, threshold=.6):
+    """The participants counter, asking the panel directly when OCR missed it.
+
+    The page prints `Total Participants n / 12` on a small panel; a whole-frame OCR pass
+    routinely drops it (D25), which left the decision path with ``None`` on the very page
+    that carries the number (run packaged-mirror-20261022-063747: four identity reports,
+    no counters, no `party_intent`, no stop).  Whole-frame reads stay first so a page
+    that does print it is unchanged; the enlarged panel read is the fallback.
+    """
+    count = participants(records, size, threshold)
+    if count is not None:
+        return count
+    if run_direct is None or image is None:
+        return None
+    # `counter_reads` reports plain dicts (text/box), and `participants` reads attributes.
+    reads = [record if hasattr(record, 'score') else _Record(record.get('text'),
+                                                            tuple(record.get('box') or ()),
+                                                            float(record.get('score') or .99))
+             for record in counter_reads(run_direct, image)]
+    return participants(reads, size, threshold)

@@ -119,3 +119,30 @@ def test_a_counter_that_cannot_be_read_returns_nothing_rather_than_raising():
     image = np.zeros((1080, 1920, 3), dtype=np.uint8)
     assert __import__('maalimbus.party_vision', fromlist=['counter_reads']).counter_reads(
         lambda big: (_ for _ in ()).throw(RuntimeError('ocr wedged')), image) == []
+
+
+def test_the_counter_falls_back_to_the_enlarged_panel_read():
+    """Whole-frame OCR drops the counter; the panel read must still answer (D25)."""
+    import numpy as np
+    from maalimbus.party_vision import deployment_count
+
+    class Read:
+        def __init__(self, text, box, score=.9):
+            self.text, self.box, self.score = text, box, score
+
+    image = np.zeros((720, 1280, 3), dtype=np.uint8)
+    # The stub answers in the *enlarged crop*'s own coordinates; counter_reads maps them
+    # back into the frame, which is exactly the path a real OCR answer follows.
+    panel = [Read('Total Participants', (10, 10, 300, 40)),
+             Read('12', (380, 8, 60, 50)),
+             Read('12', (470, 8, 60, 50))]
+
+    calls = []
+
+    def direct(crop):
+        calls.append(crop.shape)
+        return type('Detail', (), {'all_results': panel})()
+
+    assert deployment_count([], (1280, 720)) is None
+    assert deployment_count([], (1280, 720), run_direct=direct, image=image) == (12, 12)
+    assert calls and calls[0][0] == 64 * 4, 'the panel is read at 4x, its own size'

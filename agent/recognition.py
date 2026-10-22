@@ -1622,6 +1622,10 @@ class MirrorLoopAction(CustomAction):
                 registry=json.loads(runner.REGISTRY.read_text(encoding='utf-8')),
                 store=store, directory=directory, journal=journal, observer=observer,
                 run_id=run_id, result=result)
+            # The deployment counter is printed on a small panel that a whole-frame OCR
+            # pass drops (D25); the loop needs the framework's own OCR entry to read the
+            # enlarged crop when that happens.
+            loop.run_recognition_direct=getattr(context,'run_recognition_direct',None)
             loop.configure(deadline=deadline)
             # The player counts complete runs, not steps: the loop already stops on its own
             # completed-run condition (`runner.py:2846`), so a named run count turns the step

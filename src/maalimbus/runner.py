@@ -1560,6 +1560,10 @@ class MirrorRunner:
     agent custom action, and run in a test with no device at all.
     """
 
+    # The framework's own OCR entry, handed in by the agent after construction: the
+    # deployment counter needs it to read the enlarged panel (D25).
+    run_recognition_direct = None
+
     def __init__(self, device, *, settings, locale='en', registry=None, store=None,
                  directory=None, journal=None, flow=None, log=None, observer=None,
                  roots=None, run_id=None, result=None):
@@ -3314,7 +3318,12 @@ class MirrorRunner:
             try:
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 if not (plan['reason']=='clear_inherited_participant_order_before_saved_deployment' and settled_page=='DEPLOYMENT_RESET'):
-                    count=participants(post_records,settled.get('size') or (1920,1080))
+                    size=settled.get('size') or (1920,1080)
+                    from .party_vision import deployment_count
+                    post_image,_=latest_frame(directory)
+                    count=deployment_count(post_records,size,
+                                           run_direct=getattr(self,'run_recognition_direct',None),
+                                           image=post_image)
                     if count is None:
                         retry=self._unread_deployment_retry(state,page,plan.get('reason'))
                         if retry is not None:
