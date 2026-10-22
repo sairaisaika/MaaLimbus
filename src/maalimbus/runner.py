@@ -2715,6 +2715,10 @@ class MirrorRunner:
             path=self.store.path.parent/'user-difficulty-transaction.json'
             write_json(path,dict(scope=self.run_id,pending=dict(before='normal',requested='hard',proof=str(frame_file(directory)))))
         if plan.get('reason')=='the_floor_theme_pack_is_pulled_down_to_be_taken':
+            # The floor on screen is being chosen now; a selection recorded by a dead
+            # attempt for this same floor is history, not a reason to stop the launch.
+            if self.theme_transaction.rebase_visible(self.run_id):
+                self.note('theme_selection_rebased',floor=theme_choice['floor'])
             self.theme_transaction.intent(self.run_id,theme_choice['floor'],theme_choice['name'],frame_file(directory))
         if page=='PRE_BATTLE_TEAM' and plan.get('reason') in ('clear_inherited_participant_order_before_saved_deployment','team_card_joins_the_next_unpicked_identity'):
             kind='clear' if plan['reason'].startswith('clear_inherited') else 'card'

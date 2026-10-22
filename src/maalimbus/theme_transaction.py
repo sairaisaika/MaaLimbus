@@ -2,6 +2,22 @@
 from .storage import read_json,write_json
 class ThemeTransaction:
     def __init__(self,path):self.path=path;self.data=read_json(path) if path.exists() else dict(pending=None,selected=[])
+    def rebase_visible(self,scope):
+        """Forget a selection whose floor this launch is being asked to choose again.
+
+        A revived run keeps its scope id, but the floor it is standing on is being offered
+        again, so the earlier selection belonged to an attempt that is gone.  A pending drag
+        is still refused: that is the one record the game has not answered yet.
+        """
+        d=self.data
+        if not d or d.get('scope')!=scope or d.get('pending'):
+            return False
+        if not d.get('selected'):
+            return False
+        d.setdefault('rebased',[]).append(dict(was=d['selected']))
+        d['selected']=[]
+        write_json(self.path,d)
+        return True
     def intent(self,scope,floor,name,proof):
         d=self.data
         if d.get('pending'):raise ValueError('Theme drag remains unverified')
