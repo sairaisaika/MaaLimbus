@@ -3068,3 +3068,11 @@ observation and a whole run can be held out.
 
 Tests: full suite `1800 passed in 154.02s`. Wiki: decision D22 in both languages.
 
+
+## D23 进战斗前那一页由它自己印的计数决定（2026-10-22）
+
+地图上点敌节点后会先进一页人员选择：`Total Participants n / 12`，`n < 12` 时 `To Battle!` 是灰的。之前的循环走入这一页后不做任何事，于是 HUD 停在 `WAVE 0/10`、`TURN 1`，看起来像"战斗停滞"，实际是"队伍没选满"。
+
+`src/maalimbus/party_vision.py` 只按这一页自己印的东西判断：`is_page()` 认 `Total Participants` 标签，`participants()` 收 `0/12` 与分开的 `0`、`12` 两种排版（读不出返回 None，不猜），`cards()` 给 6×2 十二个卡位，`to_battle()` 给走人按钮。
+
+判据：`n < 12` 点卡，`n == 12` 只按 `To Battle!`。满员时卡面已从 `SELECTED` 变成 `BACKUP`，再点会把已上场的身份换下去——"满员不点卡"是正确性而不是优化。`runner.py` 在页面分派之前调用它，所以分类器还没命名的帧也会被回答。
