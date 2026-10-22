@@ -3017,6 +3017,15 @@ class MirrorRunner:
                       reason='try_the_next_destination_instead_of_the_same_node')
         elif page != 'MAP':
             state.pop('map_tried', None)
+        if page=='MAP' and not candidates:
+            # The stop the live loops keep reporting is `no_candidate_node_observed`, and the
+            # two causes behind it read very differently: either the record carries a
+            # different frame size than the evidence PNG the reading agrees with offline, or
+            # the observation itself came back empty.  Record both with the same stop, so the
+            # next run answers it instead of needing another instrumented pass.
+            self.note('map_candidates_empty',scene=record.get('scene'),
+                      size=record.get('size'),ocr=len(record.get('ocr') or []),
+                      reason='the_map_reader_offered_no_destination')
         plan = plan_step(page, controls=plan_controls, arrows=arrows,
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
