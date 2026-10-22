@@ -319,9 +319,13 @@ def next_untried(candidates, tried):
     """
     if not candidates:
         return 0
+    def box_of(candidate):
+        raw = candidate['box'] if isinstance(candidate, dict) else candidate
+        return tuple(int(v) for v in raw)
+
     seen = {tuple(int(v) for v in box) for box in tried or ()}
     for index, candidate in enumerate(candidates):
-        if tuple(int(v) for v in candidate['box']) not in seen:
+        if box_of(candidate) not in seen:
             return index
     return 0
 
@@ -2836,7 +2840,9 @@ class MirrorRunner:
             if len(tried) >= len(candidates):
                 tried.clear()
             choice_index = next_untried(candidates, tried)
-            tried.append([int(v) for v in candidates[choice_index]['box']])
+            chosen = candidates[choice_index]
+            tried.append([int(v) for v in (chosen['box'] if isinstance(chosen, dict)
+                                           else chosen)])
             self.note('map_candidate_breadth',index=choice_index,
                       tried=len(tried),offered=len(candidates),
                       reason='try_the_next_destination_instead_of_the_same_node')
