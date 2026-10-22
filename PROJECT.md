@@ -2818,3 +2818,28 @@ layout it is likely wrong -- which mislabels nodes rather than merely missing th
 
 Next: derive the offset per frame from the lattice (the node is the darkest lattice point below the
 ring) instead of trusting a constant, then re-export and re-check the warm floor.
+
+
+## DSH continuation: the offset cannot be derived from darkness either (2026-10-21)
+
+The planned fix was to derive the ring-to-node offset per frame instead of trusting
+`gold_badge_drop`'s constant 44. The darkness profile below a ring refutes it: on the dark floor
+(`pi-20261021-185251/frame-0119`) the 28x28 mean brightness keeps falling all the way to the scan
+limit (84+ px), because the empty board is dark too, so "darkest point below the ring" drifts to the
+bottom of the range instead of stopping at the node; on the warm floor
+(`pi-20261015-191205/frame-0030`) the darkest point is at 84 as well, at V 31. The node is not the
+darkest thing under the ring, so this derivation is unusable.
+
+Counting what has now been measured and refuted for the labeler: ring brightness, ring size, hole at
+the ring centre, angular rim coverage, temporal persistence, and darkness below. Every one of them
+separates nothing on a warm floor, because a warm floor makes the whole board gold and lit.
+
+That is the real result of this arc, and it should stop the loop of trying cheaper heuristics: the
+labeler cannot be rescued by one more threshold. The label ceiling has to be raised by data a rule
+did not produce -- a hand-corrected set of frames labelled with the game's own node taxonomy (the
+wiki is the best source for those type names), then train on that and compare on a held-out run.
+
+Everything shipped this session stands: `0671a02` (lattice multiples + tight clusters), `403d443`
+(dark node under the ring), `f642979` (the detector only reproduces its teacher), `55fef9c` (offset
+is an assumption), and the dataset at 742 boxes / 130 negatives over 389 frames with
+`pi-20261021-185251` held out.
