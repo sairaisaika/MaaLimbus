@@ -1368,3 +1368,27 @@ def test_the_device_refuses_input_once_the_session_ended():
         assert 'refusing to post a' in str(error.value)
     device.end_session('some other reason')
     assert device.ended == 'the_pipeline_node_failed'
+
+
+def test_a_battle_whose_readouts_cannot_be_read_is_not_called_stalled():
+    """A guard that cannot see progress must not claim its absence.
+
+    Live ``packaged-mirror-20261022-014748`` stopped a healthy fight: this theme's HUD
+    OCR returns the ``WAVE``/``TURN`` captions and no values (frames 0050-0058), so the
+    signature stayed ``(None, None)`` and looked perfectly static.
+    """
+    from maalimbus.runner import battle_progress
+    state = {'step': 0}
+    verdicts = [battle_progress(state, (None, None), rounds=3) for _ in range(12)]
+    assert verdicts == ['progress'] * 12, 'an unread signature is never a stall'
+    assert battle_progress(state, (None, None), rounds=3) == 'blind_long'
+    assert state['battle_blind'] == 13
+
+
+def test_a_battle_whose_readouts_do_not_move_is_still_stalled():
+    from maalimbus.runner import battle_progress
+    state = {'step': 0}
+    assert [battle_progress(state, ('1/1', '4'), rounds=3) for _ in range(3)] == ['progress'] * 3
+    assert battle_progress(state, ('1/1', '4'), rounds=3) == 'stalled'
+    assert battle_progress(state, ('1/1', '5'), rounds=3) == 'progress'
+    assert state['battle_blind'] == 0

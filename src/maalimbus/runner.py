@@ -1430,6 +1430,34 @@ class _Context:
 # --------------------------------------------------------------------------- runner
 
 
+def battle_progress(state, signature, *, rounds):
+    """Whether this battle round shows progress, and if not, what that justifies.
+
+    A guard that cannot see progress must not claim its absence.  Live run
+    ``packaged-mirror-20261022-014748`` stopped a healthy fight with
+    ``battle_progress_stalled`` because the OCR on that theme's HUD returns the ``WAVE``
+    and ``TURN`` captions and no values (frames 0050-0058), so ``(None, None)`` was the
+    signature on every round and looked perfectly static.  An unread signature is
+    therefore not a stall: it is counted separately, and only a long blind stretch is
+    handed to the recovery ladder -- which can change the screen -- instead of ending
+    the run.
+
+    Returns ``'progress'``, ``'stalled'`` or ``'blind_long'``.
+    """
+    if signature == (None, None):
+        state['battle_blind'] = state.get('battle_blind', 0) + 1
+        state['battle_sig'], state['battle_rounds'] = signature, 1
+        if state['battle_blind'] > max(rounds * 4, 12):
+            return 'blind_long'
+        return 'progress'
+    state['battle_blind'] = 0
+    if signature == state.get('battle_sig'):
+        state['battle_rounds'] = state.get('battle_rounds', 0) + 1
+    else:
+        state['battle_sig'], state['battle_rounds'] = signature, 1
+    return 'stalled' if state['battle_rounds'] > rounds else 'progress'
+
+
 class MirrorRunner:
     """One bounded window: walk the live dungeon loop and record every page it meets.
 
@@ -1848,14 +1876,48 @@ class MirrorRunner:
             # submitting legitimately repeat the same two controls for many turns, but
             # it is not exempt from progress: the wave and turn readouts have to move.
             signature = (record.get('wave'), record.get('turn'))
-            if signature == state['battle_sig']:
-                state['battle_rounds'] += 1
-            else:
-                state['battle_sig'], state['battle_rounds'] = signature, 1
-            if state['battle_rounds'] > settings.battle_rounds:
+            verdict = battle_progress(state, signature, rounds=settings.battle_rounds)
+            if verdict == 'stalled':
                 stopped = self._record(page, record, frame, candidates, None,
                                        'battle_progress_stalled')
                 return self._result(page, None, False, stopped, done=True)
+            if verdict == 'blind_long':
+                waiter = dict(reason='battle_readouts_unreadable_for_a_whole_fight')
+                recovered = self._recover(page, state, waiter, candidates)
+                if recovered is not None:
+                    state['battle_blind'] = 0
+                    return recovered
+                stopped = self._record(page, record, frame, candidates, None,
+                                       'battle_readouts_unreadable_for_a_whole_fight')
+                return self._result(page, None, False, stopped, done=True)
+            if False:
+                # The readouts are not readable on this theme's battle HUD: the OCR
+                # returns the two labels and no values (live run
+                # packaged-mirror-20261022-014748, frames 0050-0058).  A guard that
+                # cannot see progress must not claim its absence, so this round is not
+                # counted as a stall; instead a long blind run hands the page to the
+                # recovery ladder, which can actually change the screen.
+                state['battle_blind'] = state.get('battle_blind', 0) + 1
+                if state['battle_blind'] > max(settings.battle_rounds * 4, 12):
+                    waiter = dict(reason='battle_readouts_unreadable_for_a_whole_fight')
+                    recovered = self._recover(page, state, waiter, candidates)
+                    if recovered is not None:
+                        state['battle_blind'] = 0
+                        return recovered
+                    stopped = self._record(page, record, frame, candidates, None,
+                                           'battle_readouts_unreadable_for_a_whole_fight')
+                    return self._result(page, None, False, stopped, done=True)
+                state['battle_sig'], state['battle_rounds'] = signature, 1
+            else:
+                state['battle_blind'] = 0
+                if signature == state['battle_sig']:
+                    state['battle_rounds'] += 1
+                else:
+                    state['battle_sig'], state['battle_rounds'] = signature, 1
+                if state['battle_rounds'] > settings.battle_rounds:
+                    stopped = self._record(page, record, frame, candidates, None,
+                                           'battle_progress_stalled')
+                    return self._result(page, None, False, stopped, done=True)
         team = team_state(record, self.controls) if page == 'PRE_BATTLE_TEAM' else None
         if page=='DEPLOYMENT_RESET':
             d=self.deployment_transaction.data if self.deployment_transaction else None

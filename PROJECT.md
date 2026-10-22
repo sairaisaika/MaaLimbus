@@ -2969,3 +2969,13 @@ frame-0092 with `Accept/Refuse garden event identity is not independently proven
 `refusal_choice` (`src/maalimbus/event_vision.py`) now answers any page that prints exactly one declining
 control out of exactly two rows, and `runner.py` records `event_identity_not_known` instead of stopping.
 Tests: the two new cases in `tests/test_garden_event.py`. Full suite `1794 passed`.
+
+## DSH iteration: the battle guard may not call an unread round a stalled one (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261022-014748` stopped a healthy floor-2 fight with
+`battle_progress_stalled` after 19 inputs. This theme's battle HUD OCR returns `WAVE`/`TURN` and no values,
+so the signature was `(None, None)` every round and looked static.
+
+`battle_progress` (`src/maalimbus/runner.py`) now counts only readable signatures as stalls, tracks unread
+rounds as `battle_blind`, and hands a long blind stretch to the recovery ladder rather than ending the run.
+Tests: the two new cases in `tests/test_runner.py`. Full suite `1796 passed`.
