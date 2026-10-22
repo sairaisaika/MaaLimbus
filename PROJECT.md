@@ -3160,3 +3160,28 @@ Measured on `build/t94-now.png`: the cyan edges are `H≈95-98, S≈220-250, V�
 测试：`tests/test_team_gift_keyword.py` 8 条（含"任务设置优先于账本""rotation 仍跟账本""集合不丢体系"）、
 `tests/test_gift_plan.py` 新增 3 条（多体系合并、跨体系重复只出现一次、未知体系回退默认），全量 `1832 passed`。
 
+## DSH continuation: the graces page's control band clipped the button it pointed at (2026-10-22)
+
+`packaged-mirror-20261022-072802` walked the whole entry chain (HOME -> DRIVE -> MIRROR_ENTRY ->
+ENTRY_CONFIRM -> LEVEL_WARNING -> DUNGEON_TEAM -> STAR_GRACES) and then ended with
+`unknown_or_bounded_transition_exhausted`. The graces page was recognised, a plan was produced and the
+click was sent -- `window_intent page=STAR_GRACES target=[1740,986,102,42]` -- but the page never
+changed.
+
+The target came from `src/maalimbus/star_vision.py`'s `CONTROLS`, whose x band started at 0.88 while the
+client draws that control column at x 0.79..0.91 (`evidence/runtime/packaged-mirror-20261022-072802/
+frame-0020.png`). The band clipped the button's left half, so the reader returned a fragment -- it had
+"found" the phrase and still pointed at empty board. That is the silent failure mode this project keeps
+meeting: a constant measured on one client revision, which stops matching without raising.
+
+The bands now cover the drawn column (`aa6edfd`, tests `-k "graces or star"` 77 passed, refrozen). The
+next live run went further than any before: `packaged-mirror-20261022-073122` passed STAR_GRACES ->
+STAR_CONFIRM -> PRE_BATTLE_TEAM (12 identity picks) -> MAP, and produced the first accepted map click of
+the session (`accepted: the_click_opened_the_next_page`).
+
+Two sampling mistakes belong in the record because they cost rounds. Reading an event journal while the
+run is still growing produced two false "it hung" conclusions: once from confusing UTC event stamps with
+elapsed local time, once from treating a 15-event snapshot as terminal while the process went on to 87
+events. "Stalled" now requires all three: two samples at least `stall_seconds` apart with an unchanged
+event count, a wall-clock gap over the limit, and no stall record.
+
