@@ -1701,8 +1701,15 @@ def party_point(image):
     # colour; the area floor admits the sprite's lower flame (area 16).
     mask = cv2.inRange(hsv, (8, 150, 200), (45, 255, 255))
     count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    # The area band is a pixel count, so it has to follow the frame's scale: the packaged
+    # agent's screenshots are not always 1920 wide, and at 1280 the lower flame's 16 px
+    # becomes 7 and vanished under a fixed floor -- which read as "no party" and emptied
+    # the candidate list (`packaged-mirror-20261022-092529`: three steps, no clicks).
+    scale = (width / 1920.0) ** 2
+    floor = max(4, int(round(15 * scale)))
+    ceiling = max(60, int(round(900 * scale)))
     blobs = [(int(stats[i, 4]), float(centres[i][0]), float(centres[i][1]))
-             for i in range(1, count) if 15 <= stats[i, 4] <= 900]
+             for i in range(1, count) if floor <= stats[i, 4] <= ceiling]
     if len(blobs) < 1:
         return None
     blobs.sort(reverse=True)
