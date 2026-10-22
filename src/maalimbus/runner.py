@@ -3147,6 +3147,11 @@ class MirrorRunner:
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
                 state['map_pending'] = list(plan['target'])
+                # The verdict below is only diagnosable if it names the frame it judged;
+                # `getattr(self, 'frames', None)` read nothing because that attribute lives
+                # on the journal, not on the Runner, so every verdict carried frame=None.
+                state['map_click_frame'] = (record.get('frame')
+                                            or Path(frame_file(directory)).name)
             self.device.click(*point)
         self.artifacts['clicks_sent'] += 1
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
@@ -3178,6 +3183,8 @@ class MirrorRunner:
             # because a click that did open something was never remembered.
             state['map_progress'].note_click(plan['target'])
             state['map_pending'] = list(plan['target'])
+            state['map_click_frame'] = (record.get('frame')
+                                        or Path(frame_file(directory)).name)
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)
         # Remember which of the two battle intents went out, so a page that comes back
         # with the same turn can be answered with the other one instead of a repeat.
@@ -3581,7 +3588,7 @@ class MirrorRunner:
             # unlabelled click cannot teach a reader anything.
             self.note('map_click_result', target=list(plan['target']), page=page,
                       outcome='rejected',
-                      frame=(getattr(self,'frames',None)[-1].name if getattr(self,'frames',None) else None),
+                      frame=state.pop('map_click_frame', None),
                       kind=dict(plan.get('detail') or {}).get('kind'),
                       reason='the_page_stayed_on_the_map_after_the_click')
             return self._result(page, plan.get('target'), True, None, waiting=True)
@@ -3590,7 +3597,7 @@ class MirrorRunner:
         if page != 'MAP' and state.get('map_pending'):
             self.note('map_click_result', target=state['map_pending'], page=page,
                       outcome='accepted',
-                      frame=(getattr(self,'frames',None)[-1].name if getattr(self,'frames',None) else None),
+                      frame=state.pop('map_click_frame', None),
                       reason='the_click_opened_the_next_page')
             state['map_pending'] = None
         # The other way a click is taken: the page stays MAP and the party walks. The
@@ -3612,7 +3619,9 @@ class MirrorRunner:
             # (1616,82)), which a >20 px test would happily call a move.
             if here and was and one_step_from(here, was):
                 self.note('map_click_result', target=state['map_pending'], page=page,
-                          outcome='accepted', reason='the_party_moved_after_the_click')
+                          outcome='accepted',
+                          frame=state.pop('map_click_frame', None),
+                          reason='the_party_moved_after_the_click')
                 state['map_pending'] = None
             if here:
                 state['map_player'] = list(here)
@@ -3624,6 +3633,7 @@ class MirrorRunner:
             # silent.
             self.note('map_click_result', target=state['map_pending'], page=page,
                       outcome='rejected',
+                      frame=state.pop('map_click_frame', None),
                       reason='the_map_stayed_with_the_party_in_place')
             state['map_pending'] = None
         state['map_attempts'] = 0
