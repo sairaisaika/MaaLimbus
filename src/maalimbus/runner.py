@@ -891,6 +891,26 @@ def inside_chrome(box, chrome):
                and item[1] <= centre[1] <= item[1] + item[3] for item in chrome)
 
 
+
+CONTROLS = ('enter', 'battle', 'start', 'confirm', 'cancel', 'select', 'proceed', 'refresh',
+            'leave', 'continue', 'accept', 'refuse', 'close', 'next', 'skip', 'claim', 'to window')
+
+
+def looks_like_transition(record):
+    """Is this frame an animation rather than a page the loop should answer?
+
+    A transition is *empty of meaning*: a few fragmentary reads (damage numbers, half a
+    word from a cutscene caption) and not one control.  A page this reader does not know
+    yet still prints its buttons, so it stays a page and keeps the unknown budget.
+    """
+    texts = [str(t.get('text') or '') for t in (record.get('ocr') or [])]
+    words = [t for t in texts if any(ch.isalpha() for ch in t)]
+    if len(words) > 6 or len(texts) > 24:
+        return False
+    lowered = ' '.join(texts).lower()
+    return not any(control in lowered for control in CONTROLS)
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -1896,6 +1916,27 @@ class MirrorRunner:
             if page=='UNKNOWN':
                 recovered=self._explore_unknown(record,frame,candidates)
                 if recovered is not None:return recovered
+                # An animation is not a page.  A battle's skill cutscene carries a
+                # handful of fragmentary reads and no control of any kind
+                # (evidence/runtime/packaged-mirror-20261022-043142/frame-0069 reads
+                # eight fragments: `scading`, `Gaze of Awe`, `179`, `+5`, `5`, `151`).
+                # Spending the unknown budget on those is what turned an ordinary
+                # end-of-battle animation into `page_unreadable_after_waiting`.
+                # A page holds still; an animation does not.  The same unnameable frame
+                # twice is a page the reader cannot name, and it keeps its budget.  A
+                # frame that changes every time, carrying no control, is a transition.
+                moved = sha != state.get('unknown_sha')
+                state['unknown_sha'] = sha
+                if looks_like_transition(record) and moved:
+                    state['transition_seen'] = int(state.get('transition_seen', 0)) + 1
+                    if state['transition_seen'] <= max(4, settings.unknown_rounds * 4):
+                        self.note('window_transition_wait', page=page,
+                                  round=state['transition_seen'], interval_s=settings.interval,
+                                  input_sent=False)
+                        time.sleep(settings.interval)
+                        return self._result(page, None, False, None, waiting=True)
+                else:
+                    state['transition_seen'] = 0
             state['unknown_seen'] += 1
             turn_waiting=time.monotonic()<state.get('turn_wait_until',0)
             if state['unknown_seen'] > settings.unknown_rounds and not turn_waiting:

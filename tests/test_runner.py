@@ -1425,3 +1425,19 @@ def test_the_map_click_result_reader_has_the_module_it_calls():
     assert hasattr(runner, 'map_vision'), 'runner must bind the map_vision module'
     assert callable(runner.map_vision.player_of)
     assert callable(runner.map_vision.player_marker)
+
+
+def test_an_animation_that_moves_does_not_spend_the_unknown_budget(tmp_path):
+    """A cutscene is not a page: it carries no control and it changes every frame.
+
+    `evidence/runtime/packaged-mirror-20261022-043142/frame-0069` reads eight fragments
+    (`scading`, `Gaze of Awe`, `179`, `+5`, `5`, `151`) and no button -- the unknown
+    budget was being spent on end-of-battle animations, which then reported an
+    unreadable page and ended the run.
+    """
+    from maalimbus.runner import looks_like_transition
+    cutscene = {'ocr': [{'text': t} for t in
+                        ['scading', 'Gaze of Awe', '179', '+5', '5', '151']]}
+    assert looks_like_transition(cutscene) is True
+    page = {'ocr': [{'text': t} for t in ['Some Event', 'Enter', 'Cancel']]}
+    assert looks_like_transition(page) is False
