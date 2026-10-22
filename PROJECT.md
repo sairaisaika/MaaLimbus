@@ -3213,3 +3213,32 @@ event count, a wall-clock gap over the limit, and no stall record.
 仍未解决：10 分钟 13 次点击 0 次被接受，队伍停在第 1 层；点击点确实落在节点内、该节点也
 确实连着亮边，所以下一个嫌疑是点击投递而不是识别。
 
+
+
+## DSH continuation: map clicks are rejected only while the exploration is not resumed (2026-10-22)
+
+这一条是**对照实验**得出的，不是推断。同一台设备、同一批候选、同一页面：
+
+| 探索视图状态 | 点击结果 |
+|---|---|
+| 未恢复（`mirror_entry_preparation: a_run_is_still_in_progress`） | 9 次点击全部无反应（帧差 300–2000 px，仅动画） |
+| 已恢复（入口 → Enter → `Dungeon Progress` → Resume） | 第一次点击即弹出节点面板 `Thick Rumbling Hum`（帧差 **107 860**），按 Enter 正常进入商店 |
+
+因此在恢复后手动走了一步：`Floor 1 [HARD] 4/6` → 商店（`Super Shop 3%`，540 硬币，
+Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Accord 148 / Phebotomy Pack 142）。
+
+**结论（推翻此前三条记录）**：
+- 「候选几何必然错约 170 px」不成立——同一批候选在恢复后命中；
+- 「点击投递失败」不成立——恢复后同一次点击立即生效；
+- 「地图不可交互」只在**未恢复**状态下成立，这是状态问题而非识别问题。
+
+**连带解释**：那一局此前记录的 4/6 推进，是在视图可交互时走出来的；进程被杀后客户端退回未恢复态，
+而循环仍按「读到 MAP 页就可以点」继续点击，于是产生了整段 `rejected`。
+
+**上游修法（未实施）**：`a_run_is_still_in_progress` 现在只跳过设置应用
+（`agent/recognition.py:1745-1748`），并没有要求先恢复探索。正确做法是把它当作先决条件：
+在地图点击前确认探索已恢复（入口按下 Enter，出现 `Dungeon Progress` 时按 Resume），
+而不是把「页面读作 MAP」等同于「可以点击」。
+
+方法教训：判断「卡住/无响应」必须与状态对照（是否恢复、是否在结算），
+单看帧差或点击次数会把状态问题误判成识别缺陷——本轮为此先后推翻了自己三条结论。

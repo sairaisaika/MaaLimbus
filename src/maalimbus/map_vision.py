@@ -1378,9 +1378,25 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # in the live game, and a click on an unconnected node only does nothing, so the
     # four lattice steps are the last resort, kept for floors whose badges are not
     # drawn (live: window-20261006-051323 read only one badge on the whole floor).
+    # A lattice point is not a node: `frame-0057` of
+    # evidence/runtime/packaged-mirror-20261022-080630 had the four lattice steps land in
+    # empty space up to 173 px below the nodes they were meant to name, and the live run's
+    # nine clicks were all rejected because the page never changed -- the badge centre is
+    # the node the game offers (see the `badge_mark` comment above), the lattice guess is
+    # not.  Snap each lattice point onto the nearest badge it is trying to name, and drop
+    # it when there is no badge within reach rather than click bare background.
+    anchors = [(marker.ornament[0] + marker.ornament[2] // 2,
+                marker.ornament[1] + marker.ornament[3] // 2) for marker in markers]
     for point in lattice_neighbours(player):
-        if 0 <= point[0] < width and 0 <= point[1] < height:
-            add(point, 'lattice_step', node_side)
+        if not (0 <= point[0] < width and 0 <= point[1] < height):
+            continue
+        near = None
+        best = 141
+        for anchor in anchors:
+            reach = max(abs(anchor[0] - point[0]), abs(anchor[1] - point[1]))
+            if reach < best:
+                best, near = reach, anchor
+        add(near if near else point, 'lattice_step', node_side)
     # The game marks the steps it will accept with a gold ring; anything else on this
     # page is a guess (a lit ring, a bright icon, an outline read as a node).  Live run
     # evidence/runtime/packaged-mirror-20261022-050759 asked for the two 40x40 `lit_ring`
