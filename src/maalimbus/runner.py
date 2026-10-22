@@ -1486,6 +1486,12 @@ class MirrorRunner:
         from .grace_transaction import GraceTransaction
         self.grace_transaction = (GraceTransaction(self.store.path.parent/'user-grace-transaction.json')
                                   if self.store is not None else None)
+        if self.grace_transaction is not None:
+            # A launch reads the balance it can see.  The number a dead session recorded is
+            # history, not a promise; without this every STAR frame of a revived run is
+            # refused as "balance changed outside verified purchases".  A pending purchase
+            # keeps its number, and the reset is recorded rather than silent.
+            self.grace_transaction.reset_baseline('the_session_resumed')
         from .initial_transaction import InitialTransaction
         self.initial_transaction=(InitialTransaction(self.store.path.parent/'user-initial-transaction.json')
                                   if self.store is not None else None)
