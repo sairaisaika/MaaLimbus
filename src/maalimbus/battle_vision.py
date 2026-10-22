@@ -110,9 +110,43 @@ def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=4000, min_side
                         crop[:, :, 2].astype(int))
     mask = ((red > 150) & (green > 90) & (blue < 110)).astype(np.uint8)
     count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
-    best = None
+    # The dial is an annulus whose own dark hub splits the warm mask into an upper arc
+    # and a lower disc. On the board of live run packaged-mirror-20261022-015843 those
+    # two pieces are all that exists -- (1326,771,113,58) area 1646 and (1341,799,88,79)
+    # area 1935 -- and neither clears the area gate, so the dial was never found, the
+    # driver re-assigned, and TURN stood at 6 for four rounds. Their boxes overlap, and
+    # their union (121x137) is the same shape the lit variant is measured at, so pieces
+    # that overlap are folded into one candidate before the gates are applied.
+    # Pressing this control is safe in either state: proven live on that same board, a
+    # tap on the dial with the turn still unassigned changed only the animation, and the
+    # same tap right after Win Rate submitted the turn (TURN 6 -> attack sequence). The
+    # gates below are unchanged; only how a fragmented disc is assembled is new.
+    pieces = []
     for index in range(1, count):
         bx, by, bwidth, bheight, area = stats[index]
+        if area < 400 or bwidth < 20 or bheight < 20:
+            continue
+        pieces.append([int(bx), int(by), int(bwidth), int(bheight), int(area)])
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(pieces)):
+            for j in range(i + 1, len(pieces)):
+                a, b = pieces[i], pieces[j]
+                if (a[0] - 6 < b[0] + b[2] and b[0] - 6 < a[0] + a[2]
+                        and a[1] - 6 < b[1] + b[3] and b[1] - 6 < a[1] + a[3]):
+                    x = min(a[0], b[0]); y = min(a[1], b[1])
+                    pieces[i] = [x, y,
+                                 max(a[0] + a[2], b[0] + b[2]) - x,
+                                 max(a[1] + a[3], b[1] + b[3]) - y,
+                                 a[4] + b[4]]
+                    pieces.pop(j)
+                    merged = True
+                    break
+            if merged:
+                break
+    best = None
+    for bx, by, bwidth, bheight, area in pieces:
         if area < min_area or bwidth < min_side or bheight < min_side:
             continue
         if max(bwidth, bheight) > max_side:
@@ -120,6 +154,51 @@ def dial_control(image, *, roi=(0.58, 0.60, 0.82, 0.93), min_area=4000, min_side
         if max(bwidth, bheight) > max_aspect * min(bwidth, bheight):
             continue
         if area < min_fill * bwidth * bheight:
+            continue
+        if best is None or area > best[0]:
+            best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
+    return None if best is None else tuple(best[1:])
+
+
+def dial_beside_caption(records, size, image):
+    """The dial when it is still fragmented: the brightest warm piece left of `Win Rate`.
+
+    Live run packaged-mirror-20261022-015843 (frame-0020, WAVE 1/1, TURN 6) draws the
+    dial as an annulus whose hub splits the warm mask into (1326,771,113,58) area 1646
+    and (1341,799,88,79) area 1935 -- neither clears the disc gates, so the dial was
+    never found, the driver re-assigned, and TURN stood at 6 through four rounds. The
+    board still prints Win/Rate under it, so the control is read from that caption's own
+    position instead of from a shape: the largest warm piece whose centre lies left of
+    the caption's middle and inside its vertical span. Unassignable turns are safe here:
+    a tap on this dial with the turn unassigned changed only the animation, and the same
+    tap right after Win Rate submitted the turn (TURN 6 -> attack sequence), so reading
+    it cannot cause a wrong submit -- the runner presses auto-assign first regardless.
+    """
+    if image is None:
+        return None
+    buttons = auto_assign_buttons(records, size)
+    if buttons is None:
+        return None
+    label = buttons['win_rate']
+    height, width = image.shape[:2]
+    x0, y0 = int(width * 0.55), int(height * 0.55)
+    x1, y1 = int(width * 0.82), int(height * 0.95)
+    crop = image[y0:y1, x0:x1]
+    if crop.size == 0:
+        return None
+    blue, green, red = (crop[:, :, 0].astype(int), crop[:, :, 1].astype(int),
+                        crop[:, :, 2].astype(int))
+    mask = ((red > 150) & (green > 90) & (blue < 110)).astype(np.uint8)
+    count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        bx, by, bwidth, bheight, area = stats[index]
+        if area < 1200:
+            continue
+        centre_x, centre_y = bx + x0 + bwidth / 2, by + y0 + bheight / 2
+        if centre_x >= label[0] + label[2] * 0.5:
+            continue
+        if not (label[1] - 40 <= centre_y <= label[1] + label[3] + 90):
             continue
         if best is None or area > best[0]:
             best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
@@ -152,8 +231,13 @@ def start_button(records, size, image=None):
         # Derive its search band from the two native assignment captions; keep
         # the exact same lit-disc area/shape/fill gate and reject dim controls.
         width,height=size;x,y,w,h=buttons['win_rate'];sx,sy=width/1920,height/1080
-        return dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
-                                      (x-10*sx)/width,(y+145*sy)/height))
+        moving=dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
+                                       (x-10*sx)/width,(y+145*sy)/height))
+        if moving is not None:return moving
+        # Still fragmented after both bands -- read it from the `Win Rate` caption it
+        # sits left of; that is what the board of live run packaged-mirror-20261022-015843
+        # needs (see dial_beside_caption for that frame's two warm pieces).
+        return dial_beside_caption(records,size,image)
     label = matches[0].box
     if image is None:
         return label

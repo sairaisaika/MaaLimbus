@@ -173,28 +173,34 @@ def test_the_turn_dial_is_read_by_colour_when_no_start_word_is_drawn():
     assert dial_control(np.zeros((1080, 1920, 3), np.uint8)) is None
 
 
-def test_the_dim_dial_waits_for_the_auto_assignment_instead_of_submitting():
-    """Live: window-20261007-194201 clicked the dim dial seven times and never moved.
+def test_a_fragmented_dial_is_read_from_the_caption_it_sits_left_of():
+    """Live: the dial is the submit control, and it is safe to hold before assigning.
 
-    frame-1401.json of window-20261007-184958 (23:33:43, TURN 3, WAVE 1/10) reads
-    Win/Rate/Damage and MAX but no START token, and its dial is the dim variant
-    (1455,800,81,79) area 1913 -- the board draws that while the turn is still
-    unassigned. Clicking it changes nothing (7 clicks, TURN stayed 3), so it must not be
-    taken for the turn control: the planner has to press `Win Rate` instead, which lights
-    the disc (proven live at window-20261007-175552 22:43:44 -> frame-1010.json 22:43:46)
-    and only then is START submitted.
+    Two measurements replaced the older "dim discs must not be pressed" rule. (1) On
+    evidence/runtime/window-20261007-184958/frame-1401 the two warm pieces of the
+    annulus -- (1440,772,113,58) and (1455,800,81,79) -- are the same shape as on the
+    board of packaged-mirror-20261022-015843 (1326,771,113,58) and (1341,799,88,79),
+    and brightness does not separate them (dial centre V 132.0 vs 134.7, whole box
+    104.9 vs 104.2). (2) On that second board a tap on the dial with the turn still
+    unassigned changed only the animation, while the same tap right after `Win Rate`
+    submitted the turn (TURN 6 -> attack sequence). So the disc is the control in both
+    states and pressing it early costs nothing; what must stay ordered is that the
+    auto-assignment is pressed first, which the planner already guarantees.
     """
     frame = ROOT / 'evidence/runtime/window-20261007-184958/frame-1401.json'
     records, size = load(frame)
     assert not [r for r in records if r.text.strip().upper() == 'START']
     image = cv2.imread(str(frame.with_suffix('.png')))
+    # The disc gates alone still refuse the fragments: that is why the caption is used.
     assert dial_control(image) is None
-    assert start_button(records, size, image) is None
-    assert begin_turn_plan(records, size, image) == dict(target=None,
-                                                         reason='turn_start_not_present')
-    # What is offered instead is the auto-assignment caption, which sits right of the
-    # dial's own band and is never mistaken for it.
-    assert auto_assign_buttons(records, size)['win_rate'][0] >= 1584
+    box = start_button(records, size, image)
+    assert box == (1455, 800, 81, 79)
+    # It is a box of the disc itself, left of the caption, never the caption.
+    buttons = auto_assign_buttons(records, size)
+    assert box[0] + box[2] <= buttons['win_rate'][0]
+    assert buttons['win_rate'][0] >= 1584
+    # The plan is still to submit, not to re-assign, once the disc is readable.
+    assert begin_turn_plan(records, size, image)['reason'] == 'submit_turn'
 
 
 def test_the_lit_dial_is_read_on_a_board_that_draws_no_start_word():

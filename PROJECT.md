@@ -2979,3 +2979,18 @@ so the signature was `(None, None)` every round and looked static.
 `battle_progress` (`src/maalimbus/runner.py`) now counts only readable signatures as stalls, tracks unread
 rounds as `battle_blind`, and hands a long blind stretch to the recovery ladder rather than ending the run.
 Tests: the two new cases in `tests/test_runner.py`. Full suite `1796 passed`.
+
+## DSH iteration: the turn dial is found by the caption, not by being lit (2026-10-22)
+
+`packaged-mirror-20261022-015843` 停在 `battle_progress_stalled`，但这次守卫判对了：签名读得到
+`(wave=None, turn='6')`，四轮不动，因为**回合根本没交出去**——四次输入全是 `win_rate_auto_assign`，
+一次提交都没有。离线问读者要计划，`begin_turn_plan` 给的是 `turn_start_not_present`。
+
+原因在这一层的盘面：提交用的齿轮盘被自身轮毂剖成 `(1326,771,113,58)` 与 `(1341,799,88,79)` 两段，
+都过不了圆盘面积门槛。我先试过把掩膜闭运算成整圆——那一帧确实读出来了，但同一判据把已知的暗色变体
+（`window-20261007-184958/frame-1401`）也当成控件，两边亮度还几乎一致（中心 132.0 vs 134.7），
+于是整段回退。
+
+随后用点击实验定位：未分配时点齿轮盘只有动画，`Win Rate` 之后再点就把回合交了出去（TURN 6 → 攻击序列）。
+这既证明盘就是提交控件，也说明"点亮/不点亮"不是判据。最终改法是 `dial_beside_caption()`：锚定`Win Rate`
+说明，取其左侧、纵向跨度内的最大暖色块。全量 `1796 passed`，决策 D20 中英各一节。
