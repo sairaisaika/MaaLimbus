@@ -697,3 +697,18 @@ the run and `Config` changes settings mid-run.
 
 The fix carries its own lesson: search for an existing branch before adding a page. This
 round wrote a duplicate branch first and rolled it back.
+
+
+## 9.3.16 Only a node one step out can move the party
+
+`map_clicks` ordered its candidates but never constrained reachability, so the loop kept
+clicking nodes two or more steps away and every verdict came back `rejected` while the party
+stood still (`packaged-mirror-20261022-085428`: party at `(1052,562)`, targets from
+`(576,361)` outward). A hand click on a neighbour 219--395 px away opened its panel.
+
+`map_vision.adjacent_to(party, boxes)` now keeps only candidates whose centre is 150--430 px
+from the party, applied in `runner.candidates_of`. An unread party filters nothing, so a
+missing reading never leaves the run with nothing to try.
+
+An exact lattice match against `(384,0)/(192,110)/(0,220)` dropped real neighbours -- the
+measured offsets match no single step vector -- so the filter is a distance band.

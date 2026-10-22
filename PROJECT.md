@@ -3265,3 +3265,10 @@ Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Ac
 
 测试：`tests/test_window.py::test_the_progress_panel_resumes_and_never_offers_another_control`。
 全量 `1840 passed`。
+
+
+## DSH continuation: candidates are filtered by adjacency (2026-10-22)
+
+`9cd9de9` 加 `map_vision.adjacent_to`（距离带 150–430 px），并在 `runner.candidates_of` 里应用。
+此前候选只排序不筛选，循环点的都是两格外的节点，所以 `rejected` 全部属实、队伍不动。
+测试：`tests/test_map_vision.py` 新增三条用例；全量 `1842 passed`。
