@@ -1688,7 +1688,11 @@ def party_point(image):
     import cv2
     import numpy as np
     height, width = image.shape[:2]
-    board = image[int(.10 * height):int(.86 * height), :int(.79 * width)]
+    # The board runs to the right-hand chrome, not to 0.79 of the width: a party that
+    # has walked east stands at ~0.80-0.85 and was outside the old band, which made
+    # every frame of `evidence/runtime/packaged-mirror-20261022-090550` read None and
+    # silently disabled the adjacency filter (six rejected clicks, party unmoved).
+    board = image[int(.10 * height):int(.86 * height), :int(.95 * width)]
     hsv = cv2.cvtColor(board, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, (15, 120, 235), (35, 255, 255))
     count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
