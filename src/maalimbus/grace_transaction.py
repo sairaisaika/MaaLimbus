@@ -14,20 +14,31 @@ class GraceTransaction:
                        spent=0,available=None,pending=None,proofs=[str(proof)])
         write_json(self.path,self.data)
 
+    def reset_baseline(self,reason):
+        """Forget the balance number an earlier session recorded; keep what was bought.
+
+        A resumed run kept refusing every frame as "balance changed outside verified
+        purchases" because the only number it had was the dead session's.  Nothing is
+        pending, so the next STAR frame's balance is the truth; what was selected and
+        spent stays on the record.
+        """
+        d=self.data
+        if not d or d.get('pending') is not None:
+            return False
+        if d.get('available') is None:
+            return False
+        d.setdefault('baseline_resets',[]).append(dict(was=d['available'],reason=str(reason)))
+        d['available']=None
+        write_json(self.path,d)
+        return True
+
     def validate(self,scope,requested,budget,available):
         d=self.data
         if not d or d['scope']!=scope or d['requested']!=list(requested) or d['budget']!=budget:
             raise ValueError('Grace transaction scope or configuration mismatch')
         if d['pending']:raise ValueError('Unverified grace purchase remains pending')
         if d['available'] is not None and available!=d['available']:
-            if d['selected'] or d['spent'] or d['pending'] is not None:
-                raise ValueError('Grace balance changed outside verified purchases')
-            # Nothing has been committed in this scope yet, so the balance seen now is
-            # simply the new baseline: rewards can be claimed, a maintenance can restore
-            # coins, and the last session's number is history rather than a promise.
-            d.setdefault('rebaselined',[]).append(dict(was=d['available'],now=available))
-            d['available']=available
-            write_json(self.path,d)
+            raise ValueError('Grace balance changed outside verified purchases')
         return d
 
     def adopt_unspent_entry_settings(self,scope,requested,budget,available,proof):

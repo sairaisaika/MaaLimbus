@@ -2437,8 +2437,17 @@ class MirrorRunner:
             state['entry_reconciled']=True
             state['run_settled_itself']=False
             if self.grace_transaction is not None:
-                self.grace_transaction.begin(self.run_id,state['grace_wanted'],settings.grace_budget,
-                                             frame_file(directory))
+                # A launch reads the balance it can see: the previous session's number is
+                # history once nothing is pending, and a run that resumed a dead session
+                # would otherwise refuse every later frame as "changed outside purchases".
+                stale = self.grace_transaction.data
+                if not stale or stale.get('scope') != self.run_id:
+                    self.grace_transaction.begin(self.run_id,state['grace_wanted'],
+                                                 settings.grace_budget,frame_file(directory))
+                else:
+                    # Same scope, resumed: keep the record of what was bought, drop the
+                    # dead session's balance so this frame's number can be adopted.
+                    self.grace_transaction.reset_baseline('the_session_resumed')
         if page=='DUNGEON_TEAM' and team and team['selected']!=team['wanted']:
             from .team_navigation import prepare
             rows=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]

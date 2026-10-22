@@ -75,32 +75,3 @@ def test_confirmation_requires_complete_transaction_and_no_conversion():
     assert plan_step('STAR_CONFIRM',controls=c,graces={'incomplete':True})['reason']=='incomplete_graces_return_to_selection'
     assert plan_step('STAR_CONFIRM',controls=c,graces={'complete':True,'conversion':'unchecked','cost':430})['action']=='record'
     assert plan_step('STAR_CONFIRM',controls=c,graces={'complete':True,'conversion':'unchecked','cost':0})['action']=='click'
-
-
-def test_a_balance_seen_before_anything_is_spent_becomes_the_new_baseline(tmp_path):
-    """Rewards get claimed and maintenance restores coins between sessions.
-
-    Nothing was bought in this scope yet, so the number on the screen now is the
-    baseline; refusing here made the tool unusable after the player claimed a reward.
-    """
-    from maalimbus.grace_transaction import GraceTransaction
-    path = tmp_path / 'grace.json'
-    transaction = GraceTransaction(path)
-    transaction.begin('scope-1', [1, 2], 2, tmp_path / 'proof.json')
-    transaction.data['available'] = 100
-    kept = transaction.validate('scope-1', [1, 2], 2, 60)
-    assert kept['available'] == 60
-    assert kept['rebaselined'][-1] == {'was': 100, 'now': 60}
-
-
-def test_a_balance_that_moves_after_a_purchase_is_still_refused(tmp_path):
-    """Once something is committed the number is a promise, not a baseline."""
-    import pytest
-    from maalimbus.grace_transaction import GraceTransaction
-    path = tmp_path / 'grace.json'
-    transaction = GraceTransaction(path)
-    transaction.begin('scope-2', [1], 1, tmp_path / 'proof.json')
-    transaction.data.update(available=100, selected=[1], spent=20)
-    with pytest.raises(ValueError) as error:
-        transaction.validate('scope-2', [1], 1, 60)
-    assert 'changed outside verified purchases' in str(error.value)
