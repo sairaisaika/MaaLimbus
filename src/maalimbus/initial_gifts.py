@@ -21,10 +21,22 @@ def page(records,size,locale):
         and all(find(records,'^'+k+'$',(.12,.48,.57,.54),size,.85) for k in ('Sinking','Poise','Charge')))
 
 
+SYSTEMS=('Burn','Bleed','Tremor','Rupture','Sinking','Poise','Charge','Slash')
+
+
 def group_target(records,size,keyword):
-    if keyword not in ('Burn','Bleed','Tremor','Rupture','Sinking','Poise','Charge','Slash'):return None
-    matches=find(records,'^'+re.escape(keyword)+'$',(.12,.21,.57,.54),size,.85)
-    return inset_box(matches[0].box) if len(matches)==1 else None
+    """The gift under `keyword`'s column, or None.
+
+    A team can be built around several systems (charge+tremor is), and this page has one
+    column per system, so a compound keyword walks its systems in the order the profile
+    named them and takes the first column the page actually offers.  A single keyword
+    behaves exactly as before.
+    """
+    for name in [part.strip() for chunk in str(keyword or '').split('+') for part in [chunk]]:
+        if name.title() not in SYSTEMS:continue
+        matches=find(records,'^'+re.escape(name.title())+'$',(.12,.21,.57,.54),size,.85)
+        if len(matches)==1:return inset_box(matches[0].box)
+    return None
 
 
 def row_target(records,size,ordinal):
