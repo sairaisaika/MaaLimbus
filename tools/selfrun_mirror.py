@@ -19,14 +19,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LOG = ROOT / 'build' / 'selfrun-mirror.jsonl'
+ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 
 
 def attempt(index: int, seconds: int) -> dict:
     record = {'attempt': index, 'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
               'seconds': seconds}
     started = time.time()
+    # The verifier grew required --app/--address (and a real nonce) after this driver
+    # was written; it was failing in 0.4 s with exit 2 and re-reading the previous
+    # run's evidence directory, which looks like "the run did nothing".
+    nonce = __import__('uuid').uuid4().hex
+    (ROOT / 'build' / 'map-probe-authorization.json').write_text(
+        json.dumps({'live_input_authorized': True, 'nonce': nonce}), encoding='utf-8')
     finished = subprocess.run([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
-                               '--authorize', '--steps', '400'],
+                               '--app', str(ROOT / 'dist' / 'MaaLimbus'),
+                               '--address', '127.0.0.1:16416',
+                               '--adb', ADB,
+                               '--authorize', nonce,
+                               '--steps', '400', '--seconds', str(seconds)],
                               cwd=str(ROOT), capture_output=True, text=True)
     record['exit'] = finished.returncode
     record['elapsed_s'] = round(time.time() - started, 1)
