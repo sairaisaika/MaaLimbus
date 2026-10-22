@@ -132,7 +132,7 @@ PIPELINE = {
     },
     # Mirror menu card: the recognition owns the click box, so the window never
     # invents a coordinate for the dungeon entry.
-    'WindowDrive': {
+    'MirrorDrive': {
         'recognition': 'Custom', 'custom_recognition': 'limbus_scene',
         'custom_recognition_param': {'scene': 'DRIVE', 'token': 'mirror_menu',
                                     'roi': [.23, .25, .46, .55]},

@@ -68,7 +68,7 @@ def test_home_without_the_anchor_refuses():
 def test_drive_delegates_to_the_proven_pipeline_node():
     plan = plan_step('DRIVE')
     assert plan['action'] == NODE
-    assert plan['node'] == 'WindowDrive'
+    assert plan['node'] == 'MirrorDrive'
     assert successor_ok(plan, 'MIRROR_ENTRY')
     assert not successor_ok(plan, 'SHOP')
 

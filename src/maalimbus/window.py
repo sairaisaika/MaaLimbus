@@ -37,7 +37,7 @@ OBSERVE_ONLY = ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
                 'BATTLE_RESULT', 'UNKNOWN')
 
 #: pages whose only input is an existing, already proven pipeline node.
-PAGE_NODES = {'DRIVE': 'WindowDrive'}
+PAGE_NODES = {'DRIVE': 'MirrorDrive'}
 
 #: controls a window must never click, whatever else is on the same page. Halt
 #: Exploration throws an in-progress run away, and Cancel on the encounter reward
