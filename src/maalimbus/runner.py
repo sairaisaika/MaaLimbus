@@ -1056,9 +1056,14 @@ def candidates_of(directory, record):
     # an unread party must not leave the run with nothing to try.
     party = party_point(image)
     boxes = [list(item['box']) for item in clicks]
-    if party is not None:
-        boxes = adjacent_to(party, boxes)
-    return name, boxes
+    if party is None:
+        # No party, no adjacency, no click.  Every frame of
+        # `evidence/runtime/packaged-mirror-20261022-090550` read None while the board
+        # band stopped short of where the party stood, and the "unread party filters
+        # nothing" fallback then let the loop spend six clicks on nodes two steps away.
+        # A frame that cannot say where the party is must say so, not guess.
+        return name, []
+    return name, adjacent_to(party, boxes)
 
 
 def check_of(directory, record, *, page=None):
