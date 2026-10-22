@@ -2685,3 +2685,23 @@ Tests: `tests/test_runner.py::test_the_device_refuses_input_once_the_session_end
 file). Wiki: decision D16 in both languages. Honest limit: a native access violation cannot be caught
 in Python, so this layer guarantees that once we know the session is dead nothing more is sent, and
 that a failure always leaves a readable stop reason. A full Hard five-floor clear is still unproven.
+
+
+## DSH continuation: the gold ring has to sit on the map's lattice (2026-10-21)
+
+`gold_marks` answers "which nodes does the game offer" by the gold ring the client draws above
+each one. Three statistical guards were measured first and all three were refuted on 1000 rings of
+`build/map-dataset` frames: mean brightness (node 51 vs empty 19), dark-pixel share (node 0.35 vs
+empty 0.80) and texture deviation (node p10 11.8 vs empty max 101.6) overlap, because empty map space
+is uniformly black while a node is a dark body with a lit rim; no single threshold separates them.
+
+The principled guard is the one the floor itself provides: nodes sit on a lattice (192 px across,
+160 px down, 192x160 diagonal at 1920 wide), so `lattice_consistent` (`src/maalimbus/map_vision.py:922`)
+keeps only rings that stand at one of those spacings (9% tolerance) from another ring in the same
+frame. A lone ring is kept, a frame whose rings share no spacing is kept whole, and an empty result
+falls back to the input -- dropping every candidate is the failure this reader exists to prevent.
+
+Tests: `tests/test_map_vision.py::test_a_gold_ring_off_the_lattice_is_not_a_node_the_map_offers`,
+`::test_a_lone_mark_is_kept_because_one_ring_cannot_be_judged` (52 passed in that file). The dataset
+re-exports through `tools/export_map_dataset.py` as 389 frames / 2830 boxes / 7 negatives / 12 runs,
+holding out the whole of `pi-20261021-185251`. Wiki: D15 continuation 3 in both languages.

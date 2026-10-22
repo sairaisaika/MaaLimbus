@@ -921,7 +921,46 @@ def gold_marks(image):
                  and abs(other[1] - point[1]) <= GOLD_MARK_MERGE]
         if not close:
             merged.append(point)
-    return merged
+    return lattice_consistent(merged, width)
+
+
+# The map is drawn on a fixed lattice: two nodes side by side are 192 px apart on
+# 1920-wide frames, two rows 160 px, and a diagonal neighbour 192x160.  Measured on
+# `evidence/runtime/pi-20261021-185251/frame-0119.png` -- (863,404), (1055,403),
+# (1247,403), (1247,564), (1055,723) -- and on the older floor in `pi-20261012-180805`.
+LATTICE_STEPS = ((192, 0), (0, 160), (192, 160), (96, 80))
+LATTICE_TOLERANCE = 0.09
+
+
+def lattice_consistent(marks, width=1920, tolerance=LATTICE_TOLERANCE):
+    """Keep the gold rings that sit on the map's own lattice.
+
+    The ring is the game's word that a node is walkable, so this is not a second
+    opinion about what a node looks like -- it is the check that the mark belongs to
+    *this* map's node grid rather than being some other gold artwork caught by the
+    same hue. A frame holding one mark cannot be judged and keeps it; a frame whose
+    marks share no spacing at all is kept whole, because dropping every candidate is
+    the failure this reader exists to prevent.
+    """
+    points = [(int(x), int(y)) for x, y in marks]
+    if len(points) < 2:
+        return points
+    scale = float(width) / 1920.0
+    limit = max(8, int(round(width * tolerance / 2.0)))
+    steps = [(abs(int(round(dx * scale))), abs(int(round(dy * scale))))
+             for dx, dy in LATTICE_STEPS]
+    kept = []
+    for index, point in enumerate(points):
+        for other_index, other in enumerate(points):
+            if other_index == index:
+                continue
+            gap = (abs(point[0] - other[0]), abs(point[1] - other[1]))
+            if any(abs(gap[0] - want_x) <= limit and abs(gap[1] - want_y) <= limit
+                   and (gap[0] or gap[1])
+                   for want_x, want_y in steps):
+                kept.append(point)
+                break
+    return kept or points
 
 
 def gold_badge_drop(image):

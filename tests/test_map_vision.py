@@ -1147,3 +1147,27 @@ def test_the_live_floor_one_offers_the_five_gold_badged_nodes():
     # two lattice guesses in the empty panel, so the five nodes are the whole head of
     # the list: the run now has a real node to click before it wastes a turn on them.
     assert [item['kind'] for item in clicks[:5]] == ['gold_badge_node'] * 5, clicks[:6]
+
+
+def test_a_gold_ring_off_the_lattice_is_not_a_node_the_map_offers():
+    """The ring is the game's word; the lattice is how we know it is this map's ring.
+
+    Measured on `evidence/runtime/pi-20261021-185251/frame-0119.png`: five rings at
+    (863,404), (1055,403), (1247,403), (1247,564), (1055,723), 192 px apart across and
+    160 down. A mark that shares no such spacing with any other belongs to other gold
+    artwork caught by the same hue, not to this node grid.
+    """
+    from maalimbus.map_vision import lattice_consistent
+
+    floor = [(863, 404), (1055, 403), (1247, 403), (1247, 564), (1055, 723)]
+    assert lattice_consistent(floor) == floor
+    assert lattice_consistent(floor + [(404, 701)]) == floor
+
+
+def test_a_lone_mark_is_kept_because_one_ring_cannot_be_judged():
+    """Dropping every candidate is the failure this reader exists to prevent."""
+    from maalimbus.map_vision import lattice_consistent
+
+    assert lattice_consistent([(700, 300)]) == [(700, 300)]
+    assert lattice_consistent([(100, 200), (1400, 900)]) == [(100, 200), (1400, 900)]
+    assert lattice_consistent([(1000, 300), (1192, 300)]) == [(1000, 300), (1192, 300)]
