@@ -3033,6 +3033,23 @@ class MirrorRunner:
             # read budget. Wait at most two minutes after the submitted turn;
             # this does not send another START or manufacture a HUD identity.
             state['turn_wait_until']=time.monotonic()+120
+            # The page name cannot tell a submitted turn from an ignored one: the plan's
+            # `expect` holds BATTLE_HUD, BATTLE_PLANNING and UNKNOWN, so the page coming
+            # back looking like itself is "success" either way, and `advance` is False on
+            # this plan so the swallowed-click detector at the end of this method can never
+            # fire.  The HUD's own turn counter is the only fact that separates the two,
+            # and it is read every frame, so remember it here and judge it on the next one.
+            if (state.get('submit_turn') is not None
+                    and record.get('turn')==state.get('submit_turn')
+                    and time.monotonic()-float(state.get('submit_turn_at') or 0) > 25.0):
+                # Submitting again from the same turn number is the measured stall: the
+                # previous submit was ignored.  This sends nothing and changes no page; it
+                # only makes the stall a recorded fact instead of a silent one.
+                self.note('battle_submit_not_accepted',turn=record.get('turn'),
+                          waited_s=round(time.monotonic()-float(state.get('submit_turn_at') or 0),1),
+                          reason='the_hud_turn_did_not_change_after_the_submit')
+            state['submit_turn']=record.get('turn')
+            state['submit_turn_at']=time.monotonic()
         time.sleep(delay / 1000)
         settled, settled_page = None, None
         before_sha = record.get('image_sha256')
