@@ -54,7 +54,8 @@ from .grace_vision import available_starlight, cost_of, plan_purchases, plus_poi
 from .jobs import wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
-from .map_vision import NODE_BADGE_TEMPLATE, map_clicks, map_header
+from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, map_clicks, map_header,
+                         party_point)
 from .overlay_vision import carousel_dots, page_turn_arrows
 from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_state,
                             gift_cards, initial_gift_box, keyword_panel_point,
@@ -1047,7 +1048,17 @@ def candidates_of(directory, record):
     chrome = header_chrome(record)
     if chrome:
         clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
-    return name, [list(item['box']) for item in clicks]
+    # Only a node one step from the party can move it.  Without this filter the list
+    # was ordered but unconstrained, so runs kept clicking nodes two or more steps out
+    # and every verdict came back `rejected` while the party stood still
+    # (evidence/runtime/packaged-mirror-20261022-085428: party (1052,562), targets from
+    # (576,361) outward).  If the party cannot be read the list is left whole, because
+    # an unread party must not leave the run with nothing to try.
+    party = party_point(image)
+    boxes = [list(item['box']) for item in clicks]
+    if party is not None:
+        boxes = adjacent_to(party, boxes)
+    return name, boxes
 
 
 def check_of(directory, record, *, page=None):

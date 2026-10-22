@@ -1709,3 +1709,70 @@ def party_point(image):
     x = (top[1] + mate[1]) / 2.0
     y = (top[2] + mate[2]) / 2.0 + int(.10 * height)
     return int(x), int(y)
+
+STEP_CENTRES = tuple(
+    (sx * ax, sy * ay)
+    for ax, ay in ((384, 0), (192, 110), (0, 220))
+    for sx in (1, -1)
+    for sy in (1, -1))
+
+
+STEP_CENTRES = tuple(
+    (sx * ax, sy * ay)
+    for ax, ay in ((384, 0), (192, 110), (0, 220))
+    for sx in (1, -1)
+    for sy in (1, -1))
+
+
+def adjacent_to(party, boxes, *, steps=None, tolerance=0.34):
+    """Keep the boxes one step from the party, on the lattice the page draws.
+
+    Measured on `evidence/runtime/packaged-mirror-20261022-085428/frame-0008`: with the
+    party at (1052,562) the six badges sat at centre offsets (-381,-106), (-381,+54),
+    (-189,-110) and (-765,-125) — i.e. the neighbours are (384,0), (192,110) and their
+    mirrors, not the (384,320) the older constants assumed.  Every rejected target that
+    run was two steps out, which is why nothing moved; a hand click one step out opened
+    the node's panel.
+    """
+    steps = STEP_CENTRES if steps is None else steps
+    if party is None:
+        return list(boxes)
+    keep = []
+    for box in boxes:
+        x, y, w, h = [float(v) for v in box[:4]]
+        dx, dy = (x + w / 2) - party[0], (y + h / 2) - party[1]
+        for ex, ey in steps:
+            if (abs(dx - ex) <= 384 * tolerance
+                    and abs(dy - ey) <= 220 * tolerance):
+                keep.append(box)
+                break
+    return keep
+
+
+def adjacent_to(party, boxes, *, near=150.0, far=430.0):
+    """Keep the boxes whose centre is one step from the party.
+
+    A node click only moves the party when the node is adjacent.  On
+    `evidence/runtime/packaged-mirror-20261022-085428/frame-0008` the party sat at
+    (1052,562) and the six badges around it were 219..395 px away, while every target
+    that run was rejected sat 400..800 px out (two steps or more); a hand click on a
+    one-step node opened its panel.  The old candidate list applied neither distance
+    nor adjacency, so the loop kept clicking the far side of the floor.
+
+    A band rather than a lattice match: the page's pitch is anisotropic (about 384 px
+    across, 160..220 px down) and the badges are drawn slightly off-centre, so matching
+    exact step vectors kept dropping real neighbours.  `party is None` keeps every box,
+    because a run without a party reading must not be left without candidates.
+    """
+    if party is None:
+        return list(boxes)
+    keep = []
+    for box in boxes:
+        x, y, w, h = [float(v) for v in box[:4]]
+        dx, dy = (x + w / 2) - party[0], (y + h / 2) - party[1]
+        distance = (dx * dx + dy * dy) ** 0.5
+        if near <= distance <= far:
+            keep.append(box)
+    return keep
+
+

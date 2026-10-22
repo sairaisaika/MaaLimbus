@@ -1283,3 +1283,28 @@ def test_a_page_without_markers_has_no_player_instead_of_raising():
     from maalimbus.map_vision import flame_player
     assert flame_player(None, np.zeros((10, 10, 3), dtype=np.uint8)) is None
     assert flame_player([], np.zeros((10, 10, 3), dtype=np.uint8)) is None
+
+
+def test_a_node_two_steps_away_is_not_a_candidate():
+    """A click only moves the party from an adjacent node.
+
+    Live evidence (evidence/runtime/packaged-mirror-20261022-085428) had the party at
+    (1052,562) and every rejected target around (576,361): two lattice steps away.
+    A hand click on an adjacent node opened its panel, so the candidate list has to
+    keep one step and drop the rest.
+    """
+    from maalimbus.map_vision import adjacent_to
+    party = (1052.0, 562.0)
+    near = [(576, 361, 190, 190), (576, 521, 190, 190), (768, 357, 190, 190)]
+    far = [(192, 342, 190, 190), (192, 162, 190, 190), (0, 342, 190, 190)]
+    kept = adjacent_to(party, near + far)
+    for box in near:
+        assert box in kept, box
+    for box in far:
+        assert box not in kept, box
+
+
+def test_without_a_party_every_candidate_is_kept():
+    from maalimbus.map_vision import adjacent_to
+    boxes = [(576, 361, 190, 190)]
+    assert adjacent_to(None, boxes) == boxes
