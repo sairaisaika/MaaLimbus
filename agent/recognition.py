@@ -398,6 +398,22 @@ class LimbusRecognition(CustomRecognition):
             from maalimbus.shop_native import repair_purchase_balances
             records,shop_local=repair_purchase_balances(context.run_recognition_direct,image,records)
             local.extend(shop_local)
+        if scene in ('PRE_BATTLE_TEAM','DEPLOYMENT','TEAM_LIBRARY'):
+            # The participant counter is fine print on a textured plate, so the
+            # whole-frame pass misses it (D25).  Read that panel on its own and fold
+            # the results into this frame's records, in frame coordinates.
+            from maalimbus.party_vision import counter_reads, participants
+            if participants(records,(image.shape[1],image.shape[0])) is None:
+                class _Read:
+                    __slots__=('text','box','score')
+                    def __init__(self,row):
+                        self.text=row['text']; self.box=row['box']; self.score=row['score']
+                extra=[_Read(row) for row in
+                    counter_reads(lambda crop: context.run_recognition_direct(
+                        JRecognitionType.OCR, JOCR(threshold=.2), crop), image)]
+                if extra:
+                    records=list(records)+extra
+                    local.extend(extra)
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
         from maalimbus.overlay_dismissal import recognize as recognize_overlay
