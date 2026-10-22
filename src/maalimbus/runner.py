@@ -2888,12 +2888,22 @@ class MirrorRunner:
             tried = state.setdefault('map_tried', [])
             if len(tried) >= len(candidates):
                 tried.clear()
+            # The neighbour of where the party stands is the best bet, but it is only a
+            # preference: `tried` is bookkeeping for the whole page, so dropping the other
+            # candidates would leave the two lengths in different coordinate systems and
+            # the page would run out of candidates after a couple of refusals
+            # (evidence/runtime/packaged-mirror-20261022-065931 stopped after 7 steps
+            # that way).  Order, never filter.
             here = state.get('map_player')
             if here:
-                neighbours = [c for c in candidates
-                              if one_step_from(c['point'] if isinstance(c, dict) else c, here)]
-                if neighbours:
-                    candidates = neighbours
+                def point_of(candidate):
+                    if isinstance(candidate, dict):
+                        return candidate['point']
+                    box = candidate
+                    return (box[0] + box[2] / 2, box[1] + box[3] / 2)
+                near = [c for c in candidates if one_step_from(point_of(c), here)]
+                far = [c for c in candidates if not one_step_from(point_of(c), here)]
+                candidates = near + far
             choice_index = next_untried(candidates, tried)
             chosen = candidates[choice_index]
             tried.append([int(v) for v in (chosen['box'] if isinstance(chosen, dict)
