@@ -297,6 +297,11 @@ def likely_player(markers):
 
 def flame_player(markers, image):
     """The node whose ornament is the player's bright yellow flame, or None."""
+    if not markers:
+        # A page with no markers is a page the player cannot be located on; the caller
+        # already treats None as "unknown", and iterating None crashed the loop here
+        # (evidence/runtime/packaged-mirror-20261022-063031, TypeError at this line).
+        return None
     best = None
     for marker in markers:
         x, y, w, h = marker.ornament

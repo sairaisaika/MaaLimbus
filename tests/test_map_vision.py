@@ -1276,3 +1276,10 @@ def test_the_party_is_located_without_the_crescent_badge_template():
     point = player_by_ring(cv2.imread(str(path)))
     assert point is not None, 'the party is on this page and must be located'
     assert abs(point[0] - 972) <= 40 and abs(point[1] - 428) <= 40, point
+
+
+def test_a_page_without_markers_has_no_player_instead_of_raising():
+    import numpy as np
+    from maalimbus.map_vision import flame_player
+    assert flame_player(None, np.zeros((10, 10, 3), dtype=np.uint8)) is None
+    assert flame_player([], np.zeros((10, 10, 3), dtype=np.uint8)) is None
