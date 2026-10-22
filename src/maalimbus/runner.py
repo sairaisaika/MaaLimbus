@@ -299,6 +299,17 @@ already the authorized driver of the run it is pinching for.
 RECOVERY_DRAG = (960, 380, 960, 760)
 """The vertical drag a recovery gesture uses, in the same 1920x1080 space."""
 
+RECOVERY_PAN = (620, 540, 1300, 540)
+"""The horizontal pan a recovery gesture uses, in the same 1920x1080 space.
+
+A Mirror Dungeon floor is wider than the viewport: dragging it changed 29272 px on
+the live client of 2026-10-22 (``build/t100-swipe-700.png`` versus ``build/t100-s0.png``)
+and carried nodes into view that no earlier frame had contained, while the party
+stayed where it was.  ``RECOVERY_LADDER`` had drags in one axis only, so a floor whose
+last two steps sat off screen looked exactly like a floor with nowhere to go --
+which is the shape every stop of that session took.
+"""
+
 FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE')
 """Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
 
@@ -347,6 +358,8 @@ RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
     ('drag_up', 'the_page_is_dragged_on_towards_its_later_rows'),
+    ('pan_left', 'the_page_is_wider_than_the_viewport_and_is_panned_back_towards_its_start'),
+    ('pan_right', 'the_page_is_wider_than_the_viewport_and_is_panned_on_towards_its_end'),
     ('wait', 'the_page_is_given_one_more_round_to_settle'),
 )
 """What a step that did not land gets before the run is allowed to end.
@@ -3776,6 +3789,12 @@ class MirrorRunner:
         elif name == 'drag_up':
             self.device.swipe(RECOVERY_DRAG[2], RECOVERY_DRAG[3],
                               RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400)
+        elif name == 'pan_left':
+            self.device.swipe(RECOVERY_PAN[0], RECOVERY_PAN[1],
+                              RECOVERY_PAN[2], RECOVERY_PAN[3], 400)
+        elif name == 'pan_right':
+            self.device.swipe(RECOVERY_PAN[2], RECOVERY_PAN[3],
+                              RECOVERY_PAN[0], RECOVERY_PAN[1], 400)
         else:
             time.sleep(1.5)
         # A gesture is not a click: ``clicks_sent`` keeps counting the taps that were

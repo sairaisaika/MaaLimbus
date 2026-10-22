@@ -3130,3 +3130,16 @@ Three adb taps on the four badged neighbours of `evidence/runtime/packaged-mirro
 ## DSH iteration: the walkable cyan edge is dark, and a straight sample cannot tell edges apart (2026-10-22)
 
 Measured on `build/t94-now.png`: the cyan edges are `H≈95-98, S≈220-250, V≈13-55`, so a `V>=120` cyan mask matches zero pixels — one direct reason `path_end` returned `None` there. A +-5 px sample along the line from the party to each node scores 0.81-1.0 for all five nodes, because the background lattice is cyan too, so the discriminator must sample **that edge** narrowly and compare it against the floor's grey edges instead of the whole line. Appended to `D29`.
+
+## DSH iteration: a floor is wider than the viewport (2026-10-22)
+
+`Sinking Pang` 第 3 层停在 5/7 上反复失败：候选点击全 `rejected`，点自己也毫无反应，但暂停菜单一点就开（29 万像素变化）——输入通道正常，页面也不忙。
+
+在实机上从队伍位置向外拖 400 ms：画面整体右移、右侧**冒出一批此前任何一帧都没有的节点**，队伍/层数/货币都不变（`build/t100-swipe-700.png` 对照 `build/t100-s0.png`，29 272 像素变化）。镜牢一层比一屏宽，而读取器只看当前视口，于是"没有可走节点"在视野不全时就是假的。
+
+`RECOVERY_LADDER` 只覆盖纵向拖动，横向的"看不全"因此被读成"这页没路"。补上 `pan_left` / `pan_right`（`RECOVERY_PAN = (620, 540, 1300, 540)`，400 ms），排在纵向两档之后、`wait` 之前；四档都只移动视野、不按控件，因此对未知布局的页面仍安全。
+
+测试：`tests/test_recovery_ladder.py` 现在要求四档各生效一次（纵向两档 + 横向两档），梯子用尽后仍然结束。全量 `1821 passed in 185.85s`。Wiki：决策 `D30`（中英各一节）。
+
+边界：平移只让读取器**有机会**看全整层，不保证那一步可点；第 3 层那两步是否另有原因仍未证实。
+

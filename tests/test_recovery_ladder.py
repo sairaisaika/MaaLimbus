@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from maalimbus.runner import (MAP_ZOOM_OUT, RECOVERY_DRAG, RECOVERY_LADDER,
+                              RECOVERY_PAN,
                               FakeDevice, FrameObserver, MirrorRunner, pinch_out)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,7 +107,12 @@ def test_every_rung_moves_the_view_and_none_of_them_presses_a_control(tmp_path):
     assert device.swipes == [(RECOVERY_DRAG[0], RECOVERY_DRAG[1],
                               RECOVERY_DRAG[2], RECOVERY_DRAG[3], 400),
                              (RECOVERY_DRAG[2], RECOVERY_DRAG[3],
-                              RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400)]
+                              RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400),
+                             (RECOVERY_PAN[0], RECOVERY_PAN[1],
+                              RECOVERY_PAN[2], RECOVERY_PAN[3], 400),
+                             (RECOVERY_PAN[2], RECOVERY_PAN[3],
+                              RECOVERY_PAN[0], RECOVERY_PAN[1], 400)], (
+        'both axes, because a floor is wider than the viewport as well as taller')
 
 
 def test_a_map_that_will_not_move_is_pinched_out_before_the_run_stops(tmp_path):
@@ -146,7 +152,10 @@ def test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends(tmp_path):
         if result.get('done'):
             break
     assert len(device.pinches) == 1, 'the map is pinched out once, not every round'
-    assert len(device.swipes) == 2, 'then the list is dragged each way, once'
+    assert len(device.swipes) == 4, (
+        'then the page is dragged each way and panned each way, once: a Mirror Dungeon '
+        'floor is wider than the viewport, and the 2026-10-22 client proved a pan '
+        'carries nodes into view that no earlier frame held')
     assert result and result.get('done') and result.get('stopped')
     events = [event for event, _ in notes.events]
     assert events.count('window_recovery') == len(RECOVERY_LADDER)
