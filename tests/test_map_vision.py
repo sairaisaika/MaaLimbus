@@ -1171,3 +1171,29 @@ def test_a_lone_mark_is_kept_because_one_ring_cannot_be_judged():
     assert lattice_consistent([(700, 300)]) == [(700, 300)]
     assert lattice_consistent([(100, 200), (1400, 900)]) == [(100, 200), (1400, 900)]
     assert lattice_consistent([(1000, 300), (1192, 300)]) == [(1000, 300), (1192, 300)]
+
+
+def test_the_players_own_gold_token_is_not_a_pair_of_nodes():
+    """The party marker is gold too, and two nodes cannot be 90 px apart.
+
+    Measured on the held-out run: `pi-20261021-185251/frame-0039` answered with two rings
+    68 px apart, both on the player's own token, and the exporter turned them into two
+    label boxes -- a false positive straight into the training set.
+    """
+    from maalimbus.map_vision import lattice_consistent
+
+    assert lattice_consistent([(705, 299), (694, 384)]) == []
+    assert lattice_consistent([(704, 297), (702, 365), (669, 403), (738, 403)]) == []
+
+
+def test_two_marks_sharing_no_lattice_step_are_kept_but_not_as_a_pair():
+    """Tolerance scales with the step it judges, never with the frame width.
+
+    36 px across and 143 down does not reproduce the 192x160 diagonal, so these are not
+    a lattice pair -- but they are also far enough apart to be two separate objects, and
+    deleting every candidate is the failure this reader exists to prevent, so they are
+    handed on rather than dropped.
+    """
+    from maalimbus.map_vision import lattice_consistent
+
+    assert lattice_consistent([(1124, 678), (1088, 821)]) == [(1124, 678), (1088, 821)]

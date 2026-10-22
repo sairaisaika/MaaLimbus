@@ -946,7 +946,9 @@ def lattice_consistent(marks, width=1920, tolerance=LATTICE_TOLERANCE):
     if len(points) < 2:
         return points
     scale = float(width) / 1920.0
-    limit = max(8, int(round(width * tolerance / 2.0)))
+    # Tolerance has to scale with the step it is judging, not with the frame: a looser
+    # number than a fifth of the row spacing lets the player's own token pass as a pair
+    # of nodes, which is exactly the false label this check exists to stop.
     steps = [(abs(int(round(dx * scale))), abs(int(round(dy * scale))))
              for dx, dy in LATTICE_STEPS]
     kept = []
@@ -955,12 +957,23 @@ def lattice_consistent(marks, width=1920, tolerance=LATTICE_TOLERANCE):
             if other_index == index:
                 continue
             gap = (abs(point[0] - other[0]), abs(point[1] - other[1]))
-            if any(abs(gap[0] - want_x) <= limit and abs(gap[1] - want_y) <= limit
+            if any(abs(gap[0] - want_x) <= max(8, int(round(want_x * tolerance)))
+                   and abs(gap[1] - want_y) <= max(8, int(round(want_y * tolerance)))
                    and (gap[0] or gap[1])
                    for want_x, want_y in steps):
                 kept.append(point)
                 break
-    return kept or points
+    if kept:
+        return kept
+    # Nothing here stands at node spacing.  That is either a floor layout nobody has
+    # seen yet or -- the case this branch exists for -- one object read twice: the
+    # player's own token is gold, and its flame and its lantern both answer the hue.
+    # Two nodes cannot be 90 px apart, so a single tight cluster is not a set of nodes.
+    nearest = min((max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+                   for i, a in enumerate(points) for b in points[i + 1:]), default=None)
+    if nearest is not None and nearest < int(round(90 * scale)):
+        return []
+    return points
 
 
 def gold_badge_drop(image):

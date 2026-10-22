@@ -2723,3 +2723,25 @@ splits, so `val` points at the held-out run and that run serves as validation an
 run is needed before the comparison against the rule can claim independent validation.
 
 Training itself is still blocked here: `ultralytics` (and torch with it) is not installed.
+
+
+## DSH continuation: the held-out labels were on the player's own token (2026-10-21)
+
+Drawing the held-out labels of `pi-20261021-185251/frame-0039` back onto its frame showed both boxes
+sitting on the player's own token -- the gold flame and the gold lantern answer the same hue as the
+ring -- while the nodes that carried rings were not labelled at all. The false positive came from two
+things: the lattice tolerance was computed from the frame width (`width*0.09/2` = 86 px) instead of
+from the step it judges, so a 68 px gap passed as a 160 px row; and the "keep everything when no pair
+fits" fallback let a frame whose only gold is the player marker through.
+
+`lattice_consistent` now uses a per-step tolerance (`max(8, want*tolerance)`) and, when the kept set
+is empty, treats a nearest-neighbour gap under 90 px as one object read twice and returns nothing.
+
+Consequence, stated plainly: the dataset re-exports as 389 frames / **727 boxes / 189 negatives**,
+down from 2830 boxes / 7 negatives -- so roughly three quarters of the previous boxes were never
+nodes. Tests: `tests/test_map_vision.py::test_the_players_own_gold_token_is_not_a_pair_of_nodes`
+(54 passed). Wiki: D15 continuation 4 in both languages.
+
+Open, and the next thing to fix: frames such as `pi-20261021-185251/frame-0067` still show gold rings
+yet now read as empty, so the tightening overshot -- the reader has to tell "the ring sits outside the
+candidate band" apart from "this floor uses a different lattice family" instead of returning nothing.
