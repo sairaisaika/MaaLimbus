@@ -13,6 +13,24 @@ class InitialTransaction:
         if d['keyword']!=keyword or d['pending'] or count[0]!=len(d['selected']):
             raise ValueError('Initial gift scope, keyword, pending or counter mismatch')
         return d
+    def rebase_visible(self,scope,count,proof):
+        """Adopt the counter the page shows when a revived scope's record is stale.
+
+        A resumed run reuses its scope id but the client's counter belongs to the attempt
+        that is on screen now, so the recorded `selected` rows cannot be proven any more.
+        They are kept as history and the counter is adopted; an unverified pending gift is
+        still refused, because that is the one case the record is a promise.
+        """
+        d=self.data
+        if not d or d['scope']!=scope or d.get('pending'):
+            return False
+        if count[0]==len(d.get('selected') or []):
+            return False
+        d.setdefault('rebased',[]).append(dict(was=d.get('selected'),
+                                              counter=list(count),proof=str(proof)))
+        d['selected']=[]
+        write_json(self.path,d)
+        return True
     def intent(self,row,title,count,proof):
         d=self.data
         if d['pending'] or any(x['title']==title for x in d['selected']):

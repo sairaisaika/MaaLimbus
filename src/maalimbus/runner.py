@@ -2383,6 +2383,10 @@ class MirrorRunner:
                 stopped=self._record(page,record,frame,candidates,None,'initial_gift_counter_or_transaction_missing')
                 return self._result(page,None,False,stopped,done=True)
             try:
+                # A revived scope reuses its id while the counter on screen belongs to the
+                # attempt being shown now; adopt it instead of claiming a mismatch.
+                if self.initial_transaction.rebase_visible(self.run_id,count,frame_file(directory)):
+                    self.note('initial_gift_rebased',counter=list(count))
                 d=self.initial_transaction.prepare(self.run_id,settings.gift_keyword,count,frame_file(directory))
             except ValueError as error:
                 stopped=self._record(page,record,frame,candidates,None,str(error))
