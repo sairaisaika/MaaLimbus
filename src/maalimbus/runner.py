@@ -1566,6 +1566,25 @@ class _Context:
 # --------------------------------------------------------------------------- runner
 
 
+def map_refusal_streak(state, emit):
+    """Count consecutive refused map clicks and name the un-resumed case once.
+
+    A refused click has two very different causes and the frame cannot tell them apart:
+    the candidate was wrong, or the exploration was never resumed.  One device settled
+    it -- before `entry -> Enter -> Dungeon Progress -> Resume` nine clicks moved
+    nothing (300..2000 px of animation), and the first click after the resume opened the
+    node panel (107860 px).  Naming the second case at three refusals keeps a run from
+    looking like a reader defect; `accepted` resets the streak.
+    """
+    streak = int(state.get('map_refused_streak') or 0) + 1
+    state['map_refused_streak'] = streak
+    if streak == 3:
+        emit('map_clicks_refused_while_the_exploration_may_be_unresumed', streak=streak,
+             detail='a resumed exploration answers the first click; a run that is still '
+                    'in progress but not resumed refuses all of them')
+    return streak
+
+
 def battle_progress(state, signature, *, rounds):
     """Whether this battle round shows progress, and if not, what that justifies.
 
@@ -3591,6 +3610,15 @@ class MirrorRunner:
                       frame=state.pop('map_click_frame', None),
                       kind=dict(plan.get('detail') or {}).get('kind'),
                       reason='the_page_stayed_on_the_map_after_the_click')
+            # A refused click can mean two very different things, and the difference is
+            # not visible in the frame: the candidate was wrong, or the exploration is
+            # not resumed yet.  A controlled experiment on one device settled it --
+            # before `entry -> Enter -> Dungeon Progress -> Resume` nine clicks moved
+            # nothing (300..2000 px of animation only), and the first click after the
+            # resume opened the node panel (107860 px).  So name the second case once a
+            # streak of refusals has accumulated, instead of letting the run look like a
+            # reader defect.
+            map_refusal_streak(state, lambda event, **fields: self.note(event, page=page, **fields))
             return self._result(page, plan.get('target'), True, None, waiting=True)
         # A click the game did take: the page it was aimed at arrived. This is the only
         # positive label the loop can earn without being told the answer.
@@ -3599,6 +3627,7 @@ class MirrorRunner:
                       outcome='accepted',
                       frame=state.pop('map_click_frame', None),
                       reason='the_click_opened_the_next_page')
+            state['map_refused_streak'] = 0
             state['map_pending'] = None
         # The other way a click is taken: the page stays MAP and the party walks. The
         # player's own point is the evidence -- it moves when the step is spent, and a

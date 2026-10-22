@@ -1465,3 +1465,26 @@ def test_a_rejected_map_node_is_followed_by_the_next_one():
     # every one already tried: fall back to the best-ranked rather than refusing
     assert next_untried(candidates, [[1, 1, 40, 40], [2, 2, 40, 40], [3, 3, 40, 40]]) == 0
     assert next_untried([], [[1, 1, 40, 40]]) == 0
+
+
+def test_three_refused_map_clicks_name_the_un_resumed_exploration():
+    """A refused map click has two causes the frame cannot tell apart.
+
+    Live: nine clicks before `entry -> Enter -> Dungeon Progress -> Resume` moved
+    nothing, and the first click after it opened the node panel.  So a streak of
+    refusals names the un-resumed case once, and an acceptance clears the streak.
+    """
+    from maalimbus.runner import map_refusal_streak
+    state, seen = {}, []
+    emit = lambda event, **fields: seen.append((event, fields))
+    for _ in range(2):
+        map_refusal_streak(state, emit)
+    assert seen == [], 'two refusals are not yet a streak worth naming'
+    map_refusal_streak(state, emit)
+    assert [event for event, _ in seen] == [
+        'map_clicks_refused_while_the_exploration_may_be_unresumed']
+    assert seen[0][1]['streak'] == 3
+    map_refusal_streak(state, emit)
+    assert len(seen) == 1, 'the name is recorded once per streak, not every click'
+    state['map_refused_streak'] = 0
+    assert map_refusal_streak(state, emit) == 1
