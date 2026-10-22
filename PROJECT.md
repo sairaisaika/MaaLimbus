@@ -3114,3 +3114,9 @@ Wiki: decision `D26` in both languages.
 `advance` 默认 `False`，战斗提交意图又不传它，于是"点击被吞"的判定条件永远凑不齐；`expect` 里同时含 `BATTLE_HUD`/`BATTLE_PLANNING`/`UNKNOWN`，让"忽略"与"接受"在页面层面同形。实测 19 次 `battle_observed` 只推进到 turn 5、每回合约 43 秒，而全程没有任何 verdict 事件——这不是点击没送到，是"送到了却被忽略"压根没被观测。
 
 现在以 HUD 的 `turn` 为唯一判据：同回合同一提交超 25 秒 -> `battle_submit_not_accepted`（带 `attempts`）；满 3 次 -> `battle_submit_ignored_repeatedly` 并清 `turn_wait_until`，把页面交还进度看门狗，让这一局以记录下来的原因进入恢复，而不是在同一回合上空转。判据为 `submit_was_ignored()`，6 条断言钉住语义；`tests/test_runner.py` 60 passed，全量 1815 passed。提交 `afc3551`、`6c90b07`、`8441649`；决策 `D27`（中英）。
+
+## DSH iteration: a dot in the header deleted the map page (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261022-045608` filled 32 of 36 `map_observed` events with `scene: UNKNOWN` and produced **zero** `map_click_result`. The frames were plainly the map; the header OCR on `frame-0006` read `Exploring·Floor` (U+00B7) instead of `Exploring Floor 3`, which `HEADER_LABEL_PATTERN` did not match, so `map_header` returned `None` and the agent left the page as `UNKNOWN`.
+
+`normalise_header_text()` in `src/maalimbus/map_vision.py` folds the separator glyphs to a space before matching; `_folded_header` carries that text into `floor_label`. Folded, `frame-0006` yields `floor=None, pack='Sinking Pang'` — identity restored, no invented floor number. Tests: `tests/test_map_vision.py` gained the text case and a live-evidence case that skips without the frame. `56 passed`; full suite `1816 passed` (the one failure was the controller-lease test, correctly blocked by a running self-run holding the lease). Commit `42928ed`; decision `D28` in both languages.
