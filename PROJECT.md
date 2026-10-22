@@ -2843,3 +2843,18 @@ Everything shipped this session stands: `0671a02` (lattice multiples + tight clu
 (dark node under the ring), `f642979` (the detector only reproduces its teacher), `55fef9c` (offset
 is an assumption), and the dataset at 742 boxes / 130 negatives over 389 frames with
 `pi-20261021-185251` held out.
+
+
+## DSH continuation: the label ceiling is raised by eye, not by another threshold (2026-10-21)
+
+`tools/map_label_review.py` is the door the next round of labels goes through. It draws the rule's
+boxes in red, the reviewer's in green, writes the picture to `build/map-dataset/hand-reviewed.png`, and
+appends each reviewed frame to `build/map-dataset/hand-reviewed.jsonl` with `label_source='by_eye'` and
+a `node_type` from the game's own taxonomy (`battle`, `event`, `shop`, `reward`, `rest`, `unknown`).
+Reviewed frames are meant to win over the rule whenever the two disagree -- that is the only way the
+teacher becomes better than the rule.
+
+First reviewed frame: `pi-20261021-185251/frame-0119`, five boxes, all five confirmed by eye against
+`build/map-candidates-0119.png` and the earlier zooms; types left `unknown` because the node glyphs
+were not read closely enough to claim a type. The types are what the wiki pages are for, and the tool
+rejects any name outside the taxonomy rather than inventing one.
