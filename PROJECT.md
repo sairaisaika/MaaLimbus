@@ -2657,3 +2657,31 @@ Tests: `tests/test_dungeon_progress.py::test_the_end_of_run_summary_states_where
 `::test_a_lost_run_never_reaches_its_claim_buttons`,
 `::test_a_cleared_run_still_claims_its_rewards`. That file now uses the shipped locale for page identity
 instead of a hand-rolled stub, which is what made the classifier's later branches reachable.
+
+
+## DSH continuation: once the task ends, the window posts no more input (2026-10-21)
+
+The self-driven run `evidence/runtime/packaged-mirror-20261021-211030` got through DRIVE (after
+`f398b1f` renamed the node to the `MirrorDrive` the pipeline actually declares) and then died on the
+entrance click with `OSError: exception: access violation reading 0xFFFFFFFFFFFFFFFF` at
+`runner.py`'s `click` -> `maa/controller.py`'s `post_click`. `debug/debug/maafw.log` shows the order
+in that same second: `WindowMapObserve` `PipelineTask node done [completed=false]` ->
+`OnEventNotify msg=Node.PipelineNode.Failed` -> `node not completed, handle error` ->
+`_CustomActionResponse ret=false`. Maa was tearing the task down; the loop was still posting into it.
+
+`MaaDevice.end_session(reason)` (`src/maalimbus/runner.py:387`) now records on the device that it may
+never post input again, and `_refuse_if_ended` (`:415`) makes `click` / `swipe` / `key` refuse by name
+before anything goes out. `Runner._end_session` (`:1500`) sets `state['session_ended']`, writes
+`mirror_session_ended`, and arms the device; the `run()` loop stops instead of calling `step()` and
+records `mirror_loop_stopped / reason=the_pipeline_node_failed_before_the_next_input`; a `RuntimeError`
+or `OSError` out of `step()` takes the same path through `the_task_raised_before_the_next_input`.
+
+An earlier attempt this round scaled click coordinates to the device and refused out-of-range points;
+it was reverted because `test_maa_device_maps_the_loop_onto_the_controller_it_was_given` proved the
+controller is already told `target_long_side 1920`, so Maa maps coordinates itself and a second scale
+would double-apply.
+
+Tests: `tests/test_runner.py::test_the_device_refuses_input_once_the_session_ended` (52 passed in that
+file). Wiki: decision D16 in both languages. Honest limit: a native access violation cannot be caught
+in Python, so this layer guarantees that once we know the session is dead nothing more is sent, and
+that a failure always leaves a readable stop reason. A full Hard five-floor clear is still unproven.

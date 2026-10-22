@@ -387,6 +387,7 @@ class MaaDevice:
     def __init__(self, controller, *, wait=None, target_long_side=1920, deadline=None, tasker=None):
         self.controller = controller
         self.tasker = tasker
+        self.ended = None
         self.wait = wait
         self.deadline = deadline
         self.target_long_side = target_long_side
@@ -410,10 +411,28 @@ class MaaDevice:
         self._wait(self.controller.post_screencap())
         return self.controller.cached_image
 
+    def end_session(self, reason):
+        """Name why this device may never post input again.
+
+        Maa tears a task down when one of its pipeline nodes fails, and the
+        controller behind it is freed with the task.  A click posted afterwards
+        reads through a released pointer, which is a native access violation the
+        interpreter cannot catch, so the death has to be recorded here first.
+        """
+        if self.ended is None:
+            self.ended = str(reason)
+
+    def _refuse_if_ended(self, what):
+        if self.ended is not None:
+            raise RuntimeError('the session ended (%s); refusing to post a %s'
+                               % (self.ended, what))
+
     def click(self, x, y):
+        self._refuse_if_ended('click')
         self._wait(self.controller.post_click(int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
+        self._refuse_if_ended('swipe')
         self._wait(self.controller.post_swipe(int(x1), int(y1), int(x2), int(y2),
                                               int(duration_ms)), timeout=15)
 
@@ -3211,7 +3230,17 @@ class MirrorRunner:
             goal = max(0, int(settings.steps))
         walked = 0
         while self.state['step'] < goal and walked < max(0, int(round_limit)):
-            result = self.step()
+            if self.state.get('session_ended'):
+                self.note('mirror_loop_stopped',
+                          reason='the_pipeline_node_failed_before_the_next_input',
+                          steps=self.state['step'], clicks=self.artifacts['clicks_sent'])
+                break
+            try:
+                result = self.step()
+            except (RuntimeError, OSError) as error:
+                self._end_session('the_task_raised_before_the_next_input',
+                                  error=str(error)[:300])
+                continue
             if not result.get('waiting'):
                 walked += 1
             if result.get('done'):
@@ -3460,6 +3489,22 @@ class MirrorRunner:
     STALL_SECONDS = 300.0
     """How long the loop may go without a new frame before the process ends itself."""
 
+    def _end_session(self, reason, **detail):
+        """Record that the task this loop runs inside is gone.
+
+        A failed pipeline node takes the controller down with it, so every later
+        input would post through a released pointer.  The window says so once and
+        then stops instead of clicking into a dead session.
+        """
+        if self.state.get('session_ended'):
+            return False
+        self.state['session_ended'] = str(reason)
+        device = getattr(self, 'device', None)
+        if hasattr(device, 'end_session'):
+            device.end_session(reason)
+        self.note('mirror_session_ended', reason=str(reason), **detail)
+        return True
+
     def _start_stall_watch(self):
         """Watch the frame heartbeat so a wedged recognition ends the run loudly.
 
@@ -3607,7 +3652,7 @@ def _fresh_state(settings, store=None):
             'shop_bought': [], 'shop_refreshes': 0,
             'repeated_plans': {}, 'guard_page': None, 'claim_steps': 0,
             'team_slot_picked': None, 'defeat_row_sent': False, 'defeat_attempts': 0,
-            'identity_sha': None,
+            'identity_sha': None, 'session_ended': None,
             'tutorial_cards': set(), 'grace_wanted': grace_wanted, 'grace_bought': set(),
             'gift_plan': wanted_plan, 'map_points': map_points,
             # Whether the run this window is paying out earned its payout: it starts

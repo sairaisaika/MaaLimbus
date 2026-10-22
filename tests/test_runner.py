@@ -1332,3 +1332,23 @@ def test_a_floor_that_refused_every_click_is_not_reported_as_an_unread_map():
         'map_candidates_not_observed_yet')
     assert map_stop_reason(tried=((1152, 169, 190, 190),), attempts=2) == (
         'map_clicks_had_no_effect')
+
+
+def test_the_device_refuses_input_once_the_session_ended():
+    """A failed pipeline node frees the controller with it.
+
+    Posting a click afterwards reads through a released pointer -- a native access
+    violation the interpreter cannot catch -- so the death is recorded on the device
+    and every later input is refused by name instead.
+    """
+    import pytest as _pytest
+    device = MaaDevice(StubController())
+    assert device.ended is None
+    device.end_session('the_pipeline_node_failed')
+    assert device.ended == 'the_pipeline_node_failed'
+    for call in (lambda: device.click(1, 2), lambda: device.swipe(1, 2, 3, 4, 500)):
+        with _pytest.raises(RuntimeError) as error:
+            call()
+        assert 'refusing to post a' in str(error.value)
+    device.end_session('some other reason')
+    assert device.ended == 'the_pipeline_node_failed'
