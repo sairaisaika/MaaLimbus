@@ -3616,6 +3616,16 @@ class MirrorRunner:
                 state['map_pending'] = None
             if here:
                 state['map_player'] = list(here)
+        if state.get('map_pending') is not None:
+            # An intent with no verdict cannot teach a reader anything and cannot be
+            # diagnosed later (the archived runs had 79 of 91 clicks in exactly this
+            # state).  The click was made, the page settled, and neither "the party
+            # moved" nor "a new control appeared" was true: record that, do not stay
+            # silent.
+            self.note('map_click_result', target=state['map_pending'], page=page,
+                      outcome='rejected',
+                      reason='the_map_stayed_with_the_party_in_place')
+            state['map_pending'] = None
         state['map_attempts'] = 0
         if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
         state['page_attempts'] = 0
