@@ -53,9 +53,35 @@ def label_frame(path):
     return boxes
 
 
+def reviewed(root):
+    """Frames somebody looked at by eye: their boxes are the truth, not the rule's.
+
+    A reviewed frame only carries the nodes that are targets; the player's own node and
+    unoffered nodes are left out, so an empty list here means "nothing to click", which is
+    different from "the rule found nothing".
+    """
+    path = root / 'build/map-dataset/hand-reviewed.jsonl'
+    if not path.is_file():
+        return {}
+    out = {}
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        record = json.loads(line)
+        key = str(record['frame']).replace('\\', '/')
+        for suffix in ('.png', '.jpg', '.jpeg'):
+            if key.endswith(suffix):
+                key = key[: -len(suffix)]
+                break
+        out[key] = record
+    return out
+
+
 def export(runs, out):
     runtime = ROOT / 'dist/MaaLimbus/evidence/runtime'
     folders = sorted(p for p in runtime.glob('pi-*') if p.is_dir())[-runs:]
+    by_eye = reviewed(ROOT)
     samples, skipped = [], 0
     for folder in folders:
         for record_path in sorted(folder.glob('frame-*.json')):
@@ -74,9 +100,15 @@ def export(runs, out):
             if boxes is None:
                 skipped += 1
                 continue
+            looked_at = by_eye.get('%s/%s' % (folder.name, record_path.stem))
+            if looked_at is not None:
+                boxes = looked_at['boxes']
+                source = 'by_eye'
+            else:
+                source = 'gold_ring_above_the_offered_node'
             samples.append(dict(run=folder.name, frame=record_path.stem,
                                 image=str(image.relative_to(ROOT)), boxes=boxes,
-                                label_source='gold_ring_above_the_offered_node'))
+                                label_source=source))
     runs_seen = sorted({sample['run'] for sample in samples})
     held_out = runs_seen[-1:] if len(runs_seen) > 1 else []
     for sample in samples:
@@ -99,7 +131,9 @@ def main(argv=None):
     print('地图帧：%d 张（有标记 %d，负样本 %d），来自 %d 局，跳过 %d'
           % (len(samples), len(positives), len(samples) - len(positives), len(runs_seen), skipped))
     print('留出一局：%s' % (held_out or '无（局数不足，先全部当训练）'))
-    print('箱子总数：%d' % sum(len(sample['boxes']) for sample in samples))
+    print('箱子总数：%d（人工复核 %d 帧）'
+          % (sum(len(sample['boxes']) for sample in samples),
+             sum(1 for sample in samples if sample['label_source'] == 'by_eye')))
     print('清单=%s' % (target / 'samples.jsonl'))
     return 0
 

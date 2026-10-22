@@ -2870,3 +2870,10 @@ the player's own node out, because clicking where the party already stands is no
 That is the shape the hand set has to have: the rule errs on warm floors by finding nothing where there
 are real nodes, so the corrections are additions, and they are exactly the frames a student trained on
 rule labels could never learn from.
+
+The exporter now prefers a reviewed frame over the rule (`tools/export_map_dataset.py`): it reads
+`build/map-dataset/hand-reviewed.jsonl` and, for a matching `run/frame`, uses the reviewer's boxes with
+`label_source='by_eye'`. The first wiring keyed on `run/frame.png` against a `run/frame` stem and printed
+"reviewed 0 frames", which is why the summary line prints that count -- a silent mismatch is exactly the
+failure mode that would have left the hand set unused. Dataset now 743 boxes / 130 negatives / 389
+frames with 2 reviewed, and `tests/test_map_vision.py` 54 passed.
