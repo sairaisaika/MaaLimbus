@@ -2705,3 +2705,21 @@ Tests: `tests/test_map_vision.py::test_a_gold_ring_off_the_lattice_is_not_a_node
 `::test_a_lone_mark_is_kept_because_one_ring_cannot_be_judged` (52 passed in that file). The dataset
 re-exports through `tools/export_map_dataset.py` as 389 frames / 2830 boxes / 7 negatives / 12 runs,
 holding out the whole of `pi-20261021-185251`. Wiki: D15 continuation 3 in both languages.
+
+
+## DSH continuation: the map frames now also exist in the YOLO11 layout (2026-10-21)
+
+`tools/export_map_yolo.py` reshapes `build/map-dataset/samples.jsonl` into the tree the official
+recipe reads: `images/<split>/`, `labels/<split>/<stem>.txt` in YOLO's normalised `class cx cy w h`,
+`data.yaml`, `manifest.json`. The split is copied verbatim -- it was cut per run, never per frame, and
+reshaping must not leak one floor across the boundary -- and a frame with no box keeps an empty label
+file so the negatives stay negatives.
+
+Output: 389 frames / 2830 boxes / 7 negatives, train 333, test 56. The tool reads the written labels
+back and refuses if their count differs from the dataset, so a normalisation slip cannot reach training.
+
+One honest limitation, recorded in the manifest rather than papered over: the dataset has only two
+splits, so `val` points at the held-out run and that run serves as validation and test both. A third
+run is needed before the comparison against the rule can claim independent validation.
+
+Training itself is still blocked here: `ultralytics` (and torch with it) is not installed.
