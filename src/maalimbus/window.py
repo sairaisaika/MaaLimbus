@@ -517,6 +517,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='the_event_choice_that_names_its_reward_is_taken',
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})
+    if page == 'DUNGEON_PROGRESS':
+        # The dungeon's pause panel parks the game and states its progress. It is
+        # never a step: the only input that belongs here is its own Continue, and
+        # without that anchor the page is left alone rather than guessed at.
+        box = controls.get('dungeon_progress.continue_button')
+        if box is None:
+            return _refuse(page, 'continue_button_not_anchored')
+        return _plan(page, CLICK, target=box, expect=('MAP', ANY), advance=True,
+                     reason='the_paused_panel_is_left_with_its_own_continue')
     if page == 'MAP':
         if not candidates:
             return _refuse(page, 'no_candidate_node_observed')

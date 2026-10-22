@@ -3,6 +3,7 @@ from maalimbus.dungeon_progress import dungeon_progress, steps_left
 from maalimbus.vision import Text
 
 SIZE = (1280, 720)
+LOCALE = {'tutorial': r'(?!)', 'forbidden_dialog': r'(?!)', 'expired': r'(?!)'}
 
 
 def box(cx, cy, bw=80, bh=26):
@@ -69,3 +70,22 @@ def test_a_count_larger_than_its_own_floor_is_refused():
 def test_no_panel_is_not_a_panel_that_failed_to_read():
     assert dungeon_progress([Text('Exploring Floor 1', box(140, 96), .9)], SIZE) is None
     assert steps_left(None) is None
+
+
+def test_the_pause_panel_is_a_page_the_loop_may_leave_not_an_unknown_dialog():
+    """Live 2026-10-22: the run was parked on this panel and looked like a dead floor."""
+    from maalimbus.vision import classify
+
+    records = panel() + [Text('Continue', box(645, 452, 120, 30), .95)]
+    assert classify(records, LOCALE, SIZE) == 'DUNGEON_PROGRESS'
+
+
+def test_a_panel_without_its_continue_is_still_readable_progress():
+    """The page identity needs the button; the measurement does not.
+
+    A panel whose Continue the OCR missed must still yield its floor and step
+    count, because that is what the run report is built from.
+    """
+    payload = dungeon_progress(panel(), SIZE)
+
+    assert payload['floor'] == 1 and payload['steps'] == 4

@@ -105,6 +105,16 @@ def dialog_dismissal(records, size, locale):
 def classify(records, locale, size):
     if deployment_reset_confirm(records,size) is not None:
         return 'DEPLOYMENT_RESET'
+    # The dungeon's pause panel is the one screen that states how far the run got
+    # (`Dungeon Progress`, the floor's own difficulty tag, and its `4/5`). It also
+    # parks the game: a run that stops while it is open has nothing to advance and
+    # looks identical to a floor that refuses every click (live 2026-10-22). It is
+    # recognised by its own title plus its own Continue, and treated as a page the
+    # loop may leave rather than as an unknown dialog to wait out.
+    from .dungeon_progress import PANEL_ROI as _PANEL, TITLE as _TITLE
+    if (find(records, _TITLE.pattern, _PANEL, size, .7)
+            and find(records, r'^Continue$', _PANEL, size, .8)):
+        return 'DUNGEON_PROGRESS'
     # The pause menu leaves WAVE/TURN/START visible behind its four buttons.
     # Keep it observe-only; retry/give-up decisions require a separate recovery.
     pause_roi = (.38, .31, .60, .64)

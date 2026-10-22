@@ -18,8 +18,11 @@ import re
 from .vision import find
 
 #: The panel's own band, normalized. It is drawn centred while the run is
-#: paused, so nothing outside it belongs to the panel.
-PANEL_ROI = (0.20, 0.25, 0.80, 0.60)
+#: paused, so nothing outside it belongs to the panel. The bottom reaches .70
+#: because the panel's button row (Progress / Forfeit / Continue / To Window /
+#: Config) sits under the floor labels -- live `build/r8-menu2.png` puts Continue
+#: at y 452 of 720, i.e. .63.
+PANEL_ROI = (0.20, 0.25, 0.80, 0.70)
 
 TAG = re.compile(r'\(?\s*(HARD|NORMAL)\s*\)?', re.I)
 FLOOR = re.compile(r'Floor\s*(\d+)', re.I)
