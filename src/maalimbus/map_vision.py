@@ -1694,25 +1694,32 @@ def party_point(image):
     # silently disabled the adjacency filter (six rejected clicks, party unmoved).
     board = image[int(.10 * height):int(.86 * height), :int(.95 * width)]
     hsv = cv2.cvtColor(board, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, (15, 120, 235), (35, 255, 255))
+    # Measured on the live frame `build/r247.png`: the torch's bright pixels have HSV
+    # median (13,251,223) with a few at value 223, so the old (15,120,235) floor excluded
+    # both the hue (13 < 15) and the value (223 < 235) and the party read as None on a
+    # board where it plainly stood at (1625,600).  The band below brackets the measured
+    # colour; the area floor admits the sprite's lower flame (area 16).
+    mask = cv2.inRange(hsv, (8, 150, 200), (45, 255, 255))
     count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
     blobs = [(int(stats[i, 4]), float(centres[i][0]), float(centres[i][1]))
-             for i in range(1, count) if 20 <= stats[i, 4] <= 400]
+             for i in range(1, count) if 15 <= stats[i, 4] <= 900]
     if len(blobs) < 1:
         return None
     blobs.sort(reverse=True)
-    top = blobs[0]
     # A second, nearby blob makes it the flame: two bright specks a few pixels apart.
-    mate = None
-    for area, x, y in blobs[1:]:
-        if abs(x - top[1]) <= 12 and abs(y - top[2]) <= 80:
-            mate = (area, x, y)
-            break
-    if mate is None:
-        return None
-    x = (top[1] + mate[1]) / 2.0
-    y = (top[2] + mate[2]) / 2.0 + int(.10 * height)
-    return int(x), int(y)
+    # Every blob is tried as the upper speck, not just the largest: once the colour band
+    # admits the map's own warm furniture (the chest icons on the right edge), the
+    # largest blob is often not the torch and the pair was never even considered
+    # (`build/r247.png`: the flame is (1630,537) area 60 above (1626,579) area 16).
+    for index, top in enumerate(blobs):
+        for other, mate in enumerate(blobs):
+            if other == index:
+                continue
+            if abs(mate[1] - top[1]) <= 12 and abs(mate[2] - top[2]) <= 80:
+                x = (top[1] + mate[1]) / 2.0
+                y = (top[2] + mate[2]) / 2.0 + int(.10 * height)
+                return int(x), int(y)
+    return None
 
 STEP_CENTRES = tuple(
     (sx * ax, sy * ay)
