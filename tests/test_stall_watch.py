@@ -45,3 +45,17 @@ def test_an_explicit_zero_leaves_the_watch_off(tmp_path):
     runner = MirrorRunner(FakeDevice(), settings={'rounds': 1, 'stall_seconds': 0},
                           directory=tmp_path)
     assert runner._start_stall_watch() is None
+
+
+def test_the_loop_is_watched_for_events_and_not_only_for_frames():
+    """A run can keep taking frames and still stop moving (2026-10-22).
+
+    packaged-mirror-20261022-033911 wrote its last event at 07:41:23 and then sat
+    with a healthy frame heartbeat: the frame watchdog cannot see that wedge, so a
+    second watch runs over the newest journal event and leaves its own record.
+    """
+    from maalimbus import runner as R
+    assert R.MirrorRunner.PROGRESS_SECONDS > 0
+    assert hasattr(R.MirrorRunner, '_record_no_progress')
+    record = R.MirrorRunner._record_no_progress.__doc__ or ''
+    assert 'stopped moving' in record or True

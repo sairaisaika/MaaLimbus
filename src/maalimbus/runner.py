@@ -1600,6 +1600,11 @@ class MirrorRunner:
     def note(self, name, **fields):
         """Journal one event, when a journal is attached."""
         self.last_event = name
+        # Progress has its own clock. A loop can keep taking frames while writing
+        # nothing -- live run packaged-mirror-20261022-033911 sat from 07:41:23 with
+        # a healthy frame heartbeat and no further event -- and the frame watchdog
+        # cannot see that, because frames kept arriving.
+        self.artifacts['event_heartbeat'] = time.monotonic()
         if self.journal is not None:
             self.journal.record(name, **fields)
         from .decision_log import lines as decision_lines,signature as decision_signature
@@ -3676,6 +3681,7 @@ class MirrorRunner:
         time.sleep(self.settings.interval)
         return self._result(page, plan.get('target'), True, None, waiting=True)
 
+    PROGRESS_SECONDS = 900.0
     STALL_SECONDS = 300.0
     """How long the loop may go without a new frame before the process ends itself."""
 
@@ -3714,6 +3720,19 @@ class MirrorRunner:
             kwargs={'limit': limit, 'on_stall': lambda: self._record_stall(limit)})
         watch.start()
         self._stall_watch = watch
+        # The frame watchdog only catches a recognition call that never returns.
+        # A loop that observes happily and journals nothing is the other wedge, so
+        # it gets its own watch over the newest event rather than the newest frame.
+        raw_progress = self.settings.get('progress_seconds')
+        progress = self.PROGRESS_SECONDS if raw_progress is None else float(raw_progress)
+        if progress > 0:
+            self.artifacts.setdefault('event_heartbeat', time.monotonic())
+            self._progress_watch = threading.Thread(
+                target=stall_watchdog, name='maalimbus-progress', daemon=True,
+                args=(lambda: self.artifacts.get('event_heartbeat', 0.0),),
+                kwargs={'limit': progress,
+                        'on_stall': lambda: self._record_no_progress(progress)})
+            self._progress_watch.start()
         return watch
 
     def _record_stall(self, limit):
@@ -3736,6 +3755,27 @@ class MirrorRunner:
             (Path(self.directory) / 'agent-stall.json').write_text(
                 json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
         except Exception:  # pragma: no cover - the directory may be gone
+            pass
+        return record
+
+    def _record_no_progress(self, limit):
+        """Leave the record of a loop that kept looking and stopped moving."""
+        heartbeat = self.artifacts.get('event_heartbeat', 0.0)
+        record = {'reason': 'the_run_kept_observing_without_writing_anything',
+                  'limit_seconds': limit,
+                  'event_age_seconds': round(time.monotonic() - heartbeat, 1),
+                  'step': self.state.get('step'), 'page': self.state.get('page'),
+                  'last_event': self.last_event}
+        try:
+            self.note('window_no_progress', reason=record['reason'],
+                      limit_seconds=record['limit_seconds'],
+                      event_age=record['event_age_seconds'], step=record['step'])
+        except Exception:  # pragma: no cover - a journal may be closing
+            pass
+        try:
+            (Path(self.directory) / 'agent-no-progress.json').write_text(
+                json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception:  # pragma: no cover
             pass
         return record
 
