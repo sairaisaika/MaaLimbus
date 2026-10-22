@@ -2877,3 +2877,33 @@ The exporter now prefers a reviewed frame over the rule (`tools/export_map_datas
 "reviewed 0 frames", which is why the summary line prints that count -- a silent mismatch is exactly the
 failure mode that would have left the hand set unused. Dataset now 743 boxes / 130 negatives / 389
 frames with 2 reviewed, and `tests/test_map_vision.py` 54 passed.
+
+
+## DSH continuation: where the map-label work stands at the end of the 40-round goal (2026-10-21)
+
+**Goal status: not achieved.** No Hard five-floor clear has been run end to end, and the detector is
+deliberately not enabled. The 40 automatic rounds ended here; a human decides whether to continue.
+
+**What landed (all committed):**
+- `0671a02` lattice spacing may be a whole multiple (1-3 steps), tight clusters are one object read
+  twice; `403d443` a ring needs a dark node under it, which removed 60 warm-floor boxes;
+  `f642979` the detector only reproduces its teacher; `55fef9c` the ring-to-node offset is a constant
+  assumption; `a39cac9` the offset cannot be derived from darkness; `cf1c51a` the hand-review door;
+  `1275a33` first warm-floor correction; `13b927d` reviewed frames win over the rule in the exporter;
+  `1a26899` the hand set lives in the repository, not in `build/`.
+- Dataset: **389 frames / 744 boxes / 129 negatives**, held-out run `pi-20261021-185251`.
+- Hand-reviewed: **3 frames** in `assets/resource/base/map-labels/hand-reviewed.jsonl`
+  (`run/frame`, boxes, `node_types` from `battle|event|shop|reward|rest|unknown`).
+
+**Refuted by measurement, do not retry:** ring brightness, ring size, hole at the ring centre, angular
+rim coverage, temporal persistence, darkest-point-below-the-ring. Every one fails on a warm floor,
+because a warm floor makes the whole board gold and lit.
+
+**Next, in order:**
+1. Grow the hand set with `tools/map_label_review.py --frame <run>/<frame>.png --boxes ... --types ...`,
+   prioritising warm floors and frames the rule reads as empty; it is the only label source better than
+   the rule.
+2. `python tools/export_map_dataset.py && python tools/export_map_yolo.py && python tools/train_map_model.py`
+   -- the enable criterion is beating the rule on the frames the rule gets wrong, not agreeing with it.
+3. Live runs (`tools/verify_packaged_mirror_loop.py --authorize`) need server maintenance to end and the
+   Limbus client front-most in MuMu; MuMu currently fronts another game.
