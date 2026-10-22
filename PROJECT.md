@@ -2554,3 +2554,22 @@ frames kept as negatives, manifest under `build/map-dataset/samples.jsonl`. It l
 `NeuralNetworkDetect` candidate still has to beat the rule on held-out runs before it is enabled.
 The discriminator still missing is structural: a node (dark hexagon) must exist directly below the
 ring, or the mark is dropped. Wiki: D15 continuation in both languages.
+
+## DSH continuation: a live run refutes the ring gate, so the offered marks outrank the guesses (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261021-200907` is the first run driven by this session
+rather than by a human pressing Start: `tools/verify_packaged_mirror_loop.py --authorize`,
+the installed `MirrorTask`, the frozen agent, the real controller. It stopped after 14 steps
+with `unexpected_successor` once the recovery ladder was spent. Its last frame had three
+gold rings at (1247,220), (1439,220) and (1055,380), and the reader handed out none of
+them, because the ring branch was gated on the badge scan finding nothing -- while the scan
+still guessed, so nine retries went to the info/guide/party/help column at (1791,324) and
+(1801,254).
+
+Commit `021a247` removes the gate, computes the nodes the badge/ornament readings will name
+before adding the rings (a ring within 90 px of a named node is skipped), and forbids a
+guess -- never a proven reading -- from proposing the right-hand button column at all.
+`tests/test_map_vision.py` 50, `test_runner.py` + `test_window.py` 132,
+`test_recovery_ladder.py` + `test_stall_watch.py` 10 passed. The app is frozen at that
+commit (`build/agent-refreeze-20261022002423`) and the next live run is under way.
+
