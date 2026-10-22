@@ -2609,3 +2609,28 @@ Two things out of this that outlive the coordinates:
    frame" from "candidates were clicked and nothing moved"; a third case is now known -- the
    floor is at its last step and the only marker left is not a step at all.
 
+## DSH continuation: the floor was not refusing clicks -- the run had already lost (2026-10-22)
+
+Chasing the "map that accepts no node" ended when I used the game's own pause panel to leave:
+`Forfeit` -> `Quit exploring the dungeon?` -> **Defeat**, then `Exploration Complete`:
+`Floor 1 [HARD] 4/6`, `Last Reached: Mirror of Sisyphus / Floor 1 [HARD]`,
+`Total Progress 13%`, then `Exploration Reward` with `Weekly Bonuses 3/3` (all three spent),
+`Starlight 20`.
+
+So the frames the loop kept re-reading were a *stale map*: the party had lost the fight and
+the client was sitting on the map underneath the result flow, which is why seven clicks, a
+double tap, a long press, a chevron tap and a drag all moved under 4 000 pixels while the gear
+button moved 228 435. The reader was never the problem on that screen; the *page identity* was.
+
+What this leaves behind, in order of how much it would have saved:
+
+1. **A defeat that renders as a map must be recognised as a defeat.** `vision.classify` has a
+   `defeat` locale key, but nothing on those frames matched it -- the banner is not drawn on
+   the map underneath. The run's honest state was "lost the fight", and the loop could not say so.
+2. **The exploration summary is the run's receipt.** `Exploration Complete` names the floors,
+   the last one reached (`4/6`), the dungeon (`Mirror of Sisyphus`) and `Total Progress 13%`,
+   all on one screen -- a far better end-of-run record than the frame it stopped on.
+3. **The three weekly bonuses are a budget the run must read, not assume.** This summary says
+   `3/3`; the user's goal is three Hard clears, and what those clears are worth depends on
+   whether those slots were already spent.
+
