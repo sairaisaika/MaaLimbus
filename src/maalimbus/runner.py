@@ -3581,13 +3581,17 @@ class MirrorRunner:
             # unlabelled click cannot teach a reader anything.
             self.note('map_click_result', target=list(plan['target']), page=page,
                       outcome='rejected',
+                      frame=(getattr(self,'frames',None)[-1].name if getattr(self,'frames',None) else None),
+                      kind=dict(plan.get('detail') or {}).get('kind'),
                       reason='the_page_stayed_on_the_map_after_the_click')
             return self._result(page, plan.get('target'), True, None, waiting=True)
         # A click the game did take: the page it was aimed at arrived. This is the only
         # positive label the loop can earn without being told the answer.
         if page != 'MAP' and state.get('map_pending'):
             self.note('map_click_result', target=state['map_pending'], page=page,
-                      outcome='accepted', reason='the_click_opened_the_next_page')
+                      outcome='accepted',
+                      frame=(getattr(self,'frames',None)[-1].name if getattr(self,'frames',None) else None),
+                      reason='the_click_opened_the_next_page')
             state['map_pending'] = None
         # The other way a click is taken: the page stays MAP and the party walks. The
         # player's own point is the evidence -- it moves when the step is spent, and a
