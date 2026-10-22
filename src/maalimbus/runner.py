@@ -319,6 +319,28 @@ SUBMIT_IGNORED_WINDOW_S = 25.0
 SUBMIT_IGNORED_ATTEMPTS = 3
 
 
+COL_STEP = 190.0   # lattice pitch across a column, measured within single frames
+ROW_STEP = 176.0   # pitch between rows; adjacent rows are offset by half a column
+
+
+def one_step_from(point, cell, *, col=COL_STEP, row=ROW_STEP, slack=0.30):
+    """True when `point` is one lattice step from `cell`.
+
+    The floor is a hex lattice.  The pitches are measured, not inferred: taking every
+    pair of gold marks inside single frames of
+    `evidence/runtime/packaged-mirror-20261022-063646` (298 marks, 120 frames) the
+    difference histogram peaks at dx 190 and 100 (half a column) and dy 0 and 180, so a
+    walkable neighbour is either the same row one column away or the adjacent row half a
+    column away.  Positions must never be taken modulo anything: the map pans, so the
+    lattice has no frame-independent origin.
+    """
+    dx = abs(float(point[0]) - float(cell[0]))
+    dy = abs(float(point[1]) - float(cell[1]))
+    same_row = dy <= slack * row and abs(dx - col) <= slack * col
+    diagonal = abs(dx - col / 2) <= slack * col and abs(dy - row) <= slack * row
+    return bool(same_row or diagonal)
+
+
 def next_untried(candidates, tried):
     """Index of the first map candidate this page has not already been asked about.
 
@@ -2866,6 +2888,12 @@ class MirrorRunner:
             tried = state.setdefault('map_tried', [])
             if len(tried) >= len(candidates):
                 tried.clear()
+            here = state.get('map_player')
+            if here:
+                neighbours = [c for c in candidates
+                              if one_step_from(c['point'] if isinstance(c, dict) else c, here)]
+                if neighbours:
+                    candidates = neighbours
             choice_index = next_untried(candidates, tried)
             chosen = candidates[choice_index]
             tried.append([int(v) for v in (chosen['box'] if isinstance(chosen, dict)
