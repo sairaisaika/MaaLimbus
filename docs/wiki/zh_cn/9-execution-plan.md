@@ -658,3 +658,16 @@ flowchart LR
 因此 `map_refusal_streak()` 在连续第三次被拒时记一条
 `map_clicks_refused_while_the_exploration_may_be_unresumed`，`accepted` 时清零。它只**命名**，
 不自动执行恢复——恢复导航仍未实现，这是已知的缺口。
+
+
+## 9.3.14 连续被拒的地图不再点节点，而是先恢复探索
+
+`map_refused_streak` 到达 3 时，runner 把地图页的进度控件放进 `plan_controls['map.progress_button']`
+（`MAP_PROGRESS_CONTROL`，`src/maalimbus/runner.py`），`window.plan_map` 见到它就先返回
+`the_exploration_must_be_resumed_before_a_node_click` 的计划，而不再点候选节点。未触发时行为不变。
+
+依据是 9.3.13 记下的对照实验：恢复前九次点击只产生 300–2000 px 动画，恢复后第一次点击即弹出节点面板
+（107 860 px）。所以"再点一个候选"在这种状态下是浪费，真正缺的是恢复。
+
+已知限制：`MAP_PROGRESS_CONTROL` 来自单帧目测，只在一个分辨率上验证过；`plan_map` 目前只发起
+"打开进度控件"这一步，`Dungeon Progress` 里的 `Resume` 仍由后续帧的常规计划处理。

@@ -666,3 +666,19 @@ first click after it opened the node panel (107860 px). `map_refusal_streak()` t
 `map_clicks_refused_while_the_exploration_may_be_unresumed` at the third consecutive refusal and
 `accepted` clears it. It only **names** the case; the resume navigation itself is not implemented
 and remains a known gap.
+
+
+## 9.3.14 A map that refuses every node resumes the exploration instead of clicking again
+
+When `map_refused_streak` reaches three, the runner puts the map page's progress control into
+`plan_controls['map.progress_button']` (`MAP_PROGRESS_CONTROL`, `src/maalimbus/runner.py`), and
+`window.plan_map` returns the `the_exploration_must_be_resumed_before_a_node_click` plan before
+it would click a candidate node. When the streak is below three the behaviour is unchanged.
+
+The criterion is the controlled experiment recorded in 9.3.13: nine clicks before the resume
+produced only 300-2000 px of animation, and the first click after it opened the node panel
+(107860 px). Clicking one more candidate in that state is wasted; what is missing is the resume.
+
+Known limits: `MAP_PROGRESS_CONTROL` came from a single frame and is verified at one resolution
+only, and `plan_map` currently only issues "open the progress control"; `Resume` inside
+`Dungeon Progress` is still handled by the ordinary plan on the following frames.

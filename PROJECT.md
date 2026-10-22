@@ -3242,3 +3242,16 @@ Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Ac
 
 方法教训：判断「卡住/无响应」必须与状态对照（是否恢复、是否在结算），
 单看帧差或点击次数会把状态问题误判成识别缺陷——本轮为此先后推翻了自己三条结论。
+
+
+## DSH continuation: a refused map resumes before it clicks again (2026-10-22)
+
+`80780b4` 把「连续三次被拒」从**命名**变成**动作**：runner 在 streak ≥ 3 时向 `plan_controls` 注入
+`map.progress_button`，`window.plan_map` 据此返回恢复计划，不再点候选节点。
+
+测试：`tests/test_window.py::test_a_map_that_refuses_every_click_offers_its_own_resume_control`
+钉住两条——无该控件时仍走 `MAP_FORWARD_REASON`，有该控件时改为恢复计划且 target 就是该控件。
+全量 `1839 passed`。
+
+诚实标注：`MAP_PROGRESS_CONTROL` 由单帧目测得出，仅一个分辨率验证过；`Resume` 本身仍由后续帧处理，
+本改动只负责把「再点一个节点」换成「打开进度控件」。
