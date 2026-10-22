@@ -1392,3 +1392,22 @@ def test_a_battle_whose_readouts_do_not_move_is_still_stalled():
     assert battle_progress(state, ('1/1', '4'), rounds=3) == 'stalled'
     assert battle_progress(state, ('1/1', '5'), rounds=3) == 'progress'
     assert state['battle_blind'] == 0
+
+def test_the_gap_between_waves_is_not_a_stalled_round():
+    """The turn number cannot advance while the next wave is still spawning.
+
+    Live ``build/wr2.png`` is that gap: ``WAVE 0/10``, ``TURN 1``, the attack
+    animation playing.  Counting it as a stall stopped a healthy run.
+    """
+    from maalimbus.runner import battle_progress
+    state = {}
+    for _ in range(20):
+        assert battle_progress(state, ('0/10', '1'), rounds=3) == 'progress'
+
+
+def test_a_round_that_really_does_not_move_is_still_stalled():
+    from maalimbus.runner import battle_progress
+    state = {}
+    seen = [battle_progress(state, ('1/1', '6'), rounds=3) for _ in range(6)]
+    assert seen[-1] == 'stalled'
+

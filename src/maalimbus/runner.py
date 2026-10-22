@@ -1451,6 +1451,13 @@ def battle_progress(state, signature, *, rounds):
             return 'blind_long'
         return 'progress'
     state['battle_blind'] = 0
+    # ``WAVE 0/x`` is the gap between waves: the turn number cannot advance until the
+    # next wave spawns, so an unchanging HUD there is the fight running, not stopping.
+    # Live ``build/wr2.png`` shows that gap with the attack animation already playing.
+    wave = signature[0] or ''
+    if wave.replace(' ', '').startswith('0/'):
+        state['battle_sig'], state['battle_rounds'] = signature, 1
+        return 'progress'
     if signature == state.get('battle_sig'):
         state['battle_rounds'] = state.get('battle_rounds', 0) + 1
     else:
