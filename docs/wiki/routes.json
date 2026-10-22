@@ -224,6 +224,40 @@
       "boundary": "完整名称、scope和独立后继才可核账，不能重复GET。"
     },
     {
+      "id": "progress",
+      "title": "这一局走到哪一层、这层还剩几步",
+      "aliases": [
+        "进度",
+        "Dungeon Progress",
+        "还剩几步",
+        "走到哪一层",
+        "dungeon_progress",
+        "steps_left",
+        "no_candidate_node_observed"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/dungeon_progress.py",
+          "symbol": "dungeon_progress"
+        },
+        {
+          "path": "src/maalimbus/dungeon_progress.py",
+          "symbol": "steps_left"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3-11",
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-11"
+      ],
+      "tests": [
+        "tests/test_dungeon_progress.py"
+      ],
+      "checks": [
+        "python -m pytest tests/test_dungeon_progress.py -q"
+      ],
+      "boundary": "reads the paused panel only; it is a measurement, not an input"
+    },
+    {
       "id": "scores",
       "title": "候选权重与最终评分日志",
       "aliases": [
