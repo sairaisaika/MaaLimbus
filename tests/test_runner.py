@@ -1411,3 +1411,17 @@ def test_a_round_that_really_does_not_move_is_still_stalled():
     seen = [battle_progress(state, ('1/1', '6'), rounds=3) for _ in range(6)]
     assert seen[-1] == 'stalled'
 
+
+
+def test_the_map_click_result_reader_has_the_module_it_calls():
+    """`runner.step` asks `map_vision` whether a click moved the party.
+
+    The live run `evidence/runtime/packaged-mirror-20261022-040921` died with
+    `NameError: name 'map_vision' is not defined` at `runner.py:3352`: the module was
+    only imported by name (`from .map_vision import map_clicks, ...`), so the call
+    inside `step` never had a binding.  This pins the binding, not the call order.
+    """
+    from maalimbus import runner
+    assert hasattr(runner, 'map_vision'), 'runner must bind the map_vision module'
+    assert callable(runner.map_vision.player_of)
+    assert callable(runner.map_vision.player_marker)

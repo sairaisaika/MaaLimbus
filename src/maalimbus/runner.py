@@ -53,6 +53,7 @@ from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from .jobs import wait_job, wait_task
 from .map_progress import MapProgress
+from . import map_vision
 from .map_vision import NODE_BADGE_TEMPLATE, map_clicks, map_header
 from .overlay_vision import carousel_dots, page_turn_arrows
 from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_state,
