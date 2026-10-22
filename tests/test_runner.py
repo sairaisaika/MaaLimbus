@@ -1451,3 +1451,14 @@ def test_a_second_submit_from_the_same_turn_means_the_first_was_ignored():
     assert submit_was_ignored(None, '3', 30.0) is False     # nothing was submitted yet
     assert submit_was_ignored('3', None, 30.0) is False     # the HUD did not read a turn
     assert submit_was_ignored(' 3 ', '3', 25.5) is True     # same number, whitespace only
+
+
+def test_a_rejected_map_node_is_followed_by_the_next_one():
+    from maalimbus.runner import next_untried
+    candidates = [{'box': [1, 1, 40, 40]}, {'box': [2, 2, 40, 40]}, {'box': [3, 3, 40, 40]}]
+    assert next_untried(candidates, []) == 0
+    assert next_untried(candidates, [[1, 1, 40, 40]]) == 1
+    assert next_untried(candidates, [[1, 1, 40, 40], [2, 2, 40, 40]]) == 2
+    # every one already tried: fall back to the best-ranked rather than refusing
+    assert next_untried(candidates, [[1, 1, 40, 40], [2, 2, 40, 40], [3, 3, 40, 40]]) == 0
+    assert next_untried([], [[1, 1, 40, 40]]) == 0

@@ -306,6 +306,26 @@ SUBMIT_IGNORED_WINDOW_S = 25.0
 SUBMIT_IGNORED_ATTEMPTS = 3
 
 
+def next_untried(candidates, tried):
+    """Index of the first map candidate this page has not already been asked about.
+
+    The map used to click ``candidates[0]`` for ever: `choice_index` starts at 0 and only
+    event pages ever moved it, so a rejected node was retried until the page budget ran
+    out instead of trying the next one.  Several nodes are usually offered at once (live
+    build/t94-now.png has four), and the user's own reading of it is the right one -- try
+    the next destination rather than dying on the first.  ``tried`` holds the boxes this
+    page already received a click at, and is emptied by the caller when the page changes,
+    so a floor that has advanced starts from the best-ranked node again.
+    """
+    if not candidates:
+        return 0
+    seen = {tuple(int(v) for v in box) for box in tried or ()}
+    for index, candidate in enumerate(candidates):
+        if tuple(int(v) for v in candidate['box']) not in seen:
+            return index
+    return 0
+
+
 def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WINDOW_S):
     """True when a second submit is about to be sent from the turn the first one left.
 
@@ -2810,6 +2830,18 @@ class MirrorRunner:
                 self.note('theme_pack_recommendation',chosen=theme_choice,ranking=ranking,required='hard')
             self.journal.record('difficulty_gate', difficulty=difficulty,
                                 frame=frame, required='hard', verified_clear=False)
+        if page == 'MAP' and candidates:
+            # Breadth over the nodes this page offers, not depth on the first one.
+            tried = state.setdefault('map_tried', [])
+            if len(tried) >= len(candidates):
+                tried.clear()
+            choice_index = next_untried(candidates, tried)
+            tried.append([int(v) for v in candidates[choice_index]['box']])
+            self.note('map_candidate_breadth',index=choice_index,
+                      tried=len(tried),offered=len(candidates),
+                      reason='try_the_next_destination_instead_of_the_same_node')
+        elif page != 'MAP':
+            state.pop('map_tried', None)
         plan = plan_step(page, controls=plan_controls, arrows=arrows,
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
