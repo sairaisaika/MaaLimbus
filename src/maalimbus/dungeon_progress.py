@@ -127,7 +127,13 @@ def exploration_summary(records, size):
         return None
     title = [title[0]]
     payload = {'title': title[0].text, 'floor': None, 'steps': None, 'of': None,
-               'last_reached': None, 'total_percent': None}
+               'last_reached': None, 'total_percent': None, 'difficulty': None}
+    # The floor row carries the difficulty the *run itself* is at: `Floor 1 [HARD]`.
+    # A resumed dungeon never passes the theme-pack gate, so this label is the only
+    # in-run proof of what was actually being played.
+    tag = find(records, r'\[\s*(HARD|NORMAL)\s*\]', SUMMARY_ROI, size, threshold=.6)
+    if tag:
+        payload['difficulty'] = re.search(r'(HARD|NORMAL)', tag[0].text, re.I).group(1).lower()
     floor = find(records, FLOOR.pattern, SUMMARY_ROI, size, threshold=.6)
     if floor:
         match = FLOOR.search(floor[0].text)

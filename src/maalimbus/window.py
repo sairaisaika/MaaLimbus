@@ -518,10 +518,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})
     if page == 'EXPLORATION_COMPLETE':
-        # The run is over -- won or lost -- and this page states how far it got.
-        # There is no input here that continues *this* run, so it is refused with
-        # the one reason that says so instead of being retried as a stuck page.
-        return _refuse(page, 'the_dungeon_run_ended_at_its_summary')
+        # A run the game ended short of 100% is a run that was lost, and a lost run
+        # gives its rewards up -- it does not claim them. The summary's own button is
+        # what opens the reward modal; the give-up itself happens there.
+        box = controls.get('run.claim_button')
+        if box is None:
+            return _refuse(page, 'the_lost_summary_has_no_button_to_open_its_rewards')
+        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                     reason='a_lost_run_opens_its_rewards_only_to_give_them_up')
     if page == 'DUNGEON_PROGRESS':
         # The dungeon's pause panel parks the game and states its progress. It is
         # never a step: the only input that belongs here is its own Continue, and

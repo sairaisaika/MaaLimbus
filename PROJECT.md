@@ -2634,3 +2634,26 @@ What this leaves behind, in order of how much it would have saved:
    `3/3`; the user's goal is three Hard clears, and what those clears are worth depends on
    whether those slots were already spent.
 
+## DSH continuation: the end-of-run summary is a page, and a lost run never claims (2026-10-21)
+
+The 2026-10-21 self-driven run (`evidence/runtime/packaged-mirror-20261021-202503`) stopped on
+`no_candidate_node_observed` with every map click inert. The map was not stuck: the battle had ended in
+`DEFEAT`, and the client kept drawing the map behind the result screen, so the loop read a page that
+ignored input. Only the client's own pause panel (`Dungeon Progress`, `Floor 1 (HARD) 4/5`) and then the
+`Exploration Complete` summary (`Floor 1 [HARD] 4/6`, `Total Progress 13%`) said what had really happened.
+
+`src/maalimbus/dungeon_progress.py:exploration_summary` now reads that receipt -- floor, `steps/of`,
+`Last Reached`, `Total Progress` -- and the title is read as the two lines the client draws, not as one
+merged token. `src/maalimbus/vision.py` names the page `EXPLORATION_COMPLETE` and
+`src/maalimbus/window.py` refuses it with `the_dungeon_run_ended_at_its_summary`.
+
+The user's correction drives the ordering: a summary that reports less than 100% is a run that was LOST,
+and its `Claim Rewards` is never touched. That gate sits after the reward-modal branches -- those modals
+are drawn over the summary and must keep their own names -- and before the pause-panel branch, which the
+summary would otherwise match because its left column also prints `Dungeon Progress`.
+
+Tests: `tests/test_dungeon_progress.py::test_the_end_of_run_summary_states_where_the_run_really_got`,
+`::test_the_summary_is_not_read_as_the_pause_panel_under_it`,
+`::test_a_lost_run_never_reaches_its_claim_buttons`,
+`::test_a_cleared_run_still_claims_its_rewards`. That file now uses the shipped locale for page identity
+instead of a hand-rolled stub, which is what made the classifier's later branches reachable.

@@ -140,17 +140,20 @@ def test_a_lost_run_never_reaches_its_claim_buttons():
 
     Live 2026-10-21 (`build/after-defeat.png`): the run was defeated on Floor 1
     [HARD] at 4/6 and the summary still offered the Claim Rewards button. Those
-    rewards belong to a run that was completed, so a summary that reports less
-    than 100% is named as the end of the run and refused with no input at all.
+    rewards belong to a run that was completed: a summary under 100% is named as
+    the end of the run, and its own button only opens the modal in which the
+    rewards are given up.
     """
     from maalimbus.window import plan_step
 
     page = classify_of(summary())
     assert page == 'EXPLORATION_COMPLETE'
-    step = plan_step(page)
-    assert step['action'] == 'record'
-    assert step['target'] is None
-    assert step['reason'] == 'the_dungeon_run_ended_at_its_summary'
+    refused = plan_step(page)
+    assert refused['target'] is None
+    assert refused['reason'] == 'the_lost_summary_has_no_button_to_open_its_rewards'
+    opened = plan_step(page, controls={'run.claim_button': (1128, 578, 96, 28)})
+    assert tuple(opened['target']) == (1128, 578, 96, 28)
+    assert opened['reason'] == 'a_lost_run_opens_its_rewards_only_to_give_them_up'
 
 
 def test_a_cleared_run_still_claims_its_rewards():
