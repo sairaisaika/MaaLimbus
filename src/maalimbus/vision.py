@@ -535,4 +535,12 @@ def classify(records, locale, size):
         and find(records, locale.get('home_sinners', r'(?!)'), (.67, .86, .74, .96), size)
         and find(records, locale.get('home_window', r'(?!)'), (.61, .86, .68, .96), size)):
         return 'HOME'
+    # The combat HUD identifies itself by its own WAVE/TURN captions.  This is the one
+    # place page names are decided, and a battle frame that only differs from an
+    # unreadable one by whether the OCR caught the caption must not be left to each
+    # caller: live 2026-10-22 (frame-0154 of packaged-mirror-20261022-010654) reads as
+    # a clean WAVE/TURN with Win/Rate/Damage yet classified UNKNOWN for a whole turn.
+    from .battle_vision import battle_hud
+    if battle_hud(records, size) is not None:
+        return 'BATTLE_HUD'
     return 'UNKNOWN'

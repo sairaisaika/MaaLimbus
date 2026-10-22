@@ -5,6 +5,8 @@ import pytest
 
 from maalimbus.vision import Text, classify, close_to, find, find_read, inset_box
 
+ROOT = Path(__file__).resolve().parent.parent
+
 
 LOCALES = Path(__file__).resolve().parents[1] / 'assets/resource'
 
@@ -787,3 +789,18 @@ def test_a_token_read_with_a_character_slip_is_read_again_not_guessed():
     band = (.88, .66, .99, .75)
     assert find(records, r'^Select\s*A(?:ll|I)\s*Graces$', band, (1920, 1080), .8) == []
     assert find_read(records, 'Select All Graces', band, (1920, 1080)) == [records[0]]
+
+
+def test_a_battle_frame_is_named_by_its_own_battle_hud():
+    # Live `evidence/runtime/packaged-mirror-20261022-010654/frame-0154.json`: WAVE 1/1
+    # and TURN 4 are read cleanly, yet the page classified UNKNOWN for a whole turn and
+    # the run only got past it on a gesture.  The captions are the page's own name.
+    import json
+    from maalimbus.vision import Text, classify
+    locale = json.loads((ROOT / 'assets/resource/en/locale.json').read_text(encoding='utf-8'))
+    frame = (ROOT / 'evidence/runtime/packaged-mirror-20261022-010654/frame-0154.json')
+    if not frame.exists():
+        pytest.skip('the retained live frame is not in this checkout')
+    record = json.loads(frame.read_text(encoding='utf-8'))
+    records = [Text(t['text'], tuple(t['box']), t['score']) for t in record.get('ocr', [])]
+    assert classify(records, locale, record.get('size') or (1920, 1080)) == 'BATTLE_HUD'
