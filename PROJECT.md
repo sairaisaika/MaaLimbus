@@ -2573,3 +2573,18 @@ guess -- never a proven reading -- from proposing the right-hand button column a
 `test_recovery_ladder.py` + `test_stall_watch.py` 10 passed. The app is frozen at that
 commit (`build/agent-refreeze-20261022002423`) and the next live run is under way.
 
+## DSH continuation: the map refused the click, so retrying was bookkeeping (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261021-202503` ran with the corrected ring ordering and
+stopped after 10 steps (`no_candidate_node_observed`). The rings were at (1247,220),
+(1439,220), (1055,380) and the reader emitted `gold_badge_node` at (1247,264), (1439,264),
+(1055,424) -- the right points. Every intent was followed by `window_map_retry` on the same
+target, then the ladder, then the stop.
+
+Measured outside the agent with `adb shell input tap` on the same map: ringed nodes,
+chevron-marked nodes and both `?` nodes all changed ~2 500 px (particle noise), while the
+gear at (1229,42) changed 228 435. Input works; this map page accepts no node step. A map the
+game will not step on is not a map with no nodes, and retrying a target that provably did
+nothing is the ladder keeping books instead of diagnosing. The rule recorded in D15: a page
+whose inputs are provably inert must be handed over rather than retried.
+
