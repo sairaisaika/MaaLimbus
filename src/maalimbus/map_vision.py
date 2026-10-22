@@ -313,6 +313,44 @@ def flame_player(markers, image):
     return None if best is None else best[1]
 
 
+PLAYER_RING_AREA = (120, 6000)
+PLAYER_RING_BAND = (.12, .85)
+
+
+def player_by_ring(image):
+    """The party's own node, found by the ring the game draws around it.
+
+    ``yellow_flame_player`` needs the crescent badges ``node_markers`` finds, and that
+    template reads nothing on the paler floor palettes: live frame
+    evidence/runtime/packaged-mirror-20261022-051350/frame-0010.png yields zero markers
+    and therefore no player, which left the reachability ranking with no input at all.
+    The party's node still carries the largest solid warm structure on the page -- the game
+    rings it, unlike the small ring above an offered node -- so it is located by that, and
+    ``None`` is returned when nothing meets the size gate rather than guessing a node.
+    """
+    import cv2
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (15, 120, 150), (40, 255, 255))
+    height, width = image.shape[:2]
+    mask[:int(PLAYER_RING_BAND[0] * height)] = 0
+    mask[int(PLAYER_RING_BAND[1] * height):] = 0
+    mask[:, :int(.03 * width)] = 0
+    mask[:, int(.92 * width):] = 0
+    count, _labels, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        area = int(stats[index, 4])
+        if not PLAYER_RING_AREA[0] <= area <= PLAYER_RING_AREA[1]:
+            continue
+        box_w, box_h = int(stats[index, 2]), int(stats[index, 3])
+        if not 8 <= box_w <= 200 or not 8 <= box_h <= 200:
+            continue
+        if best is None or area > best[0]:
+            best = (area, int(centres[index][0]), int(centres[index][1]))
+    return None if best is None else (best[1], best[2])
+
+
 def yellow_flame_player(markers, image):
     """The node carrying the player's bright yellow flame, or None.
 
@@ -1308,7 +1346,8 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # lit edges connect to the party.  So the reachable ones lead; the rest stay in the
     # list rather than being dropped, so a floor whose party was not located still has
     # something to try and the verdict stays a measurement.
-    here = player if player is not None else yellow_flame_player(markers, image)
+    here = (player if player is not None
+            else yellow_flame_player(markers, image) or player_by_ring(image))
     reach_x, reach_y = 1.5 * LATTICE_PITCH[0], 1.5 * LATTICE_PITCH[1]
 
     def distant(click):

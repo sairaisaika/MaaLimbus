@@ -1257,3 +1257,22 @@ def test_the_gold_mark_the_game_draws_outranks_the_inferred_ring_guesses():
             assert kinds.index(later) > first_gold, (later, kinds)
     if 'path_node' in kinds:
         assert kinds.index('path_node') < first_gold
+
+
+def test_the_party_is_located_without_the_crescent_badge_template():
+    """Live frame evidence/runtime/packaged-mirror-20261022-051350/frame-0010.png.
+
+    `node_markers` reads zero badges on this palette, so `yellow_flame_player` returned
+    None and the reachability ranking had no input at all.  The party's own node is still
+    the largest solid warm structure on the page, and that is what locates it.
+    """
+    import cv2
+    import pathlib
+    path = (pathlib.Path(__file__).resolve().parents[1]
+            / 'evidence/runtime/packaged-mirror-20261022-051350/frame-0010.png')
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    from maalimbus.map_vision import player_by_ring
+    point = player_by_ring(cv2.imread(str(path)))
+    assert point is not None, 'the party is on this page and must be located'
+    assert abs(point[0] - 972) <= 40 and abs(point[1] - 428) <= 40, point
