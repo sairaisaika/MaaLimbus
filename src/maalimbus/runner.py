@@ -2895,6 +2895,11 @@ class MirrorRunner:
             point = (random.randint(x, x + max(1, w)), random.randint(y, y + max(1, h)))
             self.note('window_intent', page=page, target=list(plan['target']),
                       reason=plan['reason'], point=list(point), delay_ms=delay)
+            # The click a label can be earned from: this is where input actually goes
+            # out. It used to be remembered only on the retry branch, so a run whose
+            # clicks all worked recorded no click verdicts at all.
+            if page == 'MAP':
+                state['map_pending'] = list(plan['target'])
             self.device.click(*point)
         self.artifacts['clicks_sent'] += 1
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',

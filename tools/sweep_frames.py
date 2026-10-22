@@ -56,7 +56,7 @@ def rule_rings_only(image):
 
 
 _MODEL = {}
-_WEIGHTS = {960: 'build/map-model/run-960/weights/best.pt',
+_WEIGHTS = {960: 'build/map-model/run/weights/best.pt',
             1280: 'build/map-model/run-1280/weights/best.pt'}
 
 
@@ -69,7 +69,9 @@ def model_boxes(image, imgsz):
     boxes = getattr(result, 'boxes', None)
     if boxes is None:
         return []
-    return [(int(x + w / 2), int(y + h / 2)) for x, y, w, h in boxes.xywh.tolist()]
+    # xywh is already (centre_x, centre_y, width, height); adding half a width to a
+    # centre shifted every box by ~60 px and turned every hit into a miss.
+    return [(int(x), int(y)) for x, y, w, h in boxes.xywh.tolist()]
 
 
 VARIANTS = {'rule_plain': rule_plain, 'rule_rings_only': rule_rings_only}
@@ -111,11 +113,15 @@ def main() -> int:
     with out.open('w', encoding='utf-8') as stream:
         for row in rows:
             stream.write(json.dumps(row, ensure_ascii=False) + '\n')
-    for name in {row['variant'] for row in rows}:
+    for name in sorted({row['variant'] for row in rows}):
         mine = [row for row in rows if row['variant'] == name]
         hits = sum(1 for row in mine if row['result'] == 'hit')
-        print('%-14s %4d frames  hit %4d  (%5.1f%%)' % (
-            name, len(mine), hits, 100.0 * hits / max(1, len(mine))))
+        errors = sum(1 for row in mine if row['result'] == 'raised')
+        # A variant that crashed is not a variant that missed: keep them apart or a
+        # broken environment reads as a bad reader.
+        usable = len(mine) - errors
+        print('%-16s frames %4d  errors %3d  hit %4d  (%5.1f%%)' % (
+            name, len(mine), errors, hits, 100.0 * hits / max(1, usable)))
     return 0
 
 

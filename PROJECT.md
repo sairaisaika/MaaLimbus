@@ -3051,3 +3051,20 @@ over all disagreement frames is what decides whether the detector may replace th
 后续在 `GIFT_PICK` 的取礼策略里加入按关键词的构筑偏好（流血优先），并在入口设置里固定选 2 队；
 两处都要先用证据确认页面上能证明"这是流血类礼物"，再谈偏好，否则就是凭名字猜。
 
+## DSH iteration: a label is written where the input goes out (2026-10-22)
+
+Before the detector can be judged, the corpus has to be able to produce labels. Checking the
+comparison from every angle showed no existing corpus can settle it: the 818-frame click corpus is
+the set the 1280 detector trained on (train-set accuracy, 20.8% vs 11.9%); the exported held-out
+split scores 100% for both rule and model because its labels *are* the rule's output; and the only
+unseen run with clicks (`pi-20261021-185251`) is the run where the rule could not see the rings at
+all (15 clicks, `gold_marks` finding one ring on `frame-0040`), so it scores 0/15 for both.
+
+The blocker was a placement bug. `state['map_pending']` was recorded on the retry branch that runs
+after a click failed, so a run whose clicks all worked wrote no `map_click_result` at all — 202
+events, zero labels. `src/maalimbus/runner.py` now records the pending target immediately before
+`self.device.click(*point)`, beside `window_intent`, so every map click is judged on the next
+observation and a whole run can be held out.
+
+Tests: full suite `1800 passed in 154.02s`. Wiki: decision D22 in both languages.
+
