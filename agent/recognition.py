@@ -1607,7 +1607,8 @@ class MirrorLoopAction(CustomAction):
         loop = None
         try:
             subtasks=AgentTasker(context)
-            device = runner.MaaDevice(context.tasker.controller, deadline=deadline,tasker=subtasks)
+            device = runner.MaaDevice(context.tasker.controller, deadline=deadline,tasker=subtasks,
+                target_long_side=runner._TARGET_LONG_SIDE)
             observer = runner.MaaObserver(subtasks, directory)
             store, run_id = loop_store(settings, journal)
             if store is not None:
@@ -1757,6 +1758,13 @@ class MainTaskAction(CustomAction):
                         loop_params=dict(node['action']['param']['custom_action_param'])
                         loop_params['directory']=str(directory)
                         loop_params.update(collect_task_options(context.get_node_data))
+                        if 'gift_keyword' not in loop_params:
+                            # D32: the gift target belongs to the saved team's own
+                            # systems.  Without this the run falls back to the constant
+                            # `bleed`, which is the wrong build for a charge/tremor team.
+                            from maalimbus.team_gift_keyword import from_active_team
+                            keyword=from_active_team(data_directory(ROOT))
+                            if keyword:loop_params['gift_keyword']=keyword
                         from maalimbus.shop_settings import FIELDS
                         for name,field in zip(('MirrorShopPolicy','MirrorShopRefreshLimit','MirrorShopCoinReserve'),FIELDS):
                             choice=context.get_node_data(name)['attach'][field]

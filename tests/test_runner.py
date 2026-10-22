@@ -244,8 +244,11 @@ def test_maa_device_applies_the_scale_it_was_asked_for():
     MaaDevice(controller, wait=lambda job, **kwargs: job, target_long_side=1280)
     assert controller.calls == [('target_long_side', 1280)]
 
+    # 0 is the explicit "ask the controller for nothing"; None now means the configured
+    # default, because a run has to tell maafw which space the frames are in before it
+    # clicks (the 2026-10-22 runs clicked in a space the device never saw).
     other = StubController()
-    MaaDevice(other, wait=lambda job, **kwargs: job, target_long_side=None)
+    MaaDevice(other, wait=lambda job, **kwargs: job, target_long_side=0)
     assert other.calls == []
 
 

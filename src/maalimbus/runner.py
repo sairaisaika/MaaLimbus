@@ -450,15 +450,10 @@ class MaaDevice:
         self.ended = None
         self.wait = wait
         self.deadline = deadline
-        # The frame the loop reads and the pixels maafw clicks must agree.  1920 is the
-        # project's long-standing upscale; MAALIMBUS_TARGET_LONG_SIDE=1280 keeps the
-        # frame at the device's own size, which is the one-variable experiment for
-        # whether the click is scaled back before it reaches the device (the live runs
-        # of 2026-10-22 sent clicks that changed not one pixel inside the target box).
-        target_long_side = target_long_side or _TARGET_LONG_SIDE
-        self.target_long_side = target_long_side
-        if target_long_side:
-            controller.set_screenshot_target_long_side(int(target_long_side))
+        # None means "the configured default"; 0 means "ask the controller for nothing".
+        self.target_long_side = _TARGET_LONG_SIDE if target_long_side is None else target_long_side
+        if self.target_long_side:
+            controller.set_screenshot_target_long_side(int(self.target_long_side))
 
     def _limit(self, timeout):
         end = time.monotonic() + timeout
@@ -585,10 +580,17 @@ class LocalDevice:
 
 
 def local_device(controller, device=None, tasker=None, *, deadline=None, wait=None,
-                 target_long_side=1920):
-    """Build the ADB-side device the window has always driven."""
+                 target_long_side=None):
+    """Build the ADB-side device the window has always driven.
+
+    ``MAALIMBUS_TARGET_LONG_SIDE`` overrides the 1920 upscale for every run: the frame
+    the loop reads and the pixels maafw clicks have to agree, and 1280 keeps the frame
+    at the device's own size.  That is the one-variable experiment for whether a click
+    is scaled back before it reaches the device (the live runs of 2026-10-22 sent
+    clicks that changed not one pixel inside the target box).
+    """
     return LocalDevice(controller, device=device, tasker=tasker, deadline=deadline,
-                       wait=wait, target_long_side=target_long_side)
+                       wait=wait, target_long_side=target_long_side or _TARGET_LONG_SIDE)
 
 
 class FakeDevice:
