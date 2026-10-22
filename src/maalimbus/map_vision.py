@@ -313,6 +313,50 @@ def flame_player(markers, image):
     return None if best is None else best[1]
 
 
+EDGE_CYAN_HUE = (80, 112)
+EDGE_CYAN_SATURATION = 140
+EDGE_SAMPLE_HALF = 7
+
+
+def bridge_strength(image, start, end, *, half=EDGE_SAMPLE_HALF):
+    """How bright the edge between two map points is, in HSV value.
+
+    Measured on `build/t94-now.png` (the floor-3 map live screenshot): every edge on the
+    page is drawn in the same dark cyan, so counting cyan pixels cannot separate them --
+    a perpendicular window along the party-to-node line scored 0.74-0.86 for all five
+    nodes.  Their *brightness* does separate them: the one edge the game will accept read
+    a mean value of 64.1 against 13.8-32.6 for the spent ones.  So the strength is the
+    mean value of the cyan pixels the line crosses, and the floor compares a candidate
+    against the others rather than against an absolute threshold.
+    """
+    import cv2
+    import math
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    height, width = image.shape[:2]
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    length = math.hypot(dx, dy) or 1.0
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux
+    seen = []
+    for step in range(int(length)):
+        best = 0
+        for offset in range(-half, half + 1):
+            x = int(start[0] + ux * step + px * offset)
+            y = int(start[1] + uy * step + py * offset)
+            if not (0 <= x < width and 0 <= y < height):
+                continue
+            hue, saturation, value = hsv[y, x]
+            if (EDGE_CYAN_HUE[0] <= hue <= EDGE_CYAN_HUE[1]
+                    and saturation >= EDGE_CYAN_SATURATION):
+                best = max(best, int(value))
+        if best:
+            seen.append(best)
+    if not seen:
+        return 0.0
+    return float(sum(seen)) / len(seen)
+
+
 PLAYER_RING_AREA = (120, 6000)
 PLAYER_RING_BAND = (.12, .85)
 
@@ -1357,8 +1401,13 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
         near = ((px - here[0]) / reach_x) ** 2 + ((py - here[1]) / reach_y) ** 2 <= 1.0
         return 0 if near else 1
 
+    def strength(click):
+        if here is None:
+            return 0.0
+        return bridge_strength(image, here, click['point'])
+
     marks = sorted((c for c in clicks if c['kind'] == 'gold_badge_node'),
-                   key=distant)
+                   key=lambda c: (-distant(c), -strength(c)))
     clicks = ([c for c in clicks if c['kind'] == 'path_node']
               + marks
               + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
