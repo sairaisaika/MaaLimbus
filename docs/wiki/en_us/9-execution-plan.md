@@ -626,3 +626,25 @@ flowchart LR
 ## Unverified / open questions
 
 This chapter delivers an executable plan and design views, **not completed P0–P6**. GPU UI, model promotion, explicit continuous count, Team22 system/EGO and the integrated loop require their own artifacts. Observe DSH's active run; documentation work must not restart its controller or replace the running application.
+
+
+## 9.3.12 A click verdict must name the frame it judged, and the party must be readable
+
+`map_click_result` used to carry `frame: None` always: the expression read
+`getattr(self,'frames',None)`, and `frames` only exists on the journal, not on `Runner`. The frame
+name is now stored in `state['map_click_frame']` when the click goes out, and all three verdicts
+(rejected / accepted / page unchanged) consume it; a click that changed nothing now still records a
+verdict instead of vanishing. Live check: `packaged-mirror-20261022-075450`, 388 events, 13
+verdicts, 13/13 with a frame name, 0 `None`, 0 silently dropped.
+
+`player_marker` returns `None` on the live frames, so the loop could not restrict itself to adjacent
+nodes. `map_vision.party_point()` locates the party by its own torch (two stacked warm highlights);
+it reads 14 of 14 map frames in that run, and the consecutive displacement `(829,440)->(826,561)`
+matches one lattice step.
+
+The hypotheses the data refuted are recorded here too: the badge point is already inside the node
+(`(1020,327)` sits within the `?` hexagon, while "drop 106" lands in empty space below it); setting
+`GOLD_MARK_DROP` to 106 fails two existing tests, so the offset varies per page and a global
+constant is wrong by construction; and thresholding orange by area yields badge icons, not edges.
+The detector's centres on `frame-0034` coincide with `gold_marks` because the labels come from the
+rule -- what has to change here is the labelling target, not the recogniser.
