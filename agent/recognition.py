@@ -100,6 +100,13 @@ class Journal:
         return name
 
 
+def in_roi(record, roi, size):
+    """Whether a record's centre sits inside ``roi`` (normalised 0..1 corners)."""
+    x, y, w, h = record.box
+    cx, cy = (x + w / 2) / size[0], (y + h / 2) / size[1]
+    return roi[0] <= cx <= roi[2] and roi[1] <= cy <= roi[3]
+
+
 class LimbusRecognition(CustomRecognition):
     @staticmethod
     def card_box(rows, band=200):
@@ -818,6 +825,18 @@ class LimbusRecognition(CustomRecognition):
             matches = find(records, self.locale[params['token']], params['roi'],
                            (argv.image.shape[1], argv.image.shape[0]))
             if not matches:
+                # A token miss used to be silent, and the window answered it by
+                # repeating the same plan until `the_same_plan_repeated` stopped the
+                # run (live evidence/runtime/packaged-mirror-20261021-210328: the page
+                # was DRIVE, the OCR read the card as "Dungeons", and this branch
+                # returned nothing). Record what the ROI did contain, so the next
+                # frame says which word the reader missed instead of only that it did.
+                self.journal.record('mirror_menu_token_miss', token=params['token'],
+                                    roi=params['roi'],
+                                    seen=[t.text for t in records
+                                          if in_roi(t, params['roi'],
+                                                          (argv.image.shape[1],
+                                                           argv.image.shape[0]))][:8])
                 return None
             # A card label is sometimes read as two stacked rows ('Mirror' /
             # 'Dungeons'), which used to read as "not one match" and leave the node
