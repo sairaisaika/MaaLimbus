@@ -1984,7 +1984,18 @@ class MirrorRunner:
                 for x, y in state['map_points']:
                     cx, cy = int(round(x * scale)), int(round(y * scale))
                     candidates.append([cx - side // 2, cy - side // 2, side, side])
-            candidates = state['map_progress'].remaining(candidates)
+            offered = candidates
+            candidates = state['map_progress'].remaining(offered)
+            if offered and not candidates:
+                # Every spot this frame offers has already had its turn, but the page
+                # still shows those spots: the bookkeeping is stale, not the reading.
+                # evidence/runtime/packaged-mirror-20261022-070445 stopped on
+                # `no_candidate_node_observed` while its own last four frames read four
+                # candidates each, because all four were already in `tried`.
+                state['map_progress'].tried.clear()
+                candidates = list(offered)
+                self.note('map_tried_reset', offered=len(offered),
+                          reason='every_offered_node_was_already_tried')
         heal_options=None
         if page=='HEAL_SINNERS' or page in ('UNKNOWN','UNKNOWN_DIALOG'):
             # The shop's Heal Sinners modal is drawn over the shop page: its three
