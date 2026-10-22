@@ -341,6 +341,32 @@ def one_step_from(point, cell, *, col=COL_STEP, row=ROW_STEP, slack=0.30):
     return bool(same_row or diagonal)
 
 
+BOARD = (0.0, 0.10, 0.79, 0.88)   # the map is drawn inside these frame fractions
+
+
+def party_point(image, *, board=BOARD):
+    """The party dot, or None when the reading is not on the board.
+
+    `player_of` picks the yellow blob with the most flame under it, and the header and
+    the right-hand panel also carry yellow: on
+    `evidence/runtime/packaged-mirror-20261022-063646` frames 0023..0027 read (694,384)
+    and 0028..0032 read (1616,82), a 922 px jump into the HUD.  Anything outside the
+    board is not the party.
+    """
+    try:
+        point = map_vision.player_of(image, [])
+    except (AttributeError, TypeError, ValueError):
+        return None
+    if not point:
+        return None
+    height, width = image.shape[:2]
+    left, top, right, bottom = board
+    x, y = float(point[0]), float(point[1])
+    if not (left * width <= x <= right * width and top * height <= y <= bottom * height):
+        return None
+    return point
+
+
 def next_untried(candidates, tried):
     """Index of the first map candidate this page has not already been asked about.
 
@@ -3571,12 +3597,13 @@ class MirrorRunner:
             # frame (evidence/runtime/packaged-mirror-20261022-063646/frame-0023:
             # both give (694,384)), so ask that way and keep the dot check honest.
             frame_image = latest_frame(directory)[0]
-            try:
-                here = map_vision.player_of(frame_image, [])
-            except (AttributeError, TypeError, ValueError):
-                here = None
+            here = party_point(frame_image)
             was = state.get('map_player')
-            if here and was and abs(here[0] - was[0]) + abs(here[1] - was[1]) > 20:
+            # A step is one lattice pitch, not any displacement: the reading can lock
+            # onto a yellow HUD blob and jump ~900 px (frames 0023..0027 read (694,384)
+            # in evidence/runtime/packaged-mirror-20261022-063646 while 0028..0032 read
+            # (1616,82)), which a >20 px test would happily call a move.
+            if here and was and one_step_from(here, was):
                 self.note('map_click_result', target=state['map_pending'], page=page,
                           outcome='accepted', reason='the_party_moved_after_the_click')
                 state['map_pending'] = None
