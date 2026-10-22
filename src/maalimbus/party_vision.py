@@ -97,3 +97,54 @@ def plan(records, size, chosen=0):
     return dict(action='click', target=to_battle(size),
                 reason='a_full_party_leaves_by_its_own_button',
                 selected=selected, total=total)
+
+# The counter is fine print on a textured plate, so the whole-frame pass misses it
+# (evidence/runtime/packaged-mirror-20261022-034711/frame-0026.png prints
+# `Total Participants 8 / 12` and none of its 122 OCR reads is that panel).  This is
+# the second read: crop the panel, enlarge it, recognise it once more, and hand the
+# results back in full-frame coordinates so every other reader can use them.
+COUNTER_SCALE = 4
+
+
+def counter_crop(size):
+    """The counter panel as pixel bounds in ``size`` (agent frame, 1920x1080)."""
+    w, h = size
+    return (int(COUNTER_ROI[0] * w), int(COUNTER_ROI[1] * h),
+            int((COUNTER_ROI[2] - COUNTER_ROI[0]) * w),
+            int((COUNTER_ROI[3] - COUNTER_ROI[1]) * h))
+
+
+def counter_reads(run_direct, image, *, scale=COUNTER_SCALE):
+    """Read the counter panel on its own and return reads in frame coordinates.
+
+    ``run_direct`` is the framework's OCR entry (``context.run_recognition_direct``
+    in the agent); the crop is enlarged first because the panel is small relative to
+    the frame.  A read that cannot be made returns an empty list rather than raising:
+    the page is still classified by the rest of its own marks.
+    """
+    import cv2
+    h, w = image.shape[:2]
+    x, y, cw, ch = counter_crop((w, h))
+    if cw < 8 or ch < 8:
+        return []
+    crop = image[y:y + ch, x:x + cw]
+    big = cv2.resize(crop, None, fx=float(scale), fy=float(scale),
+                     interpolation=cv2.INTER_CUBIC)
+    try:
+        detail = run_direct(big)
+    except Exception:
+        return []
+    out = []
+    for record in getattr(detail, 'all_results', None) or getattr(detail, 'filtered_results', None) or ():
+        text = getattr(getattr(record, 'text', None), 'text', None) or getattr(record, 'text', '')
+        box = getattr(record, 'box', None)
+        if text is None or box is None:
+            continue
+        left = int(box[0] / scale) + x
+        top = int(box[1] / scale) + y
+        width = int(box[2] / scale)
+        height = int(box[3] / scale)
+        out.append(dict(text=str(text), score=float(getattr(record, 'score', 1.0)),
+                        box=[left, top, width, height]))
+    return out
+

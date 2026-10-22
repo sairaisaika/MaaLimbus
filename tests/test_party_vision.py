@@ -72,3 +72,50 @@ def test_the_live_frames_read_their_own_count(path, selected, total):
     assert crop.size > 0
     assert party.cards((w, h))[0][0] >= 0
     assert party.to_battle((w, h))[2] > 0
+
+
+class _Read:
+    def __init__(self, text, box, score=0.9):
+        self.text, self.box, self.score = text, box, score
+
+
+class _Detail:
+    def __init__(self, rows):
+        self.filtered_results = rows
+
+
+def test_the_counter_is_read_a_second_time_from_its_own_crop():
+    """The whole-frame pass misses this panel (2026-10-22), so it is read on its own.
+
+    `evidence/runtime/packaged-mirror-20261022-034711/frame-0026.png` prints
+    `Total Participants 8 / 12` and none of its 122 OCR reads is that panel: the crop is
+    enlarged, recognised again, and the results are handed back in frame coordinates.
+    """
+    import numpy as np
+    image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+    seen = {}
+
+    def run_direct(big):
+        seen['shape'] = big.shape
+        # what the enlarged crop returns: the label row and the two numbers beside it
+        return _Detail([_Read('Total Participants', (40, 60, 300, 40)),
+                        _Read('8', (470, 55, 40, 50)),
+                        _Read('12', (560, 55, 60, 50))])
+
+    rows = __import__('maalimbus.party_vision', fromlist=['counter_reads']).counter_reads(
+        run_direct, image)
+    assert seen['shape'][0] > 300 and seen['shape'][1] > 900, 'the crop is enlarged first'
+    assert [r['text'] for r in rows] == ['Total Participants', '8', '12']
+    # and the remapped boxes land where the panel actually is
+    x, y, _, _ = __import__('maalimbus.party_vision', fromlist=['counter_crop']).counter_crop((1920, 1080))
+    assert x <= rows[1]['box'][0] <= x + 307
+    assert y <= rows[1]['box'][1] <= y + 97
+    assert __import__('maalimbus.party_vision', fromlist=['participants']).participants(
+        [_Read(r['text'], tuple(r['box'])) for r in rows], (1920, 1080)) == (8, 12)
+
+
+def test_a_counter_that_cannot_be_read_returns_nothing_rather_than_raising():
+    import numpy as np
+    image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+    assert __import__('maalimbus.party_vision', fromlist=['counter_reads']).counter_reads(
+        lambda big: (_ for _ in ()).throw(RuntimeError('ocr wedged')), image) == []
