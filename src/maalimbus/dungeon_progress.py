@@ -94,3 +94,63 @@ def steps_left(payload):
     if not payload or payload.get('reason'):
         return None
     return max(0, payload['of'] - payload['steps'])
+
+
+#: The end-of-run summary, measured on live `build/after-defeat.png` (1280x720):
+#: left column holds `Exploration Complete`, then `Dungeon Progress`, then the
+#: floors, then `Last Reached` and `Total Progress NN%`.
+SUMMARY_ROI = (0.05, 0.08, 0.95, 0.95)
+SUMMARY_TITLE = re.compile(r'Exploration', re.I)
+SUMMARY_TAIL = re.compile(r'Complete', re.I)
+REACHED = re.compile(r'^\s*(.+?)\s*$')
+TOTAL = re.compile(r'(\d{1,3})\s*%')
+
+
+def exploration_summary(records, size):
+    """Read the run's own receipt, or None when that page is not on screen.
+
+    ``Exploration Complete`` is the only screen that states, after the fact, how
+    far a run got: the floors it reached, the last one with its ``4/6``, and
+    ``Total Progress 13%``. The frames the loop used to stop on said none of it,
+    which is why a lost run looked like a map that refused clicks.
+    """
+    title = find(records, SUMMARY_TITLE.pattern, SUMMARY_ROI, size, threshold=.7)
+    if not title:
+        return None
+    # The client draws the two words on two lines, so the pair -- not one merged
+    # token -- is what identifies the screen.
+    head = title[0].box
+    tail = find(records, SUMMARY_TAIL.pattern,
+                (head[0] / size[0], head[1] / size[1],
+                 (head[0] + head[2]) / size[0], head[1] / size[1] + .12), size, threshold=.7)
+    if not tail:
+        return None
+    title = [title[0]]
+    payload = {'title': title[0].text, 'floor': None, 'steps': None, 'of': None,
+               'last_reached': None, 'total_percent': None}
+    floor = find(records, FLOOR.pattern, SUMMARY_ROI, size, threshold=.6)
+    if floor:
+        match = FLOOR.search(floor[0].text)
+        payload['floor'] = int(match.group(1)) if match else None
+    stepped = find(records, STEPS.pattern, SUMMARY_ROI, size, threshold=.6)
+    if stepped:
+        match = STEPS.search(stepped[0].text)
+        if match:
+            payload['steps'], payload['of'] = int(match.group(1)), int(match.group(2))
+    total = find(records, r'\d{1,3}\s*%', SUMMARY_ROI, size, threshold=.6)
+    if total:
+        match = TOTAL.search(total[0].text)
+        if match:
+            payload['total_percent'] = int(match.group(1))
+    # `Last Reached` is followed by the dungeon's name and the floor it stopped on;
+    # the label is the anchor and the two rows under it are its value.
+    anchor = find(records, r'Last\s*Reached', SUMMARY_ROI, size, threshold=.6)
+    if anchor:
+        box = anchor[0].box
+        band = (SUMMARY_ROI[0], (box[1] + box[3]) / size[1], SUMMARY_ROI[2], .92)
+        under = find(records, r'\S', band, size, threshold=.6)
+        rows = [r.text for r in sorted(under, key=lambda r: r.box[1])][:2]
+        payload['last_reached'] = ' / '.join(rows) if rows else None
+    if payload['steps'] is None or not payload['of']:
+        payload['reason'] = 'the_summary_is_on_screen_but_its_step_count_was_not_read'
+    return payload

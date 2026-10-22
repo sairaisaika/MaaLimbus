@@ -111,7 +111,13 @@ def classify(records, locale, size):
     # looks identical to a floor that refuses every click (live 2026-10-22). It is
     # recognised by its own title plus its own Continue, and treated as a page the
     # loop may leave rather than as an unknown dialog to wait out.
-    from .dungeon_progress import PANEL_ROI as _PANEL, TITLE as _TITLE
+    from .dungeon_progress import (PANEL_ROI as _PANEL, SUMMARY_TITLE as _SUMMARY,
+                                   TITLE as _TITLE)
+    # The end-of-run summary comes first: it is a terminal page, and its left
+    # column also carries the words `Dungeon Progress`, so a panel check that ran
+    # before this one would swallow the receipt as a pause screen.
+    if find(records, _SUMMARY.pattern, (.05, .08, .95, .95), size, .7):
+        return 'EXPLORATION_COMPLETE'
     if (find(records, _TITLE.pattern, _PANEL, size, .7)
             and find(records, r'^Continue$', _PANEL, size, .8)):
         return 'DUNGEON_PROGRESS'

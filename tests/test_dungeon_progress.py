@@ -1,9 +1,11 @@
 """The pause panel states the run's real progress; these pin that reading."""
-from maalimbus.dungeon_progress import dungeon_progress, steps_left
+from maalimbus.dungeon_progress import (dungeon_progress, exploration_summary,
+                                        steps_left)
 from maalimbus.vision import Text
 
 SIZE = (1280, 720)
-LOCALE = {'tutorial': r'(?!)', 'forbidden_dialog': r'(?!)', 'expired': r'(?!)'}
+LOCALE = {'tutorial': r'(?!)', 'forbidden_dialog': r'(?!)', 'expired': r'(?!)',
+          'defeat': r'(?!)'}
 
 
 def box(cx, cy, bw=80, bh=26):
@@ -89,3 +91,41 @@ def test_a_panel_without_its_continue_is_still_readable_progress():
     payload = dungeon_progress(panel(), SIZE)
 
     assert payload['floor'] == 1 and payload['steps'] == 4
+
+
+def summary():
+    """The live end-of-run screen, build/after-defeat.png: Floor 1 [HARD] 4/6, 13%."""
+    return [
+        Text('Exploration', box(210, 108, 160, 30), .94),
+        Text('Complete', box(210, 140, 130, 30), .94),
+        Text('Dungeon Progress', box(212, 182, 200, 26), .93),
+        Text('Floor 1', box(134, 240, 70, 22), .92),
+        Text('[HARD]', box(134, 256, 60, 18), .90),
+        Text('4/6', box(130, 286, 50, 24), .92),
+        Text('Floor 2', box(180, 240, 70, 22), .90),
+        Text('???', box(178, 286, 50, 24), .88),
+        Text('Last Reached', box(212, 332, 190, 26), .93),
+        Text('Mirror of Sisyphus', box(212, 380, 200, 24), .92),
+        Text('Floor 1 [HARD]', box(212, 419, 190, 24), .92),
+        Text('Total Progress', box(212, 482, 190, 26), .93),
+        Text('13%', box(232, 520, 90, 38), .95),
+    ]
+
+
+def test_the_end_of_run_summary_states_where_the_run_really_got():
+    payload = exploration_summary(summary(), SIZE)
+
+    assert payload['floor'] == 1
+    assert (payload['steps'], payload['of']) == (4, 6)
+    assert payload['total_percent'] == 13
+    assert payload['last_reached'] == 'Mirror of Sisyphus / Floor 1 [HARD]'
+    assert 'reason' not in payload
+
+
+def test_the_summary_is_not_read_as_the_pause_panel_under_it():
+    """Both screens print `Dungeon Progress`; only one of them ends the run."""
+    from maalimbus.vision import classify
+
+    assert classify(summary(), LOCALE, SIZE) == 'EXPLORATION_COMPLETE'
+    assert classify(panel() + [Text('Continue', box(687, 452, 120, 30), .95)],
+                    LOCALE, SIZE) == 'DUNGEON_PROGRESS'

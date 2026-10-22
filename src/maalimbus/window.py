@@ -517,6 +517,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='the_event_choice_that_names_its_reward_is_taken',
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})
+    if page == 'EXPLORATION_COMPLETE':
+        # The run is over -- won or lost -- and this page states how far it got.
+        # There is no input here that continues *this* run, so it is refused with
+        # the one reason that says so instead of being retried as a stuck page.
+        return _refuse(page, 'the_dungeon_run_ended_at_its_summary')
     if page == 'DUNGEON_PROGRESS':
         # The dungeon's pause panel parks the game and states its progress. It is
         # never a step: the only input that belongs here is its own Continue, and
