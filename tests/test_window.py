@@ -1557,3 +1557,20 @@ def test_a_map_that_refuses_every_click_offers_its_own_resume_control():
                      controls={'map.progress_button': resume})
     assert plan['reason'] == 'the_exploration_must_be_resumed_before_a_node_click'
     assert list(plan['target']) == resume
+
+
+def test_the_progress_panel_resumes_and_never_offers_another_control():
+    """The panel the map opens prints Resume above Halt Exploration and Cancel.
+
+    Only Resume continues a run that is in progress but not resumed; Forfeit would end
+    it and Config would change settings mid-run, so the planner may only ever offer the
+    bound Resume row.
+    """
+    from maalimbus.window import plan_step
+    resume = [500, 380, 280, 44]
+    plan = plan_step('DUNGEON_PROGRESS',
+                     controls={'dungeon_progress.continue_button': resume})
+    assert list(plan['target']) == resume
+    refused = plan_step('DUNGEON_PROGRESS', controls={})
+    assert refused.get('target') is None
+    assert refused['reason'] == 'continue_button_not_anchored'

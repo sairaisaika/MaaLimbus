@@ -2637,6 +2637,16 @@ class MirrorRunner:
                 if evidence is not None:
                     state['identity_sha']=sha
                     self.note('pre_battle_identity_report',**evidence)
+        if page=='DUNGEON_PROGRESS':
+            # The panel prints Progress / Forfeit / Continue / To Window / Config. Its
+            # planner only ever presses Continue, but nothing bound that anchor, so a
+            # resumed-in-progress run stopped here (`packaged-mirror-20261022-084358`:
+            # the resume plan opened the panel, then `continue_button_not_anchored`).
+            # Bind the row the panel actually draws, and never Forfeit.
+            for row in (record.get('ocr') or []):
+                if str(row.get('text') or '').strip().lower()=='continue':
+                    plan_controls['dungeon_progress.continue_button']=[int(v) for v in row['box']]
+                    break
         if page=='UNKNOWN_DIALOG':
             # A modal that named no page is dismissed through its own close control,
             # bound from this frame: the modal is drawn wherever the page under it puts
