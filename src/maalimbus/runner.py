@@ -341,7 +341,10 @@ def one_step_from(point, cell, *, col=COL_STEP, row=ROW_STEP, slack=0.30):
     return bool(same_row or diagonal)
 
 
-BOARD = (0.0, 0.10, 0.79, 0.88)   # the map is drawn inside these frame fractions
+# The party can stand against the header: on a fresh floor 1 the torch sits at y about
+# 67 of 1080 (build/ob0.png), so a 0.10 top edge excluded the very thing this guard is
+# meant to keep and made `party_point` answer None on a page where the dot was visible.
+BOARD = (0.0, 0.02, 0.80, 0.88)   # the map is drawn inside these frame fractions
 
 
 def party_point(image, *, board=BOARD):

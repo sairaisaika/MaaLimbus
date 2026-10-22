@@ -16,9 +16,14 @@ import cv2
 from .vision import find, find_read
 
 # The controls beneath the grid: locale key, printed phrase, band, score floor.
-CONTROLS=(('star_select_all','Select All Graces',(.88,.66,.99,.75),.8),
-    ('star_enhance_all','Enhance All',(.88,.71,.99,.80),.8),
-    ('enter','Enter',(.88,.89,.99,.98),.85))
+# Bands cover the control column the client actually draws: on a live 1920x1080 frame
+# the three buttons sit at x 0.79..0.91 (`evidence/runtime/packaged-mirror-20261022-072802/
+# frame-0020.png`), and the previous x floor of 0.88 clipped their left half, so `Enter`
+# came back as a fragment box at [1740,986,102,42] and the run clicked empty board --
+# a silent failure, because the reader had "found" the phrase.
+CONTROLS=(('star_select_all','Select All Graces',(.78,.64,.96,.74),.8),
+    ('star_enhance_all','Enhance All',(.78,.72,.96,.79),.8),
+    ('enter','Enter',(.78,.86,.96,.95),.85))
 
 # Nominal 1920x1080 geometry the ordinal mapping was proved on.
 X,Y,W,H,STEP,ROW=207,226,278,340,298,356
