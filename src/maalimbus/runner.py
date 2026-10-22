@@ -299,6 +299,8 @@ already the authorized driver of the run it is pinching for.
 RECOVERY_DRAG = (960, 380, 960, 760)
 """The vertical drag a recovery gesture uses, in the same 1920x1080 space."""
 
+_TARGET_LONG_SIDE = int(os.environ.get('MAALIMBUS_TARGET_LONG_SIDE', 1920))
+
 RECOVERY_PAN = (620, 540, 1300, 540)
 """The horizontal pan a recovery gesture uses, in the same 1920x1080 space.
 
@@ -442,12 +444,18 @@ class MaaDevice:
     ``click()`` mean "the touch landed" rather than "the touch was queued".
     """
 
-    def __init__(self, controller, *, wait=None, target_long_side=1920, deadline=None, tasker=None):
+    def __init__(self, controller, *, wait=None, target_long_side=None, deadline=None, tasker=None):
         self.controller = controller
         self.tasker = tasker
         self.ended = None
         self.wait = wait
         self.deadline = deadline
+        # The frame the loop reads and the pixels maafw clicks must agree.  1920 is the
+        # project's long-standing upscale; MAALIMBUS_TARGET_LONG_SIDE=1280 keeps the
+        # frame at the device's own size, which is the one-variable experiment for
+        # whether the click is scaled back before it reaches the device (the live runs
+        # of 2026-10-22 sent clicks that changed not one pixel inside the target box).
+        target_long_side = target_long_side or _TARGET_LONG_SIDE
         self.target_long_side = target_long_side
         if target_long_side:
             controller.set_screenshot_target_long_side(int(target_long_side))
