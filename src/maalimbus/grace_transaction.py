@@ -20,7 +20,14 @@ class GraceTransaction:
             raise ValueError('Grace transaction scope or configuration mismatch')
         if d['pending']:raise ValueError('Unverified grace purchase remains pending')
         if d['available'] is not None and available!=d['available']:
-            raise ValueError('Grace balance changed outside verified purchases')
+            if d['selected'] or d['spent'] or d['pending'] is not None:
+                raise ValueError('Grace balance changed outside verified purchases')
+            # Nothing has been committed in this scope yet, so the balance seen now is
+            # simply the new baseline: rewards can be claimed, a maintenance can restore
+            # coins, and the last session's number is history rather than a promise.
+            d.setdefault('rebaselined',[]).append(dict(was=d['available'],now=available))
+            d['available']=available
+            write_json(self.path,d)
         return d
 
     def adopt_unspent_entry_settings(self,scope,requested,budget,available,proof):
