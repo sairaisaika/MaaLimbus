@@ -3303,6 +3303,19 @@ class MirrorRunner:
             self.note('map_click_result', target=state['map_pending'], page=page,
                       outcome='accepted', reason='the_click_opened_the_next_page')
             state['map_pending'] = None
+        # The other way a click is taken: the page stays MAP and the party walks. The
+        # player's own point is the evidence -- it moves when the step is spent, and a
+        # click the game refused leaves it exactly where it was.
+        if page == 'MAP' and state.get('map_pending'):
+            here = map_vision.player_of(latest_frame(directory)[0],
+                                        map_vision.player_marker(latest_frame(directory)[0]))
+            was = state.get('map_player')
+            if here and was and abs(here[0] - was[0]) + abs(here[1] - was[1]) > 20:
+                self.note('map_click_result', target=state['map_pending'], page=page,
+                          outcome='accepted', reason='the_party_moved_after_the_click')
+                state['map_pending'] = None
+            if here:
+                state['map_player'] = list(here)
         state['map_attempts'] = 0
         if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
         state['page_attempts'] = 0
