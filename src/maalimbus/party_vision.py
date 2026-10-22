@@ -18,6 +18,7 @@ COLUMNS = (.234, .344, .453, .563, .672, .781)
 ROWS = (.333, .597)
 CARD = (.100, .215)
 TO_BATTLE_ROI = (0.845, 0.790, 0.985, 0.850)
+MAX_PARTICIPANTS = 24
 
 
 def _inside(record, roi, size):
@@ -28,10 +29,25 @@ def _inside(record, roi, size):
 
 
 def is_page(records, size, threshold=.75):
-    """The page names itself with a two-word label above its counter."""
+    """The page names itself -- by its label, or by the counter under it.
+
+    The label is fine print too, and on the live frames it was the half that did not
+    read: `evidence/runtime/packaged-mirror-20261022-041718` refused this page with
+    `participants: [12, 12]` already in hand, because only the numbers had been read.
+    A readable `n / 12` is proof of this page on its own -- nothing else in the
+    dungeon prints a counter, and the numbers are the thing the plan needs.
+    """
     from .vision import close_to
-    return any(_inside(r, LABEL_ROI, size) and r.score >= threshold
-               and close_to(r.text, 'Total Participants', 2) for r in records)
+    if any(_inside(r, LABEL_ROI, size) and r.score >= threshold
+           and close_to(r.text, 'Total Participants', 2) for r in records):
+        return True
+    counted = participants(records, size)
+    if counted is None:
+        return False
+    selected, total = counted
+    # A party is at most a dozen, so a pair of unrelated numbers that happens to
+    # fall in this band (an identity's level and its cost, say) is not a counter.
+    return 0 <= selected <= total <= MAX_PARTICIPANTS
 
 
 def looks_like_page(records, size, threshold=.6):

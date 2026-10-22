@@ -1733,8 +1733,16 @@ class MirrorRunner:
             size = record.get('size') or (1920, 1080)
             party_reads = [Text(t['text'], tuple(t['box']), t['score'])
                            for t in record.get('ocr', [])]
-            party_plan = party_vision.plan(party_reads, size,
-                                           state.get('party_cards_clicked', 0))
+            # The deployment transaction owns this page once it has seen it: it knows
+            # the saved order and whether that order is already printed, which is more
+            # than "fill the party" can say.  Only an unowned page falls through here.
+            # These scenes already have an owner (the deployment reader, which knows
+            # the saved order and whether that order is printed).  The party plan only
+            # answers a page the classifier cannot name.
+            deployment_knows = page in ('PRE_BATTLE', 'PRE_BATTLE_TEAM', 'DEPLOYMENT',
+                                        'TEAM_LIBRARY')
+            party_plan = None if deployment_knows else party_vision.plan(
+                party_reads, size, state.get('party_cards_clicked', 0))
             if party_plan is None and party_vision.is_page(party_reads, size) is False:
                 # Say why this frame was not answered instead of returning None
                 # silently: an unread counter and a page that is not this one look
