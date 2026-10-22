@@ -81,6 +81,12 @@ def main():
     for row in report['disagreements']:
         row['image'] = str(row['image']).replace(str(ROOT) + '\\\\', '')
     (ROOT / args.report).write_text(json.dumps(report, indent=2), encoding='utf-8')
+    # One line per run of this tool, so the checkpoint's progress is a series instead of
+    # a single number remembered out of context: which epoch, how many boxes, how many
+    # of them land on a rule box.
+    history = ROOT / 'build/map-compare-history.jsonl'
+    with history.open('a', encoding='utf-8') as stream:
+        stream.write(json.dumps({k: v for k, v in report.items() if k != 'disagreements'}) + '\n')
     print(json.dumps({k: v for k, v in report.items() if k != 'disagreements'}, indent=2))
     for row in report['disagreements'][:args.render]:
         image = cv2.imread(str(ROOT / row['image']))
