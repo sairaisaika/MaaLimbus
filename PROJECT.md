@@ -3039,3 +3039,15 @@ The criterion stays behavioural: frames where the two disagree get adjudicated b
 (`pi-20261012-180805/frame-0189`, floor 4): the rule boxed two modifier icons that carry no ring, the
 detector boxed the single truly ringed node -- model right. That is one frame, not a verdict; the ratio
 over all disagreement frames is what decides whether the detector may replace the rule.
+## DSH continuation: what "通关" means, and the build it requires (2026-10-22)
+
+用户给了验收口径与两条构筑约束，写进这里以免只活在对话里：
+
+- **验收**：脚本自己走到第 5 层最后一关即算通关，不要求击杀最终 Boss 之后的所有流程。
+- **队伍**：后续实机跑必须用**2 队**（当前跑的是 1 队）。
+- **构筑**：礼物选择要朝**流血（bleed）**方向走；乱选结尾包、不拿齐构筑是打不过镜牢的。
+
+这三点属于"跑得完"的前提，不是识别问题：识别只决定看不看得见，构筑决定打得过打不过。
+后续在 `GIFT_PICK` 的取礼策略里加入按关键词的构筑偏好（流血优先），并在入口设置里固定选 2 队；
+两处都要先用证据确认页面上能证明"这是流血类礼物"，再谈偏好，否则就是凭名字猜。
+
