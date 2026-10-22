@@ -3185,3 +3185,31 @@ elapsed local time, once from treating a 15-event snapshot as terminal while the
 events. "Stalled" now requires all three: two samples at least `stall_seconds` apart with an unchanged
 event count, a wall-clock gap over the limit, and no stall record.
 
+## DSH continuation: a verdict now names its frame, and the party is read from its own torch (2026-10-22)
+
+两条改动，各自带可验的判据。
+
+**判定可回看**：`map_click_result` 的 `frame` 曾是恒 `None` 的死代码——
+`getattr(self,'frames',None)` 取的是 journal 的属性，`Runner` 上没有。现在点击派发时把当前帧名
+存进 `state['map_click_frame']`（`src/maalimbus/runner.py` 两个派发点），三条判定
+（rejected / accepted / 无变化）统一 `state.pop('map_click_frame', None)` 取用；另外补了
+"页面既未变化也未移动时仍记一条 `the_map_stayed_with_the_party_in_place`"，
+避免意图被静默丢弃。真机验收：`evidence/runtime/packaged-mirror-20261022-075450` 388 事件、
+13 条判定，**13/13 带帧名**，0 条 `None`，0 条静默丢弃。
+
+**队伍位置**：`player_marker` 在直播帧上返回 `None`（`frame-0034`：队伍在 `(830,450)`，而
+它只找到 6 枚徽章），于是循环无法只点相邻节点。新增 `map_vision.party_point(image)`，
+用队伍自己的火把（两枚上下相邻的暖色高亮斑，`frame-0034` 上为 `(832,418)` area 56 与
+`(826,461)` area 23）定位。验收：该局 14 个地图帧 **14/14** 读出，且相邻帧位移
+`(829,440)→(826,561)` 与一格步幅一致。
+
+同一轮里被自己数据否掉的三个假设也记在这里，免得下一轮重走：徽章点并不在节点上方空白
+（`build/gt-node.png` 显示 `(1020,327)` 落在 `?` 六边格内，而"下移 106"落在格子下方空地）；
+`GOLD_MARK_DROP` 改成 106 会让两条既有测试失败（两个页面的偏移不同，全局常量在结构上就是错的）；
+用面积阈值取橙色边得到的是徽章图标（48×56），不是连线。检测器在 `frame-0034` 上输出的
+四个中心 `(450,333) (833,333) (641,655) (449,653)` 与 `gold_marks` 重合——标签来自规则，
+所以换模型不会改变几何，这一项要改的是**标注对象**，不是识别器。
+
+仍未解决：10 分钟 13 次点击 0 次被接受，队伍停在第 1 层；点击点确实落在节点内、该节点也
+确实连着亮边，所以下一个嫌疑是点击投递而不是识别。
+
