@@ -1656,3 +1656,40 @@ def route_decision(header, size, *, current=None, cleared=(), candidates=(),
             return dict(next_node=None, reason=plan['refused'], plan=plan)
         return dict(next_node=plan['target'], reason='policy_ranked_candidate', plan=plan)
     return dict(next_node=unvisited[0], reason='single_unvisited_candidate')
+
+
+def party_point(image):
+    """The locomotive's position, read from its own torch, not from a badge.
+
+    `player_marker` returns None on the live frames (`evidence/runtime/
+    packaged-mirror-20261022-075450/frame-0034`: the party sits at (830,450) while
+    only the six badge nodes are found), so the loop could not tell a reachable
+    node from any node.  Measured on that frame, the torch is two small very bright
+    warm blobs stacked vertically -- (832,418) area 56 and (826,461) area 23 -- and
+    nothing else in the board carries that signature.  Two blobs rather than one
+    because the flame sprite is drawn above and below the sprite's hood.
+    """
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    board = image[int(.10 * height):int(.86 * height), :int(.79 * width)]
+    hsv = cv2.cvtColor(board, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (15, 120, 235), (35, 255, 255))
+    count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    blobs = [(int(stats[i, 4]), float(centres[i][0]), float(centres[i][1]))
+             for i in range(1, count) if 20 <= stats[i, 4] <= 400]
+    if len(blobs) < 1:
+        return None
+    blobs.sort(reverse=True)
+    top = blobs[0]
+    # A second, nearby blob makes it the flame: two bright specks a few pixels apart.
+    mate = None
+    for area, x, y in blobs[1:]:
+        if abs(x - top[1]) <= 12 and abs(y - top[2]) <= 80:
+            mate = (area, x, y)
+            break
+    if mate is None:
+        return None
+    x = (top[1] + mate[1]) / 2.0
+    y = (top[2] + mate[2]) / 2.0 + int(.10 * height)
+    return int(x), int(y)
