@@ -39,6 +39,21 @@ HEADER_PATTERN = r'^' + HEADER_WORD + r'\s*(?:F\w{3,5}?|F\s*\d)\s*([1-5])?\s*$'
 #: ('ExploringFloor5' would otherwise parse as the word "Floor5" with no floor number).
 HEADER_LABEL_PATTERN = r'^' + HEADER_WORD + r'(?:\s*Floor)?$'
 HEADER_FLOOR_PATTERN = r'^Floor\s*([1-5])?$'
+#: OCR sometimes renders the gap in "Exploring Floor" as a dot instead of a space
+#: (live evidence/runtime/packaged-mirror-20261022-045608/frame-0006.json reads
+#: 'Exploring·Floor' and the page consequently stayed UNKNOWN for 32 of 36 frames,
+#: producing no map click at all).  Normalising the separator once, here, keeps the
+#: header patterns readable instead of growing a tolerance per glyph.
+HEADER_SEPARATORS = '\u00b7\u2022\u22c5\u0387\u30fb|'
+
+
+def normalise_header_text(text):
+    """The header's words with dot separators folded to a single space."""
+    out = text or ''
+    for separator in HEADER_SEPARATORS:
+        out = out.replace(separator, ' ')
+    return re.sub(r'\s+', ' ', out).strip()
+
 HEADER_ROI = (.0, .06, .30, .22)
 PACK_ROI = (.0, .14, .30, .28)
 
@@ -1369,16 +1384,28 @@ def battle_target(page):
     return page.battle.box
 
 
+class _folded_header:
+    """One OCR row with its dot separators folded, so the header patterns stay simple."""
+
+    __slots__ = ('text', 'box', 'score')
+
+    def __init__(self, record):
+        self.text = normalise_header_text(getattr(record, 'text', ''))
+        self.box = record.box
+        self.score = record.score
+
+
 def floor_label(records, size):
     """The floor header's own words, whether or not its pack line could be read.
 
     The label is the part of the header the node panel cannot hide; a map page is still
     only a map once the pack line below it is read too (see :func:`map_header`).
     """
-    matches = find(records, HEADER_PATTERN, HEADER_ROI, size, .85)
+    folded = [_folded_header(r) for r in records]
+    matches = find(folded, HEADER_PATTERN, HEADER_ROI, size, .85)
     if len(matches) == 1:
         return matches[0]
-    labels = find(records, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)
+    labels = find(folded, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)
     return labels[0] if labels else None
 
 
@@ -1396,7 +1423,7 @@ def map_header(records, size):
     text = floor_label(records, size)
     if text is None:
         return None
-    whole = re.match(HEADER_PATTERN, text.text.strip(), re.I)
+    whole = re.match(HEADER_PATTERN, normalise_header_text(text.text), re.I)
     if whole:
         digit = whole.group(1)
         floor = int(digit) if digit else None

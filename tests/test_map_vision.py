@@ -1199,3 +1199,35 @@ def test_two_marks_sharing_no_lattice_step_are_kept_but_not_as_a_pair():
     # 143 px apart is under the tight mark: in that frame these are the player's torch
     # and the stand under it, so nothing survives.
     assert lattice_consistent([(1124, 678), (1088, 821)]) == []
+
+
+def test_the_floor_header_survives_a_dot_where_the_space_should_be():
+    from maalimbus.map_vision import normalise_header_text
+    assert normalise_header_text('Exploring\u00b7Floor') == 'Exploring Floor'
+    assert normalise_header_text('Exploring  \u2022  Floor') == 'Exploring Floor'
+    assert normalise_header_text('Exploring Floor 3') == 'Exploring Floor 3'
+
+
+def test_the_live_map_frame_that_read_as_a_dot_is_still_the_map():
+    import pathlib
+    path = (pathlib.Path(__file__).resolve().parents[1]
+            / 'evidence/runtime/packaged-mirror-20261022-045608'
+            / 'frame-0006.json')
+    if not path.exists():
+        pytest.skip('retained live map evidence is not present')
+    import json
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    rows = [Text(t['text'], t['box'], t['score']) for t in payload['ocr']]
+    header = map_header(rows, payload['size'])
+    assert header is not None, 'this frame is the floor-3 map and must still classify as one'
+    assert header.pack == 'Sinking Pang'
+    assert header.floor is None, 'the stylised digit was not read and must not be invented'
+
+
+class _Row:
+    """A bare OCR row with the three attributes the readers use."""
+
+    __slots__ = ('text', 'box', 'score')
+
+    def __init__(self, text, box, score):
+        self.text, self.box, self.score = text, box, score
