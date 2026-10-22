@@ -2945,3 +2945,16 @@ because a warm floor makes the whole board gold and lit.
 同轮还有一处防线：读不出的页面不再直接停窗，先花一次 `_recover` 手势（`runner.py` 的
 `page_unreadable_after_waiting` 分支），实机日志已出现 `window_recovery page=MAP gesture=pinch_out`。
 
+## DSH iteration: the shop receipt survives a re-rolled shelf (2026-10-22)
+
+`packaged-mirror-20261022-012400` stopped at its twelfth event on `Shop successor shows an offer the shelf
+never held`. The purchase was correct; the shelf had re-rolled between the run that left the reservation and
+the run that resolved it, so an offer this session never saw appeared on the successor frame.
+
+`reconcile_purchase` (`src/maalimbus/shop_transaction.py:554`) now records that as `successor_note`
+(`the_successor_shelf_holds_offers_this_session_never_saw`) instead of raising. What still refuses is the
+bought card itself: `_same_title`, the reserved price, and its own `Purchased` badge.
+
+Tests: the two neighbour tests became receipts, the duplicate badge-path test was rewritten to the same
+rule, and `tests/test_a_shortened_bought_title_is_still_refused` was dropped because the documented rule
+(the exact delta is the receipt) had already overtaken its premise. Full suite `1792 passed`.

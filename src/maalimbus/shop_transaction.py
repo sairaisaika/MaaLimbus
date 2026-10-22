@@ -548,11 +548,18 @@ class ShopTransaction:
                            and _one_glyph_apart(offer['name'], kept['name'])
                            for kept in baseline)
 
-            if [offer['name'] for offer in shelf
-                    if not _same_title(offer['name'], pending['name'])
-                    and not held_offer(offer)]:
-                raise ValueError('Shop successor shows an offer the shelf never held')
-            successor_note = None
+            unheld = [offer['name'] for offer in shelf
+                      if not _same_title(offer['name'], pending['name'])
+                      and not held_offer(offer)]
+            # The receipt is the card's own Purchased badge plus the exact currency delta
+            # proven above.  An offer this session never saw says the shelf is a
+            # different instance than the one the reservation was made on -- a shop that
+            # re-rolled between the two sessions of a resumed run -- and that is not
+            # evidence about what the account paid.  It is recorded, not raised.
+            successor_note = (dict(reason='the_successor_shelf_holds_offers_this_session_'
+                                          'never_saw', offers=unheld[:6],
+                                   expected=[offer['name'] for offer in baseline][:6])
+                              if unheld else None)
         else:
             # Without the card's own badge the *exact currency delta* proven above is the
             # receipt: the account paid exactly the reserved price for exactly the

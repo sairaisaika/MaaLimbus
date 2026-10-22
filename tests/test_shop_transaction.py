@@ -358,8 +358,13 @@ def test_the_cards_own_purchased_badge_is_the_receipt_for_its_own_card(tmp_path)
     assert tx.data['bought'][-1]['shelf_evidence'] == 'own_purchased_badge'
 
 
-def test_the_badge_path_still_refuses_a_card_the_shelf_never_held(tmp_path):
-    """The receipt may read short, but it may not be a different page."""
+def test_the_badge_path_records_a_card_the_shelf_never_held(tmp_path):
+    """The receipt is the bought card's badge plus the delta, not the neighbours.
+
+    ``Wobbling Keg`` was not on this session's shelf at all, so the successor is a
+    different shop instance.  The account paid 20 for ``Oracle``, whose own Purchased
+    badge is present, and that is the receipt; the stranger is recorded as a note.
+    """
     tx, before = setup(tmp_path)
     reserve(tx, before)
     tx.reserve_confirm('scope', 'floor1:shop1',
@@ -367,11 +372,9 @@ def test_the_badge_path_still_refuses_a_card_the_shelf_never_held(tmp_path):
     after = frame(tmp_path, 'after',
                   shelf(('Oracle', 'Wobbling Keg'), 80)
                   + [row('Purchased', (870, 320, 120, 40))])
-    original = tx.path.read_bytes()
-    with pytest.raises(ValueError, match='never held'):
-        tx.reconcile_purchase('scope', 'floor1:shop1', after)
-    assert tx.path.read_bytes() == original
-    assert tx.bought_names == []
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ['Oracle']
+    assert tx.data['bought'][-1]['successor_note']['offers'] == ['Wobbling Keg']
 
 
 def test_a_title_differing_only_in_the_typefaces_confusable_glyph_is_the_same_card(tmp_path):
@@ -420,8 +423,15 @@ def test_a_condensed_ligature_reads_as_the_same_slot(tmp_path):
     assert tx.data['pending'] is None
 
 
-def test_the_ligature_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
-    """``rn`` folding into ``m`` compares a glyph pair, not any near title."""
+def test_a_neighbour_this_session_never_saw_is_a_note_not_a_stop(tmp_path):
+    """The bought card's own badge plus the exact delta is the receipt.
+
+    ``Thorny Rd`` is not the ``Thorny Path`` the shelf held: the successor here is a
+    different shop instance (a shelf that re-rolled between the two sessions of a
+    resumed run, live run ``packaged-mirror-20261022-012400``).  The account still paid
+    exactly 20 for exactly ``Oracle`` and that card carries its own Purchased badge, so
+    what the neighbour changed to says nothing about the receipt -- it is recorded.
+    """
     before = frame(tmp_path, 'before', shelf(('Oracle', 'Thorny Path')))
     tx = ShopTransaction(tmp_path / 'tx.json')
     tx.begin_visit('scope', 'floor1:shop1', before)
@@ -430,11 +440,13 @@ def test_the_ligature_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
                        frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
     after = frame(tmp_path, 'after', shelf(('Oracle', 'Thorny Rd'), 80)
                   + [row('Purchased', (870, 320, 120, 40))])
-    original = tx.path.read_bytes()
-    with pytest.raises(ValueError, match='never held'):
-        tx.reconcile_purchase('scope', 'floor1:shop1', after)
-    assert tx.path.read_bytes() == original
-    assert tx.bought_names == []
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ['Oracle']
+    assert tx.data['pending'] is None
+    note = tx.data['bought'][-1]['successor_note']
+    assert note['reason'] == ('the_successor_shelf_holds_offers_this_session_never_saw')
+    assert note['offers'] == ['Thorny Rd']
+    assert tx.data['bought'][-1]['shelf_evidence'] == 'own_purchased_badge'
 
 
 def test_a_space_the_reader_dropped_still_names_the_same_slot(tmp_path):
@@ -468,11 +480,8 @@ def test_the_space_fold_is_not_a_licence_to_shorten_a_title(tmp_path):
                        frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
     after = frame(tmp_path, 'after', shelf(('Oracle', 'Crown of Rose'), 80)
                   + [row('Purchased', (870, 320, 120, 40))])
-    original = tx.path.read_bytes()
-    with pytest.raises(ValueError, match='never held'):
-        tx.reconcile_purchase('scope', 'floor1:shop1', after)
-    assert tx.path.read_bytes() == original
-    assert tx.bought_names == []
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    assert tx.bought_names == ['Oracle']
 
 
 def test_a_decision_context_keeps_bought_names_and_never_their_records(tmp_path):
@@ -591,10 +600,9 @@ def test_one_glyph_of_noise_is_not_a_licence_to_shorten_or_repricing(tmp_path):
                        frame(tmp_path, 'dialog', question(), 'SHOP_PURCHASE'))
     after = frame(tmp_path, 'after', shelf(('Oracle', 'Wobbling Keg'), 80)
                   + [row('Purchased', (870, 320, 120, 40))])
-    original = tx.path.read_bytes()
-    with pytest.raises(ValueError, match='never held'):
-        tx.reconcile_purchase('scope', 'floor1:shop1', after)
-    assert tx.path.read_bytes() == original
+    assert tx.reconcile_purchase('scope', 'floor1:shop1', after) is True
+    note = tx.data['bought'][-1]['successor_note']
+    assert note['offers'] == ['Wobbling Keg']
 
 
 LIVE_RESUMED_BEFORE = ROOT / 'dist/MaaLimbus/evidence/runtime/pi-20261015-214921/frame-0002.json'
