@@ -880,6 +880,26 @@ GOLD_MARK_DROP = 44
 GOLD_MARK_MERGE = 25
 
 
+def _node_below(image, x, y, drop):
+    """The node the ring advertises is a dark hexagon; open board is not.
+
+    A warm floor paints the whole map in gold wash, so brightness alone put rings on
+    arrows and background.  What every real ring has is a dark node a fixed distance
+    under it -- and that is true even on the orange floors.
+    """
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    half = 20
+    centre_y = int(y) + int(drop)
+    y0, y1 = max(0, centre_y - half), min(height, centre_y + half)
+    x0, x1 = max(0, int(x) - half), min(width, int(x) + half)
+    if y1 - y0 < half or x1 - x0 < half:
+        return False
+    patch = cv2.cvtColor(image[y0:y1, x0:x1], cv2.COLOR_BGR2HSV)[:, :, 2]
+    return float(np.mean(patch)) <= 70.0
+
+
 def gold_marks(image):
     """Centres of the gold rings the game draws over the nodes it offers; no input.
 
@@ -913,6 +933,9 @@ def gold_marks(image):
         if area < shortest * shortest // 2:
             continue
         marks.append((int(round(centres[index][0])), int(round(centres[index][1]))))
+    if marks:
+        drop = gold_badge_drop(image)
+        marks = [point for point in marks if _node_below(image, point[0], point[1], drop)]
     marks.sort(key=lambda point: (point[1], point[0]))
     merged = []
     for point in marks:

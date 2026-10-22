@@ -2764,3 +2764,15 @@ a tight cluster.
 Evidence: `frame-0067` -> two real rings, `frame-0039` -> one real ring, `frame-0119` -> the same five
 measured rings. Dataset: 389 frames / **802 boxes / 126 negatives** (from 727/189), and
 `tests/test_map_vision.py` 54 passed in that file. Wiki: D15 continuation 5 in both languages.
+
+
+## DSH continuation: a ring is only a ring when a dark node sits under it (2026-10-21)
+
+QC over `build/qc-sheet.png` found false positives on warm floors: floor 3 paints the board in
+orange-gold wash, and `pi-20261015-191205/frame-0030` carried a box on a direction arrow. A hollow-ring
+test was measured first and refuted (a real ring's core is the gold sun glyph, coverage 0.88-0.96, the
+same as the false positive), so it was deleted.
+
+`_node_below` is the structural test that replaced it: the 40x40 patch `gold_badge_drop()` under the
+ring must average <=70 brightness. Real rings measure 12-42; arrow and wash are rejected. Dataset
+802 -> **742 boxes / 130 negatives**; `tests/test_map_vision.py` 54 passed.
