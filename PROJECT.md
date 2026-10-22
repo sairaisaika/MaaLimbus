@@ -2798,3 +2798,23 @@ The ceiling is the labeler, not the model. Beating the rule needs labels from a 
 not: hand-corrected frames, or the node-hexagon structure read directly instead of the ring
 brightness. Correction of `maalmibus` typo aside, nothing was enabled in the runtime, and the loop
 still reads the rule.
+
+
+## DSH continuation: the ring-to-node offset is assumed, not measured (2026-10-21)
+
+Two more discriminators were measured and refuted before touching code again:
+
+- *Angular rim coverage* (how much of a 12-sector ring at r=28..42 around the node centre is lit):
+  real nodes in `pi-20261021-185251/frame-0119` score 0.17-0.42, and the warm-floor false positive in
+  `pi-20261015-191205/frame-0030` scores **0.50** -- higher than every real node. No separation: on a
+  warm floor the whole board is lit, so a rim is not locally distinguishable by brightness.
+- *Temporal persistence*: the warm-floor mark (890,587) is identical in frames 0020-0025, so it is a
+  static object and not the animating chevron. Persistence cannot separate it either.
+
+What the numbers do point at is the constant itself: `gold_badge_drop` returns one global 44 px for
+every floor, and the box it produces in that frame (890,631) does not sit on the node the ring at
+(890,587) belongs to. The offset is therefore an assumption, not a measurement, and on floor 3's
+layout it is likely wrong -- which mislabels nodes rather than merely missing them.
+
+Next: derive the offset per frame from the lattice (the node is the darkest lattice point below the
+ring) instead of trusting a constant, then re-export and re-check the warm floor.
