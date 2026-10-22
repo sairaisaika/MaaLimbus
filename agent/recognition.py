@@ -1762,9 +1762,9 @@ class MainTaskAction(CustomAction):
                             # D32: the gift target belongs to the saved team's own
                             # systems.  Without this the run falls back to the constant
                             # `bleed`, which is the wrong build for a charge/tremor team.
-                            from maalimbus.team_gift_keyword import from_active_team
-                            keyword=from_active_team(data_directory(ROOT))
-                            if keyword:loop_params['gift_keyword']=keyword
+                            from maalimbus.team_gift_keyword import systems
+                            names=systems(data_directory(ROOT))
+                            if names:loop_params['gift_keyword']='+'.join(names)
                         from maalimbus.shop_settings import FIELDS
                         for name,field in zip(('MirrorShopPolicy','MirrorShopRefreshLimit','MirrorShopCoinReserve'),FIELDS):
                             choice=context.get_node_data(name)['attach'][field]

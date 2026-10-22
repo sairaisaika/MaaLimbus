@@ -39,11 +39,21 @@ def wanted(plan, keyword, *, fallback=('Wound Clerid',)):
     An attribute with no list of its own falls back to ``default``, and a plan with
     neither falls back to the names the player already confirmed by hand.
     """
-    key = (keyword or '').strip().lower()
+    # A team can be built around more than one system (the charge+tremor team is), so
+    # `keyword` is either one name or several joined by '+' -- "charge+tremor" asks for
+    # both, first system first, instead of silently honouring only one of them.
+    parts = ([keyword] if isinstance(keyword, str) else list(keyword or ()))
+    parts = [part for chunk in parts for part in str(chunk).split('+') if part.strip()]
     teams = {str(name).strip().lower(): list(names)
              for name, names in (plan or {}).get('teams', {}).items()}
-    if key and teams.get(key):
-        return teams[key]
+    chosen, seen = [], set()
+    for part in parts:
+        for name in teams.get(part.strip().lower(), ()):
+            if name not in seen:
+                seen.add(name)
+                chosen.append(name)
+    if chosen:
+        return chosen
     default = list((plan or {}).get('default') or [])
     return default or list(fallback)
 

@@ -3143,3 +3143,20 @@ Measured on `build/t94-now.png`: the cyan edges are `H≈95-98, S≈220-250, V�
 
 边界：平移只让读取器**有机会**看全整层，不保证那一步可点；第 3 层那两步是否另有原因仍未证实。
 
+## D32 implementation: the team the task setting names, and every system it is built around (2026-10-22)
+
+决策记的是"礼物目标属于队伍，而不属于常量"，落地时有两处必须比决策写得更细。
+
+**队伍来自任务设置，不是账本。** 第一版从 `user-run-ledger.json` 的 `active.team` 取槽位，那是**上一局留下的记录**。
+玩家在 GUI 里点任务开始时，游戏按任务设置自己切队（`mirror_team_mode = single`、`mirror_single_team = 2`），
+所以 `configured_slot()` 优先读这两项，只有 `rotation` 模式才回退到账本。runner 因此不需要持有队伍——它只需要知道
+"任务设置说这局是几号位"。
+
+**充震队不能被压成一个词。** 第一版取 `sorted(队伍体系)[0]`，等于又在"充"和"震"之间替玩家做了一次选择，跟写死
+`bleed` 是同一类错误。现在 `systems()` 返回全部体系（`('charge','tremor')`），`gift_plan.wanted()` 接受以 `+` 连接
+或直接传入的集合：先到先得、去重、全无序时回退 `default`。`from_active_team()` 保留单值语义，只给仍只吃单个关键词的
+调用方用。
+
+测试：`tests/test_team_gift_keyword.py` 8 条（含"任务设置优先于账本""rotation 仍跟账本""集合不丢体系"）、
+`tests/test_gift_plan.py` 新增 3 条（多体系合并、跨体系重复只出现一次、未知体系回退默认），全量 `1832 passed`。
+
