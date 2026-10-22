@@ -671,3 +671,15 @@ flowchart LR
 
 已知限制：`MAP_PROGRESS_CONTROL` 来自单帧目测，只在一个分辨率上验证过；`plan_map` 目前只发起
 "打开进度控件"这一步，`Dungeon Progress` 里的 `Resume` 仍由后续帧的常规计划处理。
+
+
+## 9.3.15 恢复链的最后一环：进度面板上的 Continue 要有锚点
+
+`window.plan_step` 对 `DUNGEON_PROGRESS` 早有分支，只按 `dungeon_progress.continue_button`
+并且"没有锚点就不猜"。但真机 `packaged-mirror-20261022-084358` 显示：恢复计划打开了面板，
+随后立刻 `continue_button_not_anchored`——分支在，**没人绑定**。
+
+现在 runner 在该页从本帧 OCR 里绑定文本为 `continue` 的那一行，`Forfeit` 一律不绑。
+面板上五个按钮里只有它继续当前探索，`Forfeit` 会结束这一局，`Config` 会中途改设置。
+
+这次修复本身也留下一条教训：新增页面前先检索是否已有分支。本轮为此多写了一个重复分支并回滚。

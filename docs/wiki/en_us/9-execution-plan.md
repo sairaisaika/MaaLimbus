@@ -682,3 +682,18 @@ produced only 300-2000 px of animation, and the first click after it opened the 
 Known limits: `MAP_PROGRESS_CONTROL` came from a single frame and is verified at one resolution
 only, and `plan_map` currently only issues "open the progress control"; `Resume` inside
 `Dungeon Progress` is still handled by the ordinary plan on the following frames.
+
+
+## 9.3.15 The last link of the resume chain: the panel's Continue needs an anchor
+
+`window.plan_step` has long had a `DUNGEON_PROGRESS` branch that presses only
+`dungeon_progress.continue_button` and refuses to guess without an anchor. Live run
+`packaged-mirror-20261022-084358` shows the resume plan opening the panel and then hitting
+`continue_button_not_anchored` immediately: the branch existed, nothing bound it.
+
+The runner now binds the OCR row whose text is `continue` on that page, and never `Forfeit`:
+of the panel's five buttons only Continue continues the current exploration, `Forfeit` ends
+the run and `Config` changes settings mid-run.
+
+The fix carries its own lesson: search for an existing branch before adding a page. This
+round wrote a duplicate branch first and rolled it back.

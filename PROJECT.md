@@ -3255,3 +3255,13 @@ Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Ac
 
 诚实标注：`MAP_PROGRESS_CONTROL` 由单帧目测得出，仅一个分辨率验证过；`Resume` 本身仍由后续帧处理，
 本改动只负责把「再点一个节点」换成「打开进度控件」。
+
+
+## DSH continuation: the resume chain now completes (2026-10-22)
+
+`8e09153` 把恢复链补全。真机 `packaged-mirror-20261022-084358` 证明：streak 命名 → 恢复计划 →
+点进度控件 → `DUNGEON_PROGRESS` 全部按预期发生，只剩最后一环 `continue_button_not_anchored`。
+根因是分支早就有、锚点没人绑。runner 现在从本帧 OCR 绑定 `continue` 行，`Forfeit` 不绑。
+
+测试：`tests/test_window.py::test_the_progress_panel_resumes_and_never_offers_another_control`。
+全量 `1840 passed`。
