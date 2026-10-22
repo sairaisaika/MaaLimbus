@@ -2925,6 +2925,7 @@ class MirrorRunner:
             # live run build/window-run76.json opened the same gift tray eight times
             # because a click that did open something was never remembered.
             state['map_progress'].note_click(plan['target'])
+            state['map_pending'] = list(plan['target'])
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)
         # Remember which of the two battle intents went out, so a page that comes back
         # with the same turn can be answered with the other one instead of a repeat.
@@ -3288,7 +3289,20 @@ class MirrorRunner:
                       attempt=state['map_attempts'],
                       remaining=len([box for box in candidates
                                      if tuple(box) != tuple(plan['target'])]))
+            # This click is refuted by the game itself: the page never left MAP. Record
+            # it as a labelled negative while the judgement is still local -- the 91 map
+            # clicks in the archived runs left 79 of them with no verdict at all, and an
+            # unlabelled click cannot teach a reader anything.
+            self.note('map_click_result', target=list(plan['target']), page=page,
+                      outcome='rejected',
+                      reason='the_page_stayed_on_the_map_after_the_click')
             return self._result(page, plan.get('target'), True, None, waiting=True)
+        # A click the game did take: the page it was aimed at arrived. This is the only
+        # positive label the loop can earn without being told the answer.
+        if page != 'MAP' and state.get('map_pending'):
+            self.note('map_click_result', target=state['map_pending'], page=page,
+                      outcome='accepted', reason='the_click_opened_the_next_page')
+            state['map_pending'] = None
         state['map_attempts'] = 0
         if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
         state['page_attempts'] = 0
