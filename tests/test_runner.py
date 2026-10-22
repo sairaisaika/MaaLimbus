@@ -175,8 +175,10 @@ def test_a_run_over_the_claim_pages_sends_one_click_per_step(tmp_path):
 
 
 def test_a_run_waits_out_an_unreadable_page_and_then_stops(tmp_path):
+    # `recovery_tries: 0` is what makes the wait the whole answer: with a ladder the
+    # page first gets its gestures, which the next test covers.
     runner, device = window(tmp_path, [UNREADABLE_FRAME] * 6,
-                            {'rounds': 1, 'unknown_rounds': 2})
+                            {'rounds': 1, 'unknown_rounds': 2, 'recovery_tries': 0})
     result = runner.run(steps=5, interval=0.0, round_limit=5)
 
     assert result['passed'] is False

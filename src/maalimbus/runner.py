@@ -1806,6 +1806,15 @@ class MirrorRunner:
             state['unknown_seen'] += 1
             turn_waiting=time.monotonic()<state.get('turn_wait_until',0)
             if state['unknown_seen'] > settings.unknown_rounds and not turn_waiting:
+                # A page this reader cannot name is still one view: give it the same
+                # ladder of gestures before calling the run unreadable.  A battle that
+                # is mid-animation and a screen we simply do not know yet look alike
+                # from here, and both answer a tap or a drag.
+                waiter = dict(reason='page_unreadable_after_waiting')
+                recovered = self._recover(page, state, waiter, {})
+                if recovered is not None:
+                    state['unknown_seen'] = 0
+                    return recovered
                 stopped = self._record(page, record, frame, candidates, None,
                                        'page_unreadable_after_waiting')
                 return self._result(page, None, False, stopped)
