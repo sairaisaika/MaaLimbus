@@ -1441,3 +1441,13 @@ def test_an_animation_that_moves_does_not_spend_the_unknown_budget(tmp_path):
     assert looks_like_transition(cutscene) is True
     page = {'ocr': [{'text': t} for t in ['Some Event', 'Enter', 'Cancel']]}
     assert looks_like_transition(page) is False
+
+
+def test_a_second_submit_from_the_same_turn_means_the_first_was_ignored():
+    from maalimbus.runner import submit_was_ignored
+    assert submit_was_ignored('3', '3', 30.0) is True
+    assert submit_was_ignored('3', '4', 30.0) is False      # the turn moved: it was accepted
+    assert submit_was_ignored('3', '3', 5.0) is False       # still inside the window
+    assert submit_was_ignored(None, '3', 30.0) is False     # nothing was submitted yet
+    assert submit_was_ignored('3', None, 30.0) is False     # the HUD did not read a turn
+    assert submit_was_ignored(' 3 ', '3', 25.5) is True     # same number, whitespace only

@@ -302,6 +302,22 @@ RECOVERY_DRAG = (960, 380, 960, 760)
 FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE')
 """Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
 
+SUBMIT_IGNORED_WINDOW_S = 25.0
+
+
+def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WINDOW_S):
+    """True when a second submit is about to be sent from the turn the first one left.
+
+    The page name cannot answer this: the submit plan expects BATTLE_HUD, BATTLE_PLANNING
+    and UNKNOWN, so a board that ignored the click looks exactly like one that accepted it.
+    The HUD's own turn counter is read every frame and is the only fact that separates
+    them; 25 s is well under the measured 43 s a real turn takes.
+    """
+    if previous_turn is None or turn is None:
+        return False
+    return str(turn).strip() == str(previous_turn).strip() and float(elapsed) > float(window)
+
+
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
@@ -3039,9 +3055,8 @@ class MirrorRunner:
             # this plan so the swallowed-click detector at the end of this method can never
             # fire.  The HUD's own turn counter is the only fact that separates the two,
             # and it is read every frame, so remember it here and judge it on the next one.
-            if (state.get('submit_turn') is not None
-                    and record.get('turn')==state.get('submit_turn')
-                    and time.monotonic()-float(state.get('submit_turn_at') or 0) > 25.0):
+            if submit_was_ignored(state.get('submit_turn'),record.get('turn'),
+                    time.monotonic()-float(state.get('submit_turn_at') or 0)):
                 # Submitting again from the same turn number is the measured stall: the
                 # previous submit was ignored.  This sends nothing and changes no page; it
                 # only makes the stall a recorded fact instead of a silent one.
