@@ -2776,3 +2776,25 @@ same as the false positive), so it was deleted.
 `_node_below` is the structural test that replaced it: the 40x40 patch `gold_badge_drop()` under the
 ring must average <=70 brightness. Real rings measure 12-42; arrow and wash are rejected. Dataset
 802 -> **742 boxes / 130 negatives**; `tests/test_map_vision.py` 54 passed.
+
+
+## DSH continuation: the detector agrees with the rule, so the labels are the ceiling (2026-10-21)
+
+Comparison on the same frames, detector at its third epoch (`build/map-model/run/weights/best.pt`,
+yolo11n, imgsz 960) against `maalmibus.map_vision.gold_marks` -- the artefact is
+`build/compare-rule-model.png`:
+
+- `pi-20261021-185251/frame-0119` (dark floor): rule 5, model 5, and every model box sits on a rule
+  mark. Identical answer.
+- `pi-20261015-191205/frame-0030` (warm floor 3): rule 1 -- on the grey **chevron arrow**, not on a
+  ringed node -- and the model 0. Neither reads the floor, and the rule is simply wrong here.
+
+So the detector does not beat the rule; it reproduces it. That is what the provenance predicts: the
+labels *are* the rule's output, so a student can only be as good as its teacher, and the warm-floor
+false positive is now baked into the labels as a negative. Enabling the network today would add a
+torch/ultralytics dependency for identical output -- there is no case for it yet.
+
+The ceiling is the labeler, not the model. Beating the rule needs labels from a source the rule is
+not: hand-corrected frames, or the node-hexagon structure read directly instead of the ring
+brightness. Correction of `maalmibus` typo aside, nothing was enabled in the runtime, and the loop
+still reads the rule.
