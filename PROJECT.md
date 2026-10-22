@@ -2907,3 +2907,25 @@ because a warm floor makes the whole board gold and lit.
    -- the enable criterion is beating the rule on the frames the rule gets wrong, not agreeing with it.
 3. Live runs (`tools/verify_packaged_mirror_loop.py --authorize`) need server maintenance to end and the
    Limbus client front-most in MuMu; MuMu currently fronts another game.
+
+## DSH iteration: one end, one reason; and a revived grace scope keeps its purchases (2026-10-22)
+
+`维护结束了，你继续吧` 之后的两次真机运行各暴露一半问题，都已修在源头，并各带一条可复跑的判据。
+
+第一半是**一次会话被记成两次结束**。`packaged-mirror-20261021-204444` 的停止理由是
+`the_task_raised_before_the_next_input`，但那次任务真正失败是因为预算到点：循环在 `except` 里
+`_end_session(...)` 之后 `continue`，下一圈看到 `session_ended` 又写一条 `mirror_loop_stopped`，
+于是理由由症状覆盖了原因。`src/maalimbus/runner.py` 的循环收口现在在 `except` 里自己判定：
+已过调用方截止时间记 `loop_deadline_exceeded`，否则记任务本身，然后 `break`。判据
+`tests/test_agent_loop.py::test_a_run_out_of_budget_stops_bounded` 现在要求恰好一条停止事件。
+
+第二半是**复活的会话被当成余额被篡改**。同一个 run 的第二层被
+`Grace balance changed outside verified purchases` 挡住：作用域保存的余额是会话第一次读到的数，
+崩掉之后货币会因领奖与维护而变化，而复活会话复用了同一个 `run_id`。放宽 `validate()` 先被两个老测试
+当场否掉（同一作用域花过钱后漂移必须仍报错），于是改在入口：`GraceTransaction.reset_baseline(reason)`
+只把 `available` 置空并记 `baseline_resets`，`selected`/`spent`/`pending` 保留，有 `pending` 时不动；
+`runner.py` 入口按作用域分流（不同 → `begin()`，相同 → `reset_baseline`）。
+
+测试：`tests/test_agent_loop.py` 16 passed、`tests/test_grace_transaction.py` 11 passed、
+全量 `1792 passed in 156.27s`。提交 `f99fa8b`、`edc005c`。Wiki：决策 `D17`（中英各一节）。
+
