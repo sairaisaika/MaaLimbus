@@ -10,8 +10,16 @@ class InitialTransaction:
             if count[0]!=0:raise ValueError('Initial choices have no scoped proof')
             d=dict(scope=scope,keyword=keyword,selected=[],pending=None,proofs=[str(proof)])
             self.data=d;write_json(self.path,d)
-        if d['keyword']!=keyword or d['pending'] or count[0]!=len(d['selected']):
+        if d['pending'] or count[0]!=len(d['selected']):
             raise ValueError('Initial gift scope, keyword, pending or counter mismatch')
+        if d['keyword']!=keyword:
+            # The keyword is a purchase *preference*, not a promise: a resumed scope may
+            # legitimately carry a different one once the team or its systems change
+            # (`charge` -> `charge+tremor` did exactly that).  A pending gift and a
+            # disagreeing counter are still refusals, because those are promises.
+            d.setdefault('keyword_history',[]).append(d['keyword'])
+            d['keyword']=keyword
+            write_json(self.path,d)
         return d
     def rebase_visible(self,scope,count,proof):
         """Adopt the counter the page shows when a revived scope's record is stale.
