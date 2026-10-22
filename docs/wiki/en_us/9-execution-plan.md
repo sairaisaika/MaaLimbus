@@ -648,3 +648,21 @@ The hypotheses the data refuted are recorded here too: the badge point is alread
 constant is wrong by construction; and thresholding orange by area yields badge icons, not edges.
 The detector's centres on `frame-0034` coincide with `gold_marks` because the labels come from the
 rule -- what has to change here is the labelling target, not the recogniser.
+
+
+## 9.3.13 An inferred lattice point is no longer a node; a refusal streak must say the exploration is not resumed
+
+`lattice_step` candidates used to treat a computed lattice point as a node centre.
+`frame-0057` of `packaged-mirror-20261022-080630` shows some of those points landing inside
+a node and others in empty space, with nothing in the frame to tell them apart. Each lattice
+point is now snapped onto the nearest badge centre within 120 px (the badge centre is the node
+the game offers, see the `badge_mark` section) and dropped when there is none: better one click
+fewer than a click on bare background.
+
+A refused map click has two causes the frame cannot separate: the candidate was wrong, or the
+exploration is not resumed yet. The controlled experiment (one device, one candidate set) gives
+the criterion: before the resume nine clicks produced only 300-2000 px of animation, and the
+first click after it opened the node panel (107860 px). `map_refusal_streak()` therefore records
+`map_clicks_refused_while_the_exploration_may_be_unresumed` at the third consecutive refusal and
+`accepted` clears it. It only **names** the case; the resume navigation itself is not implemented
+and remains a known gap.
