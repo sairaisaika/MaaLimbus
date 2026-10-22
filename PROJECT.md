@@ -2929,3 +2929,19 @@ because a warm floor makes the whole board gold and lit.
 测试：`tests/test_agent_loop.py` 16 passed、`tests/test_grace_transaction.py` 11 passed、
 全量 `1792 passed in 156.27s`。提交 `f99fa8b`、`edc005c`。Wiki：决策 `D17`（中英各一节）。
 
+## DSH iteration: the battle HUD names itself in the classifier (2026-10-22)
+
+第 2 层的一次真机战斗帧（`evidence/runtime/packaged-mirror-20261022-010654/frame-0154.json`）里
+`WAVE 1/1`、`TURN 4`、`Win/Rate/Damage` 全都干净可读，`maalimbus.battle_vision.battle_hud()` 也认得出，
+但 `maalimbus.vision.classify()` 返回 `UNKNOWN`，整回合被当成读不出的页面，只能靠手势梯子绕过。
+
+原因不是识别能力不足，而是**页面名的判定散落在两处**：`agent/recognition.py` 有一个 `battle_hud` 分支，
+`vision.classify()` 没有。现在把战斗 HUD 的自我标识放进 `classify()` 本身（`src/maalimbus/vision.py`，
+在最后返回 `UNKNOWN` 之前），页面命名回到单一入口。
+
+判据：`tests/test_vision.py::test_a_battle_frame_is_named_by_its_own_battle_hud`（直接吃这一帧的 OCR，
+断言 `BATTLE_HUD`；证据不在时跳过）。全量 `1791 passed`，两条失败是控制器租约测试（真机在跑时本该失败）。
+
+同轮还有一处防线：读不出的页面不再直接停窗，先花一次 `_recover` 手势（`runner.py` 的
+`page_unreadable_after_waiting` 分支），实机日志已出现 `window_recovery page=MAP gesture=pinch_out`。
+
