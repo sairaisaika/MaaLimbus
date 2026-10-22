@@ -128,3 +128,23 @@ def test_every_route_target_is_a_node_that_exists():
         if target not in nodes
     })
     assert missing == [], 'routes pointing at missing nodes: %s' % missing
+
+
+def test_a_card_label_read_in_two_rows_still_has_one_click_box():
+    """The DRIVE page's card label is sometimes OCR'd as two stacked rows.
+
+    Live `evidence/runtime/packaged-mirror-20261021-210039`: the Mirror Dungeons
+    card was on screen, the page was named DRIVE, and the recognition node
+    answered with no box at all -- so the window repeated the same click until the
+    loop stopped on `the_same_plan_repeated`. Rows inside one card band are joined
+    into a single box; a row from another card is not swallowed.
+    """
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
+    from recognition import LimbusRecognition
+
+    band = LimbusRecognition.card_box([(220, 470, 120, 30), (222, 512, 150, 30),
+                                       (220, 40, 120, 30)])
+    assert band == (220, 470, 152, 72)
+    assert LimbusRecognition.card_box([(220, 470, 120, 30)]) == (220, 470, 120, 30)

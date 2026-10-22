@@ -101,6 +101,25 @@ class Journal:
 
 
 class LimbusRecognition(CustomRecognition):
+    @staticmethod
+    def card_box(rows, band=200):
+        """Join the rows one card label was read as into a single click box.
+
+        A label is sometimes OCR'd as two stacked rows ('Mirror' / 'Dungeons'),
+        which used to answer "not exactly one match" and leave the node without a
+        click box -- the DRIVE page then repeated its plan until the loop stopped
+        on `the_same_plan_repeated` (live
+        evidence/runtime/packaged-mirror-20261021-210039). Rows whose centres sit
+        within ``band`` pixels of the first row belong to the same card; a row from
+        another card is left out rather than swallowed.
+        """
+        first = rows[0]
+        same = [b for b in rows
+                if abs((b[1] + b[3] / 2) - (first[1] + first[3] / 2)) <= band]
+        x0 = min(b[0] for b in same); y0 = min(b[1] for b in same)
+        x1 = max(b[0] + b[2] for b in same); y1 = max(b[1] + b[3] for b in same)
+        return (x0, y0, x1 - x0, y1 - y0)
+
     def __init__(self, locale='en', journal=None):
         super().__init__()
         self.locale = json.loads((ROOT / f'assets/resource/{locale}/locale.json').read_text(encoding='utf-8'))
@@ -798,9 +817,16 @@ class LimbusRecognition(CustomRecognition):
         elif 'token' in params:
             matches = find(records, self.locale[params['token']], params['roi'],
                            (argv.image.shape[1], argv.image.shape[0]))
-            if len(matches) != 1:
+            if not matches:
                 return None
-            box = inset_box(matches[0].box)
+            # A card label is sometimes read as two stacked rows ('Mirror' /
+            # 'Dungeons'), which used to read as "not one match" and leave the node
+            # with no click box at all -- the DRIVE page then repeated the same
+            # plan until the loop gave up (`the_same_plan_repeated`, live
+            # evidence/runtime/packaged-mirror-20261021-210039). Rows that sit
+            # within one card band are joined instead; anything further away is a
+            # different card and is left alone.
+            box = inset_box(self.card_box([m.box for m in matches]))
             # Maa performs the click; random delay is an explicit bounded node override.
             delay = random.randint(180, 480)
             context.override_pipeline({argv.node_name: {'pre_delay': delay}})
