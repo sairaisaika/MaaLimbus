@@ -928,52 +928,72 @@ def gold_marks(image):
 # 1920-wide frames, two rows 160 px, and a diagonal neighbour 192x160.  Measured on
 # `evidence/runtime/pi-20261021-185251/frame-0119.png` -- (863,404), (1055,403),
 # (1247,403), (1247,564), (1055,723) -- and on the older floor in `pi-20261012-180805`.
-LATTICE_STEPS = ((192, 0), (0, 160), (192, 160), (96, 80))
+LATTICE_STEPS = ((192, 0), (0, 160), (192, 160))
 LATTICE_TOLERANCE = 0.09
+# Below the tightest spacing two separate nodes can have, so two marks closer than this
+# are one object the reader saw twice -- the player's own token is gold and answers twice.
+TIGHT_MARK = 150
 
 
 def lattice_consistent(marks, width=1920, tolerance=LATTICE_TOLERANCE):
-    """Keep the gold rings that sit on the map's own lattice.
+    """Keep the gold rings that stand at this map's node spacing.
 
-    The ring is the game's word that a node is walkable, so this is not a second
-    opinion about what a node looks like -- it is the check that the mark belongs to
-    *this* map's node grid rather than being some other gold artwork caught by the
-    same hue. A frame holding one mark cannot be judged and keeps it; a frame whose
-    marks share no spacing at all is kept whole, because dropping every candidate is
-    the failure this reader exists to prevent.
+    Three things are decided here, in this order:
+
+    * a mark within :data:`TIGHT_MARK` of another is one object read twice (the party
+      marker is gold too), and *all* of that cluster's marks go;
+    * a survivor counts when it stands at 1-3 whole lattice steps from another survivor
+      in either axis: a row can skip nodes the floor is not offering, so the gap is a
+      small multiple of the spacing, not exactly the spacing;
+    * when no pair fits and geometry says nothing, everything that survived is handed on.
+      Deleting every candidate is the failure this reader exists to prevent.
     """
     points = [(int(x), int(y)) for x, y in marks]
     if len(points) < 2:
         return points
     scale = float(width) / 1920.0
-    # Tolerance has to scale with the step it is judging, not with the frame: a looser
-    # number than a fifth of the row spacing lets the player's own token pass as a pair
-    # of nodes, which is exactly the false label this check exists to stop.
-    steps = [(abs(int(round(dx * scale))), abs(int(round(dy * scale))))
-             for dx, dy in LATTICE_STEPS]
-    kept = []
+    tight = int(round(TIGHT_MARK * scale))
+
+    def gaps_to(point, other):
+        return abs(point[0] - other[0]), abs(point[1] - other[1])
+
+    clustered = set()
     for index, point in enumerate(points):
         for other_index, other in enumerate(points):
+            if other_index <= index:
+                continue
+            gap_x, gap_y = gaps_to(point, other)
+            if max(gap_x, gap_y) < tight:
+                clustered.add(index)
+                clustered.add(other_index)
+    survivors = [point for index, point in enumerate(points) if index not in clustered]
+    if len(survivors) < 2:
+        return survivors
+    steps = [(int(round(dx * scale)), int(round(dy * scale))) for dx, dy in LATTICE_STEPS]
+    kept = []
+    for index, point in enumerate(survivors):
+        for other_index, other in enumerate(survivors):
             if other_index == index:
                 continue
-            gap = (abs(point[0] - other[0]), abs(point[1] - other[1]))
-            if any(abs(gap[0] - want_x) <= max(8, int(round(want_x * tolerance)))
-                   and abs(gap[1] - want_y) <= max(8, int(round(want_y * tolerance)))
-                   and (gap[0] or gap[1])
-                   for want_x, want_y in steps):
+            gap_x, gap_y = gaps_to(point, other)
+            fits = False
+            for want_x, want_y in steps:
+                for kx in range(1, 4) if want_x else (0,):
+                    for ky in range(1, 4) if want_y else (0,):
+                        if not kx and not ky:
+                            continue
+                        if abs(gap_x - kx * want_x) <= max(8, int(round(kx * want_x * tolerance))) \
+                                and abs(gap_y - ky * want_y) <= max(8, int(round(ky * want_y * tolerance))):
+                            fits = True
+                            break
+                    if fits:
+                        break
+                if fits:
+                    break
+            if fits:
                 kept.append(point)
                 break
-    if kept:
-        return kept
-    # Nothing here stands at node spacing.  That is either a floor layout nobody has
-    # seen yet or -- the case this branch exists for -- one object read twice: the
-    # player's own token is gold, and its flame and its lantern both answer the hue.
-    # Two nodes cannot be 90 px apart, so a single tight cluster is not a set of nodes.
-    nearest = min((max(abs(a[0] - b[0]), abs(a[1] - b[1]))
-                   for i, a in enumerate(points) for b in points[i + 1:]), default=None)
-    if nearest is not None and nearest < int(round(90 * scale)):
-        return []
-    return points
+    return kept or survivors
 
 
 def gold_badge_drop(image):

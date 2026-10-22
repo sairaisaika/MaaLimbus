@@ -2745,3 +2745,22 @@ nodes. Tests: `tests/test_map_vision.py::test_the_players_own_gold_token_is_not_
 Open, and the next thing to fix: frames such as `pi-20261021-185251/frame-0067` still show gold rings
 yet now read as empty, so the tightening overshot -- the reader has to tell "the ring sits outside the
 candidate band" apart from "this floor uses a different lattice family" instead of returning nothing.
+
+
+## DSH continuation: lattice spacing is a multiple, and a tight cluster is one object (2026-10-21)
+
+Continuation 4 tightened the lattice and overshot: frames like `pi-20261021-185251/frame-0067`
+still show gold rings yet read empty. The raw marks there were (1470,360), (702,365), (669,403),
+(738,403), (1086,679) -- three on the player's own token, two real rings, and those two sit
+(384,319) apart, exactly twice 192x160, because the node between them is not offered this floor.
+
+`lattice_consistent` now decides in a fixed order: drop every mark within `TIGHT_MARK` (150 px) of
+another, since that is one object read twice and the player marker is gold; then a survivor counts at
+1-3 whole lattice steps from another survivor, multiples allowed per axis; then, if no pair fits,
+hand on everything that survived instead of deleting the candidates. The `(96,80)` diagonal was
+removed -- it was a guess that was never measured, and keeping it would make a genuine node look like
+a tight cluster.
+
+Evidence: `frame-0067` -> two real rings, `frame-0039` -> one real ring, `frame-0119` -> the same five
+measured rings. Dataset: 389 frames / **802 boxes / 126 negatives** (from 727/189), and
+`tests/test_map_vision.py` 54 passed in that file. Wiki: D15 continuation 5 in both languages.
