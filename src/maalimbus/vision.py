@@ -113,11 +113,6 @@ def classify(records, locale, size):
     # loop may leave rather than as an unknown dialog to wait out.
     from .dungeon_progress import (PANEL_ROI as _PANEL, SUMMARY_TITLE as _SUMMARY,
                                    TITLE as _TITLE)
-    # The end-of-run summary comes first: it is a terminal page, and its left
-    # column also carries the words `Dungeon Progress`, so a panel check that ran
-    # before this one would swallow the receipt as a pause screen.
-    if find(records, _SUMMARY.pattern, (.05, .08, .95, .95), size, .7):
-        return 'EXPLORATION_COMPLETE'
     if (find(records, _TITLE.pattern, _PANEL, size, .7)
             and find(records, r'^Continue$', _PANEL, size, .8)):
         return 'DUNGEON_PROGRESS'
@@ -245,6 +240,18 @@ def classify(records, locale, size):
                     for label in leave_labels)
             and find(records, locale.get('claim', r'(?!)'), (.61, .70, .70, .77), size, .85)):
         return 'RUN_REWARD_DIALOG'
+    # The end-of-run summary is a terminal page: it carries `Dungeon Progress` in
+    # its left column too, so it must be named before the pause-panel check, and a
+    # run that did NOT clear the dungeon must never reach its claim buttons -- the
+    # summary's own `Total Progress` is what tells the two apart.
+    from .dungeon_progress import exploration_summary as _summary_of
+    # A summary that states anything short of 100% is a run that was lost, and a
+    # lost run's rewards are never claimed; one whose percentage cannot be read is
+    # left to the claim branch rather than guessed at.
+    _summary = _summary_of(records, size)
+    _percent = (_summary or {}).get('total_percent')
+    if _percent is not None and _percent < 100:
+        return 'EXPLORATION_COMPLETE'
     if (find(records, locale.get('exploration', r'(?!)'), (.10, .11, .28, .20), size, .85)
             and find(records, locale.get('complete', r'(?!)'), (.11, .16, .25, .24), size, .85)
             and find(records, locale.get('claim', r'(?!)'), (.86, .78, .93, .85), size, .85)

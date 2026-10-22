@@ -3,9 +3,11 @@ from maalimbus.dungeon_progress import (dungeon_progress, exploration_summary,
                                         steps_left)
 from maalimbus.vision import Text
 
+import json
+from pathlib import Path
+
 SIZE = (1280, 720)
-LOCALE = {'tutorial': r'(?!)', 'forbidden_dialog': r'(?!)', 'expired': r'(?!)',
-          'defeat': r'(?!)'}
+LOCALE = json.loads((Path(__file__).resolve().parents[1] / 'assets/resource/en/locale.json').read_text(encoding='utf-8'))
 
 
 def box(cx, cy, bw=80, bh=26):
@@ -76,10 +78,9 @@ def test_no_panel_is_not_a_panel_that_failed_to_read():
 
 def test_the_pause_panel_is_a_page_the_loop_may_leave_not_an_unknown_dialog():
     """Live 2026-10-22: the run was parked on this panel and looked like a dead floor."""
-    from maalimbus.vision import classify
-
+    
     records = panel() + [Text('Continue', box(645, 452, 120, 30), .95)]
-    assert classify(records, LOCALE, SIZE) == 'DUNGEON_PROGRESS'
+    assert classify_of(records) == 'DUNGEON_PROGRESS'
 
 
 def test_a_panel_without_its_continue_is_still_readable_progress():
@@ -122,10 +123,40 @@ def test_the_end_of_run_summary_states_where_the_run_really_got():
     assert 'reason' not in payload
 
 
+def classify_of(records, locale=None, size=None):
+    from maalimbus.vision import classify
+    return classify(records, locale or LOCALE, size or SIZE)
+
+
 def test_the_summary_is_not_read_as_the_pause_panel_under_it():
     """Both screens print `Dungeon Progress`; only one of them ends the run."""
-    from maalimbus.vision import classify
+    
+    assert classify_of(summary()) == 'EXPLORATION_COMPLETE'
+    assert classify_of(panel() + [Text('Continue', box(687, 452, 120, 30), .95)]) == 'DUNGEON_PROGRESS'
 
-    assert classify(summary(), LOCALE, SIZE) == 'EXPLORATION_COMPLETE'
-    assert classify(panel() + [Text('Continue', box(687, 452, 120, 30), .95)],
-                    LOCALE, SIZE) == 'DUNGEON_PROGRESS'
+
+def test_a_lost_run_never_reaches_its_claim_buttons():
+    """A defeat leaves the same summary a clear does; only its percentage differs.
+
+    Live 2026-10-21 (`build/after-defeat.png`): the run was defeated on Floor 1
+    [HARD] at 4/6 and the summary still offered the Claim Rewards button. Those
+    rewards belong to a run that was completed, so a summary that reports less
+    than 100% is named as the end of the run and refused with no input at all.
+    """
+    from maalimbus.window import plan_step
+
+    page = classify_of(summary())
+    assert page == 'EXPLORATION_COMPLETE'
+    step = plan_step(page)
+    assert step['action'] == 'record'
+    assert step['target'] is None
+    assert step['reason'] == 'the_dungeon_run_ended_at_its_summary'
+
+
+def test_a_cleared_run_still_claims_its_rewards():
+    cleared = [t if t.text != '13%' else Text('100%', t.box, .95) for t in summary()]
+    # a cleared summary also offers the button this whole rule is about
+    cleared += [Text('Claim', box(1128, 578, 60, 30), .95),
+                Text('Rewards', box(1128, 606, 96, 28), .95)]
+    assert exploration_summary(cleared, SIZE)['total_percent'] == 100
+    assert classify_of(cleared) == 'RUN_CLAIM'
