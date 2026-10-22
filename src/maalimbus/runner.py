@@ -1734,13 +1734,18 @@ class MirrorRunner:
             choice_index = preferred_choice(options,
                                             gift_hints(record.get('ocr'),
                                                        record.get('size')))
-            from .event_vision import cyborg_city_choice,garden_refusal_choice
+            from .event_vision import (cyborg_city_choice, garden_refusal_choice,
+                                       refusal_choice)
             try:
                 city_choice=cyborg_city_choice(record.get('ocr'),record.get('size'),options)
                 garden_choice=garden_refusal_choice(record.get('ocr'),record.get('size'),options)
             except ValueError as error:
-                stopped=self._record(page,record,frame,candidates,None,str(error))
-                return self._result(page,None,False,stopped,done=True)
+                # An event the loop has not been taught by name is not a stop: the page
+                # still prints the controls it offers, and a page with exactly one
+                # decline row can be declined without knowing which event it is.
+                self.note('event_identity_not_known',reason=str(error),
+                          answer='the page\'s own declining control, if it prints one')
+                city_choice = garden_choice = None
             if city_choice is not None:
                 choice_index=city_choice
                 self.note('cyborg_city_choice',answer='No',source='current exact city question and Yes/No labels',
@@ -1750,6 +1755,13 @@ class MirrorRunner:
                 self.note('garden_refusal_choice',answer='Refuse',
                           source='current exact garden dialogue and two high-confidence controls',
                           strategy='bounded refusal; no inferred gift/healing benefit')
+            if city_choice is None and garden_choice is None:
+                decline=refusal_choice(record.get('ocr'),record.get('size'),options)
+                if decline is not None:
+                    choice_index=decline
+                    self.note('refusal_choice',answer=options[decline][1],
+                              source='the page prints exactly one declining control of two',
+                              strategy='bounded refusal; nothing is inferred from the event')
         if page == 'MAP':
             if self.theme_transaction is not None and self.theme_transaction.data.get('pending'):
                 from .theme_vision import ThemeCatalog

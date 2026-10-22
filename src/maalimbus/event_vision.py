@@ -74,6 +74,28 @@ def choice_options(records, size, *, band=OPTION_BAND, min_length=8):
     return [(box, text) for _, box, text in rows]
 
 
+DECLINE = re.compile(r'(?:Refuse|Decline|No|Leave)[.!]?', re.I)
+
+
+def refusal_choice(records, size, options):
+    """The declining row, when this page prints exactly one.
+
+    Live run ``packaged-mirror-20261022-013228`` met ``Choices`` -> ``Put on the
+    shoes.`` / ``Refuse.`` on floor 2 and the loop stopped, because the only events it
+    could answer were the ones it had been taught by name.  The event's name is not
+    what makes decline safe: the page's own control says ``Refuse``, declining spends
+    nothing, and the run continues either way.  So a page that prints exactly one
+    declining control out of exactly two rows is answerable without knowing which
+    event it is -- and nothing else is inferred from it.
+    """
+    if len(options) != 2:
+        return None
+    rows = [DECLINE.fullmatch(text) is not None for _, text in options]
+    if sum(rows) != 1:
+        return None
+    return rows.index(True)
+
+
 def garden_refusal_choice(records,size,options):
     """Bounded refusal of the independently identified garden offer.
 

@@ -2958,3 +2958,14 @@ bought card itself: `_same_title`, the reserved price, and its own `Purchased` b
 Tests: the two neighbour tests became receipts, the duplicate badge-path test was rewritten to the same
 rule, and `tests/test_a_shortened_bought_title_is_still_refused` was dropped because the documented rule
 (the exact delta is the receipt) had already overtaken its premise. Full suite `1792 passed`.
+
+## DSH iteration: an unnamed event is declined by its own control, not by its name (2026-10-22)
+
+`evidence/runtime/packaged-mirror-20261022-013228` is the best live run so far: floor 2, 22 clicks, battles
+fought by the loop itself, and it passed the shop page the previous run died on. It then stopped at event
+frame-0092 with `Accept/Refuse garden event identity is not independently proven` -- `Choices` over
+`Put on the shoes.` / `Refuse.`.
+
+`refusal_choice` (`src/maalimbus/event_vision.py`) now answers any page that prints exactly one declining
+control out of exactly two rows, and `runner.py` records `event_identity_not_known` instead of stopping.
+Tests: the two new cases in `tests/test_garden_event.py`. Full suite `1794 passed`.
