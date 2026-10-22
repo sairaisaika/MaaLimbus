@@ -3250,9 +3250,13 @@ class MirrorRunner:
             try:
                 result = self.step()
             except (RuntimeError, OSError) as error:
-                self._end_session('the_task_raised_before_the_next_input',
+                # One end, one reason: the deadline the caller set outranks a failure that
+                # is only its symptom, and the loop must stop rather than end twice.
+                overdue = self.deadline is not None and time.monotonic() >= self.deadline
+                self._end_session('loop_deadline_exceeded' if overdue
+                                  else 'the_task_raised_before_the_next_input',
                                   error=str(error)[:300])
-                continue
+                break
             if not result.get('waiting'):
                 walked += 1
             if result.get('done'):

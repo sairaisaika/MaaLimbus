@@ -160,9 +160,9 @@ def test_packaged_loop_node_navigation_uses_callback_subtasks(tmp_path,monkeypat
     result=run_loop(tmp_path,dict(steps=1,run_store='',interval=0),frames=(drive,entry))
     answer=read_result(result.directory)
     assert result.recognition.callback_failure is None
-    assert 'WindowDrive' in result.context.entries
+    assert 'MirrorDrive' in result.context.entries
     assert answer['reason']!='mirror_loop_failed'
-    assert answer['steps'][0]['plan']['node']=='WindowDrive'
+    assert answer['steps'][0]['plan']['node']=='MirrorDrive'
 
 
 def test_a_node_parameter_wins_and_a_stranger_is_reported():
@@ -256,7 +256,7 @@ def test_observation_hit_counts_reset_per_read_but_input_counts_are_preserved(tm
     tasker = AgentTasker(context)
     tasker.post_task('WindowMapObserve')
     tasker.post_task('WindowMapObserve')
-    tasker.post_task('WindowDrive')
+    tasker.post_task('MirrorDrive')
     assert context.cleared == ['WindowMapObserve', 'WindowMapObserve']
     context.clear_hit_count = lambda name: False
     with pytest.raises(RuntimeError, match='read-only observation hit count'):
