@@ -303,6 +303,7 @@ FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE'
 """Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
 
 SUBMIT_IGNORED_WINDOW_S = 25.0
+SUBMIT_IGNORED_ATTEMPTS = 3
 
 
 def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WINDOW_S):
@@ -3060,9 +3061,22 @@ class MirrorRunner:
                 # Submitting again from the same turn number is the measured stall: the
                 # previous submit was ignored.  This sends nothing and changes no page; it
                 # only makes the stall a recorded fact instead of a silent one.
+                ignored=state.setdefault('submit_ignored',{})
+                key=str(record.get('turn')).strip()
+                ignored[key]=ignored.get(key,0)+1
                 self.note('battle_submit_not_accepted',turn=record.get('turn'),
                           waited_s=round(time.monotonic()-float(state.get('submit_turn_at') or 0),1),
+                          attempts=ignored[key],
                           reason='the_hud_turn_did_not_change_after_the_submit')
+                if ignored[key]>=SUBMIT_IGNORED_ATTEMPTS:
+                    # Three submits from one turn is not a slow animation: the board is
+                    # refusing the click.  Stop feeding it and let the cell that watches
+                    # for stalled progress take the page over, so this ends in a recovery
+                    # attempt with a recorded cause instead of an unbounded re-click loop.
+                    self.note('battle_submit_ignored_repeatedly',turn=record.get('turn'),
+                              attempts=ignored[key],
+                              reason='the_board_refused_three_submits_of_the_same_turn')
+                    state['turn_wait_until']=0.0
             state['submit_turn']=record.get('turn')
             state['submit_turn_at']=time.monotonic()
         time.sleep(delay / 1000)
