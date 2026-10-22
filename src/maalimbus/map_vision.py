@@ -1301,8 +1301,27 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     # clicks was rejected as `the_page_stayed_on_the_map_after_the_click`, while the three
     # real `gold_badge_node` boxes were in the same list, unclicked.  So the mark the game
     # itself draws now leads, and the inferred readings keep their relative order after it.
+    # The gold mark says "this node can be entered", not "it can be reached from here".
+    # Live run evidence/runtime/packaged-mirror-20261022-051350 offered four gold-marked
+    # nodes from the top of the floor while the party stood two rows below them, and all
+    # three clicks were rejected -- honestly, because the game only accepts the nodes the
+    # lit edges connect to the party.  So the reachable ones lead; the rest stay in the
+    # list rather than being dropped, so a floor whose party was not located still has
+    # something to try and the verdict stays a measurement.
+    here = player if player is not None else yellow_flame_player(markers, image)
+    reach_x, reach_y = 1.5 * LATTICE_PITCH[0], 1.5 * LATTICE_PITCH[1]
+
+    def distant(click):
+        if here is None:
+            return 0
+        px, py = click['point']
+        near = ((px - here[0]) / reach_x) ** 2 + ((py - here[1]) / reach_y) ** 2 <= 1.0
+        return 0 if near else 1
+
+    marks = sorted((c for c in clicks if c['kind'] == 'gold_badge_node'),
+                   key=distant)
     clicks = ([c for c in clicks if c['kind'] == 'path_node']
-              + [c for c in clicks if c['kind'] == 'gold_badge_node']
+              + marks
               + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
     return clicks
 
