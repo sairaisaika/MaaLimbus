@@ -3272,3 +3272,10 @@ Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Ac
 `9cd9de9` 加 `map_vision.adjacent_to`（距离带 150–430 px），并在 `runner.candidates_of` 里应用。
 此前候选只排序不筛选，循环点的都是两格外的节点，所以 `rejected` 全部属实、队伍不动。
 测试：`tests/test_map_vision.py` 新增三条用例；全量 `1842 passed`。
+
+
+## DSH continuation: no party reading, no click (2026-10-22)
+
+`53cb40e` 把 `party_point` 的带宽从 0.79 改到 0.95（东侧队伍在 x≈1628，旧带外），`1d0c921` 让
+`candidates_of` 在读不到队伍时返回空候选。此前两者叠加使相邻约束从未生效，一局烧掉 6 次点击。
+测试：`tests/test_runner.py` 契约测试改为"无队伍则无候选"。

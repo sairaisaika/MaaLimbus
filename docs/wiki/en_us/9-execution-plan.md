@@ -712,3 +712,15 @@ missing reading never leaves the run with nothing to try.
 
 An exact lattice match against `(384,0)/(192,110)/(0,220)` dropped real neighbours -- the
 measured offsets match no single step vector -- so the filter is a distance band.
+
+
+## 9.3.17 Without a party reading there is no node to click
+
+`party_point` searched only to `0.79 × width`, but a party that has walked east stands at
+`x≈1628` (all of frame-0006/0010/0014 in `packaged-mirror-20261022-090550` returned `None`).
+The fallback was "an unread party filters nothing", so the adjacency constraint never applied
+and the loop spent six clicks on nodes two steps away while the party stood still.
+
+Now the band reaches `0.95 × width` (all three frames read `(1628,558)`), and `candidates_of`
+returns **no candidates** when the party cannot be read, so the loop takes its named
+stop/recovery path instead of guessing.
