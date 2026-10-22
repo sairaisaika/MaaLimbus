@@ -298,6 +298,9 @@ already the authorized driver of the run it is pinching for.
 RECOVERY_DRAG = (960, 380, 960, 760)
 """The vertical drag a recovery gesture uses, in the same 1920x1080 space."""
 
+FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE')
+"""Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
+
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
@@ -3469,6 +3472,11 @@ class MirrorRunner:
         raw = self.settings.get('recovery_tries')
         ladder = RECOVERY_LADDER[:(len(RECOVERY_LADDER) if raw is None
                                    else max(0, int(raw)))]
+        if str(page) in FIXED_LAYOUT_PAGES:
+            # A fixed screen has no view to move: pinching it proved to kill the task
+            # (2026-10-22 00:09 run, access violation right after rung 0 on DRIVE), so
+            # those pages get the settle wait and nothing that drags or pinches.
+            ladder = tuple(entry for entry in ladder if entry[0] == 'wait')
         rung = state['recovery_rung']
         if rung >= len(ladder):
             self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),
@@ -3597,11 +3605,15 @@ class MirrorRunner:
         last = result['steps'][-1] if result['steps'] else None
         result['page_before'] = None if last is None else last['page_before']
         result['page_after'] = None if last is None else last.get('page_after')
+        ended = self.state.get('session_ended')
         result['passed'] = (all(entry['passed'] or entry.get('handled_retry') for entry in result['steps'])
                             and bool(result['steps'] or flow_records)
                             and not self.state.get('navigation_probe_pending')
-                            and failed_flow is None)
-        result['reason'] = ('window_steps_passed' if result['passed']
+                            and failed_flow is None
+                            and not ended)
+        # A session the task killed is never a pass, however clean its step records
+        # look: the run stopped where the game did, not where the plan finished.
+        result['reason'] = (str(ended) if ended else 'window_steps_passed' if result['passed']
                             else ((failed_flow or {}).get('reason')
                                   or (last or {}).get('stopped')
                                   or (last or {}).get('reason')

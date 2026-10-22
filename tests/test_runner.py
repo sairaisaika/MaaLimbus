@@ -1334,6 +1334,20 @@ def test_a_floor_that_refused_every_click_is_not_reported_as_an_unread_map():
         'map_clicks_had_no_effect')
 
 
+def test_a_run_whose_session_ended_never_reports_a_pass():
+    """The step records can all be clean and the run can still be a failure.
+
+    A failed pipeline node stops the loop before its next input, so the last step it
+    wrote passed -- and the summary must not read that as "the window's steps passed".
+    """
+    runner = MirrorRunner(FakeDevice([]), settings={'rounds': 1, 'interval': 0.0})
+    runner.state['session_ended'] = 'the_task_raised_before_the_next_input'
+    runner.artifacts['steps'] = [{'passed': True, 'page_before': 'MAP', 'page_after': 'MAP'}]
+    result = runner.summary()
+    assert result['passed'] is False
+    assert result['reason'] == 'the_task_raised_before_the_next_input'
+
+
 def test_the_device_refuses_input_once_the_session_ended():
     """A failed pipeline node frees the controller with it.
 

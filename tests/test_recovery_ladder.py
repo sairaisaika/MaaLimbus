@@ -151,3 +151,20 @@ def test_the_ladder_is_spent_once_per_stop_and_then_the_run_ends(tmp_path):
     events = [event for event, _ in notes.events]
     assert events.count('window_recovery') == len(RECOVERY_LADDER)
     assert 'window_recovery_exhausted' in events
+
+
+def test_a_fixed_screen_gets_no_pinch_and_no_drag(tmp_path):
+    """A screen that cannot scroll has no view to recover by gesture.
+
+    The 2026-10-22 00:09 run died with a native access violation immediately after the
+    ladder's first rung was spent on DRIVE, so a fixed page now only waits.
+    """
+    runner, device, notes = map_window(tmp_path, frames=1)
+    plan = {'reason': 'the_drive_wall_was_not_read'}
+    entry = {'passed': False, 'reason': 'no_click_box'}
+    first = runner._recover('DRIVE', runner.state, entry, plan)
+    assert first is not None and first.get('waiting') is True
+    assert device.pinches == [], 'a fixed screen is never pinched'
+    assert 'window_recovery' in [event for event, _ in notes.events]
+    gesture = next(payload for event, payload in notes.events if event == 'window_recovery')
+    assert gesture['gesture'] == 'wait'
