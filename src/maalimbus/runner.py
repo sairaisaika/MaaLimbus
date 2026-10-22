@@ -1717,6 +1717,29 @@ class MirrorRunner:
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
+        # The participant screen (maalimbus/party_vision.py): a node opens it and
+        # nothing leaves it until the party is full.  Read here, before the page
+        # switch, so a frame the classifier has no name for is still answered --
+        # the live loops used to walk into it, leave `Total Participants 0 / 12`
+        # untouched, and then sit in front of a battle HUD that never advanced.
+        if not settings.observe_only and settings.stop_page != page:
+            from . import party_vision
+            size = record.get('size') or (1920, 1080)
+            party_reads = [Text(t['text'], tuple(t['box']), t['score'])
+                           for t in record.get('ocr', [])]
+            party_plan = party_vision.plan(party_reads, size,
+                                           state.get('party_cards_clicked', 0))
+            if party_plan is not None:
+                self.note('party_intent', target=list(party_plan['target']),
+                          reason=party_plan['reason'],
+                          selected=party_plan['selected'], total=party_plan['total'])
+                point = party_plan['target']
+                self.device.click(point[0], point[1])
+                self.artifacts['clicks_sent'] += 1
+                if party_plan['action'] == 'select':
+                    state['party_cards_clicked'] = int(state.get('party_cards_clicked', 0)) + 1
+                time.sleep(settings.interval)
+                return self._result(page, list(point), True, None)
         if (not settings.observe_only and settings.stop_page!=page and page=='MAP' and self.exploration is not None
                 and (not candidates or state['map_attempts']>=2)):
             recovered=self._explore_unknown(record,frame,candidates)
