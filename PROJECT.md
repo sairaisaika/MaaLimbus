@@ -2858,3 +2858,15 @@ First reviewed frame: `pi-20261021-185251/frame-0119`, five boxes, all five conf
 `build/map-candidates-0119.png` and the earlier zooms; types left `unknown` because the node glyphs
 were not read closely enough to claim a type. The types are what the wiki pages are for, and the tool
 rejects any name outside the taxonomy rather than inventing one.
+
+Second reviewed frame, and the first one where the reviewer beats the rule outright:
+`pi-20261015-191205/frame-0030` (floor 3, warm board). By eye against `build/grid-0030.png` the floor
+offers three nodes -- a gift/reward node at ~(300,393) with the gold "180" badge, the player's own node
+at ~(630,393) ("150"), and a battle node at ~(965,663) ("85") -- plus an unoffered "?" node and an
+unoffered dark hexagon. The rule found **none** of them: its single mark at (890,587) is empty board.
+The review records the two nodes that are targets (reward at 240,333 and battle at 905,603) and leaves
+the player's own node out, because clicking where the party already stands is not a target.
+
+That is the shape the hand set has to have: the rule errs on warm floors by finding nothing where there
+are real nodes, so the corrections are additions, and they are exactly the frames a student trained on
+rule labels could never learn from.
