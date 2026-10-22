@@ -3126,3 +3126,7 @@ Wiki: decision `D26` in both languages.
 Three adb taps on the four badged neighbours of `evidence/runtime/packaged-mirror-20261022-051350` were all inert, and the floor screenshot (`build/t94-now.png`) shows why: the party's node is the one with the orange hexagon outline, the walkable edges leaving it are bright cyan, and every node the loop offered hangs on a grey edge. The badge is reward information, not reachability.
 
 `path_end`, `advance_candidates` and the `cyan_node` candidate kind already encode the cyan-edge rule, but each needs `node_markers`, which template-matches the crescent badge and returns 0 on this palette; feeding `path_end` the party located by `player_by_ring` still returns `None`. So the defect is a missing node set and a cyan-edge read that does not hold here -- not the ordering, the radius or the click point, all of which were tried and measured this round. Decision `D29` in both languages.
+
+## DSH iteration: the walkable cyan edge is dark, and a straight sample cannot tell edges apart (2026-10-22)
+
+Measured on `build/t94-now.png`: the cyan edges are `H≈95-98, S≈220-250, V≈13-55`, so a `V>=120` cyan mask matches zero pixels — one direct reason `path_end` returned `None` there. A +-5 px sample along the line from the party to each node scores 0.81-1.0 for all five nodes, because the background lattice is cyan too, so the discriminator must sample **that edge** narrowly and compare it against the floor's grey edges instead of the whole line. Appended to `D29`.
