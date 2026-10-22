@@ -440,6 +440,14 @@ class LimbusRecognition(CustomRecognition):
         records, scene, frame = self.observe(context, argv.image)
         expected = params['scene']
         if scene != expected:
+            # A node that is asked for a page the agent did not name returns nothing,
+            # and the window answers that by repeating the same plan until
+            # `the_same_plan_repeated` stops the run (live
+            # evidence/runtime/packaged-mirror-20261021-210712: page DRIVE, three
+            # identical intents, no click box). Record the disagreement once so the
+            # frame says which name was wrong instead of only that a box was missing.
+            self.journal.record('scene_mismatch', expected=expected, scene=scene,
+                                frame=frame, node=argv.node_name)
             return None
         mode = params.get('team_mode')
         if params.get('initial_mode')=='confirm_forgo':
