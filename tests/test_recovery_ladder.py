@@ -177,3 +177,26 @@ def test_a_fixed_screen_gets_no_pinch_and_no_drag(tmp_path):
     assert 'window_recovery' in [event for event, _ in notes.events]
     gesture = next(payload for event, payload in notes.events if event == 'window_recovery')
     assert gesture['gesture'] == 'wait'
+
+
+def test_a_text_refusal_never_drags_the_page(tmp_path):
+    """The narrowing has to *block* something, or it is only a naming change.
+
+    `unknown_battle_assignment_mode` is `unreadable_text`: re-reading is the answer and
+    every drag is a way to misroute a battle screen that is still waiting.  The control
+    case is the view refusal that the ladder was built for -- it must still pinch.
+    """
+    runner, device, _ = map_window(tmp_path)
+    state = runner.state
+    state['recovery_for'] = None
+    state['recovery_rung'] = 0
+    text = {'reason': 'unknown_battle_assignment_mode'}
+    runner._recover('BATTLE_HUD', state, text, {})
+    assert (device.pinches, device.swipes) == ([], []), 'a text page was dragged'
+    assert text.get('stopped'), 'the refusal was neither recovered nor stopped'
+
+    state['recovery_for'] = None
+    state['recovery_rung'] = 0
+    view = {'reason': 'no_candidate_node_observed'}
+    runner._recover('MAP', state, view, {})
+    assert device.pinches or device.swipes, 'the view refusal lost its ladder'
