@@ -34,3 +34,4 @@ def test_a_real_id_is_ready():
     verdict = controller_ready(Fake('ctrl-1234'))
     assert verdict['ready'] is True
     assert verdict['controller_id'] == 'ctrl-1234'
+
