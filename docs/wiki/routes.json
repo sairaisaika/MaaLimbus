@@ -823,6 +823,51 @@
         "python tools/audit_transactions.py"
       ],
       "boundary": "账本证明的是\"引用存在\"，不是\"辅助函数走到它\"；写在 MirrorRunner.step 之外的交易对它不可见；死方法按名跨模块匹配。"
+    },
+    {
+      "id": "replay",
+      "title": "回放只有一层：保留帧不是游戏，所以输入要由场景声明",
+      "aliases": [
+        "回放",
+        "离线回放",
+        "replay",
+        "ReplayFrames",
+        "ReplayController",
+        "offline uuid",
+        "不碰游戏",
+        "expects",
+        "replay_inventory",
+        "CustomController"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayFrames"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayController"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "def _input("
+        },
+        {
+          "path": "tools/replay_inventory.py",
+          "symbol": "report"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d52-一句承诺写十遍就是十句承诺",
+        "docs/wiki/en_us/2.3-decisions.md#d52-a-promise-written-ten-times-is-ten-promises"
+      ],
+      "tests": [
+        "tests/test_replay_surface.py"
+      ],
+      "checks": [
+        "python tools/replay_inventory.py"
+      ],
+      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。"
     }
   ]
 }

@@ -3963,3 +3963,66 @@ python tools/audit_transactions.py
 
 **下一单元**：把账本扩到 `step` 之外的交易写方（`shop_reconcile` 这类注入点的调用可达性），
 并给 28 个 `unmeasured` 计划词接上真实运行证据（仪器已于 D49 就位）。
+
+## DSH continuation: one promise, not sixteen copies of it (2026-10-23)
+
+**这一轮修的类别**：*同一句承诺被抄了很多份，没有任何东西比较它们*。这是前面
+D44（棘轮只数一种拼法）、D45（契约写在链路旁边）、D50（同一份语料三种口径）、
+D51（预留的读者只以回调形式存在）同一个家族的第五次出现，但这次落在**工具层**：
+离线回放是"不碰游戏就证明页面行为"的唯一手段，而它必须守的那句话，被写进了十六个类。
+
+### 三个原因（本轮审计）
+
+1. **回放层有 16 份实现。** `tools/` 里 16 个类直接继承 `CustomController`
+   （十个 `verify_*_replay.py`，五个嵌在 `main()` 里、名字毫不相关，外加
+   `verify_real_theme_drag.py`），`connect`/`request_uuid`/`get_features`/`screencap`
+   各写一遍，uuid 字符串有四个版本，没有一个在说"这一层"，都在说自己的工具。
+2. **39 个工具靠 import 邻居拿到控制器。** 其中 17 个是从
+   `verify_grace_balance_replay.py`（一个讲星之光余额的工具）借的 `Replay`，
+   谁改了它，十四个不相干的回放跟着变，而没有任何测试会发现。
+3. **一句"绝不输入"写了十六遍。** 每个类都自带 `raise AssertionError('Offline
+   replay must never input')`；这条承诺一旦只在某一个副本里被删掉，其余十五份
+   仍旧绿色。这正是"同类问题在不同模块反复出现"的机制。
+
+### 改了什么
+
+新增 `src/maalimbus/replay.py`，一层两半：
+
+| | 负责 | 内容 |
+|---|---|---|
+| `ReplayFrames` | 不需要 Maa 库的那一半 | 帧、这一层的 uuid（`maalimbus-offline-no-game`）、返回副本的 `screencap`、**九个输入方法一律先问 `expects`**，拒绝时抛 `ReplayInputRefused`，每次尝试记账 |
+| `ReplayController` | 同一层加 Maa 基类 | `pipeline` 能绑定的回放控制器 |
+
+16 个类全部改成继承这一层，只保留真正属于自己的部分（展示哪一帧、期望哪次输入：
+deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/theme 保留
+`swipe`，battle-plan 保留 `click_key`/`key_down`/`key_up`），只负责拒绝的覆写与
+逐字重复的 `screencap` 全部删除。
+
+新增 `tools/replay_inventory.py`（扫全部 188 个工具，报"谁自己实现了机械面"）和
+`tests/test_replay_surface.py`（12 个测试：九个输入方法都拒绝、`expects` 接受即记录、
+`screencap` 给副本、无帧报 `no frame`、`request_uuid` 全仓库只有一处实现、合成工具
+自写 `connect` 会被报出、清单工具跑绿）。
+
+### 前后对照
+
+| 指标 | 之前 | 之后 |
+|---|---|---|
+| `CustomController` 的实现份数 | 16 | 1（`ReplayController`） |
+| `request_uuid` 的实现处数 | 16 | 1 |
+| 靠 import 邻居拿控制器的工具 | 39 | 39（清单如实报出，未强行摊平） |
+| 只负责拒绝的冗余代码 | ~60 行 | 0 |
+| `tools/` 里带控制器的工具被清点 | 10（按文件名） | 16（按 AST） |
+| 全套测试 | 2177 passed in 183.65 s | `2189 passed in 182.37 s, pytest exit 0` |
+
+### 证据边界
+
+回放层证明的是"拒绝、取帧、记账"，不是"某个场景的期望合理"；它也没有把 import 图
+摊平。本轮**没有发送任何输入**：实机只做了只读取帧（`evidence/runtime/map-live-…`，
+`input_sent: false`），Mirror of Sisyphus 08 / F2 `2/6 [HARD]` 那局仍在原处。
+
+### 下一个单位
+
+1. 把 29 个仍经邻居拿 `Replay` 的工具直接指向 `maalimbus.replay`（清单已经在报这条链）；
+2. 28 个 `unmeasured` 计划词需要一次**被授权的**运行来换证据（回放代替不了真机）；
+3. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行，形状统一，
+   下一块可做差分证明的切片）。

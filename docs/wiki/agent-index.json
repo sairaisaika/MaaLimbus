@@ -1218,6 +1218,77 @@
           "sha256": "30bb08e93b56d1e4c798a794249f3ae249aff504e0a0fd8ce8eb328859c0e6e5"
         }
       ]
+    },
+    {
+      "id": "replay",
+      "title": "回放只有一层：保留帧不是游戏，所以输入要由场景声明",
+      "aliases": [
+        "回放",
+        "离线回放",
+        "replay",
+        "ReplayFrames",
+        "ReplayController",
+        "offline uuid",
+        "不碰游戏",
+        "expects",
+        "replay_inventory",
+        "CustomController"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayFrames"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayController"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "def _input("
+        },
+        {
+          "path": "tools/replay_inventory.py",
+          "symbol": "report"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d52-一句承诺写十遍就是十句承诺",
+        "docs/wiki/en_us/2.3-decisions.md#d52-a-promise-written-ten-times-is-ten-promises"
+      ],
+      "tests": [
+        "tests/test_replay_surface.py"
+      ],
+      "checks": [
+        "python tools/replay_inventory.py"
+      ],
+      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。",
+      "locations": [
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayFrames",
+          "line": 45,
+          "sha256": "0a8cbbc0fa3b8c7b9cd3b70f581a624b9ab94e7a2bd7499f22f61e7c4eb669cc"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "symbol": "ReplayController",
+          "line": 140,
+          "sha256": "0a8cbbc0fa3b8c7b9cd3b70f581a624b9ab94e7a2bd7499f22f61e7c4eb669cc"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "def _input(",
+          "line": 128,
+          "sha256": "0a8cbbc0fa3b8c7b9cd3b70f581a624b9ab94e7a2bd7499f22f61e7c4eb669cc"
+        },
+        {
+          "path": "tools/replay_inventory.py",
+          "symbol": "report",
+          "line": 85,
+          "sha256": "5a4d154d94e895c7a48d9cc7c3983bcac9360fc7cc0684088a697a103337e441"
+        }
+      ]
     }
   ]
 }
