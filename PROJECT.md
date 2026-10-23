@@ -4026,3 +4026,49 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
 2. 28 个 `unmeasured` 计划词需要一次**被授权的**运行来换证据（回放代替不了真机）；
 3. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行，形状统一，
    下一块可做差分证明的切片）。
+
+## DSH continuation: a promise proven by a count is not proven (2026-10-23)
+
+**三个最关键原因（本轮）**
+
+1. **验证手段与被验证的承诺不是同一个问题。** D52 用"十六个类都继承这一层"当门，
+   门是绿的，而 40 个工具构造控制器就崩：层里给 `self.uuid` 赋值，Maa 的 `Controller`
+   把 `uuid` 当只读属性。清单回答的是"源码有没有提到"，调用者问的是"造一个能不能用"。
+2. **迁移脚本改的是文本，不是代码结构。** 一个工具的 import 被插进了模块 docstring：
+   语法合法，类体一运行才 `NameError`。能抓住它的只有 AST 里"有没有真的 `ImportFrom`"。
+3. **路径依赖被留在调用点。** 迁移后的工具在模块顶层 import `maalimbus.replay`，而
+   `tools/` 不在 `src` 路径上；60 个工具因此各自补两行 bootstrap——这件事本来就该由
+   工具的头部声明，而不是碰运气看谁先 import 了谁。
+
+**本轮改动**
+
+- `src/maalimbus/replay.py`：场景自己的名字存进 `scenario_uuid`，`request_uuid()`
+  返回它；注释点名那个只读属性，避免下一个人再把赋值加回来。
+- `tests/test_replay_runtime.py`（6 个测试，需要 Maa 二进制，缺则带原因 skip）：
+  打开库、**真正构造** `ReplayController`，断言 `request_uuid` 是离线 uuid、
+  `screencap` 返回副本、九个输入方法全部拒绝、声明了期望的场景只记那一个输入；另外
+  两条机械门——层里不许 `self.uuid =`、import 这一层的工具必须先把 `src` 放路径。
+- `tools/replay_inventory.py`：新增 `imported_controllers`，报出"从另一个工具拿控制器
+  类"的关系与名单（46 条），数量钉住、只许变小。
+- 60 个构造/借用控制器的工具补上 `src` 引导；`verify_sinner_card_roi_native.py` 的
+  import 从 docstring 里搬出来。
+
+**证据（D53）**
+
+| 项 | 结果 |
+|---|---|
+| 静态清单（D52，当时为绿） | `owning a controller: 16  inheriting the shared layer: 16  problems: none` —— 而 40 个工具构造控制器即崩 |
+| 运行时证明 | `python tools/run_tests.py tests/test_replay_runtime.py -q` → 6 passed：`Library.open` 后真正构造 `ReplayController`，`request_uuid`/`screencap`/九个输入拒绝/`expects` 记录全部断言 |
+| 机械故障门 | 层内出现 `self.uuid =` 即红；任何 import `maalimbus.replay` 的工具若没先把 `src` 放路径即红（抓到 `verify_sinner_card_roi_native.py` 的 docstring 污染） |
+| 邻居 import 清点 | `tools/replay_inventory.py` → `tools that take a controller class from another tool: 46`（40 `Replay` + 8 `Offline`，8 个源工具），比 D52 文字里的 29 多——那次只数了 `Replay` |
+| 全套测试 | **2197 passed in 188.27 s，pytest exit 0**（上一轮 2189，+8） |
+| 实机（只读） | `tools/map_live_observe.py` 只读一帧，`input_sent: false`；F2 `2/6 [HARD]` 那局仍未动 |
+
+**这一类故障的形状（第 5 次出现）。** D44 的 ratchet 只数一种写法；D45 的 `CONTRACTS`
+没人读；D50 的清单丢了十局；D51 的读回只以回调形式存在；这一轮 D52 的清点只证明"源码
+提到了这一层"。共同点不是"漏了一处"，而是**验证手段与被验证的承诺不是同一个问题**：
+数一个类继承自谁，回答不了"它能不能被构造"。
+
+**下一个单位。** (1) 46 条邻居 import 逐一摊平到 `maalimbus.replay`，每条先确认导入者
+真正期望的输入；(2) 28 个 `unmeasured` 计划词需要一次被授权的运行换证据；
+(3) `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）。

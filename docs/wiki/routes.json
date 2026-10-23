@@ -837,7 +837,13 @@
         "不碰游戏",
         "expects",
         "replay_inventory",
-        "CustomController"
+        "CustomController",
+        "scenario_uuid",
+        "uuid 只读",
+        "构造回放",
+        "neighbour import",
+        "邻居 import",
+        "build a controller"
       ],
       "sources": [
         {
@@ -859,15 +865,18 @@
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d52-一句承诺写十遍就是十句承诺",
-        "docs/wiki/en_us/2.3-decisions.md#d52-a-promise-written-ten-times-is-ten-promises"
+        "docs/wiki/en_us/2.3-decisions.md#d52-a-promise-written-ten-times-is-ten-promises",
+        "docs/wiki/zh_cn/2.3-decisions.md#d53-只靠清点证明的承诺不算被证明",
+        "docs/wiki/en_us/2.3-decisions.md#d53-a-promise-proven-by-a-count-is-not-proven"
       ],
       "tests": [
-        "tests/test_replay_surface.py"
+        "tests/test_replay_surface.py",
+        "tests/test_replay_runtime.py"
       ],
       "checks": [
         "python tools/replay_inventory.py"
       ],
-      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。"
+      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened."
     }
   ]
 }
