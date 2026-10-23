@@ -145,3 +145,12 @@ def test_the_dead_lock_pages_all_have_a_contract():
     """The three pages that stopped live runs most often are written down."""
     for name in ('MAP', 'SHOP', 'DUNGEON_PROGRESS'):
         assert name in pages.CONTRACTS
+
+
+def test_a_click_replaced_before_the_page_settled_is_named_not_dropped():
+    """The invariant the 2026-10-22 live run broke: 3 clicks, 1 verdict."""
+    from maalimbus.pages import superseded_click
+    assert superseded_click([1329, 307, 190, 190], [1152, 521, 190, 190]) is True
+    assert superseded_click([1329, 307, 190, 190], [1329, 307, 190, 190]) is False
+    assert superseded_click(None, [1, 2, 3, 4]) is False
+    assert superseded_click([], [1, 2, 3, 4]) is False

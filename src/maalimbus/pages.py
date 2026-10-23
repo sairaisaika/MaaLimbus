@@ -236,6 +236,20 @@ def ladder_for(action, ladder):
     return tuple(ladder)
 
 
+def superseded_click(pending, target):
+    """Was a planned map click replaced before its page settled?
+
+    The live run of 2026-10-22 planned three node clicks inside one page settle and
+    recorded one verdict, because the pending target was overwritten without being
+    judged.  An unjudged click also cannot reach `map_refused_streak`, which is what
+    decides that a suspended exploration was never resumed -- so the click has to be
+    *named* as replaced, not dropped.
+    """
+    if not pending:
+        return False
+    return list(pending) != list(target)
+
+
 def recovery_for(kind):
     """The action for a refusal kind; an unknown kind holds instead of guessing."""
     return RECOVERY_BY_KIND.get(kind, 'hold')

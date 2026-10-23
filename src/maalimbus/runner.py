@@ -47,7 +47,7 @@ import cv2
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
-from .pages import REFUSALS, ladder_for, recovery_for
+from .pages import REFUSALS, ladder_for, recovery_for, superseded_click
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -3339,7 +3339,7 @@ class MirrorRunner:
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
-                if state.get('map_pending') not in (None, list(plan['target'])):
+                if superseded_click(state.get('map_pending'), plan['target']):
                     # Two clicks planned before one page settled would leave the first one
                     # unjudged, and an unjudged click cannot reach the refusal streak that
                     # decides a suspended exploration (3 intents produced 1 verdict live).

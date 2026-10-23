@@ -26,5 +26,12 @@
     "find": "    if action == KEEP_WAITING and grace_used < max_grace:",
     "replace": "    if action == KEEP_WAITING:",
     "test": "tests/test_stillness.py"
+  },
+  {
+    "name": "a click replaced before the page settled is still judged",
+    "file": "src/maalimbus/pages.py",
+    "find": "    if not pending:",
+    "replace": "    if True:",
+    "test": "tests/test_pages.py::test_a_click_replaced_before_the_page_settled_is_named_not_dropped"
   }
 ]
