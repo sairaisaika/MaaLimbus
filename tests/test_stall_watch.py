@@ -37,7 +37,10 @@ def test_the_wedge_is_recorded_in_the_runs_own_directory(tmp_path):
     record = runner._record_stall(300.0)
     written = json.loads((tmp_path / 'agent-stall.json').read_text(encoding='utf-8'))
     assert written == record
-    assert record['reason'] == 'the_run_stalled_without_a_new_frame'
+    # The record now names *what* the stillness is instead of only that time passed.
+    assert record['reason'] == 'the_page_is_frozen_and_answered_nothing'
+    assert record['stillness_kind'] == 'frozen_page'
+    assert record['stillness_action'] == 'stop'
     assert record['limit_seconds'] == 300.0 and record['heartbeat_age_seconds'] > 300
 
 

@@ -490,12 +490,22 @@ def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
     and the process ends itself loudly rather than hanging. ``rounds`` bounds the
     watch so a test can run it without arranging a real hang.
     """
+    from . import stillness as _stillness
     looked = 0
+    grace = 0
     while rounds is None or looked < rounds:
         sleep(every)
         looked += 1
-        if time.monotonic() - float(heartbeat_of()) > limit:
-            on_stall()
+        if time.monotonic() - float(heartbeat_of()) > limit * (1 + grace):
+            record = on_stall() or {}
+            verdict = _stillness.should_exit(
+                action=record.get('stillness_action', _stillness.STOP),
+                grace_used=grace)
+            if not verdict['exit']:
+                # A static interstitial or an alive page buys one more window; the
+                # bound is explicit so a real wedge still ends the process.
+                grace = verdict['grace_used']
+                continue
             exit(4)
     return looked
 
@@ -4264,7 +4274,18 @@ class MirrorRunner:
     def _record_stall(self, limit):
         """Leave the evidence of the wedge before the process ends itself."""
         heartbeat = self.artifacts.get('heartbeat', 0.0)
-        record = {'reason': 'the_run_stalled_without_a_new_frame',
+        # Name the stillness before acting on it.  With no probe available this is
+        # `frozen_page`, which keeps today's behaviour (stop) while recording which of
+        # the five kinds the evidence actually supports -- so the next live stop is a
+        # lookup, not an investigation.
+        from . import stillness as _stillness
+        _age = round(time.monotonic() - heartbeat, 1)
+        _verdict = _stillness.classify(still_seconds=_age, limit=limit,
+                                       page=self.state.get('page'),
+                                       probe_changed=None, last_event=self.last_event)
+        record = {'reason': _verdict['reason'],
+                  'stillness_kind': _verdict['kind'],
+                  'stillness_action': _verdict['action'],
                   'limit_seconds': limit,
                   'heartbeat_age_seconds': round(time.monotonic() - heartbeat, 1),
                   'step': self.state.get('step'), 'page': self.state.get('page'),
@@ -4280,7 +4301,9 @@ class MirrorRunner:
                       limit_seconds=record['limit_seconds'],
                       heartbeat_age=record['heartbeat_age_seconds'],
                       step=record['step'], page=record['page'],
-                      last_event=record['last_event'])
+                      last_event=record['last_event'],
+                      stillness_kind=record['stillness_kind'],
+                      stillness_action=record['stillness_action'])
         except Exception:  # pragma: no cover - a journal may be closing
             pass
         try:

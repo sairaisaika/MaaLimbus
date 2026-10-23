@@ -50,3 +50,23 @@ def classify(*, still_seconds: float, limit: float, page: str | None,
                 'reason': 'an_intent_was_sent_and_the_page_never_answered'}
     return {'kind': FROZEN, 'action': STOP,
             'reason': 'the_page_is_frozen_and_answered_nothing'}
+
+
+MAX_GRACE = 2
+
+
+def should_exit(*, action: str, grace_used: int, max_grace: int = MAX_GRACE) -> dict:
+    """Whether a classified stillness may stop the process.
+
+    ``keep_waiting`` buys a *bounded* number of grace extensions -- waiting is not
+    a licence for an infinite retry, so the third time the same verdict arrives the
+    run still stops and keeps its evidence.
+    """
+    if action == KEEP_WAITING and grace_used < max_grace:
+        return {'exit': False, 'reason': 'the_stillness_is_a_wait_not_a_stop',
+                'grace_used': grace_used + 1}
+    if action == KEEP_WAITING:
+        return {'exit': True,
+                'reason': 'the_wait_was_extended_beyond_its_bound',
+                'grace_used': grace_used}
+    return {'exit': True, 'reason': 'the_page_is_frozen', 'grace_used': grace_used}

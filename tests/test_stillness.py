@@ -36,3 +36,17 @@ def test_a_static_interstitial_never_wins_over_real_evidence():
     """A probe that saw change outranks the page's name."""
     out = S.classify(still_seconds=301, limit=300, page='LOADING', probe_changed=True)
     assert out['kind'] == S.ALIVE
+
+
+def test_a_wait_is_granted_but_only_twice():
+    first = S.should_exit(action=S.KEEP_WAITING, grace_used=0)
+    second = S.should_exit(action=S.KEEP_WAITING, grace_used=1)
+    third = S.should_exit(action=S.KEEP_WAITING, grace_used=2)
+    assert first['exit'] is False and second['exit'] is False
+    assert third['exit'] is True
+    assert third['reason'] == 'the_wait_was_extended_beyond_its_bound'
+
+
+def test_a_stop_action_never_gets_a_grace_extension():
+    out = S.should_exit(action=S.STOP, grace_used=0)
+    assert out['exit'] is True and out['grace_used'] == 0
