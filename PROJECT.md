@@ -3530,3 +3530,41 @@ Resume / Halt Exploration / Cancel。**这是一局没打完的进度，本轮�
 **仍然保留的状态**：MuMu 上那局镜牢（Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`）一直是 `RESUME_DIALOG`，本轮**没有点 Resume、没有领奖、没有消费**；留作下一轮有授权时的起点。
 
 **下一单元（按影响面排序）**：① 剩余的同类审计——`tools/` 下还有若干「产不出自己注释里数字」的评分器（`audit_runs.py` 的 `died_without_a_stop` 有同样的「缺证据=失败/成功」倾向），下一步把它们统一成三态计数；② `src/maalimbus/runner.py` 里那一个仍在 step 内只拿 run deadline 的原生等待（旧行号 3412 `run_node(self.tasker, plan['node'], self.deadline)`）；③ 逐页补丁的根治（D35 棘轮只数 `page ==` 一种写法，111 个页面比较里有 26 个绕过它）。
+
+## DSH continuation: 上限属于门，不属于记得加边界的那一个调用者 (2026-10-23)
+
+第四个 DSH 轮次。上一轮把「一次读取不能超过 30 s」写进了 `MirrorRunner._observe`——那是 **runner 的门**；
+本轮把它提到**所有页面读取都必须经过的那扇门**，并加了一条能阻止「第三处遗漏」的棘轮。仍然没有一次实机输入。
+
+**发现（先读代码，再动手）**
+
+- `ONE_READ_SECONDS` 定义在 `src/maalimbus/runner.py` 的 **4873 行**，而使用它的循环在 **2009 行**——能跑只是因为模块级名字在调用时才解析，它挨着的是「顺带需要它」的诊断辅助函数，不是它守护的循环。
+- `src/maalimbus` 里启动 pipeline 节点的只有三处：`MaaObserver.observe` 两处（`WindowMapObserve` / `WindowBattleObserve`）、`MirrorRunner.step` 一处（节点动作，第 3424 行，至今只受 run 预算约束）。
+- 页面读取的入口有 8 个（`runner._settle`、`run_flow` ×2、`one_shot_click`、`one_shot_swipe`、`observed_page`、`lux_task.execute`、`reward_task.execute`），它们全都经过模块级 `observe()`；而上一轮的边界只在 `_observe`，所以 `lux_task`/`reward_task`/window 层这三条路径其实是裸的。
+
+**改动**
+
+- `bounded_read(deadline, *, limit=None, clock=time.monotonic)` 与 `ONE_READ_SECONDS = 30.0` 上移到 `DEEP_STEP_SECONDS` 旁边（`src/maalimbus/runner.py:446-475`）；
+- `MaaObserver.observe` **逐次尝试**取上限（重试最多多花一个窗口，整次调用 ≤ `read_tries × 30 s`）；
+- 模块级 `observe()` 对交给任何 `Observer` 实现的值取上限；
+- `MirrorRunner._observe` 复用同一公式、只负责报告（phase/age/`in_flight`）；`_settle` 不再把算式写第二遍。
+
+**反例（都写成了测试）**：要得更少的调用者仍然只得到更少；`FrameObserver` 回放照常返回一帧；无 runner 的直接读取也被界住（`test_a_read_is_bounded_with_no_runner_and_no_deadline`）。
+
+**实测**（实机只读，MuMu `127.0.0.1:16416`，`evidence/runtime/map-live-20261023-175057`）：`WindowMapObserve` 对同一张 1920×1080 读 20 次，每次 **0.38-1.02 s，p50 1.00 s，合计 18.4 s**，`input_sent: false`。所以 30 s 是实测读取的 **30×** 余量；它比要保护的 420 s 预算低两个数量级，但又远高于任何诚实的读取。
+
+**分类**：这是**类别修复**，不是单点修复——界限从「调用者记得」变成「门必须取」，并配 `tests/test_native_reads.py` 两条棘轮：允许启动 pipeline 节点的作用域只有 `MaaObserver.observe` / `MirrorRunner.step`，允许直接调用页面观察者 `.observe()` 的只有模块级门；另有一个反例证明两个检测器都能看见新加的一处。
+
+**测量**
+
+| 项目 | 数值 |
+| --- | --- |
+| 新增测试 | `tests/test_settle_deadline.py` +5（共 14）、`tests/test_native_reads.py` +4 |
+| runner/window/lux/reward 相邻 11 个套件 | **332 passed**（54.31 s，exit 0） |
+| 整轮 pytest | **2080 passed, exit 0**（173.85 s；上一轮 2071） |
+| 实测读取 | 20 帧，0.38-1.02 s/帧，p50 1.00 s，18.4 s |
+| 实机 | `MapObserve` 20 帧全为 `scene_mismatch expected=MAP scene=RESUME_DIALOG`；`input_sent: false` |
+
+**仍然保留的状态**：MuMu 上那局镜牢仍是 `RESUME_DIALOG`（Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`），本轮没有点 Resume、没有领奖、没有消费。
+
+**下一单元（按影响面排序）**：① D35 的棘轮只数 `page ==` 一种写法（111 个页面比较里 26 个绕过它）——下一步让「页面分发不得静默增长」覆盖全部五种写法；② `MirrorRunner.step` 的节点动作仍只受 run 预算约束（旧 3412 / 现 3424），需要一条「动作也能被独立界住」的设计；③ `tools/` 里其余「缺证据=结果」的评分器统一成三态计数。
