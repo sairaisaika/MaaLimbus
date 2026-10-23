@@ -1,6 +1,6 @@
 """A run's cause must never be empty: event first, exit code second."""
 
-from tools import run_record
+from maalimbus import run_record
 
 
 def test_a_recorded_stop_wins_over_the_exit_code():
@@ -25,3 +25,19 @@ def test_floors_and_floor_five_are_read_from_the_events():
               {'event': 'map_observed', 'floor': None}]
     out = run_record.summarise(events, 0)
     assert out['floors'] == [2, 5] and out['reached_floor_5'] is True
+
+
+def test_the_driver_can_import_what_it_uses():
+    """The entry point is only ever exercised live, so prove its import chain here.
+
+    Twice a rename in this chain shipped as a runtime crash that only a live run
+    could find; a subprocess import is the cheapest honest guard.
+    """
+    import subprocess
+    import sys
+    done = subprocess.run(
+        [sys.executable, '-c',
+         'import sys; sys.path.insert(0, "src"); '
+         'import maalimbus.run_record as r; r.summarise([], 0)'],
+        capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr

@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'src'))
-from tools import run_record  # noqa: E402  (after the path is in place)
+from maalimbus import run_record  # noqa: E402  (after the path is in place)
 LOG = ROOT / 'build' / 'selfrun-mirror.jsonl'
 ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 
