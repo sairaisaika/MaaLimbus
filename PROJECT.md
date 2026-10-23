@@ -3279,3 +3279,22 @@ Replace Ryōshū's Skill 77 / Green Spirit 146 / Barbed Lasso 187 / Deceptive Ac
 `53cb40e` 把 `party_point` 的带宽从 0.79 改到 0.95（东侧队伍在 x≈1628，旧带外），`1d0c921` 让
 `candidates_of` 在读不到队伍时返回空候选。此前两者叠加使相邻约束从未生效，一局烧掉 6 次点击。
 测试：`tests/test_runner.py` 契约测试改为"无队伍则无候选"。
+
+
+## DSH continuation: a suspended exploration is re-entered from the entry (2026-10-23)
+
+`packaged-mirror-20261023-050219` attached to a run already in progress
+(`mirror_entry_preparation: a_run_is_still_in_progress`), and its first six node clicks were refused. The pause
+panel's Continue was offered as the recovery and only closed the panel: `party_point` reads `(1628,562)` across
+`frame-0006`..`frame-0041` (three clicks, frame diffs 611..6020), while the panel's own OCR prints
+`Progress / Forfeit / Continue / Window / Config` and no `Resume` at all. The resume that works lives on the
+entry's progress dialog (`Resume / Halt Exploration / Cancel`).
+
+`src/maalimbus/runner.py` now also binds `dungeon_progress.resume_button` (OCR `resume`) and
+`dungeon_progress.window_button` (OCR ending `window`), and raises `dungeon_progress.resume_via_entry` once
+`map_refused_streak >= 3`. `src/maalimbus/window.py`'s `DUNGEON_PROGRESS` branch uses that flag to prefer Resume,
+then the window control, and only falls back to Continue when the flag is absent -- so a normally paused run is
+still left with a single click.
+
+Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_the_entry_not_continued`
+(85 passed in that file). Commits `83ee06b`, `050d7e0`. Live counterpart of the claim is still owed.
