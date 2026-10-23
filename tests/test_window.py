@@ -1574,3 +1574,28 @@ def test_the_progress_panel_resumes_and_never_offers_another_control():
     refused = plan_step('DUNGEON_PROGRESS', controls={})
     assert refused.get('target') is None
     assert refused['reason'] == 'continue_button_not_anchored'
+
+
+def test_a_suspended_exploration_is_reentered_through_the_entry_not_continued():
+    """A map that refused three node clicks belongs to a run that was never resumed.
+
+    Measured on `packaged-mirror-20261023-050219`: the pause panel's Continue hands back
+    the same map and the party stays frozen at (1628,562) across eight frames, while the
+    entry dialog's Resume is what re-enters.  So once the refusal streak has tripped, the
+    panel may only offer that window control and that Resume -- never Continue.
+    """
+    from maalimbus.window import plan_step
+    resume = [500, 380, 280, 44]
+    away = [700, 540, 120, 44]
+    plan = plan_step('DUNGEON_PROGRESS',
+                     controls={'dungeon_progress.resume_via_entry': True,
+                               'dungeon_progress.resume_button': resume,
+                               'dungeon_progress.window_button': away})
+    assert list(plan['target']) == resume
+    assert plan['reason'] == 'the_suspended_exploration_is_resumed_from_the_entry'
+    left = plan_step('DUNGEON_PROGRESS',
+                     controls={'dungeon_progress.resume_via_entry': True,
+                               'dungeon_progress.continue_button': [1, 2, 3, 4],
+                               'dungeon_progress.window_button': away})
+    assert list(left['target']) == away
+    assert left['reason'] == 'the_suspended_exploration_is_left_for_the_entry'
