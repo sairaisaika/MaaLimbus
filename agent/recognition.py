@@ -1237,7 +1237,12 @@ class MapObservation(CustomAction):
             panel_clear_rewards=None if panel is None or panel.clear_rewards is None
             else panel.clear_rewards.box,
             panel_cost_texts=None if panel is None else list(panel.cost_texts),
-            map_player=None if party is None else list(party),
+            # This callback has to own its value: `party` is bound by the MAP branch
+            # above, and relying on that binding made every observation die with
+            # NameError (measured live 2026-10-23, callback_failed
+            # MapObservation/WindowMapObserve, recognition.py:1240).  A journal line
+            # must not depend on a name another branch defines.
+            map_player=None if 'party' not in locals() or party is None else list(party),
             battle_box=None if team is None else team.battle.box,
             clear_selection_box=None if team is None else team.clear_selection.box,
             participant_texts=None if team is None else list(team.participants),
