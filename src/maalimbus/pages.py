@@ -689,6 +689,19 @@ STOP_KINDS = {
     'the_exploration_must_be_resumed_before_a_node_click': 'bad_saved_state',
 }
 
+# Words a plan the *runner* assembles carries.  These plans do not pass through
+# `window.plan_step`, so they inherit none of that door's bookkeeping -- and until now
+# they inherited no literal kind either: `kind_of` fell through to the prose model,
+# which read "refusal" inside `confirm_proven_owned_gift_refusal` and answered
+# `refused_by_policy`, whose action is `stop`.  The plan clicks a target that came out
+# of the record (`floor_gift_transaction.refusal_confirm_target`), so a click that
+# changes nothing means the record and the screen disagree -- a saved-state error, not
+# a policy refusal.  Measured 2026-10-23: exactly one such plan exists
+# (`maalimbus.plan_reasons.producers()['runner']`), and the count is gated there.
+PLANNED_REASONS = {
+    'confirm_proven_owned_gift_refusal': 'bad_saved_state',
+}
+
 
 def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     """The kind of one refusal, from whichever of its three names it carries.
@@ -701,9 +714,9 @@ def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     from .reason_kinds import kind_for
 
     for name in (reason, stopped_reason, plan_reason):
-        kind = REFUSALS.get(name, STOP_KINDS.get(name))
+        kind = REFUSALS.get(name, STOP_KINDS.get(name, PLANNED_REASONS.get(name)))
         if kind is None:
-            # The two literal tables only ever held the names somebody remembered to add.
+            # The literal tables only ever held the names somebody remembered to add.
             # `reason_kinds.kind_for` classifies *every* failure name by meaning, so a
             # page-specific sentence now inherits its class's action instead of holding.
             kind = kind_for(name)
