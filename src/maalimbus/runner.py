@@ -3225,16 +3225,7 @@ class MirrorRunner:
                 # on the journal, not on the Runner, so every verdict carried frame=None.
                 state['map_click_frame'] = (record.get('frame')
                                             or Path(frame_file(directory)).name)
-            # Bracket the dispatch itself.  A native crash (`access violation reading
-            # 0xFFFFFFFFFFFFFFFF`, evidence/runtime/packaged-mirror-20261023-044354)
-            # leaves no trace of *which* call died, and the maafw log for that run shows
-            # the controller/resources destroyed in the same second with no pipeline
-            # failure before it -- so either the click raced the teardown or the crash
-            # sits before it.  `input_begin` without `input_end` answers which.
-            self.note('input_begin', target=list(point), page=page,
-                      reason=plan.get('reason'))
             self.device.click(*point)
-            self.note('input_end', target=list(point), page=page)
         self.artifacts['clicks_sent'] += 1
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
                                   'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
