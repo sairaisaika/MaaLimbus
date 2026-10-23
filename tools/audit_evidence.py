@@ -15,7 +15,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.evidence_audit import derivable_kinds, frozen_build, inconsistent_decisions, recovery_kinds, silent_recoveries
+from maalimbus.evidence_audit import derivable_kinds, evidence_directories, frozen_build, inconsistent_decisions, recovery_kinds, silent_recoveries
 
 
 def load(directory):
@@ -35,8 +35,7 @@ def load(directory):
 
 
 def main(argv):
-    directories = argv[1:] or sorted(glob.glob(str(
-        ROOT / 'evidence' / 'runtime' / 'packaged-mirror-*')))
+    directories = evidence_directories(*(argv[1:] or [str(ROOT / 'evidence' / 'runtime')]))
     if not directories:
         print('no evidence directories found')
         return 2

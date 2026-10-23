@@ -13,6 +13,28 @@ from collections import Counter
 RECOVERY_EVENTS = ('window_recovery', 'window_recovery_exhausted')
 
 
+def evidence_directories(*paths):
+    """Every run directory under the given paths.
+
+    A parent directory (`evidence/runtime`) used to be handed to the JSONL loader as if
+    it *were* one run, so a global audit silently reported a single run's numbers:
+    `directories: 1` while 196 recoveries sat on disk.  Accepting a parent means
+    expanding it, never counting it.
+    """
+    import glob as _glob
+    import os
+    found = []
+    for path in paths:
+        if not path:
+            continue
+        if os.path.isdir(path):
+            children = sorted(_glob.glob(os.path.join(path, 'packaged-mirror-*')))
+            found.extend(children or [path])
+        else:
+            found.append(path)
+    return found
+
+
 def derivable_kinds(events):
     """Kinds that can be *re-derived* for recoveries that recorded none.
 

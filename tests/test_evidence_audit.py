@@ -85,3 +85,22 @@ def test_the_give_up_event_is_counted_too():
     report = recovery_kinds(events)
     assert report['total'] == 2 and report['named'] == 2
     assert set(report['kinds']) == {'no_candidate', 'bad_saved_state'}
+
+
+def test_a_parent_directory_expands_into_every_run(tmp_path):
+    from maalimbus.evidence_audit import evidence_directories
+
+    (tmp_path / 'packaged-mirror-a').mkdir()
+    (tmp_path / 'packaged-mirror-b').mkdir()
+    (tmp_path / 'unrelated').mkdir()
+    found = evidence_directories(str(tmp_path))
+    assert sorted(p.rsplit('\\', 1)[-1].rsplit('/', 1)[-1] for p in found) == [
+        'packaged-mirror-a', 'packaged-mirror-b']
+
+
+def test_a_run_directory_is_not_expanded_again(tmp_path):
+    from maalimbus.evidence_audit import evidence_directories
+
+    run = tmp_path / 'packaged-mirror-a'
+    run.mkdir()
+    assert evidence_directories(str(run)) == [str(run)]
