@@ -12,7 +12,7 @@ KNOWN_CONFLICTS = {
 }
 
 # Measured 2026-10-23 by provenance: 128 failure names, 45 of them without a kind.
-UNCLASSIFIED_BASELINE = 45
+UNCLASSIFIED_BASELINE = 0
 
 
 def test_every_reason_name_has_exactly_one_role():

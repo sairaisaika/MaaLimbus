@@ -37,6 +37,10 @@ EXCEPTIONS = {
     # its subject is a *catalogue*, not a page reading
     'Source revision coverage requires live catalogue reconciliation': 'missing_control',
     'ambiguous_catalogue_alias': 'bad_saved_state',
+    # nothing on the shelf satisfies the plan *yet*: waiting for a refresh, not a failure
+    'no_offer_matches_the_gift_plan_yet': 'no_candidate',
+    # the successor of a skill replacement was never confirmed; same class as unverified_*
+    'skill_successor_unproven': 'bad_saved_state',
 }
 
 _COMPILED = tuple((re.compile(pattern), kind, why) for pattern, kind, why in RULES)
@@ -132,3 +136,52 @@ def role_of(name):
     if name.split('_', 1)[0].lower() in ACTION_VERBS and not _looks_like_failure(name):
         return 'intent'
     return 'failure'
+
+
+# --- the shop / skill planner and the stillness classifier, mapped by hand ---------
+# These are the last names whose class a pattern cannot decide honestly.  Each rule below
+# names the reason it applies; anything still unmatched stays None and the ratchet in
+# tests/test_reason_provenance.py keeps that number falling.
+LATE_RULES = (
+    (r'^(skill|shop|gift)_[a-z_]*unknown$', 'unreadable_text',
+     'a field of the offer could not be read, so the reading is what must be redone'),
+    (r'^(skill|shop|gift)_[a-z_]*(unavailable|no_gain|mismatch|not_bound|same_as)',
+     'refused_by_policy',
+     'the offer was read but does not satisfy the purchase policy, so no retry helps'),
+    (r'^(skill|shop|gift)_[a-z_]*(unaffordable|blocked|duplicate|no_offer)',
+     'refused_by_policy',
+     'the offer violates a budget or ownership rule the game will not let us override'),
+    (r'^unverified_', 'bad_saved_state',
+     'an action whose effect was never confirmed leaves our record in doubt; re-derive '
+     'it from the page rather than act on it'),
+    (r'^the_page_is_(frozen|expected_to_be_static)|^the_wait_was_extended',
+     'attempts_exhausted',
+     'the peace was measured and the budget for waiting is spent'),
+    (r'^the_(screen_is_still_changing|stillness_is_a_wait|run_kept_observing)',
+     'unreadable_text',
+     'the screen told us nothing stable to read, so observation is what must continue'),
+    (r'provider|template|observation has no size|roi smaller|anchor needs',
+     'missing_control',
+     'a capability or geometry the step needs is absent, not misread'),
+    (r'^minimize_enemy_strength$', 'refused_by_policy',
+     'a planning preference, not a failure: it declines an offer that weakens the team'),
+    (r'^route_kind_unknown$', 'unreadable_text',
+     'the path kind was not read, so the reading is what must be redone'),
+)
+
+_LATE = tuple((re.compile(pattern), kind, why) for pattern, kind, why in LATE_RULES)
+
+
+def kind_for(name):
+    """The class of one reason-like name, or None when nobody has classified it.
+
+    Later definitions win: this one adds LATE_RULES to the patterns above.
+    """
+    if not isinstance(name, str) or not name:
+        return None
+    if name in EXCEPTIONS:
+        return EXCEPTIONS[name]
+    for pattern, kind, _why in _COMPILED + _LATE:
+        if pattern.search(name):
+            return kind
+    return None
