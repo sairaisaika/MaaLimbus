@@ -149,6 +149,106 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     return plan
 
 
+def dispatch_facts(source=None):
+    """What each page in this chain may do, derived from the chain itself.
+
+    ``pages.CONTRACTS`` answered the four questions in English prose, so no code
+    could check them: the record read 3 of the loop's pages, and when the answers
+    were finally derived (2026-10-23) two of the three described a chain that no
+    longer existed.  This is that derivation, and it is the only one: giving every
+    page a hand-written copy of its own successors would be a second source of
+    truth for the exact thing that stops runs (``unexpected_successor``).
+
+    Returns ``{page: {'actions': [...], 'expects': [...], 'refusals': [...]}}``
+    for every branch of :func:`_plan_step` that asks which page this is.
+    ``actions`` are
+    the ``_plan`` verbs the branch can return (``CLICK``, ``RECORD``, ...),
+    ``expects`` is the union of the ``expect=`` tuples -- the pages that may
+    follow an input -- and ``refusals`` the reasons the branch can refuse with.
+    A name that is chosen at runtime (a control dictionary, a computed page)
+    cannot be read statically and is recorded as ``'<expr>'``; the count of those
+    is ratcheted so the unreadable part cannot grow silently either.
+    """
+    import ast
+    import pathlib
+
+    if source is None:
+        source = pathlib.Path(__file__).read_text(encoding='utf-8')
+    tree = ast.parse(source)
+
+    def assigned(node, into):
+        """Collect ``NAME = 'literal'`` and ``a, b = ('x', 'y')`` constants."""
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, (ast.Constant, ast.Tuple, ast.List)):
+            return
+        values = node.value.elts if isinstance(node.value, (ast.Tuple, ast.List)) else [node.value]
+        targets = node.targets[0].elts if isinstance(node.targets[0], (ast.Tuple, ast.List)) else node.targets
+        if len(targets) != len(values):
+            return
+        for target, value in zip(targets, values):
+            if isinstance(target, ast.Name) and isinstance(value, ast.Constant) \
+                    and isinstance(value.value, str):
+                into.setdefault(target.id, set()).add(value.value)
+
+    #: Module-level string constants, so `_refuse(page, reason)` and
+    #: `expect=(SUCCESS,)` resolve to their names instead of an expression.
+    constants = {}
+    for node in tree.body:
+        assigned(node, constants)
+
+    def names_of(node, local):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return [node.value]
+        if isinstance(node, ast.Name):
+            if node.id in local:
+                return sorted(local[node.id])
+            if node.id in constants:
+                return sorted(constants[node.id])
+            return ['<%s>' % node.id]
+        return ['<expr>']
+
+    facts = {}
+    for function in tree.body:
+        if not (isinstance(function, ast.FunctionDef)
+                and function.name == '_plan_step'):
+            continue
+        local = {}
+        for node in ast.walk(function):
+            assigned(node, local)
+        for node in ast.walk(function):
+            if not isinstance(node, ast.If):
+                continue
+            test = node.test
+            if not (isinstance(test, ast.Compare) and len(test.ops) == 1
+                    and isinstance(test.ops[0], ast.Eq)):
+                continue
+            left, right = test.left, test.comparators[0]
+            if not (isinstance(left, ast.Name) and left.id == 'page'
+                    and isinstance(right, ast.Constant)
+                    and isinstance(right.value, str)):
+                continue
+            actions, expects, refusals = set(), set(), set()
+            for call in ast.walk(node):
+                if not (isinstance(call, ast.Call)
+                        and isinstance(call.func, ast.Name)):
+                    continue
+                if call.func.id == '_plan':
+                    verb = call.args[1] if len(call.args) > 1 else None
+                    actions.add(getattr(verb, 'id', '<expr>')
+                                if verb is not None else '<expr>')
+                    for keyword in call.keywords:
+                        if keyword.arg != 'expect':
+                            continue
+                        for element in getattr(keyword.value, 'elts', []):
+                            expects.update(names_of(element, local))
+                elif call.func.id == '_refuse':
+                    reason = call.args[1] if len(call.args) > 1 else None
+                    refusals.update(names_of(reason, local) if reason is not None else ['<expr>'])
+            facts[right.value] = {'actions': sorted(actions),
+                                  'expects': sorted(expects),
+                                  'refusals': sorted(refusals)}
+    return facts
+
+
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,

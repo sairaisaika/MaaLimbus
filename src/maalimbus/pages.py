@@ -102,6 +102,17 @@ UNREACHABLE = ('EVENT_DIALOG', 'REWARD_SETTLE')
 #: Per-page contract: the four questions every state must answer before the loop
 #: may act on it.  Only the pages that historically dead-locked are written down
 #: so far; `tests/test_pages.py` requires each entry to name real pages.
+#:
+#: **This is prose, and prose is not the contract** (D45, 2026-10-23).  No code
+#: reads this dictionary -- it is documentation next to the table, useful when a
+#: reader needs the intent in words.  ``DISPATCH_FACTS`` above is the machine
+#: copy of the same questions for every page the chain plans, derived from the
+#: chain itself; when the two disagree, the recorded derivation wins and the
+#: page is added to ``tests/test_page_contracts.py``'s drift gate.  Two entries
+#: here had already drifted from the code: ``MAP`` claimed three allowed inputs
+#: where the chain offers one verb (``CLICK``) across nineteen successors, and
+#: ``SHOP`` was written as a planned page although the window never plans it
+#: (its inputs live in ``INLINE_RUNNER['SHOP']``).
 CONTRACTS = {
     'MAP': {
         'entry_evidence': ('Exploring Floor <n> header readable OR the page '
@@ -303,6 +314,325 @@ def by_handling(kind):
 def undeclared(names):
     """Names a producer emits that this registry does not know (guard test)."""
     return sorted({n for n in names if n not in PAGES})
+
+#: What every page in the window chain may do, derived from the chain itself by
+#: :func:`window.dispatch_facts` (2026-10-23).  ``CONTRACTS`` below answers the
+#: same questions in prose and nothing reads it: by the time these answers were
+#: derived, ``MAP``'s entry claimed three inputs where the chain offers one verb,
+#: and ``SHOP`` was written as a planned page although its inputs live in the
+#: runner (``INLINE_RUNNER['SHOP']``).  Prose cannot be the contract, so this is
+#: the machine copy: regenerate it from the chain, and
+#: ``tests/test_page_contracts.py`` fails when the two drift apart.
+#: ``'<expr>'`` is a name the chain chooses at runtime; the number of those is
+#: ratcheted in the same test.
+DISPATCH_FACTS =     {'BATTLE_DEFEAT': {'actions': ('CLICK',),
+                       'expects': ('*',),
+                       'refusals': ('defeat_accept_row_not_anchored',
+                                    'defeat_confirm_not_anchored',
+                                    'defeat_retries_exhausted',
+                                    'defeat_retry_row_not_anchored')},
+     'BATTLE_RESULT': {'actions': (),
+                       'expects': (),
+                       'refusals': ('battle_result_control_not_anchored',)},
+     'BATTLE_TIP': {'actions': ('CLICK',),
+                    'expects': ('*',),
+                    'refusals': ('battle_tip_dismiss_not_anchored',)},
+     'BATTLE_VICTORY': {'actions': ('CLICK',),
+                        'expects': ('*',),
+                        'refusals': ('battle_victory_confirm_not_anchored',)},
+     'CUTSCENE': {'actions': ('CLICK',),
+                  'expects': ('*', 'CUTSCENE'),
+                  'refusals': ('cutscene_skip_not_anchored',)},
+     'DEPLOYMENT': {'actions': ('CLICK',),
+                    'expects': ('BATTLE_HUD', 'UNKNOWN'),
+                    'refusals': ('deployment_battle_button_not_anchored',)},
+     'DEPLOYMENT_RESET': {'actions': ('CLICK',),
+                          'expects': ('PRE_BATTLE_TEAM',),
+                          'refusals': ('deployment_reset_pending_intent_not_proven',)},
+     'DRIVE': {'actions': ('NODE',),
+               'expects': ('DRIVE',
+                           'EXPIRED_SESSION',
+                           'MAP',
+                           'MIRROR_ENTRY',
+                           'THEME_PACKS',
+                           'UNKNOWN'),
+               'refusals': ('mirror_menu_node_not_registered',)},
+     'DUNGEON_PROGRESS': {'actions': ('CLICK',),
+                          'expects': ('*', 'MAP'),
+                          'refusals': ('continue_button_not_anchored',)},
+     'DUNGEON_TEAM': {'actions': ('CLICK', 'SWIPE'),
+                      'expects': ('*',
+                                  'DUNGEON_TEAM',
+                                  'INITIAL_GIFTS',
+                                  'LEVEL_WARNING',
+                                  'MAP',
+                                  'STAR_GRACES',
+                                  'THEME_PACKS',
+                                  'UNKNOWN'),
+                      'refusals': ('<expr>',
+                                   'dungeon_team_confirm_not_anchored',
+                                   'wanted_team_header_not_proven')},
+     'EGO_GIFT_POPUP': {'actions': ('CLICK',),
+                        'expects': ('MAP', 'NODE_PANEL', 'UNKNOWN'),
+                        'refusals': ('ego_gift_popup_confirm_not_anchored',)},
+     'ENTRY_CONFIRM': {'actions': ('CLICK',),
+                       'expects': ('DUNGEON_TEAM',
+                                   'INITIAL_GIFTS',
+                                   'LEVEL_WARNING',
+                                   'MAP',
+                                   'RESUME_DIALOG',
+                                   'STAR_GRACES',
+                                   'THEME_PACKS',
+                                   'UNKNOWN'),
+                       'refusals': ('entry_confirm_button_not_anchored',)},
+     'EVENT_CHECK': {'actions': ('CLICK',),
+                     'expects': ('*',
+                                 'CUTSCENE',
+                                 'EVENT_CHECK',
+                                 'EVENT_CHECK_RESULT',
+                                 'EVENT_RESULT',
+                                 'EVENT_RESULT_READY'),
+                     'refusals': ('event_check_commence_not_anchored',
+                                  'no_event_check_candidate_observed')},
+     'EVENT_CHECK_READY': {'actions': ('CLICK',),
+                           'expects': ('*',),
+                           'refusals': ('event_check_ready_continue_not_anchored',)},
+     'EVENT_CHECK_RESULT': {'actions': ('CLICK',),
+                            'expects': ('*', 'EVENT_CHECK_RESULT'),
+                            'refusals': ('event_check_result_panel_not_anchored',)},
+     'EVENT_CHOICE': {'actions': ('CLICK',),
+                      'expects': ('*', 'EVENT_CHOICE'),
+                      'refusals': ('event_choice_index_out_of_range', 'no_event_choice_observed')},
+     'EVENT_RESULT': {'actions': ('CLICK',),
+                      'expects': ('*',),
+                      'refusals': ('event_result_story_panel_not_anchored',)},
+     'EVENT_RESULT_READY': {'actions': ('CLICK',),
+                            'expects': ('*', 'EVENT_RESULT_READY'),
+                            'refusals': ('event_result_continue_not_anchored',)},
+     'EXPIRED_SESSION': {'actions': ('CLICK',),
+                         'expects': ('*',),
+                         'refusals': ('expired_session_confirm_not_anchored',)},
+     'EXPLORATION_COMPLETE': {'actions': ('CLICK',),
+                              'expects': ('*',),
+                              'refusals': ('the_lost_summary_has_no_button_to_open_its_rewards',)},
+     'GIFT_GET': {'actions': ('CLICK',),
+                  'expects': ('GIFT_GET',
+                              'GIFT_PICK',
+                              'GIFT_SEARCH',
+                              'MAP',
+                              'REWARD_CARD',
+                              'SHOP',
+                              'SHOP_PURCHASE',
+                              'THEME_PACKS',
+                              'UNKNOWN'),
+                  'refusals': ('gift_get_confirm_not_anchored',)},
+     'GIFT_PICK': {'actions': ('CLICK',),
+                   'expects': ('*',
+                               'GIFT_GET',
+                               'GIFT_PICK',
+                               'GIFT_WARNING',
+                               'MAP',
+                               'REWARD_CARD',
+                               'UNKNOWN'),
+                   'refusals': ('gift_pick_card_not_anchored',
+                                'gift_pick_cards_exhausted_without_a_lit_select',
+                                'gift_pick_select_not_anchored',
+                                'owned_gift_refuse_control_missing')},
+     'GIFT_SEARCH': {'actions': ('CLICK',),
+                     'expects': ('GIFT_SEARCH_FORGO', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
+                     'refusals': ('gift_search_refuse_not_anchored',
+                                  'gift_search_select_not_anchored')},
+     'GIFT_SEARCH_FORGO': {'actions': ('CLICK',),
+                           'expects': ('GIFT_SEARCH', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
+                           'refusals': ('gift_search_forgo_confirm_not_anchored',)},
+     'GIFT_WARNING': {'actions': ('CLICK',),
+                      'expects': ('GIFT_PICK', 'UNKNOWN'),
+                      'refusals': ('gift_warning_cancel_not_anchored',)},
+     'HEAL_SINNERS': {'actions': ('CLICK',),
+                      'expects': ('HEAL_SINNERS',
+                                  'PRE_BATTLE_TEAM',
+                                  'REVIVE_PICK',
+                                  'SHOP',
+                                  'UNKNOWN'),
+                      'refusals': ('heal_sinners_option_not_anchored',)},
+     'HOME': {'actions': ('CLICK',),
+              'expects': ('DRIVE', 'MAP', 'MIRROR_ENTRY', 'THEME_PACKS', 'UNKNOWN'),
+              'refusals': ('drive_button_not_anchored',)},
+     'INITIAL_GIFTS': {'actions': ('CLICK',),
+                       'expects': ('*', 'GIFT_GET', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
+                       'refusals': ('initial_gift_select_not_anchored',
+                                    'initial_gift_selection_incomplete')},
+     'LEVEL_WARNING': {'actions': ('CLICK',),
+                       'expects': ('INITIAL_GIFTS', 'MAP', 'STAR_GRACES', 'THEME_PACKS', 'UNKNOWN'),
+                       'refusals': ('level_warning_confirm_not_anchored',)},
+     'MAP': {'actions': ('CLICK',),
+             'expects': ('CUTSCENE',
+                         'DEPLOYMENT',
+                         'EGO_GIFT_POPUP',
+                         'EVENT_CHECK',
+                         'EVENT_CHECK_READY',
+                         'EVENT_CHECK_RESULT',
+                         'EVENT_CHOICE',
+                         'EVENT_RESULT',
+                         'EVENT_RESULT_READY',
+                         'GIFT_GET',
+                         'GIFT_PICK',
+                         'MAP',
+                         'NODE_PANEL',
+                         'PRE_BATTLE_TEAM',
+                         'REWARD_CARD',
+                         'SHOP',
+                         'SHOP_LEAVE',
+                         'UNKNOWN',
+                         'WINDOW_RESET'),
+             'refusals': ('candidate_index_out_of_range', 'no_candidate_node_observed')},
+     'NODE_PANEL': {'actions': ('CLICK',),
+                    'expects': ('CUTSCENE',
+                                'EVENT_CHOICE',
+                                'EVENT_RESULT',
+                                'EVENT_RESULT_READY',
+                                'GIFT_PICK',
+                                'MAP',
+                                'PRE_BATTLE_TEAM',
+                                'REWARD_CARD',
+                                'SHOP',
+                                'UNKNOWN',
+                                'WINDOW_RESET'),
+                    'refusals': ('enter_button_not_anchored',)},
+     'PASS_LEVEL_UP': {'actions': ('CLICK',),
+                       'expects': ('*',),
+                       'refusals': ('pass_level_up_confirm_not_anchored',)},
+     'PRE_BATTLE_TEAM': {'actions': ('CLICK',),
+                         'expects': ('*', 'BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'UNKNOWN'),
+                         'refusals': ('battle_button_not_anchored',
+                                      'deployment_clear_selection_not_anchored',
+                                      'saved_deployment_order_invalid',
+                                      'saved_deployment_sequence_not_proven')},
+     'RESUME_DIALOG': {'actions': ('CLICK',),
+                       'expects': ('INITIAL_GIFTS', 'MAP', 'STAR_GRACES', 'THEME_PACKS', 'UNKNOWN'),
+                       'refusals': ('resume_button_not_anchored',)},
+     'REVIVE_DONE': {'actions': ('CLICK',),
+                     'expects': ('SHOP', 'UNKNOWN'),
+                     'refusals': ('the_revived_sinners_notice_has_no_bound_leave',)},
+     'REVIVE_PICK': {'actions': ('CLICK',),
+                     'expects': ('MAP',
+                                 'PRE_BATTLE_TEAM',
+                                 'REVIVE_DONE',
+                                 'REVIVE_PICK',
+                                 'SHOP',
+                                 'UNKNOWN'),
+                     'refusals': ('the_picker_asked_for_a_sinner_no_proven_loss_names',)},
+     'REWARD_CARD': {'actions': ('CLICK',),
+                     'expects': ('*',),
+                     'refusals': ('reward_card_box_not_anchored',
+                                  'reward_card_confirm_not_anchored')},
+     'RUN_CLAIM': {'actions': ('CLICK',),
+                   'expects': ('*',),
+                   'refusals': ('run_claim_button_not_anchored',)},
+     'RUN_REWARD_BONUS': {'actions': ('CLICK',),
+                          'expects': ('*',),
+                          'refusals': ('run_reward_bonus_cancel_not_anchored',
+                                       'run_reward_bonus_confirm_not_anchored')},
+     'RUN_REWARD_CONFIRM': {'actions': ('CLICK',),
+                            'expects': ('*',),
+                            'refusals': ('run_reward_confirm_not_anchored',)},
+     'RUN_REWARD_DIALOG': {'actions': ('CLICK',),
+                           'expects': ('*',),
+                           'refusals': ('run_reward_claim_not_anchored',)},
+     'SHOP_LEAVE': {'actions': ('CLICK',),
+                    'expects': ('MAP', 'UNKNOWN'),
+                    'refusals': ('shop_leave_confirm_not_anchored',)},
+     'SHOP_PURCHASE': {'actions': ('CLICK',),
+                       'expects': ('MAP', 'SHOP', 'SHOP_PURCHASE', 'UNKNOWN'),
+                       'refusals': ('the_shop_asked_about_a_purchase_and_its_confirm_was_not_read',)},
+     'STAR_CONFIRM': {'actions': ('CLICK',),
+                      'expects': ('*',
+                                  'INITIAL_GIFTS',
+                                  'MAP',
+                                  'STAR_GRACES',
+                                  'THEME_PACKS',
+                                  'UNKNOWN'),
+                      'refusals': ('grace_transaction_not_proven',
+                                   'star_cancel_not_anchored',
+                                   'star_confirm_button_not_anchored',
+                                   'starlight_conversion_off_and_cost_zero_not_proven')},
+     'STAR_GRACES': {'actions': ('CLICK',),
+                     'expects': ('*',
+                                 'INITIAL_GIFTS',
+                                 'MAP',
+                                 'STAR_CONFIRM',
+                                 'THEME_PACKS',
+                                 'UNKNOWN'),
+                     'refusals': ('graces_enter_not_anchored',)},
+     'THEME_PACKS': {'actions': ('CLICK', 'SWIPE'),
+                     'expects': ('*',),
+                     'refusals': ('hard_difficulty_not_proven',
+                                  'theme_pack_card_not_anchored',
+                                  'theme_pack_pull_target_not_anchored')},
+     'TUTORIAL': {'actions': ('CLICK',),
+                  'expects': ('*',),
+                  'refusals': ('tutorial_last_page_has_no_forward_control',
+                               'tutorial_next_button_not_anchored')},
+     'UNKNOWN_DIALOG': {'actions': ('CLICK',),
+                        'expects': ('*',),
+                        'refusals': ('unknown_dialog_close_not_anchored',)},
+     'WINDOW_RESET': {'actions': ('CLICK',),
+                      'expects': ('*',),
+                      'refusals': ('weekly_reset_cancel_not_anchored',)}}
+
+
+
+def facts(page):
+    """The recorded capabilities of one page, or ``None`` if the chain has none."""
+    return DISPATCH_FACTS.get(page)
+
+
+def fact_drift(derived=None):
+    """Pages whose recorded capabilities differ from the chain that decides today.
+
+    ``derived`` defaults to :func:`window.dispatch_facts`, so a caller normally
+    only asks "does the record still describe the chain"; a test injects a
+    mutated derivation to prove the comparison can fail.
+    """
+    if derived is None:
+        from . import window
+        derived = window.dispatch_facts()
+    recorded = {page: {key: list(row[key]) for key in ('actions', 'expects', 'refusals')}
+                for page, row in DISPATCH_FACTS.items()}
+    drift = {}
+    for page in sorted(set(recorded) | set(derived)):
+        if recorded.get(page) != derived.get(page):
+            drift[page] = {'recorded': recorded.get(page), 'chain': derived.get(page)}
+    return drift
+
+
+def unsafe_wait_branches(derived=None, wait_pages=None):
+    """Declared wait pages whose branch can refuse with an action that stops a run.
+
+    A page on the wait list clears itself, so refusing on it is allowed (the loop
+    then keeps waiting instead of clicking into the page).  What is *not* allowed
+    is a refusal that maps to a stopping action: that turns "this screen has no
+    control" into the end of the run -- the failure mode the mandate calls 路径
+    失败后容易直接停止.  Returns ``[(page, reason, kind, action), ...]``.
+    """
+    if wait_pages is None:
+        from . import window
+        wait_pages = window.WAIT_PAGES
+    if derived is None:
+        from . import window
+        derived = window.dispatch_facts()
+    stopping = [action for action in set(RECOVERY_BY_KIND.values())
+                if action not in WAIT_ONLY_ACTIONS]
+    unsafe = []
+    for page in wait_pages:
+        row = derived.get(page) or {}
+        for reason in row.get('refusals', ()):
+            kind = REFUSALS.get(reason)
+            action = recovery_for(kind)
+            if action in stopping:
+                unsafe.append((page, reason, kind, action))
+    return unsafe
+
 
 #: The closed vocabulary of refusal reasons.  ``window._refuse`` may only use a
 #: reason from this map; ``tests/test_refuse_vocabulary.py`` enforces it.  The value
