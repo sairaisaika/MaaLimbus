@@ -1722,10 +1722,16 @@ def party_point(image):
     # badge (399 px, V 128), party (539 px, V 209), enemy (270 px, V 216) -- so neither
     # size nor brightness separates them alone, and both together do.  When exactly one
     # blob is filled *and* bright it is the flame, and it is tried first.
-    solid = max(4, int(round(400 * scale)))
-    anchor = [b for b in blobs if b[0] >= solid and b[3] >= 190]
-    if len(anchor) == 1:
-        blobs = anchor + [b for b in blobs if b is not anchor[0]]
+    solid = max(4, int(round(300 * scale)))
+    anchor = [b for b in blobs if b[0] >= solid and b[3] >= 170]
+    if anchor:
+        # Several blobs can be filled and bright at once (a badge's ring at this size
+        # reads 400+ px at V 200+ on `055547/frame-0005`, where the party also does), so
+        # the largest filled-and-bright blob wins instead of requiring a unique one:
+        # the torch is 539 px there against the badge's 399.
+        anchor.sort(reverse=True)
+        chosen = anchor[0]
+        blobs = [chosen] + [b for b in blobs if b is not chosen]
     # A second, nearby blob makes it the flame: two bright specks a few pixels apart.
     # Every blob is tried as the upper speck, not just the largest: once the colour band
     # admits the map's own warm furniture (the chest icons on the right edge), the
@@ -1734,6 +1740,13 @@ def party_point(image):
     for index, top in enumerate(blobs):
         for other, mate in enumerate(blobs):
             if other == index:
+                continue
+            # Brightness gates the pair, not just the anchor: this loop only ever
+            # checked geometry, so on `055547/frame-0005` -- where the torch's two
+            # specks do not line up -- it fell through to a dim badge (V 128) and
+            # answered the badge's position as the party's.  A pair with a dark half
+            # is not a flame; better a `None` than a wrong anchor.
+            if top[3] < 170 or mate[3] < 170:
                 continue
             if abs(mate[1] - top[1]) <= 12 and abs(mate[2] - top[2]) <= 80:
                 x = (top[1] + mate[1]) / 2.0
