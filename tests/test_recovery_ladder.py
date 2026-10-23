@@ -200,3 +200,17 @@ def test_a_text_refusal_never_drags_the_page(tmp_path):
     view = {'reason': 'no_candidate_node_observed'}
     runner._recover('MAP', state, view, {})
     assert device.pinches or device.swipes, 'the view refusal lost its ladder'
+
+
+def test_every_recorded_recovery_carries_its_kind(tmp_path):
+    """The offline end-to-end proof of the recording: a real ladder spend, then the
+    events it wrote.  `evidence/runtime/packaged-mirror-*` shows 196 recoveries and
+    none carried a kind, because every one of them predates the shared builder.
+    """
+    runner, device, notes = map_window(tmp_path, frames=40)
+    runner.run(steps=1, interval=0)
+    recoveries = [details for name, details in notes.events if name == 'window_recovery']
+    assert recoveries, 'this fixture is supposed to spend at least one rung'
+    for details in recoveries:
+        assert details.get('refused_kind'), f'a recovery recorded no kind: {details}'
+        assert details.get('recovery_action')

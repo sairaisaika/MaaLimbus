@@ -265,6 +265,9 @@ def recovery_for(kind):
 STOP_KINDS = {
     'page_unreadable_after_waiting': 'unreadable_text',
     'unexpected_successor': 'bad_saved_state',
+    # A plan that refuses to click until an unresolved exploration is resumed is a
+    # saved-state error: nothing is missing on the page, our route is stale.
+    'the_exploration_must_be_resumed_before_a_node_click': 'bad_saved_state',
 }
 
 
