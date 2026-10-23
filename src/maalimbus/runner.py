@@ -2719,6 +2719,16 @@ class MirrorRunner:
             texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
             box=dialog_dismissal(texts,record.get('size') or (1920,1080),self.locale_dictionary())
             if box:plan_controls['unknown_dialog.close']=list(box)
+            if int(state.get('map_refused_streak') or 0)>=3:
+                # Leaving for the entry asks a confirmation of its own; the generic
+                # dismissal would close it and hand back the same paused panel
+                # (live: 09:24:16 `the_unexpected_dialog_is_dismissed_with_its_own_close`
+                # returned to DUNGEON_PROGRESS twice in a row).
+                for row in (record.get('ocr') or []):
+                    if str(row.get('text') or '').strip().lower() in ('confirm','yes','ok'):
+                        plan_controls['unknown_dialog.confirm']=[int(v) for v in row['box']]
+                        plan_controls['leave_for_entry_pending']=True
+                        break
         if page=='HEAL_SINNERS' and heal_options is not None:
             plan_controls['heal_sinners.revive']=list(heal_options.revive_box)
         if page in ('REVIVE_PICK','REVIVE_DONE'):

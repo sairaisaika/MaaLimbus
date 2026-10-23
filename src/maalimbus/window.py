@@ -1087,6 +1087,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # Enkephalin modal ('Insufficient Enkephalin.', 'Use Lunacy', 'Use Boxes',
         # 'X Cancel' [710,782], 'Confirm' [1110,784]) over the Window page and the window
         # stopped with page_is_observe_only without sending anything.
+        if controls.get('leave_for_entry_pending'):
+            confirm = controls.get('unknown_dialog.confirm')
+            if confirm is not None:
+                return _plan(page, CLICK, target=confirm, expect=(ANY,), advance=True,
+                             reason='the_way_back_to_the_entry_is_confirmed')
         box = controls.get('unknown_dialog.close')
         if box is None:
             return _refuse(page, 'unknown_dialog_close_not_anchored')
