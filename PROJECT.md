@@ -3708,3 +3708,48 @@ read_only_frame_is_not_an_identified_map`。那一局 **Mirror of Sisyphus 08 / 
 
 **下一单元（按证据排）**：`MAP` 的 29 处行内分派整页搬进 `DISPATCH_FACTS` 对应的表；`window.plan_step`
 52 分支链的分组；`tools/` 里其余"把缺失证据当成结论"的统计器。
+## DSH continuation: a page that answers one question is a row, not a branch (2026-10-23)
+
+**本轮只读审计的三个最关键原因（延续前几轮，编号稳定）**
+
+1. **逐页补丁**：`MirrorRunner.step` 一个方法 2069 行、承担 24 个页面的行内逻辑，而 D35 的棘轮只数五种
+   分派写法中的一种（85/111）。D44 之后总体可数（runner 149 处、window 61 处），**但一直没变小**——
+   这就是本轮动手的地方。
+2. **恢复判据靠散文**：三套词表拼接 + 被覆盖 8 次的 `kind_for`；D39–D42 已把"已自决记录不再分类""没有
+   发生的观测不是成功""守卫不存第二份策略"变成常量与测试。
+3. **一次原生等待能吃掉整份预算，且看门狗说不出在等谁**：D37/D43 关上了读取的门，D46 关上了动作的门，
+   两扇门都在飞时留下 `in_flight_phase`/`in_flight_node`/`in_flight_seconds`。
+
+**本轮改动（D47）：把 27 个同形状的页面分支变成 27 行数据**
+
+- `src/maalimbus/window.py`：新增 `STEP_ROWS`（27 行：`control`/`also`/`expect`/`reason`/`refusal`，
+  可选 `advance`/`source`/`action`）与唯一执行器 `_row_step`；`_plan_step` 先查表再走链，链条从 51 个
+  顶层分支降到 24 个真正有条件的分支；`dispatch_facts` 同时读表与链，因此 `pages.fact_drift()` 重新覆盖
+  全体 49 页。
+- `src/maalimbus/pages.py`：`INLINE_WINDOW` 从 **61 降到 34**（棘轮随总体下调）。
+- `src/maalimbus/reason_provenance.py`：新增 `PLAN_KEYS = ('control', 'expect', 'refusal')`——同时写着控件与
+  期望页的映射就是计划，它的 `reason` 是意图；只有 `{'reason': ...}` 的诊断记录仍是失败。
+- `tests/test_step_rows.py`（新增 11 项）+ `tests/test_reason_provenance.py`（新增 2 项）+ `tools/audit_dispatch.py`
+  的 `rows/branches` 计数。
+
+**证据**
+
+| 指标 | 之前 | 之后 |
+| --- | --- | --- |
+| 全量测试 | 2111 passed / exit 0 | **2124 passed / exit 0** |
+| `window.py` 分派点 | 61 | **34** |
+| `_plan_step` 顶层分支 | 51 | **24**（+27 行数据） |
+| 拼接前后差分 | — | **279 例 0 差异** |
+| `fact_drift()` | `{}` | `{}`（49 页，搬家等价性证明） |
+| `audit_dispatch` | 49 页 | `rows 27, branches 22`，`unsafe_wait_branches: none` |
+| 只读 MuMu 节点 | 20 帧 RESUME_DIALOG | `map-live-20261023-183734`，20 帧，`input_sent: false` |
+
+**中途被自己的守卫抓住两次（都写进了 D47）**：搬动 `reason` 字符串后 provenance 把 27 个意图读成失败，
+两个守卫变红；修的是规则（`PLAN_KEYS`）而不是基线。另一个是第一次拼接把 `DISPATCH_FACTS` 的排版拼坏，
+用生成器重建并按行提交。
+
+**下一单元（按证据排）**：`MAP` 的 29 处行内分派整页搬进表（19 个后继判据已在 `DISPATCH_FACTS` 里）；
+runner 的 149 处分派是剩下真正会增长的总体；`tools/` 里其余"把缺失证据当结论"的统计器。
+
+**未做（不声称）**：没有实机输入、没有领奖、没有消费；那局 `Floor 2 2/6 [HARD]` 原样保留。
+agentmemory 工具在本会话不可用（`ops_discover_tools` 无匹配），结论落在本文件与两份决策文档。
