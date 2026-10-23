@@ -865,9 +865,17 @@
         "拒绝",
         "漂移",
         "dispatch_facts",
-        "DISPATCH_FACTS"
+        "DISPATCH_FACTS",
+        "STEP_ROWS",
+        "行数据",
+        "一页一行",
+        "step row"
       ],
       "sources": [
+        {
+          "path": "src/maalimbus/window.py",
+          "needle": "STEP_ROWS = {"
+        },
         {
           "path": "src/maalimbus/window.py",
           "symbol": "dispatch_facts"
@@ -891,46 +899,55 @@
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d45-页面契约要从链路派生不能写在链路旁边",
-        "docs/wiki/en_us/2.3-decisions.md#d45-a-page-contract-must-be-derived-from-the-chain-not-written-beside-it"
+        "docs/wiki/en_us/2.3-decisions.md#d45-a-page-contract-must-be-derived-from-the-chain-not-written-beside-it",
+        "docs/wiki/zh_cn/2.3-decisions.md#d47-只问一个问题的页面是一行数据不是一个分支",
+        "docs/wiki/en_us/2.3-decisions.md#d47-a-page-that-answers-one-question-is-a-row-not-a-branch"
       ],
       "tests": [
         "tests/test_page_contracts.py",
-        "tests/test_pages.py"
+        "tests/test_pages.py",
+        "tests/test_step_rows.py"
       ],
       "checks": [
-        "python -m pytest -q tests/test_page_contracts.py tests/test_pages.py"
+        "python -m pytest -q tests/test_page_contracts.py tests/test_pages.py tests/test_step_rows.py"
       ],
-      "boundary": "派生是静态读 window._plan_step：运行期才决定的名字记为 '<expr>'，且只覆盖窗口链路与 runner 行内分派两层；记录与链路的漂移由 tests/test_page_contracts.py 守，不做行为推断。",
+      "boundary": "派生是静态读 window.STEP_ROWS 与 window._plan_step：运行期才决定的名字记为 '<expr>'，且只覆盖窗口链路与 runner 行内分派两层；记录与链路的漂移由 tests/test_page_contracts.py 守，行与分支的互斥由 tests/test_step_rows.py 守，不做行为推断。",
       "locations": [
+        {
+          "path": "src/maalimbus/window.py",
+          "needle": "STEP_ROWS = {",
+          "line": 310,
+          "sha256": "42014e38d994d05391bc5d7bccdc994c2247740344c0259d0bf1ea448db48ec6"
+        },
         {
           "path": "src/maalimbus/window.py",
           "symbol": "dispatch_facts",
           "line": 152,
-          "sha256": "94ac6456515411435eabc736e20bbe767b7dd34f6c3ca023e9060b3147a03abb"
+          "sha256": "42014e38d994d05391bc5d7bccdc994c2247740344c0259d0bf1ea448db48ec6"
         },
         {
           "path": "src/maalimbus/window.py",
           "symbol": "plan_step",
           "line": 122,
-          "sha256": "94ac6456515411435eabc736e20bbe767b7dd34f6c3ca023e9060b3147a03abb"
+          "sha256": "42014e38d994d05391bc5d7bccdc994c2247740344c0259d0bf1ea448db48ec6"
         },
         {
           "path": "src/maalimbus/pages.py",
           "needle": "DISPATCH_FACTS = {",
-          "line": 338,
-          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+          "line": 339,
+          "sha256": "f276cf6d90a3e001dde1e2be077f2f89aa2b2fd80b34eab481559f3b1da99fb0"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "unsafe_wait_branches",
-          "line": 561,
-          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+          "line": 562,
+          "sha256": "f276cf6d90a3e001dde1e2be077f2f89aa2b2fd80b34eab481559f3b1da99fb0"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "dispatch_sites",
           "line": 197,
-          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+          "sha256": "f276cf6d90a3e001dde1e2be077f2f89aa2b2fd80b34eab481559f3b1da99fb0"
         }
       ]
     }
