@@ -1964,7 +1964,6 @@ class MirrorRunner:
         # gives the party every time (evidence/runtime/packaged-mirror-20261022-092529/
         # frame-0002.png -> (1628,558)) while the packaged loop reported no candidate.
         if page=='MAP' and not candidates and hasattr(frame,'shape'):
-            from .map_vision import party_point
             here=party_point(frame)
             self.note('map_candidates_empty',size=[int(frame.shape[1]),int(frame.shape[0])],
                       party=list(here) if here else None,
