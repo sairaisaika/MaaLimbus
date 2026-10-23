@@ -46,3 +46,21 @@ def test_every_refusal_reason_is_registered():
         'Register each in maalimbus.pages.REFUSALS with the state it belongs to, or '
         'reuse an existing reason -- do not add a new page-specific string.'
         % ', '.join(unknown[:12]))
+
+
+def test_every_refusal_names_one_of_the_closed_kinds():
+    """A refusal's class decides what the recovery engine may do next.
+
+    `unclassified` was the honest placeholder while the map was being built; with it
+    gone, a new page-specific string cannot be added without also saying which of the
+    six situations it is.  That is the whole point: the string is page-specific, the
+    class is not.
+    """
+    from maalimbus import pages
+    allowed = {'missing_control', 'no_candidate', 'attempts_exhausted',
+               'unreadable_text', 'bad_saved_state', 'refused_by_policy'}
+    unknown = {reason: kind for reason, kind in pages.REFUSALS.items()
+               if kind not in allowed}
+    assert unknown == {}, f'refusals with a kind outside the closed set: {unknown}'
+    assert 'unclassified' not in set(pages.REFUSALS.values()), (
+        'a refusal was left unclassified; pick one of the six kinds instead')
