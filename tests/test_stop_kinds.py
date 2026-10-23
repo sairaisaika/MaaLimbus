@@ -31,6 +31,9 @@ def test_the_narrowing_still_reads_one_source():
 # The ratchet may only go down: a new page-specific name must either reuse a kind or
 # replace an existing name, never add a 188th silent one.
 UNMAPPED_BASELINE = 187
+# After the role split (intent / outcome / failure) the honest denominator is
+# "failures that have no class": 81 on 2026-10-23, down from 187 unmapped names.
+UNCLASSIFIED_FAILURE_BASELINE = 81
 
 
 def test_the_unmapped_reason_vocabulary_only_shrinks():
@@ -44,3 +47,21 @@ def test_the_unmapped_reason_vocabulary_only_shrinks():
     assert len(missing) <= UNMAPPED_BASELINE, (
         f'{len(missing)} unmapped reason names (baseline {UNMAPPED_BASELINE}): '
         f'{sorted(missing)[:5]}')
+
+
+def test_every_failure_name_has_a_role_and_the_residue_shrinks():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+    from audit_vocabulary import literals
+    from maalimbus.pages import REFUSALS, STOP_KINDS
+    from maalimbus.reason_kinds import kind_for, role_of
+
+    known = set(REFUSALS) | set(STOP_KINDS)
+    names = literals()
+    assert all(role_of(name) in ('intent', 'outcome', 'failure') for name in names)
+    unclassified = [n for n in names if n not in known
+                    and role_of(n) == 'failure' and kind_for(n) is None]
+    assert len(unclassified) <= UNCLASSIFIED_FAILURE_BASELINE, (
+        f'{len(unclassified)} failure names without a class '
+        f'(baseline {UNCLASSIFIED_FAILURE_BASELINE}): {sorted(unclassified)[:5]}')

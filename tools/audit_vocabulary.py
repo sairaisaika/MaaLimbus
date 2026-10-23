@@ -13,6 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.pages import REFUSALS, STOP_KINDS  # noqa: E402
+from maalimbus.reason_kinds import kind_for, role_of  # noqa: E402
 
 KEYS = ('reason', 'stopped', 'stopped_reason', 'plan_reason')
 
@@ -43,8 +44,16 @@ def main():
     known = set(REFUSALS) | set(STOP_KINDS)
     names = literals()
     missing = sorted(name for name in names if name not in known)
+    roles = {name: role_of(name) for name in names}
+    failures = [name for name in names if name not in known and roles[name] == 'failure']
+    unclassified = [name for name in failures if kind_for(name) is None]
     print(f'reason-like literals: {len(names)}')
+    print(f'  intents: {sum(1 for r in roles.values() if r == "intent")}'
+          f'  outcomes: {sum(1 for r in roles.values() if r == "outcome")}'
+          f'  failures: {sum(1 for r in roles.values() if r == "failure")}')
     print(f'mapped: {len(names) - len(missing)}  unmapped: {len(missing)}')
+    print(f'failures without a class: {len(unclassified)}')
+    missing = unclassified or missing
     for name in missing[:10]:
         print(f'  - {name}')
     return 0
