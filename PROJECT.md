@@ -3350,3 +3350,23 @@ Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_
 
 遗留：`recovery_advanced` 仍为 6/17，须在受控实机跑里复测；本轮 0 次实机输入、0 消费。
 
+## DSH continuation: 三个同名缺陷——判据测错参照系、口径算错对象、陈旧状态无出口（2026-10-23）
+
+本条记录三次修复，它们是一个缺陷的三个切面：**把随场景变化的量写成常量或单一坐标系**。
+
+1. `8988763`（测量正确性，先修这个才有意义）：`ACCEPTED_MOVEMENT` 曾包含
+   `the_click_opened_the_next_page`，而该 reason 在 `packaged-mirror-20261023-05xxxx` 里的
+   **每一个**点击目标都是 `(1844,60)`——右上角进度齿轮。于是 `recovery_advanced` 报 6/17 全是假的；
+   去掉后六局重算为 **0/17**：17 次恢复，0 次让队伍移动。
+2. `6d6baee`：新增 `movement_between(before, after)`，在**参照系**里判定队伍是否移动——
+   徽章跟随位移→`the_view_moved`（镜头动，非走路）；徽章不动而队伍动→`moved`；
+   徽章整组更换→`the_view_changed`（不可证，不猜）；缺读数→`unknown`。
+   反证：`055547` 队伍 (703,316)→(1052,439)，但 (888,432)+(349,122) 在新视图里不存在。
+3. `7953ed8`：`runner.py` 原先"跳变一律判误读并保留旧点"，导致 `map_player` 永久停在队伍
+   已离开的节点，之后所有相邻判定都在错误基准上推理。现在跳变时用徽章判定：换视图则采纳新位置
+   （记 `map_view_changed`），跟着走或证据不足则仍保留。
+
+测试：1913 passed。**指标未改善**：`recovery_advanced` 仍 0/17，实机输入 0、消费 0、领奖 0。
+修复后尚未经过一次实机跑，因此不得声称提升；下一步只看两个数——`map_view_changed` 是否出现、
+`recovery_advanced` 是否脱离 0。若两者皆无，瓶颈转到"Resume 之后客户端是否接受输入"。
+
