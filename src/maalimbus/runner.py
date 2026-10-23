@@ -2657,6 +2657,11 @@ class MirrorRunner:
             # node is a run that was never resumed, and the resume lives behind the map's
             # own progress control at the top right of the page.
             plan_controls['map.progress_button']=list(MAP_PROGRESS_CONTROL)
+            # Carry the intent across the page change: the streak is reset when the
+            # progress panel takes over, so the panel below cannot read it.  Live run
+            # `packaged-mirror-20261023-053843` opened the panel four times and then
+            # fell into `window_recovery`, because by then the streak was 0.
+            state['resume_requested']=True
         if page=='TUTORIAL' and record.get('overlay_dismissal',{}):
             closer=record['overlay_dismissal']
             if closer.get('kind')=='tutorial_book':
@@ -2715,7 +2720,7 @@ class MirrorRunner:
             # `a_run_is_still_in_progress` refused twice and then wedged, never
             # reaching three.  The resume chain is reversible, so paying it once
             # early costs less than a run that never gets there.
-            if int(state.get('map_refused_streak') or 0)>=1:
+            if int(state.get('map_refused_streak') or 0)>=1 or state.get('resume_requested'):
                 plan_controls['dungeon_progress.resume_via_entry']=True
         if page=='UNKNOWN_DIALOG':
             # A modal that named no page is dismissed through its own close control,
