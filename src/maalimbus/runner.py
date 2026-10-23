@@ -70,6 +70,7 @@ from .shop_vision import (SHELF_PRICE_FAINT_FLOOR, SHELF_PRICE_FLOOR, shelf_toke
 from .shop_settings import CARRY_CAP_COINS
 from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
 from .vision import Text, inset_box
+from . import click_trace
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
                      step_result)
 
@@ -4041,10 +4042,18 @@ class MirrorRunner:
             # and write nothing, so 22 of 107 retained runs end on their last business
             # event with no cause (`tools/audit_runs.py`).  This line makes the last
             # thing the run started the thing the log reports.
+            # Observe only: what the last click left behind.  Nothing stops on this
+            # yet; the field exists so a live run can show whether it ever fires.
+            _clicked = getattr(self, '_clicked_at', None)
+            _verdict = click_trace.classify(
+                seconds_since_click=(time.monotonic() - _clicked) if _clicked is not None else None,
+                heartbeat_seen=(_clicked is not None
+                                and self._note_count > getattr(self, '_notes_at_click', 0)),
+                page=self.state.get('page') or getattr(self, '_last_page', None))
             self.note('loop_heartbeat', step=self.state['step'],
                       phase='step_start',
                       page=self.state.get('page') or getattr(self, '_last_page', None),
-                      build=_build_id())
+                      build=_build_id(), trace_verdict=_verdict['kind'])
             try:
                 result = self.step()
             except (RuntimeError, OSError) as error:
