@@ -47,7 +47,7 @@ import cv2
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
-from .pages import REFUSALS, recovery_for
+from .pages import REFUSALS, ladder_for, recovery_for
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -4245,6 +4245,8 @@ class MirrorRunner:
             # (2026-10-22 00:09 run, access violation right after rung 0 on DRIVE), so
             # those pages get the settle wait and nothing that drags or pinches.
             ladder = tuple(entry for entry in ladder if entry[0] == 'wait')
+        kind = REFUSALS.get(entry.get('reason'), None)
+        ladder = ladder_for(recovery_for(kind), ladder)
         rung = state['recovery_rung']
         if rung >= len(ladder):
             self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),

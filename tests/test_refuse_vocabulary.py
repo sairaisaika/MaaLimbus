@@ -80,3 +80,22 @@ def test_each_kind_maps_to_exactly_one_action():
         'two kinds share an action, so one of them cannot decide anything new')
     assert pages.recovery_for('not_a_kind') == 'hold'
     assert pages.recovery_for('no_candidate') == 'pan_view'
+
+
+def test_an_action_narrows_the_rungs_and_never_invents_one():
+    """The action decides which rungs may be spent -- and only by narrowing.
+
+    A text page must not be dragged (a drag on a confirmation screen can misroute the
+    run), a policy refusal must not move the device at all, and an *unknown* action
+    must fall back to the measured ladder rather than inventing a safer-looking one.
+    """
+    from maalimbus import pages
+    ladder = (('pinch_out', 1), ('drag_down', 2), ('drag_up', 3), ('pan_left', 4), ('wait', 5))
+    assert pages.ladder_for('stop', ladder) == ()
+    for action in ('bind_control', 'reread_text', 'recompute_state'):
+        assert pages.ladder_for(action, ladder) == (('wait', 5),), action
+    for action in ('pan_view', 'escalate_ladder', 'hold', None):
+        assert pages.ladder_for(action, ladder) == ladder, action
+    invented = {rung[0] for a in pages.REFUSAL_KINDS
+                for rung in pages.ladder_for(pages.recovery_for(a), ladder)}
+    assert invented <= {rung[0] for rung in ladder}

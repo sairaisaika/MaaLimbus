@@ -221,6 +221,21 @@ RECOVERY_BY_KIND = {
 }
 
 
+# Which rungs a refusal's action may use.  Narrowing is the *only* safe direction:
+# an unknown action falls back to the measured six-rung ladder, because a gesture that
+# moves a view has never corrupted a run, while dragging a text screen can misroute it.
+WAIT_ONLY_ACTIONS = ('bind_control', 'reread_text', 'recompute_state')
+
+
+def ladder_for(action, ladder):
+    """The rungs this action may spend, in order.  Never invents a rung."""
+    if action == 'stop':
+        return ()
+    if action in WAIT_ONLY_ACTIONS:
+        return tuple(rung for rung in ladder if rung[0] == 'wait')
+    return tuple(ladder)
+
+
 def recovery_for(kind):
     """The action for a refusal kind; an unknown kind holds instead of guessing."""
     return RECOVERY_BY_KIND.get(kind, 'hold')
