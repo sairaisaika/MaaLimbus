@@ -3804,3 +3804,49 @@ agentmemory 工具在本会话不可用（`ops_discover_tools` 无匹配），�
 **下一单元。** `MirrorRunner.step` 仍是最大未缩减面（2069 行、306 个 `If`、112 个顶层分支，
 其中只有 18 个是顶层 `page == 'X'`）。30 个"输入之后按 `plan['reason']` 分流"的块是同一种形状、
 合计约 450 行，是下一个可度量、可做差分等价证明的切片。
+
+## DSH continuation: an input nothing can judge is a decision, not a diagnosis (2026-10-23)
+
+本轮把上一轮"词表"的下一步做完：**词有了写方与读方之后，还要问这个词在输入发出之后值多少。**
+
+**问题模式。** 存档里 51 局"没有停因就死掉"的运行，收尾几乎都是 `window_no_progress`——
+不是某个具名拒绝。也就是说，循环**发出去的动作没有被证伪过**。`step_result` 只在计划带 `expect`
+时才能判"后继不符"，而空 `expect` 会让 `successor_ok` 无条件通过。
+
+**测量。** 用代码里本来就有的两种证据做派生：窗口层 130 个词里 **80 个会发输入**
+（其余 50 个是拒绝，什么都没发，不欠证据）。这 80 个里 **45 个带 `expect`**、
+**21 个被 runner 的钩子读回**、**28 个两者都没有**。对这 28 个，"被吞掉的点击"与"生效的点击"
+在日志里是同一个事件。
+
+**改动（提交 `162f3ff`、`docs`）。**
+- `src/maalimbus/plan_reasons.py`：新增 `acting_plans()`（表行当数据读、`_plan`/`_refuse` 调用、
+  runner 唯一手工计划）、`unproven()`；`main()` 打印三分类与逐词声明状态。
+- `src/maalimbus/pages.py`：`PLANS_WITHOUT_PROOF` 声明这 28 个词，值统一是 `unmeasured`——
+  缺口的证据只有未来运行时才有，现在写任何"后继集合"都是猜。
+- `src/maalimbus/runner.py`：输入发出之后若计划没有 `expect`，journal
+  `input_without_a_proof`（页面、词、目标）。这是下一轮能**测量**而不是继续猜的仪器。
+- `tests/test_plan_proof.py`（10 项）：声明与派生必须相等；拒绝不欠证据；每个 `STEP_ROWS` 行都带期望；
+  源码里新造的无证据计划会被报出；并驱动一次真实 `run()` 走查，断言无证据的点击确实以
+  `input_without_a_proof` 带页面与词落进 `events.jsonl`。
+- 文档：`docs/wiki/{en_us,zh_cn}/2.3-decisions.md` D49；`docs/wiki/routes.json` 的 `plan-reason`
+  路由扩到覆盖"证据关系"；索引重建。
+
+**关键取舍（写进 D49 的局限）。** 明显的"修复"是给这 28 个补 `expect=ANY`（"页面必须不同"），
+**没有做**：开关、同面板挑卡都会合法地留在原页，`ANY` 会给它们报假的 `unexpected_successor`。
+护栏里的一个猜测比一个已声明的缺口更糟。另外这道闸数的是人口，分不出"永远被满足的证据"和"有效的证据"——
+只有真实运行能分辨，所以这里留下计量仪器，而不是发明一个检查。
+
+**测量与验证。**
+- `python tools/audit_plan_reasons.py` → 130 窗口词 / 1 手工计划 / 42 钩子 22 词 / 死钩子 0；
+  `acting plans: 80  with an expectation: 45  named by a hook: 21`、
+  `acting plans whose result nothing can judge: 28`（逐词 `unmeasured`），退出 0。
+- 定向套件（plan_proof/plan_reasons/page_contracts/step_rows/runner）→ 110 passed in 41.88 s；全量套件 → **2148 passed in 178.73 s**（pytest 自身退出码 0）。
+- `python tools/verify_pipeline_spec.py` → `ok — 0 problem(s)`，805 节点 / 16 agent 名 / 6 个入口可达。
+- 只读实机核对（MuMu `127.0.0.1:16416`，`input_sent: false`）→ `evidence/runtime/map-live-20261023-184333`：
+  `scene: RESUME_DIALOG`、`reason: read_only_frame_is_not_an_identified_map`；
+  进行中的 Mirror of Sisyphus 08 / F2 `Floor 2 2/6 [HARD]` 局原样保留，未点、未消费、未领奖。
+
+**下一单元。** 这 28 个词需要证据才能给出后继集合：等下一次被授权的实机运行，
+用 `input_without_a_proof` 与其后的页面变化配对，把 `unmeasured` 换成真实结论。
+在此之前，`MirrorRunner.step` 仍是最大未缩减面（2069 行、112 个顶层分支），
+其中 30 个"输入之后按 `plan['reason']` 分流"的块形状一致、约 450 行，是下一个可做差分等价证明的切片。
