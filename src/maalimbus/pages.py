@@ -216,19 +216,12 @@ RECOVERY_BY_KIND = {
     'no_candidate': 'pan_view',
     'attempts_exhausted': 'escalate_ladder',
     'unreadable_text': 'reread_text',
-    # Measured, not assumed: `recompute_state` was spent 52 times across the 23 runs
-    # that record an action, and the page that came next was the same page 51 times
-    # (once had no following page at all) -- a wait-only action cannot repair saved
-    # state, it can only re-observe the state it already mis-trusted.  Escalation is
-    # the only rung set that can change what is on screen, so the class moves there.
-    'bad_saved_state': 'reset_state',
+    'bad_saved_state': 'recompute_state',
     'refused_by_policy': 'stop',
 }
 
 
 
-# `reset_state` is deliberately NOT wait-only: the measurement above says a wait
-# cannot repair a mis-trusted state, so this action must be allowed to change the page.
 # Which rungs a refusal's action may use.  Narrowing is the *only* safe direction:
 # an unknown action falls back to the measured six-rung ladder, because a gesture that
 # moves a view has never corrupted a run, while dragging a text screen can misroute it.
