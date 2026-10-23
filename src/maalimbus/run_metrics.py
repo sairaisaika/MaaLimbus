@@ -15,6 +15,39 @@ Definitions (deliberately narrow, because a wide one invites self-congratulation
 ACCEPTED_MOVEMENT = ('the_party_moved_after_the_click', 'the_click_opened_the_next_page')
 
 
+def recovery_effect(rows, *, window=3):
+    """Did a recovery recover, or only happen?
+
+    `recovery_rate` counts events against refusals, which cannot tell a recovery that
+    moved the run on from one that was written to the journal and then repeated.  This
+    asks the narrower question: within the next `window` observed frames, did the
+    engine get to *do* something again (a new intent or a new verdict)?  "Recovered but
+    refused again" still counts as recovered: the ladder did its job and the next step
+    is a different problem.
+    """
+    seen = 0
+    effective = 0
+    frames_left = None
+    for row in rows:
+        event = row.get('event')
+        if event == 'window_recovery':
+            seen += 1
+            frames_left = window
+            continue
+        if frames_left is None:
+            continue
+        if event == 'map_observed':
+            frames_left -= 1
+            if frames_left < 0:
+                frames_left = None
+            continue
+        if event in ('map_click_result', 'window_intent'):
+            effective += 1
+            frames_left = None
+    return {'recoveries': seen, 'effective': effective,
+            'rate': (effective / seen) if seen else None}
+
+
 def summarise(rows):
     """One dict of counts for one run.  Pure: same rows in, same dict out."""
     events = [row.get('event') for row in rows]
@@ -39,6 +72,7 @@ def summarise(rows):
         'verdicts': verdicts,
         'refusals': refusals,
         'recoveries': recoveries,
+        'recovery_effect': recovery_effect(rows),
         'recovery_rate': (recoveries / refusals) if refusals else None,
         'stops': len(stops),
         'stop_reasons': sorted({str(row.get('reason')) for row in stops}),

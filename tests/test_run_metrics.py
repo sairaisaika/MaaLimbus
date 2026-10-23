@@ -20,3 +20,13 @@ def test_an_acceptance_that_did_not_move_the_party_is_not_counted_as_movement():
     s = summarise(rows)
     assert s['verdicts'] == {'accepted': 1, 'accepted_other': 1}
     assert s['recovery_rate'] == 1.0
+
+
+def test_a_recovery_counts_only_if_the_engine_acts_again_soon():
+    from maalimbus.run_metrics import recovery_effect
+    acted = [{'event': 'window_recovery'}, {'event': 'map_observed'},
+             {'event': 'map_click_result', 'outcome': 'rejected'}]
+    silent = [{'event': 'window_recovery'}] + [{'event': 'map_observed'}] * 4
+    assert recovery_effect(acted)['rate'] == 1.0
+    assert recovery_effect(silent)['rate'] == 0.0, 'a recovery that never acts again is not a recovery'
+    assert recovery_effect([])['rate'] is None

@@ -30,9 +30,11 @@ def main(argv):
             continue
         s = summarise(rows)
         rate = 'n/a' if s['recovery_rate'] is None else f"{s['recovery_rate']:.2f}"
+        e = s['recovery_effect']
+        eff = 'n/a' if e['rate'] is None else f"{e['effective']}/{e['recoveries']}"
         print(f"{run.name}  events={s['events']:<4} frames={s['frames']:<3} "
               f"floors={s['floors']} verdicts={s['verdicts']} "
-              f"recovery_rate={rate} stops={s['stop_reasons']}")
+              f"recovery_rate={rate} effect={eff} stops={s['stop_reasons']}")
     return 0
 
 
