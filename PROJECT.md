@@ -3662,3 +3662,49 @@ read_only_frame_is_not_an_identified_map`。那一局 **Mirror of Sisyphus 08 / 
 **下一单元（按证据排）**：把 `MAP` 的 29 处行内分派作为第一个"整页搬进表"的案例
 （`DISPATCH_FACTS['MAP']` 的 19 个后继已是搬过去的判据）；`window.plan_step` 52 分支链
 的分组；节点动作仍只受运行预算约束的 `run_node(self.tasker, plan['node'], self.deadline)`。
+
+## DSH continuation: 上限属于每一扇门，而动作不是读取 (2026-10-23, round 7)
+
+**D46 落地**：`_ceiling()` 成为唯一算术，`bounded_read` 与 `bounded_action` 两扇有名字的门共用它；
+`MirrorRunner._act(node, *, phase='node_action')` 是动作门——上界、在飞戳记、回来不成则抛
+`ActionNeverReturned`（`reason='the_action_node_did_not_finish_inside_its_window'`）。
+`_in_flight_report()` 取读取与动作两份戳记里更晚的那一份，结束记录多一个 `in_flight_node`；
+`_reading_report` 作为 D37 时代的别名保留。
+
+**审计的三条根因，本轮补的是第 3 条的最后一半**：
+
+1. 逐页补丁：`MirrorRunner.step` 一个方法 2069 行，D35/D44 的棘轮只统计、不减少（现状：149 处分派、
+   34 个页名、`INLINE_WINDOW=61`）。
+2. 恢复判据靠散文：D39/D40/D41/D42 把"已自决的记录不再分类""一个观测没有发生就不是成功"
+   "守卫不保存策略的第二份拷贝"落成常量与测试。
+3. **一次原生等待可以吃掉整份预算，而且看门狗说不出是哪一个调用**：D37/D43 关上了读取的门，
+   本轮关上动作的门，并让两份门都留下在飞记录。
+
+**改动**（`src/maalimbus/runner.py`、`tests/test_native_action.py`、
+`tests/test_native_reads.py`、`tests/test_settle_deadline.py`）：
+
+- `_ceiling(deadline, limit, clock)`；`bounded_read` / `bounded_action` 均返回 min(调用方窗口, 自身窗口)。
+- `ONE_ACTION_SECONDS = 60.0`，**策略上限而非测量**：142 次留存运行里只有 1 条 `window_intent` 带
+  `node`，其 ISO 时间戳换算不出时长，档案量不出来。
+- `_act`：`artifacts['acting']` 记录 phase/node/page/limit，`finally` 记 `lasted_seconds`；
+  `timed_out` 或 `error` → `ActionNeverReturned`；节点回来但未成功 → `node_action_unconfirmed` 后继续。
+- `_in_flight_report()`（`_reading_report` 保留为别名）；`_record_stall` / `_record_no_progress` /
+  `_write_ending` 都写 `in_flight_node`。
+- 棘轮：`run_node` 的第三参数必须是 `bounded_read(...)`/`bounded_action(...)`，或同一作用域里由它们赋值的
+  局部变量（`_act` 属后者）；新站点写 `self.deadline` 会带文件/作用域/行号失败。
+
+**测试与测量**
+
+| 项目 | 之前 | 之后 |
+| --- | --- | --- |
+| 全量测试 | 2102 passed（exit 0） | **2111 passed in 175.21 s（exit 0）** |
+| 动作门卡死 | 无上界；看门狗报 `in_flight: false` | 3 秒内返回；`in_flight: true`，`node: MirrorDrive` |
+| 运行结束理由 | 只有预算耗尽/静默 | `session_ended='the_action_node_did_not_finish_inside_its_window'` |
+| `verify_pipeline_spec` | ok 805 节点 | ok 805 节点（未变） |
+| 只读 MuMu 观测 | 20 帧 RESUME_DIALOG | `evidence/runtime/map-live-20261023-182526` 20 帧、`input_sent: false` |
+
+**没有测到的**：动作门的实机时长分布（需要一次授权的实机运行）；那局 `Floor 2 2/6 [HARD]` 进行中的运行
+本轮没有被碰，没有领奖、没有消费。
+
+**下一单元（按证据排）**：`MAP` 的 29 处行内分派整页搬进 `DISPATCH_FACTS` 对应的表；`window.plan_step`
+52 分支链的分组；`tools/` 里其余"把缺失证据当成结论"的统计器。
