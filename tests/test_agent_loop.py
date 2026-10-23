@@ -105,8 +105,20 @@ class FakeContext:
         return SimpleNamespace(status=SimpleNamespace(succeeded=True))
 
     def page(self):
-        """Copy the next archived page into the run directory as its newest frame."""
-        source = self.frames[len(self.opened)]
+        """Copy the next archived page into the run directory as its newest frame.
+
+        A fixture that runs out of scripted frames used to raise ``IndexError``,
+        which the loop reported as ``mirror_loop_failed; list index out of range``
+        -- a fixture shortage dressed up as a product failure.  Supplying the input
+        is not the fixture's job to enforce: reuse the last frame and count the
+        overshoot, so a test that genuinely iterates too often can assert on
+        ``ran_past_frames`` instead of dying inside the harness.
+        """
+        if len(self.opened) >= len(self.frames):
+            self.ran_past_frames = getattr(self, 'ran_past_frames', 0) + 1
+            source = self.opened[-1] if self.opened else self.frames[-1]
+        else:
+            source = self.frames[len(self.opened)]
         self.opened.append(source)
         name = 'frame-%04d' % len(self.opened)
         for suffix in ('.json', '.png'):
