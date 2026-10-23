@@ -3769,6 +3769,15 @@ class MirrorRunner:
                                  page=settled_page,
                                  frame_changed=(settled.get('image_sha256')
                                                 not in (None, before_sha))))
+        if not (plan.get('expect') or ()):
+            # The input just sent states no successor set, so `step_result` above could
+            # only ever agree: for these words (28 at 2026-10-23, declared in
+            # `pages.PLANS_WITHOUT_PROOF`) a swallowed tap and a landed one look the
+            # same until the run wedges.  Journal every one of them -- with the page it
+            # was sent on and the word that justified it -- so a later round can measure
+            # how often they land instead of guessing a successor set.
+            self.note('input_without_a_proof', page=page, reason=plan.get('reason'),
+                      target=plan.get('target') or plan.get('node'))
         if page=='MAP' and settled_page=='UNKNOWN':
             entry.update(passed=False,reason='map_successor_unidentified_after_wait')
         if page=='STAR_GRACES' and (plan.get('detail') or {}).get('card') and transaction is not None:

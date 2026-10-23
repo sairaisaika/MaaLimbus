@@ -193,6 +193,129 @@ def unmatched(source=None):
     }
 
 
+REFUSAL_ACTION = 'record'
+
+
+def _plan_index(node):
+    """The reason, action and expectation count of one ``_plan``/``_refuse`` call."""
+    if not isinstance(node, ast.Call):
+        return []
+    name = getattr(node.func, 'id', None) or getattr(node.func, 'attr', None)
+    if name == '_refuse' and len(node.args) >= 2:
+        words = _elements(node.args[1])
+        return [(word, REFUSAL_ACTION, 0) for word in words]
+    if name != '_plan':
+        return []
+    keywords = {keyword.arg: keyword.value for keyword in node.keywords}
+    words = _elements(keywords['reason']) if 'reason' in keywords else []
+    if not words:
+        return []
+    action = None
+    if len(node.args) >= 2:
+        action = _constant(node.args[1]) or getattr(node.args[1], 'id', None)
+    count = 0
+    if 'expect' in keywords:
+        count = len(_elements(keywords['expect']))
+    return [(word, action or '?', count) for word in words]
+
+
+def _row_facts(node):
+    """One ``STEP_ROWS`` row as ``(word, action, expectation count)``.
+
+    A row is a plan even though ``_plan`` is only called by the executor with the row's
+    own values: the table is data, so its expectation lives in the data.
+    """
+    if not isinstance(node, ast.Dict):
+        return []
+    fields = {}
+    for key, value in zip(node.keys, node.values):
+        name = _constant(key)
+        if name:
+            fields[name] = value
+    word = _constant(fields.get('reason'))
+    if not word:
+        return []
+    action = _constant(fields.get('action')) or 'click'
+    count = len(_elements(fields['expect'])) if 'expect' in fields else 0
+    return [(word, action, count)]
+
+
+def acting_plans(source=None):
+    """``{word: {'actions': [...], 'expects': int, 'hooked': bool}}`` for sent input.
+
+    A plan whose action is ``record`` refuses, so nothing was sent and nothing is owed.
+    Every other action sends input, and then the plan states what *disproves* it: either
+    an ``expect`` set (judged by :func:`maalimbus.window.step_result`) or a hook in the
+    runner that reads the word back.  A word with neither cannot be told apart from a
+    swallowed tap -- the run simply carries on and discovers the damage later, which is
+    the shape of the retained failures.
+    """
+    window_source = source if source is not None else _source(WINDOW)
+    tree = ast.parse(window_source)
+    found = {}
+
+    def take(word, action, expects, hooked):
+        entry = found.setdefault(word, {'actions': set(), 'expects': 0, 'hooked': False})
+        if action:
+            entry['actions'].add(action)
+        entry['expects'] = max(entry['expects'], expects)
+        entry['hooked'] = entry['hooked'] or hooked
+
+    read = set(consumers())
+    for node in ast.walk(tree):
+        for word, action, expects in _row_facts(node) + _plan_index(node):
+            take(word, action, expects, word in read)
+        if isinstance(node, ast.Assign) and any(
+                getattr(target, 'id', None) == 'STEP_ROWS' for target in node.targets):
+            if isinstance(node.value, ast.Dict):
+                for row in node.value.values:
+                    for word, action, expects in _row_facts(row):
+                        take(word, action, expects, word in read)
+
+    for name in _runner_plans(source=source):
+        # A hand-built plan names its own action and expectation, and no caller can add
+        # to it: measure it from the runner's own literal.
+        runner_tree = ast.parse(_source(RUNNER))
+        for node in ast.walk(runner_tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+            if not isinstance(target, ast.Name) or target.id != 'plan':
+                continue
+            if _dict_reason(node.value) != name:
+                continue
+            action, expects = _hand_plan_facts(node.value)
+            take(name, action, expects, name in read)
+
+    return {
+        word: {'actions': sorted(entry['actions']),
+               'expects': entry['expects'],
+               'hooked': entry['hooked']}
+        for word, entry in sorted(found.items())
+        if entry['actions'] - {REFUSAL_ACTION}
+    }
+
+
+def _hand_plan_facts(node):
+    """``(action, expectation count)`` of a plan the runner assembles itself."""
+    if isinstance(node, ast.Call) and getattr(node.func, 'id', None) == 'dict':
+        fields = {keyword.arg: keyword.value for keyword in node.keywords}
+    elif isinstance(node, ast.Dict):
+        fields = {_constant(key): value for key, value in zip(node.keys, node.values)}
+    else:
+        return (None, 0)
+    action = _constant(fields.get('action'))
+    count = len(_elements(fields['expect'])) if 'expect' in fields else 0
+    return (action, count)
+
+
+def unproven(source=None):
+    """The acting words whose result nothing can judge."""
+    plans = acting_plans(source)
+    return sorted(word for word, facts in plans.items()
+                  if not facts['expects'] and not facts['hooked'])
+
+
 def main(argv=None):
     """Print the relation; exit 1 when a hook names a word nobody writes."""
     import sys
@@ -213,6 +336,17 @@ def main(argv=None):
     else:
         print('hooks that name a word nobody writes: none')
     print(f"words nobody reads: {len(relation['producers_without_consumer'])}")
+    plans = acting_plans(source_runner)
+    naked = unproven(source_runner)
+    print(f"acting plans: {len(plans)}"
+          f"  with an expectation: {sum(1 for f in plans.values() if f['expects'])}"
+          f"  named by a hook: {sum(1 for f in plans.values() if f['hooked'])}")
+    print(f"acting plans whose result nothing can judge: {len(naked)}")
+    if naked:
+        from maalimbus import pages
+        for word in naked:
+            declared = pages.PLANS_WITHOUT_PROOF.get(word)
+            print(f"  {word}: {declared or 'UNDECLARED'}")
     return 1 if relation['consumers_without_producer'] else 0
 
 
