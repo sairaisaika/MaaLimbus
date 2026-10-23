@@ -41,3 +41,14 @@ def test_the_driver_can_import_what_it_uses():
          'import maalimbus.run_record as r; r.summarise([], 0)'],
         capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
+
+
+def test_a_loop_that_wrote_events_but_no_stop_is_named():
+    from maalimbus import run_record
+    out = run_record.summarise([{'event': 'map_observed', 'floor': 2}], 1)
+    assert out['stop'] == 'the_loop_returned_without_naming_why'
+
+
+def test_a_driver_refusal_with_no_events_stays_unnamed():
+    from maalimbus import run_record
+    assert run_record.summarise([], 1)['stop'] is None

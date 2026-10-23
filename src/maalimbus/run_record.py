@@ -20,5 +20,7 @@ def summarise(events, exit_code):
                      if e['event'] == 'map_observed' and e.get('floor')})
     stops = [e.get('reason') for e in events if e['event'] in STOP_EVENTS]
     return {'events': len(events), 'floors': floors,
-            'stop': stops[0] if stops else crash_codes.name_for(int(exit_code)),
+            'stop': stops[0] if stops else (crash_codes.name_for(int(exit_code))
+                                           or ('the_loop_returned_without_naming_why'
+                                               if events else None)),
             'reached_floor_5': 5 in floors}
