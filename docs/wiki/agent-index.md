@@ -25,6 +25,7 @@ Queries recompute source positions. Navigation aid, not completion proof or work
 | **updater** — GitHub更新按钮与安装分发 | `desktop/mxu/SoftwareUpdatePanel.tsx:6` `export function SoftwareUpdatePanel` | [feature-6-4-5](zh_cn/6-deployment.md#feature-6-4-5)<br>[feature-6-4-5](en_us/6-deployment.md#feature-6-4-5) |
 | **recovery** — 一步没落地时的视角手势与识别卡死看门狗 | `src/maalimbus/runner.py:509` `pinch_out`<br>`src/maalimbus/runner.py:4474` `MirrorRunner._recover`<br>`src/maalimbus/runner.py:536` `stall_watchdog` | [feature-9-3-8](zh_cn/9-execution-plan.md#feature-9-3-8)<br>[feature-9-3-8](en_us/9-execution-plan.md#feature-9-3-8) |
 | **plan** — 实施计划、依赖、工程图和完成标准 | Planned; see specification | [feature-9-2](zh_cn/9-execution-plan.md#feature-9-2)<br>[feature-9-2](en_us/9-execution-plan.md#feature-9-2) |
+| **dispatch** — 一个页面归哪一层管、输入之后可能跟什么、拒绝会不会停这一轮 | `src/maalimbus/window.py:152` `dispatch_facts`<br>`src/maalimbus/window.py:122` `plan_step`<br>`src/maalimbus/pages.py:338` `DISPATCH_FACTS = {`<br>`src/maalimbus/pages.py:561` `unsafe_wait_branches`<br>`src/maalimbus/pages.py:197` `dispatch_sites` | [d45-页面契约要从链路派生不能写在链路旁边](zh_cn/2.3-decisions.md#d45-页面契约要从链路派生不能写在链路旁边)<br>[d45-a-page-contract-must-be-derived-from-the-chain-not-written-beside-it](en_us/2.3-decisions.md#d45-a-page-contract-must-be-derived-from-the-chain-not-written-beside-it) |
 
 ## Evidence and checks
 

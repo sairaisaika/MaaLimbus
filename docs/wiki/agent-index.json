@@ -850,6 +850,89 @@
       ],
       "boundary": "执行计划不是已实现事实；依赖是技术关系，不是文档锁或审批。",
       "locations": []
+    },
+    {
+      "id": "dispatch",
+      "title": "一个页面归哪一层管、输入之后可能跟什么、拒绝会不会停这一轮",
+      "aliases": [
+        "页面分派",
+        "页面契约",
+        "后继",
+        "dispatch",
+        "contract",
+        "unexpected_successor",
+        "wait 页",
+        "拒绝",
+        "漂移",
+        "dispatch_facts",
+        "DISPATCH_FACTS"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/window.py",
+          "symbol": "dispatch_facts"
+        },
+        {
+          "path": "src/maalimbus/window.py",
+          "symbol": "plan_step"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "DISPATCH_FACTS = {"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "unsafe_wait_branches"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "dispatch_sites"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d45-页面契约要从链路派生不能写在链路旁边",
+        "docs/wiki/en_us/2.3-decisions.md#d45-a-page-contract-must-be-derived-from-the-chain-not-written-beside-it"
+      ],
+      "tests": [
+        "tests/test_page_contracts.py",
+        "tests/test_pages.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_page_contracts.py tests/test_pages.py"
+      ],
+      "boundary": "派生是静态读 window._plan_step：运行期才决定的名字记为 '<expr>'，且只覆盖窗口链路与 runner 行内分派两层；记录与链路的漂移由 tests/test_page_contracts.py 守，不做行为推断。",
+      "locations": [
+        {
+          "path": "src/maalimbus/window.py",
+          "symbol": "dispatch_facts",
+          "line": 152,
+          "sha256": "94ac6456515411435eabc736e20bbe767b7dd34f6c3ca023e9060b3147a03abb"
+        },
+        {
+          "path": "src/maalimbus/window.py",
+          "symbol": "plan_step",
+          "line": 122,
+          "sha256": "94ac6456515411435eabc736e20bbe767b7dd34f6c3ca023e9060b3147a03abb"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "DISPATCH_FACTS = {",
+          "line": 338,
+          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "unsafe_wait_branches",
+          "line": 561,
+          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "dispatch_sites",
+          "line": 197,
+          "sha256": "b0c8932de7baa2e0ac528ca56ed6cb74fbe32b7f82d8559327424c444f54a76c"
+        }
+      ]
     }
   ]
 }
