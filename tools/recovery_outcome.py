@@ -42,16 +42,32 @@ def pairs(events):
 
 
 def summarise(events):
+    """Count, per (action, kind), whether the page changed after its input.
+
+    "No evidence" is not a change.  `pairs` yields ``None`` when no input ever
+    followed the recovery, and the first version of this scorer compared that
+    ``None`` against the page name and counted every such recovery as a success.
+    Measured on the 939 retained runs (2026-10-23): `recompute_state` was reported
+    as 39/60 changed, but 20 of those 60 never saw an input at all, so the honest
+    figure is 19/40 (48%) -- against `escalate_ladder` 7/14 (50%).  Counting a
+    missing observation as an improvement is how a policy gets justified by
+    evidence that does not exist, so the three counts stay separate here.
+    """
     out = {}
     for recovery, page in pairs(events):
         kind = recovery.get('recovery_kind') or recovery.get('kind') or 'unknown'
         action = recovery.get('recovery_action') or 'unknown'
         was = recovery.get('page') or 'unknown'
         key = (action, kind)
-        entry = out.setdefault(key, {'total': 0, 'changed': 0})
+        entry = out.setdefault(key, {'total': 0, 'changed': 0, 'same': 0,
+                                    'no_evidence': 0})
         entry['total'] += 1
-        if page != was:
+        if page is None:
+            entry['no_evidence'] += 1
+        elif page != was:
             entry['changed'] += 1
+        else:
+            entry['same'] += 1
     return out
 
 
@@ -85,9 +101,10 @@ def main(argv=None):
         events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
         runs += 1
         for key, entry in summarise(events).items():
-            slot = totals.setdefault(key, {'total': 0, 'changed': 0})
-            slot['total'] += entry['total']
-            slot['changed'] += entry['changed']
+            slot = totals.setdefault(key, {'total': 0, 'changed': 0, 'same': 0,
+                                           'no_evidence': 0})
+            for field in slot:
+                slot[field] += entry[field]
     print(f'runs: {runs}')
     if args.map_verdicts:
         verdicts = {}
@@ -102,9 +119,13 @@ def main(argv=None):
         for (action, outcome, reason), count in sorted(verdicts.items(), key=lambda kv: -kv[1])[:10]:
             print(f'  {action:<16} {outcome:<10} {count:>3}  {reason[:52]}')
         return 0
+    print('  action       kind                         changed/evidenced        no evidence')
     for (action, kind), entry in sorted(totals.items(), key=lambda kv: -kv[1]['total']):
-        rate = entry['changed'] / entry['total'] if entry['total'] else 0.0
-        print(f'  {action:<12} {kind:<28} {entry["changed"]:>3}/{entry["total"]:<3} changed  {rate:.0%}')
+        evidenced = entry['changed'] + entry['same']
+        rate = entry['changed'] / evidenced if evidenced else 0.0
+        print(f'  {action:<12} {kind:<28} {entry["changed"]:>3}/{evidenced:<3} changed'
+              f'  {rate:>3.0%}   {entry["no_evidence"]:>3} no input followed')
+    print('  a recovery with no input after it is not evidence of a change.')
     return 0
 
 

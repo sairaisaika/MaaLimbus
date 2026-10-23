@@ -99,10 +99,16 @@ def inconsistent_decisions(events, table=None):
     Presence is not correctness: an event can name a kind and still have spent a
     different action than the table allows.  The expected action comes from the
     single table, so this check never re-states the policy a second time.
+
+    A retained event carries the policy of the build that wrote it.  When the policy
+    moves on, `pages.SUPERSEDED_ACTIONS` names what the older builds recorded, so
+    archived evidence is judged by its own build instead of by today's table -- while
+    anything outside that list is still a real contradiction.
     """
     if table is None:
         from .pages import REFUSAL_KINDS, recovery_for
         table = {kind: recovery_for(kind) for kind in REFUSAL_KINDS}
+    from .pages import SUPERSEDED_ACTIONS
     wrong = []
     for event in events:
         if not isinstance(event, dict) or event.get('event') != 'window_recovery':
@@ -111,8 +117,9 @@ def inconsistent_decisions(events, table=None):
         if kind is None:
             continue
         expected = table.get(kind, 'hold')
-        if event.get('recovery_action') != expected:
-            wrong.append({'kind': kind, 'recorded': event.get('recovery_action'),
+        recorded = event.get('recovery_action')
+        if recorded != expected and recorded not in SUPERSEDED_ACTIONS.get(kind, ()):
+            wrong.append({'kind': kind, 'recorded': recorded,
                           'expected': expected, 'page': event.get('page')})
     return wrong
 

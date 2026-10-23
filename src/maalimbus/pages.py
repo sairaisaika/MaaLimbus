@@ -216,13 +216,37 @@ RECOVERY_BY_KIND = {
     'no_candidate': 'pan_view',
     'attempts_exhausted': 'escalate_ladder',
     'unreadable_text': 'reread_text',
-    # Measured: `recompute_state` changed the page in **0 of 51** spends
-    # (`tools/recovery_outcome.py`), because re-reading cannot repair a disagreement
-    # between our state and the screen.  Escalate instead: it is the only bounded
-    # action that changes the screen, and `attempts_exhausted` already proves it runs.
+    # `recompute_state` used to hold this kind.  Re-measured on the whole retained
+    # archive with `tools/recovery_outcome.py` (939 runs, 2026-10-23), which now counts
+    # "no input ever followed" as no evidence instead of as a change: the page changed
+    # after rewiring state in 19 of 40 evidenced spends (48%), and after escalating the
+    # ladder in 7 of 14 (50%) -- the earlier "0 of 51" does not reproduce and is
+    # retired.  The two are indistinguishable by outcome, so the tie is broken by the
+    # one difference that matters for a screen that disagrees with our saved state:
+    # a wait-only action cannot change it, and escalate is the bounded action that can.
     'bad_saved_state': 'escalate_ladder',
     'refused_by_policy': 'stop',
 }
+
+# Every action the table is allowed to name.  `recompute_state` is deliberately absent:
+# no kind produces it any more (see `SUPERSEDED_ACTIONS`), and a guard that let it back
+# in silently would undo the measurement above without anyone noticing.
+RECOVERY_ACTIONS = ('bind_control', 'pan_view', 'escalate_ladder', 'reread_text', 'stop')
+
+# Kinds that deliberately share an action.  Sharing is a decision, not an accident:
+# `attempts_exhausted` and `bad_saved_state` both climb the same ladder because the
+# ladder is the only bounded action that changes a screen, and each kind still records
+# which of the two decided (`deciding_kind`).  A *new* shared action is a new decision.
+SHARED_ACTIONS = {'escalate_ladder': ('attempts_exhausted', 'bad_saved_state')}
+
+# Actions a retained event may still carry from the build that wrote it, after the
+# policy moved on.  Measured in `evidence/runtime/packaged-mirror-*`: `bad_saved_state`
+# recorded `reset_state` 3 times, `recompute_state` 60 times, and `escalate_ladder` 21
+# times, in that order -- each was the policy of its own build.  Evidence is judged by
+# the build that wrote it; anything outside this list is a real contradiction, which is
+# what `evidence_audit.inconsistent_decisions` checks.
+SUPERSEDED_ACTIONS = {'bad_saved_state': ('reset_state', 'recompute_state')}
+
 
 
 

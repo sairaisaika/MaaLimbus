@@ -51,20 +51,24 @@ def test_the_shared_fields_name_the_kind_from_a_runner_stop_reason():
 
 def test_the_shared_builder_fills_a_kind_for_both_real_shapes():
     """Called unbound: the builder touches no instance state, only the tables."""
+    from maalimbus import pages
     from maalimbus.runner import MirrorRunner
 
     # shape of the pinch path: `entry.reason` carries the refusal
     pinch = MirrorRunner._recovery_fields(
         None, {'reason': 'no_candidate_node_observed'}, {'reason': 'map_node_click'})
     assert pinch['refused_kind'] == 'no_candidate'
-    assert pinch['recovery_action'] == 'pan_view'
+    assert pinch['recovery_action'] == pages.recovery_for('no_candidate')
     assert pinch['deciding_kind'] == 'no_candidate'
 
     # shape of the ladder path for a runner stop: no `reason`, a `stopped_reason`
     ladder = MirrorRunner._recovery_fields(
         None, {'stopped_reason': 'unexpected_successor'}, {'reason': 'mirror_menu'})
     assert ladder['refused_kind'] == 'bad_saved_state'
-    assert ladder['recovery_action'] == 'recompute_state'
+    # Derived, not restated: this line used to hardcode `recompute_state`, so the test
+    # disagreed with `pages.RECOVERY_BY_KIND` for as long as that decision held -- a
+    # guard holding a second copy of the policy cannot guard the policy.
+    assert ladder['recovery_action'] == pages.recovery_for('bad_saved_state')
     assert ladder['deciding_kind'] is None
 
 

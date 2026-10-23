@@ -72,12 +72,31 @@ def test_each_kind_maps_to_exactly_one_action():
     A seventh kind, or a kind without an action, would mean the recovery engine has
     a decision nobody wrote down -- so the table is asserted to cover the kinds
     exactly, and an unknown kind holds instead of guessing.
+
+    Two kinds *may* share an action, but only on purpose: the pair is written down in
+    ``pages.SHARED_ACTIONS`` next to the measurement that chose it.  What this test
+    forbids is an *undeclared* share, which is how a page-specific patch would quietly
+    take over another kind's recovery without anyone deciding it.  The previous form
+    demanded six distinct actions and went red the moment ``bad_saved_state`` was
+    moved onto ``escalate_ladder`` -- a contract that fails a deliberate decision is
+    not a contract about the decision.
     """
     from maalimbus import pages
     assert set(pages.RECOVERY_BY_KIND) == set(pages.REFUSAL_KINDS)
     actions = set(pages.RECOVERY_BY_KIND.values())
-    assert len(actions) == len(pages.REFUSAL_KINDS), (
-        'two kinds share an action, so one of them cannot decide anything new')
+    assert actions <= set(pages.RECOVERY_ACTIONS), (
+        f'{sorted(actions - set(pages.RECOVERY_ACTIONS))} is not a declared action')
+    groups = {}
+    for kind, action in pages.RECOVERY_BY_KIND.items():
+        groups.setdefault(action, []).append(kind)
+    for action, kinds in groups.items():
+        if len(kinds) == 1:
+            continue
+        declared = pages.SHARED_ACTIONS.get(action)
+        assert declared is not None, (
+            f'{sorted(kinds)} share {action!r}, which no decision declares')
+        assert set(kinds) == set(declared), (
+            f'the declared {action!r} group is {sorted(declared)}, the table has {sorted(kinds)}')
     assert pages.recovery_for('not_a_kind') == 'hold'
     assert pages.recovery_for('no_candidate') == 'pan_view'
 

@@ -61,6 +61,32 @@ def test_an_unregistered_kind_must_hold_rather_than_guess():
     assert inconsistent_decisions([_event('mystery', 'pan_view')], {}) != []
 
 
+def test_a_superseded_action_is_judged_by_the_build_that_wrote_it():
+    """Archived evidence is not re-litigated every time the policy moves.
+
+    `bad_saved_state` recorded `reset_state`, then `recompute_state`, then
+    `escalate_ladder` (3 / 60 / 21 events).  All three are consistent with the policy
+    of their own build, so the audit must not call the first two contradictions --
+    while anything NOT in ``SUPERSEDED_ACTIONS`` must still fail, or the exemption
+    would swallow the check it exists to keep honest.
+    """
+    from maalimbus import pages
+    from maalimbus.evidence_audit import inconsistent_decisions
+    table = {kind: pages.recovery_for(kind) for kind in pages.REFUSAL_KINDS}
+    assert table['bad_saved_state'] == 'escalate_ladder'
+    old = [_event('bad_saved_state', 'reset_state'),
+           _event('bad_saved_state', 'recompute_state'),
+           _event('bad_saved_state', 'escalate_ladder')]
+    assert inconsistent_decisions(old, table) == []
+    invented = _event('bad_saved_state', 'pan_view')
+    wrong = inconsistent_decisions(old + [invented], table)
+    assert [entry['recorded'] for entry in wrong] == ['pan_view']
+    # The exemption is per kind: an old action recorded under a different kind is
+    # still a contradiction.
+    moved = _event('attempts_exhausted', 'recompute_state')
+    assert inconsistent_decisions([moved], table) != []
+
+
 def test_a_silent_event_is_not_counted_as_a_wrong_decision():
     # Missing evidence is reported by recovery_kinds, not duplicated here.
     from maalimbus.evidence_audit import inconsistent_decisions
