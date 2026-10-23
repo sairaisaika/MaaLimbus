@@ -3505,3 +3505,28 @@ live evidence aligns it with the `RESUME_DIALOG` click at `evidence/runtime/pack
 `route_recheck.reason = map_header_not_identified`，`reason = read_only_frame_is_not_an_identified_map`。
 画面本身（`frame.png`）就是那五局卡住的同一页：Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`、
 Resume / Halt Exploration / Cancel。**这是一局没打完的进度，本轮没有点任何东西**（不做未经授权的实机消费）。
+
+## DSH continuation: the number a decision rests on has to be reproducible (2026-10-23)
+
+第三个 DSH 轮次，仍然只动离线证据与守卫，没有一次实机输入。上一轮留下的四个常年红灯被逐个追到**根因**，其中三个是同一个缺陷（守卫保存了策略的第二份副本），第四个是环境/契约各自坏了一层。
+
+**根因一：给决策打分的工具把「没观察」当成「成功」。** `tools/recovery_outcome.py::pairs()` 在恢复之后没有任何输入时 yield `(event, None)`，而 `summarise()` 直接 `if page != was: changed += 1` —— `None != 'MAP'` 为真。于是 `pages.RECOVERY_BY_KIND` 里让 `recompute_state` 退役的那句「0 of 51」既不能从这个工具得到，也不能从档案复现。修正后在 **939** 个留存 run 上重测：`recompute_state 19/40 = 48%`（另有 20 次后面根本没有输入）、`escalate_ladder 7/14 = 50%`——两者**打平**，所以 `bad_saved_state → escalate_ladder` 的依据改为「只等待的动作不可能改变画面」，不再引用一个产不出来的数字。`changed / same / no_evidence` 现在是三个独立计数（`tools/recovery_outcome.py`，`tests/test_recovery_outcome.py` 6 项）。
+
+**根因二：三个守卫各自保存了策略的第二份副本。** ① 共用动作的棘轮要求「六种 kind 六个互不相同的动作」，于是一个**写下来的**决定（`attempts_exhausted` 与 `bad_saved_state` 共用 `escalate_ladder`）把它弄红了；② 构建器测试把 `recompute_state` 写死，而 `MirrorRunner._recovery_fields` 本来就是 `recovery_for(recorded)` 的推导；③ 现场审计用**今天**的表去审**历史**证据，而留存事件里 `bad_saved_state` 先后带过 `reset_state`（3 条）、`recompute_state`（60 条）、`escalate_ladder`（21 条）。现在 `pages.py` 新增 `RECOVERY_ACTIONS` / `SHARED_ACTIONS` / `SUPERSEDED_ACTIONS`：未声明的共用仍然失败，发明的动作仍然失败，档案证据按写它的那个构建来判。
+
+**根因三：守卫去拿了全机锁，而拒绝又换了类别。** `lease_path()` 把任何**名叫** `controller.lock` 的路径映射到 `%LOCALAPPDATA%/MaaLimbus/controller.lock`，于是两个单元测试拿的是生产锁——2026-10-23 整轮唯一的失败（`1 failed, 2068 passed`）就是它，纯粹因为另一个 agent 正持有 controller。更深一层：`2ee48ba`（同日 12:00）把 `LeaseUnavailable` 从 `PermissionError`（`OSError`）改成 `RuntimeError`，而安装闸门的守卫断言的是 `pytest.raises(OSError)`——**从那一刻起这个闸门就没有守卫了**，且当时套件还在 exit 4 里打不出摘要。现在 `LeaseUnavailable(OSError)`，两个测试改用 `tmp_path/'exclusive.lock'` 并通过 `lease_factory` 交给安装器，映射本身也被断言（`tests/test_controller_lease.py`：拒绝是 `OSError`；只有生产名被映射出仓库）。
+
+**测量（本轮）**
+
+| 项目 | 之前 | 之后 |
+| --- | --- | --- |
+| 整轮 pytest | `1 failed, 2068 passed`，exit 1（唯一失败=机器忙） | **2071 passed, exit 0, 172.59 s** |
+| 四个常年红灯 | 3 × 策略副本 + 1 × 环境 | 全绿（第 4 个也不再依赖「机器是否空闲」） |
+| `tools/recovery_outcome.py` | `recompute_state 39/60 65%`（把无观察算成变化） | `19/40 48%` + 20 次「无输入跟随」单列 |
+| `tests/test_controller_lease.py` + `test_update_install.py` | `1 failed, 14 passed` | `18 passed` |
+| `tools/verify_pipeline_spec.py` | — | `ok — 0 problem(s)`，805 个节点、16 个 agent 名、6 个入口可达 |
+| 实机只读节点验证 | — | `evidence/runtime/map-live-20261023-174613`：`MapObserve` 跑了 20 帧，每帧 `scene_mismatch expected=MAP scene=RESUME_DIALOG`，`input_sent: false`，`read_only_frame_is_not_an_identified_map` |
+
+**仍然保留的状态**：MuMu 上那局镜牢（Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`）一直是 `RESUME_DIALOG`，本轮**没有点 Resume、没有领奖、没有消费**；留作下一轮有授权时的起点。
+
+**下一单元（按影响面排序）**：① 剩余的同类审计——`tools/` 下还有若干「产不出自己注释里数字」的评分器（`audit_runs.py` 的 `died_without_a_stop` 有同样的「缺证据=失败/成功」倾向），下一步把它们统一成三态计数；② `src/maalimbus/runner.py` 里那一个仍在 step 内只拿 run deadline 的原生等待（旧行号 3412 `run_node(self.tasker, plan['node'], self.deadline)`）；③ 逐页补丁的根治（D35 棘轮只数 `page ==` 一种写法，111 个页面比较里有 26 个绕过它）。
