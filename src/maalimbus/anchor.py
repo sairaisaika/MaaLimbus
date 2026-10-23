@@ -121,3 +121,23 @@ def undeclared(reasons):
         if reason not in known:
             missing.append(reason)
     return sorted(set(missing))
+
+
+def reread_allowed(plan, *, attempts, tries, observe_only=False):
+    """May this refusal spend one bounded re-read instead of ending the run?
+
+    A refusal with no target is a statement about the *frame*: nothing was sent,
+    so looking again costs one interval and cannot double-spend anything.  That
+    was already true for ``no_...`` reading misses and is equally true for an
+    anchor miss -- the button may simply have arrived on the next frame.  What
+    is **not** re-readable is a policy refusal (``held``): re-reading cannot
+    change whether pressing a forbidden control is allowed.
+    """
+    if observe_only:
+        return False
+    if plan.get('target') is not None:
+        return False
+    if not (str(plan.get('reason', '')).startswith('no_')
+            or plan.get('stop_kind') == ANCHOR_MISSING):
+        return False
+    return attempts + 1 < max(1, tries)

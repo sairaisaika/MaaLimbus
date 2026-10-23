@@ -86,3 +86,45 @@ def test_the_window_plan_carries_the_kind(page, reason):
     assert plan['action'] == window.RECORD
     assert plan['reason'] == reason
     assert plan['stop_kind'] == anchor.stop_kind_of(reason)
+
+
+# -- the bounded re-read contract -------------------------------------------
+
+def _plan(reason, *, target=None, kind=None):
+    fields = {'reason': reason}
+    if kind is not None:
+        fields['stop_kind'] = kind
+    return {'reason': reason, 'target': target, 'stop_kind': kind or anchor.stop_kind_of(reason)}
+
+
+def test_a_missing_control_may_be_read_again():
+    """Positive: the button may have arrived on the next frame; nothing was sent."""
+    assert anchor.reread_allowed(_plan('continue_button_not_anchored'),
+                                 attempts=0, tries=3) is True
+
+
+def test_a_reading_miss_still_behaves_as_before():
+    assert anchor.reread_allowed(_plan('no_candidate_node_observed'),
+                                 attempts=0, tries=3) is True
+
+
+def test_a_policy_refusal_is_never_re_read():
+    """Counter-example: re-reading cannot make a forbidden control allowed."""
+    assert anchor.reread_allowed(_plan('control_is_forbidden'),
+                                 attempts=0, tries=3) is False
+
+
+def test_the_re_read_is_bounded_by_page_tries():
+    assert anchor.reread_allowed(_plan('continue_button_not_anchored'),
+                                 attempts=2, tries=3) is False
+
+
+def test_a_refusal_that_already_sent_something_is_not_re_read():
+    plan = {'reason': 'continue_button_not_anchored', 'target': [1, 2, 3, 4],
+            'stop_kind': anchor.ANCHOR_MISSING}
+    assert anchor.reread_allowed(plan, attempts=0, tries=3) is False
+
+
+def test_observe_only_never_re_reads():
+    assert anchor.reread_allowed(_plan('continue_button_not_anchored'),
+                                 attempts=0, tries=3, observe_only=True) is False

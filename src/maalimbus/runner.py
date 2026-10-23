@@ -45,6 +45,7 @@ from typing import Protocol, runtime_checkable
 import cv2
 
 from . import session_flow as flows
+from .anchor import ANCHOR_MISSING, reread_allowed
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -3151,15 +3152,22 @@ class MirrorRunner:
             # because the frame it settled on was the roll's transition, and Commence
             # arrived on the next one. Looking again costs one interval, sends no input,
             # and page_tries bounds it.
-            retry_reading = (not settings.observe_only and plan.get('target') is None
-                             and plan.get('reason', '').startswith('no_')
-                             and state['page_attempts'] + 1 < max(1, settings.page_tries))
+            # D34: a missing control is a *class* of refusal, not 46 page-specific
+            # endings.  An anchor miss is exactly as re-readable as a `no_...`
+            # reading miss -- the frame may have settled mid-transition and the
+            # button arrived on the next one -- so it spends the same bounded
+            # reading retry instead of ending the run.  `page_tries` still bounds
+            # it, and nothing is sent while we look again.
+            retry_reading = reread_allowed(
+                plan, attempts=state['page_attempts'],
+                tries=settings.page_tries, observe_only=settings.observe_only)
             self.artifacts['steps'].append(entry)
             if retry_reading:
                 state['page_attempts'] += 1
                 entry['stopped'] = 'page_reading_retried'
                 self.note('window_page_retry', reason=plan.get('reason'),
-                          attempt=state['page_attempts'])
+                          attempt=state['page_attempts'],
+                          **({'anchor': plan['anchor']} if plan.get('anchor') else {}))
                 time.sleep(settings.interval)
                 return self._result(page, plan.get('target'), False, None, waiting=True)
             if settings.observe_only and state['step'] + 1 < settings.steps:
