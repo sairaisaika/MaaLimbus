@@ -57,3 +57,47 @@ def test_interrupt_stops_before_returning_and_success_is_not_dungeon_clear():
     assert result['interrupted'] and result['stop_confirmed']
     succeeded = wait_task(None, SimpleNamespace(done=True,succeeded=True), deadline=0)
     assert succeeded['task_succeeded'] and not succeeded['verified_clear']
+
+
+class _Job:
+    def __init__(self, done=False, succeeded=False):
+        self.done, self.succeeded = done, succeeded
+
+
+class _Tasker:
+    def __init__(self, stop_job):
+        self._stop = stop_job
+
+    def post_stop(self):
+        return self._stop
+
+
+def test_a_finished_task_says_completed():
+    from maalimbus.jobs import wait_task
+    out = wait_task(_Tasker(None), _Job(True, True), deadline=10.0)
+    assert out['verdict'] == 'completed'
+
+
+def test_a_respected_deadline_that_was_confirmed_says_stopped():
+    from maalimbus.jobs import wait_task
+    job = _Job(False, False)
+    tasker = _Tasker(_Job(True, True))
+    def fake_wait(target, **kw):
+        job.done = True           # the stop landed
+        return target
+    import maalimbus.jobs as jobs
+    original = jobs.wait_job
+    jobs.wait_job = fake_wait
+    try:
+        out = wait_task(tasker, job, deadline=0.0)
+    finally:
+        jobs.wait_job = original
+    assert out['verdict'] == 'stopped'
+
+
+def test_a_stop_that_never_lands_is_named_not_hidden():
+    import maalimbus.jobs as jobs
+    out = jobs.wait_task(_Tasker(None), _Job(False, False), deadline=0.0,
+                         clock=lambda: 0.0)
+    assert out['verdict'] == 'the_controller_did_not_confirm_the_stop'
+    assert out['stop_confirmed'] is False

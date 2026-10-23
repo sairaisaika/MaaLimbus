@@ -36,8 +36,19 @@ def wait_task(tasker, job, *, deadline, clock=time.monotonic, sleep=time.sleep):
             try:
                 wait_job(tasker.post_stop(), timeout=5, clock=clock, sleep=sleep)
                 stop_confirmed = job.done
-            except (TimeoutError, RuntimeError) as error:
-                stop_error = str(error)
+            except (TimeoutError, RuntimeError, AttributeError) as error:
+                # AttributeError: the stop handle itself was unusable (`None` or a
+                # dead object).  Same verdict -- an unconfirmed stop -- not a crash.
+                stop_error = str(error) or type(error).__name__
+    # A live run crashed (0xC0000409) right after `wait_job` raised
+    # `Maa job exceeded its deadline`, and the crash was in the controller's reverse
+    # request path -- i.e. the native task was still alive when the Python side moved
+    # on.  Name that state instead of returning a dict that looks like a clean finish:
+    # `completed` / `stopped` / `the_controller_did_not_confirm_the_stop`.
+    if stop_confirmed:
+        verdict = 'completed' if job.succeeded else 'stopped'
+    else:
+        verdict = 'the_controller_did_not_confirm_the_stop'
     return {'task_succeeded': job.succeeded, 'timed_out': timed_out,
             'interrupted': interrupted, 'stop_confirmed': stop_confirmed,
-            'stop_error': stop_error, 'verified_clear': False}
+            'stop_error': stop_error, 'verified_clear': False, 'verdict': verdict}
