@@ -34,13 +34,26 @@ def attempt(index: int, seconds: int) -> dict:
     nonce = __import__('uuid').uuid4().hex
     (ROOT / 'build' / 'map-probe-authorization.json').write_text(
         json.dumps({'live_input_authorized': True, 'nonce': nonce}), encoding='utf-8')
-    finished = subprocess.run([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
+    killed_by_budget = False
+    try:
+        finished = subprocess.run([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
                                '--app', str(ROOT / 'dist' / 'MaaLimbus'),
                                '--address', '127.0.0.1:16416',
                                '--adb', ADB,
                                '--authorize', nonce,
                                '--steps', '400', '--seconds', str(seconds)],
-                              cwd=str(ROOT), capture_output=True, text=True)
+                              cwd=str(ROOT), capture_output=True, text=True,
+                              # The budget is the caller's contract: one step can block
+                              # for 423 s inside the recogniser (live runs kept going to
+                              # 603 s for a 420 s budget), so the harness enforces it from
+                              # outside instead of trusting the loop to notice.
+                              timeout=seconds + 15)
+    except subprocess.TimeoutExpired as expired:
+        # Name it instead of letting the record read as a silent death.
+        killed_by_budget = True
+        finished = type('Finished', (), {'returncode': 124,
+                                         'stdout': expired.stdout or '',
+                                         'stderr': expired.stderr or ''})()
     record['exit'] = finished.returncode
     record['elapsed_s'] = round(time.time() - started, 1)
     # A driver-level silent death: the verifier can refuse in under a second (gate,
@@ -74,6 +87,9 @@ def attempt(index: int, seconds: int) -> dict:
         events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()
                   if line.strip()]
     record.update(run_record.summarise(events, record['exit']))
+    if killed_by_budget:
+        record['stop'] = 'the_budget_ended_the_run'
+        record['note'] = 'the harness killed the run at its budget; the loop did not stop itself'
     return record
 
 
