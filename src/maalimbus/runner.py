@@ -4447,6 +4447,14 @@ class MirrorRunner:
                       last_event=record['last_event'],
                       stillness_kind=record['stillness_kind'],
                       stillness_action=record['stillness_action'])
+            # The watchdog ends the process with `os._exit(4)`, so the loop's normal
+            # `mirror_loop_stopped` never runs and the run reads as a silent death to
+            # `tools/audit_silent.py` -- 4 of 23 silent runs ended exactly here, on a
+            # `window_stall` with no stop event.  Write the stop before the exit: the
+            # canonical record of why a run ended must not depend on which path ended it.
+            self.note('mirror_loop_stopped', reason=record['reason'],
+                      stop_path='stall_watchdog', step=record['step'],
+                      page=record['page'], last_event=record['last_event'])
         except Exception:  # pragma: no cover - a journal may be closing
             pass
         try:

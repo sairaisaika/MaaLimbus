@@ -25,10 +25,15 @@ NEEDS_FREE_LEASE = (
 
 def lease_holder():
     """The owning pid of the real lease, or ``None`` when nothing holds it."""
+    if not os.path.exists(LEASE):
+        return None
     try:
         raw = open(LEASE, 'r', encoding='utf-8').read().strip()
     except OSError:
-        return None
+        # The lock exists but cannot be read -- that is the *held* case, not the free
+        # one.  Treating it as absent is why the guard had no effect while a live
+        # agent held the file (measured 2026-10-23).
+        return -1
     try:
         parsed = json.loads(raw)
     except ValueError:
@@ -52,10 +57,15 @@ def is_alive(pid):
 
 def pytest_collection_modifyitems(config, items):
     pid = lease_holder()
-    if not pid or not is_alive(pid):
+    if not pid:
         return
-    reason = (f'the real controller lease is held by a live process (pid {pid}); '
-              'stop it to exercise lease exclusion')
+    # These two tests need the lease to be *absent*, not merely unowned: a lock file
+    # left behind by a killed process still blocks them (measured twice on 2026-10-23,
+    # the second time with a dead pid 11172).  Report the state so the operator knows
+    # whether to kill a process or just delete a file.
+    state = 'unknown' if pid == -1 else ('live' if is_alive(pid) else 'stale')
+    reason = (f'the real controller lease is present (pid {pid}, {state}); remove it to '
+              'exercise lease exclusion')
     for item in items:
         if item.nodeid in NEEDS_FREE_LEASE:
             item.add_marker(pytest.mark.skip(reason=reason))
