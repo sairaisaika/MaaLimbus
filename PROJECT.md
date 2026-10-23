@@ -3316,3 +3316,21 @@ Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_
 证据：`tests/test_anchor.py` 17 passed（正例/反例/别名/守卫/边界），与 `test_window.py`、`test_runner.py`
 合跑 164 passed in 40.02s。未验证：这一类在真机上的实际停窗率变化——本轮没有任何实机输入，未启动游戏、
 未消费资源、未领取奖励。
+
+## DSH iteration: a refusal's kind now decides which rungs may be spent (2026-10-23)
+
+第三批结构偿还。`src/maalimbus/pages.py` 里 `REFUSALS` 把 77 条拒绝理由收成六类，六类各对应一个
+动作（`bind_control` / `pan_view` / `escalate_ladder` / `reread_text` / `recompute_state` / `stop`），
+`recovery_for()` 把类别翻成动作，`ladder_for(action, ladder)` 再把动作翻成**可花的手势子集**。
+
+这条链的验收写作两句话：**动作只能缩窄手势集，不能发明手势**；**未知动作回落到实测过的六级梯子**，
+而不是凭“看起来更安全”临时编一个。实测依据是恢复梯子换代时反复出现过的那类事故——在确认框上拖拽
+会把一次可恢复的停顿变成走错页，而平移、缩放至今没有破坏过任何一局。
+
+同时修掉了一个测试假坏：`tests/test_recovery_ladder.py` 用的「地图后跟意外后继」夹具从未进入
+恢复路径，所以它用 `swipes == 1` 报出的是“什么都没发生”，不是“梯子错了”。现在夹具走真实的
+拒绝通道，断言恢复为 `pinches == 1 && swipes == 4`。
+
+测试：`tests/test_refuse_vocabulary.py` 5 passed（含类别↔动作一一对应、动作只缩窄两例），
+`tests/test_recovery_ladder.py` 7 passed，全量 `1903 passed`。
+
