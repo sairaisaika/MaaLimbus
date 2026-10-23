@@ -531,6 +531,19 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # The dungeon's pause panel parks the game and states its progress. It is
         # never a step: the only input that belongs here is its own Continue, and
         # without that anchor the page is left alone rather than guessed at.
+        if controls.get('dungeon_progress.resume_via_entry'):
+            # Measured: a paused panel's Continue returns the same map, whose node clicks
+            # the client then ignores (party frozen at (1628,562) across eight frames and
+            # three clicks).  The resume that works leaves through the panel's own window
+            # control and uses the entry dialog's Resume.
+            resume = controls.get('dungeon_progress.resume_button')
+            if resume is not None:
+                return _plan(page, CLICK, target=resume, expect=(ANY,), advance=True,
+                             reason='the_suspended_exploration_is_resumed_from_the_entry')
+            away = controls.get('dungeon_progress.window_button')
+            if away is not None:
+                return _plan(page, CLICK, target=away, expect=(ANY,), advance=False,
+                             reason='the_suspended_exploration_is_left_for_the_entry')
         box = controls.get('dungeon_progress.continue_button')
         if box is None:
             return _refuse(page, 'continue_button_not_anchored')

@@ -2696,9 +2696,21 @@ class MirrorRunner:
             # the resume plan opened the panel, then `continue_button_not_anchored`).
             # Bind the row the panel actually draws, and never Forfeit.
             for row in (record.get('ocr') or []):
-                if str(row.get('text') or '').strip().lower()=='continue':
+                text=str(row.get('text') or '').strip().lower()
+                if text=='continue':
                     plan_controls['dungeon_progress.continue_button']=[int(v) for v in row['box']]
-                    break
+                elif text=='resume':
+                    # The entry's own progress dialog offers Resume / Halt Exploration /
+                    # Cancel; that Resume is the control that re-enters a suspended
+                    # exploration (a paused panel's Continue only closes the panel and
+                    # hands back the same map that refuses every node click).
+                    plan_controls['dungeon_progress.resume_button']=[int(v) for v in row['box']]
+                elif text.endswith('window'):
+                    # "To Window" / "Window": the pause panel's way back to the entry,
+                    # where the run can actually be resumed.
+                    plan_controls['dungeon_progress.window_button']=[int(v) for v in row['box']]
+            if int(state.get('map_refused_streak') or 0)>=3:
+                plan_controls['dungeon_progress.resume_via_entry']=True
         if page=='UNKNOWN_DIALOG':
             # A modal that named no page is dismissed through its own close control,
             # bound from this frame: the modal is drawn wherever the page under it puts
