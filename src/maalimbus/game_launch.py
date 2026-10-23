@@ -1,7 +1,7 @@
 """Native Maa launch with durable intent and independent foreground confirmation."""
 from .adb_preflight import PACKAGE, foreground_any, controller_foreground
 from .session_flow import LAUNCH_INTENT
-from .jobs import wait_job
+from .jobs import dispatch, wait_job
 from .storage import read_json, write_json
 
 
@@ -28,7 +28,7 @@ def open_game(controller, directory, journal, *, check_any=foreground_any,
             before_foreground=current,start_sent=True,completed=False)
     write_json(path,tx)
     journal.record('game_launch_intent',intent=LAUNCH_INTENT,serial=info['adb_serial'])
-    wait_job(controller.post_start_app(LAUNCH_INTENT),timeout=30)
+    dispatch(controller, controller.post_start_app(LAUNCH_INTENT),timeout=30)
     for _ in range(rounds):
         try:
             proof=check_game(info)

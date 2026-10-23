@@ -1572,7 +1572,7 @@ def run_flow(tasker, controller, journal, directory, deadline, steps, *, observe
                 entry.update(passed=False, reason='observe_only')
                 records.append(entry)
                 continue
-            wait_job(controller.post_start_app(flows.LAUNCH_INTENT), timeout=30,
+            dispatch(controller, controller.post_start_app(flows.LAUNCH_INTENT), timeout=30,
                      deadline=deadline)
             journal.record('flow_start_app', intent=flows.LAUNCH_INTENT)
             entry.update(passed=True, reason='start_app_sent')

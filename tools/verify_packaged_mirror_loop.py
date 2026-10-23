@@ -31,7 +31,7 @@ from maa.toolkit import Toolkit
 
 from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
 from maalimbus.controller_lease import ControllerLease
-from maalimbus.jobs import wait_job, wait_task
+from maalimbus.jobs import dispatch, wait_job, wait_task
 from maalimbus import runner
 
 
@@ -148,7 +148,7 @@ def main():
         controller = build(device, input_enabled=not args.observe_only)
         result['device'] = device
         result['foreground_before'] = foreground_of(device)
-        wait_job(controller.post_connection(), timeout=15)
+        dispatch(controller, controller.post_connection(), timeout=15)
         controller.set_screenshot_target_long_side(1920)
         resource, agent = Resource(), AgentClient()
         # One custom MainTask contains the full bounded loop. Its reverse calls
@@ -177,10 +177,10 @@ def main():
                 assert 'limbus_mirror_loop' in agent.custom_action_list, \
                     'The packaged agent does not register the whole-dungeon loop'
                 for layer in ('base', 'en'):
-                    wait_job(resource.post_bundle(app / f'assets/resource/{layer}'), timeout=30)
+                    dispatch(controller, resource.post_bundle(app / f'assets/resource/{layer}'), timeout=30)
                 if gui_overrides is not None and not resource.override_pipeline(gui_overrides):
                     raise ValueError('Installed resources refused the parsed GUI choices')
-                wait_job(controller.post_connection(), timeout=10)
+                dispatch(controller, controller.post_connection(), timeout=10)
                 tasker = Tasker()
                 assert tasker.bind(resource=resource, controller=controller)
                 parameters = dict(observe_only=bool(args.observe_only), steps=args.steps,
