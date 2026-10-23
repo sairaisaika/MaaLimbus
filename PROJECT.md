@@ -4111,3 +4111,13 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
 例如 star 的 `click`、theme 的 `swipe`、battle_plan 的 `key_down`）；28 个 `unmeasured`
 计划词需要一次被授权的运行换证据；`MirrorRunner.step` 的 30 个 post-input
 `plan['reason']` 块。
+
+## DSH continuation: a subclass that exists to add one method is a capability the layer is missing (2026-10-23)
+
+- 三个原因：① 一个只为补一个方法而存在的子类，是这一层缺了那个能力的证据；②“报过”反复被当成“解决过”（D53 报 46、D54 报 12，本轮才问清每条边的用途）；③ 七个工具各自实现同一件事（点在记录里 + 画面推进一帧），于是任何一处修都没法保证另外六处。
+- 测量：12 条邻居 import 分成两半——5 条是“同一个场景被同场景的另一个工具复用”（deployment×2 / battle / native / theme，合法依赖）；7 条只是要“被接受的点击推进画面 + 点击记录”（5 个子类 + 2 个直接构造）。
+- 改动：`src/maalimbus/replay.py` 增加 `advance`（被接受的输入在还有下一帧时推进 `position`）与 `clicks`（只记被接受的点击；`attempts` 仍记全部尝试），`screencap` 先读 frames 再读单帧 `frame`，否则推进根本看不见。
+- 迁移：7 个工具删掉子类，改为模块级 `expects_*` 谓词 + `ReplayController(frames, expects=..., advance=...)`；原来构造后设置的 `controller.forgo = …` 这类开关改成谓词的参数——控制器不再能中途改主意。
+- 证据：邻居边 12 → 5 且点名五个源；`verify_hard_toggle_replay.py` 真实回放 **exit 0**（`unchanged` 记下 `[[1370,78]]`，`derived_hard` 记下 `[[1372,57]]` 且推进帧读出 `difficulty: hard, verified: true`，拒绝用例 `clicks []`）；另外五个迁移过的工具也跑了，同样 exit 1，而 `HEAD` 上同样的命令在同一条断言上 exit 1、同样是空点击列表——失败来自我挑的“故意做坏”的帧，不是迁移。
+- 测试：`tests/test_replay_surface.py` 新增“被接受的输入推进画面、被拒绝的不推进也不记录”“按开关构造的期望仍会拒绝另一个盒子”，并把邻居边钉在 5、点名五个源。全套 `2200 passed in 186.57 s`，pytest exit 0；`tools/verify_pipeline_spec.py` ok，0 problems；实机只读 `evidence/runtime/map-live-20261023-194055`（`input_sent: false`，`RESUME_DIALOG`，F2 那局未动）。
+- 下一个单位：五条场景复用里 `verify_native_replay` 的分位置期望要不要进这一层；28 个 `unmeasured` 计划词仍需要一次被授权的运行换证据；`MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块。

@@ -1243,7 +1243,12 @@
         "全零帧",
         "把帧存进类里",
         "neighbour controller",
-        "摊平 import"
+        "摊平 import",
+        "advance",
+        "clicks",
+        "推进一帧",
+        "点击记录",
+        "capability"
       ],
       "sources": [
         {
@@ -1265,6 +1270,10 @@
         {
           "path": "src/maalimbus/replay.py",
           "needle": "def blank_replay("
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "self.advance = advance"
         }
       ],
       "docs": [
@@ -1273,34 +1282,37 @@
         "docs/wiki/zh_cn/2.3-decisions.md#d53-只靠清点证明的承诺不算被证明",
         "docs/wiki/en_us/2.3-decisions.md#d53-a-promise-proven-by-a-count-is-not-proven",
         "docs/wiki/zh_cn/2.3-decisions.md#d54-一个只会存帧的类体不是子类",
-        "docs/wiki/en_us/2.3-decisions.md#d54-a-body-that-only-stores-a-frame-is-not-a-subclass"
+        "docs/wiki/en_us/2.3-decisions.md#d54-a-body-that-only-stores-a-frame-is-not-a-subclass",
+        "docs/wiki/en_us/2.3-decisions.md#d55-a-subclass-that-exists-to-add-one-method-is-a-capability-the-layer-is-missing",
+        "docs/wiki/zh_cn/2.3-decisions.md#d55-只为补一个方法而存在的子类说明这一层缺了这个能力"
       ],
       "tests": [
         "tests/test_replay_surface.py",
         "tests/test_replay_runtime.py"
       ],
       "checks": [
-        "python tools/replay_inventory.py"
+        "python tools/replay_inventory.py",
+        "python tools/verify_hard_toggle_replay.py --binary build/mxu-probe-271/maafw --frame evidence/runtime/hard-toggle-replay-1791255518617925400-unchanged/frame-0001.png"
       ],
-      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened. D54 flattened every tool whose source class only stored a frame (46 -> 12 neighbour imports), so what remains is exactly the tools whose expectation needs flattening one at a time.",
+      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened. D54 flattened every tool whose source class only stored a frame (46 -> 12 neighbour imports), so what remains is exactly the tools whose expectation needs flattening one at a time. D55: the layer holds the mechanical half (frames, advance, records); a scene still owns its own expectation, and the five remaining scene reuses keep theirs.",
       "locations": [
         {
           "path": "src/maalimbus/replay.py",
           "symbol": "ReplayFrames",
           "line": 45,
-          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
+          "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
         },
         {
           "path": "src/maalimbus/replay.py",
           "symbol": "ReplayController",
-          "line": 145,
-          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
+          "line": 162,
+          "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
         },
         {
           "path": "src/maalimbus/replay.py",
           "needle": "def _input(",
-          "line": 133,
-          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
+          "line": 146,
+          "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
         },
         {
           "path": "tools/replay_inventory.py",
@@ -1311,8 +1323,14 @@
         {
           "path": "src/maalimbus/replay.py",
           "needle": "def blank_replay(",
-          "line": 153,
-          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
+          "line": 170,
+          "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "self.advance = advance",
+          "line": 86,
+          "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
         }
       ]
     }
