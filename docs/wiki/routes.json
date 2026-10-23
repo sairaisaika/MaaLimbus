@@ -729,6 +729,52 @@
         "python -m pytest -q tests/test_plan_reasons.py tests/test_plan_proof.py"
       ],
       "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。"
+    },
+    {
+      "id": "endings",
+      "title": "一局怎么结束必须说得出是谁结束的，普查的桶必须覆盖全体",
+      "aliases": [
+        "结束",
+        "谁结束了",
+        "stop_path",
+        "STOP_PATHS",
+        "ending",
+        "endings",
+        "died_without_a_stop",
+        "audit_runs",
+        "audit_silent",
+        "进程死亡",
+        "unrecorded"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "STOP_PATHS = {"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "ending"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "unknown_stop_paths"
+        },
+        {
+          "path": "tools/audit_runs.py",
+          "symbol": "census"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
+        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator"
+      ],
+      "tests": [
+        "tests/test_run_endings.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_run_endings.py"
+      ],
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。"
     }
   ]
 }

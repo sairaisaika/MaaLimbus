@@ -3850,3 +3850,76 @@ agentmemory 工具在本会话不可用（`ops_discover_tools` 无匹配），�
 用 `input_without_a_proof` 与其后的页面变化配对，把 `unmeasured` 换成真实结论。
 在此之前，`MirrorRunner.step` 仍是最大未缩减面（2069 行、112 个顶层分支），
 其中 30 个"输入之后按 `plan['reason']` 分流"的块形状一致、约 450 行，是下一个可做差分等价证明的切片。
+
+## DSH continuation: 普查的桶要覆盖全体 (2026-10-23)
+
+### 本轮只读审计的三个最关键原因（按证据强度排序）
+
+1. **规则与它要约束的事实各写一处，没有可比的另一半。** 这是连续第五轮命中的同一底层缺陷，
+   每轮换个层面：D39（记录已自决）、D45（契约）、D48（词表）、D49（证据）、**D50（结束）**。
+   结束的记录就是这样：写方有三处、字段有三种形状，没有一个地方声明"一次结束可以署哪些路径"，
+   于是"是谁结束了这一局"这个最基本的问题在日志里没有答案。
+2. **同一决定有多个来源，且都不作数。** "一局结束了没有"有三个答案：`ended_without_a_stop`
+   （算 error 为结束）、`stops`（只数 `mirror_loop_stopped`）、`audit_silent` 自己的规则
+   （"没有结束事件"）。三者对同一份 142 局给 51 / 61 / 132 三个数。
+3. **分母会静默丢样本。** `stopped: 81 + died: 51 = 132 ≠ 142`：十局只写了
+   `mirror_loop_error`，两列都不收，而分母照样包含它们——所有比率因此最多偏差七个点。
+
+### 为什么选这一件（而不是继续修页面）
+
+上一轮把"无法被证伪的输入"变成了可测量缺口（D49，28 个词）。**测量任何东西都要先有不丢样本的
+分母**：28 个词将来的 `input_without_a_proof` 与页面变化能不能配上对，取决于"这一局是怎么结束的"
+能不能读出来。此前它读不出来，所以本轮先修分母而不是继续加仪表。
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `src/maalimbus/pages.py` | 新增 `STOP_PATHS`（封闭词表，含只由普查读出的 `process_died` / `unrecorded`）与 `STOP_PATH_WRITERS`（写方允许署的名字） |
+| `src/maalimbus/run_metrics.py` | 新增 `ENDING_KINDS`、`ending(rows)`（四桶互斥、`died` 只在完全没有结束记录时）、`unknown_stop_paths(rows)`；`summarise` 增加 `ending` 字段 |
+| `tools/audit_runs.py` | 四桶打印 + 加不起来就拒绝报告；`endings by path` 统计；退出码语义改为"有 error 或有 died" |
+| `tools/audit_silent.py` | 改用同一个 `ending()`（此前自带规则，报 61 而非 51），并补上 `src` 路径 |
+| `agent/recognition.py` | 停止与错误两条记录都署 `stop_path='agent_loop'` |
+| `src/maalimbus/runner.py` | 节点失败自写的停止署 `stop_path='pipeline_error'` |
+| `tests/test_run_endings.py` | 14 项：四桶互斥、`ending` 单调读取、`unrecorded` 默认、未知路径、两个写方的 AST 闸（含故意失败样例）、两个普查工具在保留存档上逐局一致 |
+
+属于**类别修复**：修的不是"某一局为什么静默"，而是"任何一局结束时都必须说出是谁结束的，
+且普查必须覆盖全体"。
+
+### 反例（写进测试）
+
+- 没写路径的停止必须读 `unrecorded`，不能猜成 `agent_loop`——存档 91 条这样的结束就是理由。
+- 没有 `reason` 的 `mirror_loop_error` 仍归 `error`，理由是
+  `an_error_was_recorded_without_a_reason`（十局存档的 `reason` 是 `null`）。
+- 编造的路径（`the_vibes_ended_it`）会被报出来：词表在读的一侧也执行。
+- 直接写结束事件却漏 `stop_path` 的写方由 AST 抓获——今天就抓到 `recognition.py:1682`。
+
+### 前后对比
+
+| 指标 | 改前 | 改后 |
+|---|---|---|
+| 普查可加性 | `81 + 51 = 132 ≠ 142` | `81 + 10 + 51 + 0 = 142` |
+| 静默局数 | 两个工具给 51 / 61 | 两个工具逐局一致（51） |
+| 结束记录的路径 | 82 条停止全部无路径 | 新写方全部署名；历史 91 条标注 `unrecorded` |
+| 全量测试 | 2148 passed / exit 0 | 2162 passed in 178.96 s / exit 0 |
+
+**不宣称的**：本轮没有改变循环行为，因此不宣称任何运行时性能提升；那五局 15:33–16:32 的
+`window_no_progress` 仍存在于历史存档，改变的是"下一次能从日志里读出谁结束了它"。
+
+### 只读实机核对
+
+`tools/map_live_observe.py`（Null 输入法、只读一帧、跑真实 `WindowMapObserve` 节点）→
+`evidence/runtime/map-live-20261023-185943`：`input_sent: false`、前台仍是 Limbus Company、
+`scene: RESUME_DIALOG`、`reason: read_only_frame_is_not_an_identified_map`。
+那局进行中的 Mirror of Sisyphus 08 / F2 `Floor 2 2/6 [HARD]` **没有点任何东西**。
+
+### 提交
+
+- `f42c3d6` — `pages.STOP_PATHS`、`run_metrics.ending`/`unknown_stop_paths`、两个普查工具、两个写方、`tests/test_run_endings.py`
+- `（下一条提交）` — D50（中英）、本段、`endings` 路由与索引重建
+
+### 下一单元
+
+(a) 28 个 `unmeasured` 词需要授权运行的证据（`input_without_a_proof` 已就位）；
+(b) `MirrorRunner.step` 里 30 个"输入后按 `plan['reason']` 分流"的块（约 450 行）是下一个可做差分
+等价证明的切片；(c) 恢复阶梯仍无法给出**页面相关**的备选路线。

@@ -51,32 +51,32 @@
         {
           "path": "agent/recognition.py",
           "symbol": "MainTaskAction.run",
-          "line": 1707,
-          "sha256": "56d3d87e8f8d35528b443dd179637c9935e7bbaad00240c61c70f205f8440dd4"
+          "line": 1710,
+          "sha256": "3ef04d9703f8c03f89302d72cb57668959dff6f8275e90d67788a93de49f4924"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "MirrorLoopAction.run",
           "line": 1623,
-          "sha256": "56d3d87e8f8d35528b443dd179637c9935e7bbaad00240c61c70f205f8440dd4"
+          "sha256": "3ef04d9703f8c03f89302d72cb57668959dff6f8275e90d67788a93de49f4924"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
           "line": 648,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
           "line": 1621,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "AgentTasker.post_task",
           "line": 1552,
-          "sha256": "56d3d87e8f8d35528b443dd179637c9935e7bbaad00240c61c70f205f8440dd4"
+          "sha256": "3ef04d9703f8c03f89302d72cb57668959dff6f8275e90d67788a93de49f4924"
         }
       ]
     },
@@ -626,7 +626,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 188,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         }
       ]
     },
@@ -811,19 +811,19 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
           "line": 560,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4574,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "line": 4575,
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
           "line": 587,
-          "sha256": "1eb41a54899e153c09fe62023269ec5674da99d1c6fff241094081f29371442a"
+          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
         }
       ]
     },
@@ -935,19 +935,19 @@
           "path": "src/maalimbus/pages.py",
           "needle": "DISPATCH_FACTS = {",
           "line": 339,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "unsafe_wait_branches",
           "line": 562,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "dispatch_sites",
           "line": 197,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
         }
       ]
     },
@@ -1044,14 +1044,14 @@
         {
           "path": "src/maalimbus/pages.py",
           "needle": "PLANNED_REASONS = {",
-          "line": 701,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "line": 725,
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "kind_of",
-          "line": 753,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "line": 777,
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
         },
         {
           "path": "src/maalimbus/plan_reasons.py",
@@ -1068,8 +1068,80 @@
         {
           "path": "src/maalimbus/pages.py",
           "needle": "PLANS_WITHOUT_PROOF = {",
-          "line": 721,
-          "sha256": "78d08f5ec9b9eb60125a13bcd2fe427597301cc3198b49a8d8b87c773dac89cc"
+          "line": 745,
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
+        }
+      ]
+    },
+    {
+      "id": "endings",
+      "title": "一局怎么结束必须说得出是谁结束的，普查的桶必须覆盖全体",
+      "aliases": [
+        "结束",
+        "谁结束了",
+        "stop_path",
+        "STOP_PATHS",
+        "ending",
+        "endings",
+        "died_without_a_stop",
+        "audit_runs",
+        "audit_silent",
+        "进程死亡",
+        "unrecorded"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "STOP_PATHS = {"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "ending"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "unknown_stop_paths"
+        },
+        {
+          "path": "tools/audit_runs.py",
+          "symbol": "census"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
+        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator"
+      ],
+      "tests": [
+        "tests/test_run_endings.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_run_endings.py"
+      ],
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。",
+      "locations": [
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "STOP_PATHS = {",
+          "line": 644,
+          "sha256": "678ffcf07c012090ee66cd8355bd7a3b7b6b007ad0b191c43367fd62bcfd1869"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "ending",
+          "line": 95,
+          "sha256": "e50c7cac8a1c39d503088078a5224251b0d7697aab9d9ae6a76047811f95a30a"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "unknown_stop_paths",
+          "line": 120,
+          "sha256": "e50c7cac8a1c39d503088078a5224251b0d7697aab9d9ae6a76047811f95a30a"
+        },
+        {
+          "path": "tools/audit_runs.py",
+          "symbol": "census",
+          "line": 45,
+          "sha256": "d81ffe8307982f42d0c5f100f084d5f16769729060d9ebbc5c2a0eb8b42029b3"
         }
       ]
     }
