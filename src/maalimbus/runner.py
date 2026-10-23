@@ -1846,6 +1846,8 @@ class MirrorRunner:
         # a healthy frame heartbeat and no further event -- and the frame watchdog
         # cannot see that, because frames kept arriving.
         self.artifacts['event_heartbeat'] = time.monotonic()
+        if fields.get('page'):
+            self._last_page = fields['page']
         if self.journal is not None:
             self.journal.record(name, **fields)
         from .decision_log import lines as decision_lines,signature as decision_signature
@@ -4013,7 +4015,9 @@ class MirrorRunner:
             # event with no cause (`tools/audit_runs.py`).  This line makes the last
             # thing the run started the thing the log reports.
             self.note('loop_heartbeat', step=self.state['step'],
-                      phase='step_start', page=self.state.get('page'))
+                      phase='step_start',
+                      page=self.state.get('page') or getattr(self, '_last_page', None),
+                      build=_build_id())
             try:
                 result = self.step()
             except (RuntimeError, OSError) as error:

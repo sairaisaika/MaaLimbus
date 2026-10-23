@@ -351,3 +351,8 @@ def test_each_step_leaves_a_heartbeat_behind(tmp_path):
     assert beats, 'a step ran without leaving a heartbeat'
     assert all(beat.get('phase') == 'step_start' for beat in beats)
     assert {beat.get('step') for beat in beats} <= {0, 1}
+    # A beat that cannot name the page and the build cannot tell two deaths apart,
+    # which is the whole reason it exists (three beats with page=null were recorded
+    # live in evidence/runtime/packaged-mirror-20261023-100743).
+    assert beats[-1].get('page'), 'the heartbeat does not name the page it was on'
+    assert beats[-1].get('build'), 'the heartbeat does not name the build'
