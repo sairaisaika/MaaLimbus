@@ -4084,7 +4084,21 @@ class MirrorRunner:
                                   else 'the_task_raised_before_the_next_input',
                                   error=str(error)[:300])
                 break
-            if not result.get('waiting'):
+            # A step that only waits is a real iteration and must be counted: a live
+            # run once waited 421 s on RESUME_DIALOG while writing nothing, so the
+            # progress watchdog, not the loop, was the only thing that noticed.
+            if result.get('waiting'):
+                self._waited = getattr(self, '_waited', 0) + 1
+                if self._waited % 5 == 0:
+                    self.note('loop_waited', page=result.get('page'),
+                              waited=self._waited,
+                              reason='a_waiting_step_is_still_a_step')
+                if self._waited > WAIT_LIMIT:
+                    self._end_session('the_loop_waited_without_a_new_page',
+                                      waited=self._waited)
+                    break
+            else:
+                self._waited = 0
                 walked += 1
             if result.get('done'):
                 break
@@ -4681,6 +4695,10 @@ def _load_registry():
 
 
 # --------------------------------------------------------------------------- helpers
+
+
+# How many consecutive waiting steps are tolerated before the loop ends itself.
+WAIT_LIMIT = 40
 
 
 def _settle(observer, before, before_sha, rounds, interval, deadline):
