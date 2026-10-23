@@ -227,11 +227,21 @@ RECOVERY_BY_KIND = {
 # moves a view has never corrupted a run, while dragging a text screen can misroute it.
 WAIT_ONLY_ACTIONS = ('bind_control', 'reread_text', 'recompute_state')
 
+#: Rungs a *reading-derived* action may spend.  Measured 2026-10-23 over 266 named
+#: failures: four of the six kinds (`bind_control` 12, `reread_text` 18,
+#: `recompute_state` 191, `stop` 2) were classified and then permitted **no gesture at
+#: all**, so 223 faults ended with the engine sending nothing.  Classification was
+#: complete and execution was not.  A re-observe costs one frame and is the only honest
+#: action for a fault whose subject is the reading or our own record; `stop` keeps none.
+REOBSERVE_ACTIONS = ('reread_text', 'recompute_state')
+
 
 def ladder_for(action, ladder):
     """The rungs this action may spend, in order.  Never invents a rung."""
     if action == 'stop':
         return ()
+    if action in REOBSERVE_ACTIONS:
+        return tuple(rung for rung in ladder if rung == 'wait')
     if action in WAIT_ONLY_ACTIONS:
         return tuple(rung for rung in ladder if rung[0] == 'wait')
     return tuple(ladder)
