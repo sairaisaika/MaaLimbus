@@ -63,14 +63,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 597,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "line": 648,
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1570,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "line": 1621,
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         },
         {
           "path": "agent/recognition.py",
@@ -626,7 +626,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 188,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         }
       ]
     },
@@ -810,20 +810,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
-          "line": 509,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "line": 560,
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4474,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "line": 4565,
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
-          "line": 536,
-          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
+          "line": 587,
+          "sha256": "2b84ab29eadadafe03d85b7820a42f297e06c89a89f627f862fdf1c53ada1534"
         }
       ]
     },
