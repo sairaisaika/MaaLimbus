@@ -52,3 +52,30 @@ def wait_task(tasker, job, *, deadline, clock=time.monotonic, sleep=time.sleep):
     return {'task_succeeded': job.succeeded, 'timed_out': timed_out,
             'interrupted': interrupted, 'stop_confirmed': stop_confirmed,
             'stop_error': stop_error, 'verified_clear': False, 'verdict': verdict}
+
+
+class ScreenshotNeverReturned(TimeoutError):
+    """A screencap did not come back inside its deadline.
+
+    Raised instead of a bare ``TimeoutError`` so the caller can tell "the picture was
+    slow" from "the controller is wedged", and so the pending request is drained
+    before anything else uses the same controller.
+    """
+
+
+def screencap(controller, *, timeout=5, drain=2, clock=time.monotonic, sleep=time.sleep):
+    """Ask for one screen, and never leave a pending capture behind.
+
+    Seven sites in the agent called ``wait_job(post_screencap(), timeout=5)`` directly;
+    a timeout there left the capture pending while the loop went on to click, which is
+    the same "use a request that is still in flight" shape as the 0xC0000409 crash.
+    """
+    job = controller.post_screencap()
+    try:
+        return wait_job(job, timeout=timeout, clock=clock, sleep=sleep)
+    except TimeoutError as error:
+        try:
+            wait_job(controller.post_stop(), timeout=drain, clock=clock, sleep=sleep)
+        except (TimeoutError, RuntimeError, AttributeError):
+            pass
+        raise ScreenshotNeverReturned(str(error) or 'the screenshot never returned') from error

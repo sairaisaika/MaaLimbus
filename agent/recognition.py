@@ -25,7 +25,7 @@ from maalimbus.adb_preflight import controller_foreground
 from maalimbus.storage import ProfileStore
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.gift_vision import GiftCatalog, floor_candidates, recommend,search_owned_names
-from maalimbus.jobs import wait_job
+from maalimbus.jobs import screencap, wait_job
 from maalimbus import runner
 from maalimbus import event_log, input_helpers
 from maalimbus.runtime_paths import ROOT, data_directory, ledger_path
@@ -902,7 +902,7 @@ class DifficultyProof(CustomAction):
         path=data_directory(ROOT)/'difficulty-switch-progress.json'
         progress=read_json(path)
         if not progress.get('pending'):return False
-        wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        screencap(context.tasker.controller,timeout=5)
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
         difficulty=theme_page(image,self.recognition.theme_catalog(),records,self.recognition.locale)
@@ -927,7 +927,7 @@ class InitialReceiptProof(CustomAction):
         if not pending:return False
         titles=initial_gifts.proven_titles(progress,ROOT/'evidence/runtime')
         index=len(progress.get('acknowledged',[]))
-        wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        screencap(context.tasker.controller,timeout=5)
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
         name=initial_gifts.receipt_name(records,(image.shape[1],image.shape[0]))
@@ -961,7 +961,7 @@ class InitialGiftProof(CustomAction):
         path=data/'initial-gift-progress.json';progress=read_json(path)
         pending=progress.get('pending')
         if pending is None:return False
-        wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        screencap(context.tasker.controller,timeout=5)
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
         size=(image.shape[1],image.shape[0])
@@ -988,7 +988,7 @@ class StarProof(CustomAction):
     def run(self,context,argv):
         if self.recognition.star_pending is None:return False
         path,pending=self.recognition.star_pending
-        wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        screencap(context.tasker.controller,timeout=5)
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
         available=self.recognition.read_number(context,image,(1515,45,54,40))
@@ -1114,7 +1114,7 @@ class TeamAction(CustomAction):
             raise ValueError('Unknown saved-team action mode')
         # Take a new observation after selection, rather than trusting an old OCR box.
         try:
-            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+            screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):
             return False
         image = context.tasker.controller.cached_image
@@ -1137,7 +1137,7 @@ class ThemeObservation(CustomAction):
     @guarded_callback(False)
     def run(self,context,argv):
         try:
-            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+            screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
@@ -1171,7 +1171,7 @@ class DeploymentProof(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
-        try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        try:screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
@@ -1190,7 +1190,7 @@ class BattlePlanObservation(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
-        try:wait_job(context.tasker.controller.post_screencap(),timeout=5)
+        try:screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
@@ -1211,7 +1211,7 @@ class MapObservation(CustomAction):
     @guarded_callback(False)
     def run(self,context,argv):
         try:
-            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+            screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
@@ -1246,7 +1246,7 @@ class BattleObservation(CustomAction):
     @guarded_callback(False)
     def run(self,context,argv):
         try:
-            wait_job(context.tasker.controller.post_screencap(),timeout=5)
+            screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)

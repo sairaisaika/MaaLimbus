@@ -101,3 +101,40 @@ def test_a_stop_that_never_lands_is_named_not_hidden():
                          clock=lambda: 0.0)
     assert out['verdict'] == 'the_controller_did_not_confirm_the_stop'
     assert out['stop_confirmed'] is False
+
+
+class _Shot:
+    def __init__(self, done, succeeded=True):
+        self.done, self.succeeded = done, succeeded
+
+
+class _Controller:
+    def __init__(self, shots):
+        self.shots = list(shots)
+        self.stops = 0
+
+    def post_screencap(self):
+        return self.shots.pop(0)
+
+    def post_stop(self):
+        self.stops += 1
+        return _Shot(True)
+
+
+def test_a_normal_screen_comes_back_without_a_stop():
+    from maalimbus.jobs import screencap
+    ctl = _Controller([_Shot(True)])
+    screencap(ctl, timeout=1)
+    assert ctl.stops == 0
+
+
+def test_a_timeout_drains_the_pending_capture_first():
+    from maalimbus.jobs import ScreenshotNeverReturned, screencap
+    ctl = _Controller([_Shot(False)])
+    try:
+        screencap(ctl, timeout=0.0, clock=lambda: 0.0)
+    except ScreenshotNeverReturned:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError('a pending capture must be named, not swallowed')
+    assert ctl.stops == 1, 'the pending request has to be drained before the next input'
