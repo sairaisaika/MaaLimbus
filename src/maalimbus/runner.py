@@ -4224,6 +4224,7 @@ class MirrorRunner:
                            plan_reason=plan.get('reason'))
         deciding = REFUSALS.get(entry.get('reason'))
         return dict(refused_kind=recorded, recovery_action=recovery_for(recorded),
+                    build=_build_id(),
                     deciding_kind=deciding, stopped_reason=entry.get('stopped_reason') or entry.get('reason'),
                     plan_reason=plan.get('reason'))
 
@@ -4768,3 +4769,20 @@ def build_parser(defaults=None):
     parser.add_argument('--report', type=Path, default=defaults['report'],
                         help='also write the summary JSON here')
     return parser
+
+
+def _build_id():
+    """The commit this app was frozen from, or None when it cannot be read.
+
+    A recovery recorded without it cannot be compared against a fix: the audit read
+    196 recoveries with `named: 0` and called the decision table dead, when every one
+    of them predated the recorder (`frozen build: 5973462a`).  Recording the build
+    beside the decision makes "0 named" mean one thing only.
+    """
+    import json
+    for candidate in (ROOT / 'build-info.json', ROOT / 'dist' / 'MaaLimbus' / 'build-info.json'):
+        try:
+            return json.loads(candidate.read_text(encoding='utf-8')).get('source_commit')
+        except (OSError, ValueError):
+            continue
+    return None
