@@ -596,10 +596,32 @@ class MaaDevice:
                                % (self.ended, what))
 
     def click(self, x, y):
+        # One input path, not three.  This method used to post the click directly while
+        # the map path went through `dispatch`, so the drain, the pre-click probe and the
+        # click bookkeeping only ever existed on the path the map does not use -- a live
+        # run produced 9 intents and 4 verdicts with 0 `controller_probe` events, which is
+        # how the split was found.
         self._refuse_if_ended('click')
-        self._wait(self.controller.post_click(int(x), int(y)))
+        probe_state = getattr(self, '_note_controller_state', None)
+        if probe_state is not None:
+            probe_state(self.controller)
+        handle = self.controller.post_click(int(x), int(y))
+        if hasattr(handle, 'done'):
+            dispatch(self.controller, handle, timeout=10,
+                     probe=lambda: screencap(self.controller, timeout=5) is not None,
+                     on_soft=lambda why: self.note('window_intent_soft', reason=why))
+        else:
+            # A controller stub returns a sentinel instead of a job; waiting on it is
+            # what the adapter contract allowed before, and it must keep working.
+            self._wait(handle)
+        if probe_state is not None:
+            self._clicked_at = time.monotonic()
+            self._notes_at_click = self._note_count
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
+        # Left on the adapter contract: a controller stub answers with a sentinel, and
+        # only a real job can be handed to `dispatch`.  The click is where the live path
+        # lost its probe, so that is the one that moved.
         self._refuse_if_ended('swipe')
         self._wait(self.controller.post_swipe(int(x1), int(y1), int(x2), int(y2),
                                               int(duration_ms)), timeout=15)
