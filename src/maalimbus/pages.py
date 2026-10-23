@@ -221,6 +221,7 @@ RECOVERY_BY_KIND = {
 }
 
 
+
 # Which rungs a refusal's action may use.  Narrowing is the *only* safe direction:
 # an unknown action falls back to the measured six-rung ladder, because a gesture that
 # moves a view has never corrupted a run, while dragging a text screen can misroute it.
@@ -253,6 +254,21 @@ def superseded_click(pending, target):
 def recovery_for(kind):
     """The action for a refusal kind; an unknown kind holds instead of guessing."""
     return RECOVERY_BY_KIND.get(kind, 'hold')
+
+
+def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
+    """The kind of one refusal, from whichever of its three names it carries.
+
+    A recovery is triggered from three different call sites that each name the
+    same refusal differently (`reason`, `stopped_reason`, `plan_reason`).  Reading
+    only one of them left every historical recovery unnamed, so the action table
+    never decided anything.  Precedence is most-specific first; unknown is None.
+    """
+    for name in (reason, stopped_reason, plan_reason):
+        kind = REFUSALS.get(name)
+        if kind is not None:
+            return kind
+    return None
 
 
 REFUSALS = {

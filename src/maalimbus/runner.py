@@ -47,7 +47,7 @@ import cv2
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
-from .pages import REFUSALS, ladder_for, recovery_for, superseded_click
+from .pages import REFUSALS, kind_of, ladder_for, recovery_for, superseded_click
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -4270,8 +4270,16 @@ class MirrorRunner:
         # decided anything and the full six-rung ladder was always spent.
         refused_reason = (entry.get('reason') or entry.get('stopped_reason')
                           or entry.get('plan_reason'))
-        kind = REFUSALS.get(refused_reason)
-        ladder = ladder_for(recovery_for(kind), ladder)
+        # Recording and deciding are deliberately separate: the kind *recorded* may be
+        # read from any of the three names so the audit can see what happened, while the
+        # kind that *narrows the ladder* stays on the strictest source (`reason`) until a
+        # narrowing is proven offline -- otherwise a recording fix silently changes which
+        # gestures run.
+        recorded_kind = kind_of(reason=entry.get('reason'),
+                                stopped_reason=entry.get('stopped_reason'),
+                                plan_reason=plan.get('reason'))
+        deciding_kind = REFUSALS.get(entry.get('reason'))
+        ladder = ladder_for(recovery_for(deciding_kind), ladder)
         rung = state['recovery_rung']
         if rung >= len(ladder):
             self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),
@@ -4285,9 +4293,10 @@ class MirrorRunner:
         # The refusal's *kind* decides what the engine may do next; recording it here
         # makes the decision inspectable while the gesture set is still the shared
         # ladder.  `recovery_for` is the single table that will drive the choice.
-        kind = REFUSALS.get(entry.get('reason'), None)
         self.note('window_recovery', page=page, gesture=name, rung=rung,
-                  refused_kind=kind, recovery_action=recovery_for(kind),
+                  refused_kind=recorded_kind,
+                  recovery_action=recovery_for(recorded_kind),
+                  deciding_kind=deciding_kind,
                   stopped_reason=refused_reason, plan_reason=plan.get('reason'),
                   input_helpers=self.input_helper_line())
         self._recovery_gesture(name)
