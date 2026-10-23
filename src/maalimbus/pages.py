@@ -25,6 +25,9 @@ page handled?" is a one-line lookup instead of three greps.
 
 from __future__ import annotations
 
+import ast
+from collections import Counter
+
 PAGES = {
     'BATTLE_DEFEAT': ('vision', 'plan'),
     'BATTLE_HUD': ('vision+agent', 'runner'),
@@ -133,47 +136,152 @@ CONTRACTS = {
 }
 
 
-#: Inline ``page == 'X'`` comparisons in ``runner.py``, measured 2026-10-23:
-#: **88 comparisons across 24 pages**, against 52 branches in
-#: ``window.plan_step``.  MAP alone is compared 22 times.  That split is what lets one page be
-#: planned in one module and refused in another.
+#: The spellings of "which page is this" the loop actually uses.  The first
+#: ratchet (D35, 2026-10-23) counted only ``page == 'X'`` and therefore saw 85
+#: of the 125 dispatch sites in ``runner.py``: ``page != 'X'``,
+#: ``page in (...)``, ``settled_page in (...)`` and ``page in CONSTANTS`` were
+#: invisible, which is how a page could gain a sixth check without the guard
+#: noticing.
+DISPATCH_READERS = ('page', 'settled_page', 'was_page')
+
+#: A comparator that names no page statically (``page in WAIT_PAGES``) is
+#: counted under this name, so growth in that form is still growth.
+UNRESOLVED_PAGE = '?'
+
+
+def _read_page(node):
+    """The spelling of "which page is this" in ``node``, or ``None``."""
+    if isinstance(node, ast.Name) and node.id in DISPATCH_READERS:
+        return node.id
+    if isinstance(node, ast.Attribute) and node.attr == 'page':
+        return 'attribute'
+    if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == 'get' and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value == 'page'):
+        return 'get'
+    if (isinstance(node, ast.Subscript)
+            and isinstance(node.slice, ast.Constant)
+            and node.slice.value == 'page'):
+        return 'subscript'
+    return None
+
+
+def _page_names(target):
+    """The page names a comparator names, or ``[UNRESOLVED_PAGE]``."""
+    if isinstance(target, ast.Constant) and isinstance(target.value, str):
+        return [target.value]
+    if isinstance(target, (ast.Tuple, ast.List, ast.Set)):
+        names = [element.value for element in target.elts
+                 if isinstance(element, ast.Constant)
+                 and isinstance(element.value, str)]
+    elif isinstance(target, ast.Dict):
+        names = [key.value for key in target.keys
+                 if isinstance(key, ast.Constant) and isinstance(key.value, str)]
+    else:
+        names = []
+    return names or [UNRESOLVED_PAGE]
+
+
+def dispatch_sites(source):
+    """Every inline page-dispatch site in ``source``, counted per page name.
+
+    A site is one comparison of a page reader against page names, in any of the
+    forms the loop writes: ``==``, ``!=``, ``in``, ``not in``, on either side,
+    through a name, an attribute, ``.get('page')`` or ``['page']``.  Membership
+    of several names counts once for each name it tests, so a site that handles
+    three pages costs three rows -- but one *site*, and that is what the
+    ratchets below bound.
+
+    Counting the population rather than one spelling is the whole point: the
+    first version of this ratchet (D35) matched ``page == 'X'`` with a regex and
+    reported 85 of 125.
+    """
+    counts = Counter()
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Compare) or len(node.ops) != 1:
+            continue
+        if not isinstance(node.ops[0], (ast.Eq, ast.NotEq, ast.In, ast.NotIn)):
+            continue
+        left, right = node.left, node.comparators[0]
+        if _read_page(left) is not None:
+            target = right
+        elif _read_page(right) is not None:
+            target = left
+        else:
+            continue
+        for name in _page_names(target):
+            counts[name] += 1
+    return counts
+
+
+#: Inline page dispatch in ``runner.py``, re-measured 2026-10-23 with
+#: :func:`dispatch_sites`: **149 rows across 125 sites and 34 names**, of which
+#: ``MAP`` alone is 29.  The first table counted only ``page == 'X'`` and so
+#: recorded 85 rows across 23 names: ``page != 'X'`` (9), ``page in (...)`` (11),
+#: ``settled_page in (...)`` (8), ``page in CONST`` (7) and
+#: ``state.get('page')`` were invisible, i.e. the ratchet guarded two thirds of
+#: the surface it claimed to guard.
 #:
 #: This is a **ratchet, not a target**: the numbers may go down as cases move
 #: into ``window``/``pages``, and ``tests/test_pages.py`` fails if any of them
 #: goes up.  A new page-specific inline check must therefore either replace an
 #: existing one or be argued for by editing this table deliberately.
 INLINE_RUNNER = {
+    '?': 13,
     'BATTLE_DEFEAT': 1,
+    'BATTLE_HUD': 4,
+    'BATTLE_PLANNING': 1,
+    'DEPLOYMENT': 4,
     'DEPLOYMENT_RESET': 3,
     'DUNGEON_PROGRESS': 1,
-    'DUNGEON_TEAM': 5,
+    'DUNGEON_TEAM': 6,
     'EVENT_CHOICE': 1,
     'EVENT_RESULT': 2,
-    'GIFT_GET': 11,
-    'GIFT_PICK': 4,
+    'GIFT_GET': 12,
+    'GIFT_PICK': 5,
+    'GIFT_SEARCH': 1,
     'HEAL_SINNERS': 2,
-    'INITIAL_GIFTS': 3,
-    'MAP': 20,
-    'NODE_PANEL': 1,
-    'PRE_BATTLE_TEAM': 5,
+    'INITIAL_GIFTS': 4,
+    'MAP': 29,
+    'PRE_BATTLE': 1,
+    'PRE_BATTLE_TEAM': 6,
     'RESUME_DIALOG': 1,
-    'REVIVE_DONE': 1,
+    'REVIVE_DONE': 2,
+    'REVIVE_PICK': 1,
     'REWARD_CARD': 3,
-    'SHOP': 4,
-    'SHOP_PURCHASE': 2,
-    'STAR_CONFIRM': 1,
-    'STAR_GRACES': 5,
-    'THEME_PACKS': 1,
+    'RUN_REWARD_BONUS': 1,
+    'RUN_REWARD_CONFIRM': 1,
+    'RUN_REWARD_DIALOG': 1,
+    'SHOP': 7,
+    'SHOP_PURCHASE': 5,
+    'STAR_CONFIRM': 3,
+    'STAR_GRACES': 9,
+    'TEAM_LIBRARY': 1,
+    'THEME_PACKS': 3,
     'TUTORIAL': 3,
-    'UNKNOWN': 3,
-    'UNKNOWN_DIALOG': 3,
+    'UNKNOWN': 8,
+    'UNKNOWN_DIALOG': 4,
 }
+
+#: The same count for ``window.py``: **61 rows across 58 sites**, the chain
+#: ``window.plan_step`` walks before the runner sees a page.  It is ratcheted
+#: too, because a page moved out of the runner's chain and into this one is the
+#: same page-by-page growth one module later -- the move is allowed, it just has
+#: to show up in a diff instead of in a stop.
+INLINE_WINDOW = 61
+
 
 
 def inline_overrun(counts):
     """Pages whose inline checks grew past the recorded baseline."""
     return sorted(name for name, n in counts.items()
                   if n > INLINE_RUNNER.get(name, 0))
+
+
+def window_overrun(counts):
+    """How many rows of ``window.py`` dispatch the baseline no longer covers."""
+    return max(0, sum(counts.values()) - INLINE_WINDOW)
 
 
 def producers(name):

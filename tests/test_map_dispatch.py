@@ -34,9 +34,21 @@ def test_a_map_frame_without_the_panel_leaves_the_probe_alone():
     assert state['navigation_probe_pending'] is True
 
 
-def test_the_ratchet_sees_fewer_inline_map_checks_than_before():
+def test_the_ratchet_sees_the_map_checks_the_old_spelling_missed():
+    """This used to assert `INLINE_RUNNER['MAP'] <= 20` -- a second copy of the
+    table's own number, over a count that saw only `page == 'X'`.  Both halves
+    drifted: the honest count is 29 across five more spellings.  So ask the
+    detector instead of restating its answer."""
+    import re
+    from pathlib import Path
+
     from maalimbus import pages
-    assert pages.INLINE_RUNNER['MAP'] <= 20
+    source = (Path(__file__).resolve().parents[1] / 'src' / 'maalimbus'
+              / 'runner.py').read_text(encoding='utf-8')
+    counted = pages.dispatch_sites(source)['MAP']
+    one_spelling = len(re.findall(r"page\s*==\s*'MAP'", source))
+    assert counted > one_spelling
+    assert pages.inline_overrun({**pages.INLINE_RUNNER, 'MAP': counted + 1}) == ['MAP']
 
 
 def test_a_jump_that_is_not_lattice_shaped_is_recorded_once():
