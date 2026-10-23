@@ -1793,29 +1793,73 @@ def adjacent_to(party, boxes, *, steps=None, tolerance=0.34):
     return keep
 
 
-def adjacent_to(party, boxes, *, near=150.0, far=430.0):
-    """Keep the boxes whose centre is one step from the party.
+def pitch_of(party, boxes, *, floor=60.0, corroboration=2):
+    """The lattice pitch this frame draws, as (across, down), or None if unprovable.
 
-    A node click only moves the party when the node is adjacent.  On
-    `evidence/runtime/packaged-mirror-20261022-085428/frame-0008` the party sat at
-    (1052,562) and the six badges around it were 219..395 px away, while every target
-    that run was rejected sat 400..800 px out (two steps or more); a hand click on a
-    one-step node opened its panel.  The old candidate list applied neither distance
-    nor adjacency, so the loop kept clicking the far side of the floor.
+    Why not a constant: the measured step between two adjacent nodes is 219 px on
+    `evidence/runtime/packaged-mirror-20261022-085428/frame-0008` and 396 px on the
+    `evidence/runtime/packaged-mirror-20261023-05xxxx` runs -- the same offset is one
+    step on one floor and two steps on another, so neither a scalar radius nor
+    `STEP_CENTRES` can serve both.  The pitch is a property of the frame.
 
-    A band rather than a lattice match: the page's pitch is anisotropic (about 384 px
-    across, 160..220 px down) and the badges are drawn slightly off-centre, so matching
-    exact step vectors kept dropping real neighbours.  `party is None` keeps every box,
-    because a run without a party reading must not be left without candidates.
+    The two axes are estimated separately (a hex lattice is anisotropic), each as the
+    smallest offset along that axis that at least `corroboration` boxes agree with.
+    One lone far box therefore cannot define the pitch, and a frame that cannot prove
+    both axes yields None instead of an invented number.
+    """
+    if party is None:
+        return None
+
+    def axis(values):
+        if len(values) < corroboration:
+            return None
+        smallest = min(values)
+        agreeing = [v for v in values if abs(v - smallest) <= smallest * 0.25]
+        if len(agreeing) < corroboration:
+            return None
+        return smallest
+
+    xs, ys = [], []
+    for box in boxes:
+        x, y, w, h = [float(v) for v in box[:4]]
+        dx, dy = (x + w / 2) - party[0], (y + h / 2) - party[1]
+        if abs(dx) >= floor:
+            xs.append(abs(dx))
+        if abs(dy) >= floor:
+            ys.append(abs(dy))
+    across, down = axis(xs), axis(ys)
+    if across is None or down is None:
+        return None
+    return across, down
+
+
+def adjacent_to(party, boxes, *, near=150.0, far=430.0, tolerance=0.34):
+    """Keep the boxes one step from the party, using this frame's own pitch.
+
+    One step is `pitch_of(...)`; a box is kept when its offset from the party is that
+    pitch to within `tolerance`.  When the frame cannot prove a pitch the reading is
+    *unknown*, not *nothing*: the fallback band is applied and the caller records it,
+    so an unreadable frame cannot silently pass two-step boxes as neighbours.
     """
     if party is None:
         return list(boxes)
+    pitch = pitch_of(party, boxes)
     keep = []
     for box in boxes:
         x, y, w, h = [float(v) for v in box[:4]]
         dx, dy = (x + w / 2) - party[0], (y + h / 2) - party[1]
-        distance = (dx * dx + dy * dy) ** 0.5
-        if near <= distance <= far:
+        if pitch is None:
+            distance = (dx * dx + dy * dy) ** 0.5
+            if near <= distance <= far:
+                keep.append(box)
+            continue
+        across, down = pitch
+        # One step is either a lateral neighbour, a vertical one, or the diagonal the
+        # hex grid draws; the box must sit on one of those three, within `tolerance`.
+        options = ((across, down), (across, 0.0), (0.0, down))
+        reach = max(across, down) * tolerance
+        if any(((abs(dx) - ex) ** 2 + (abs(dy) - ey) ** 2) ** 0.5 <= reach
+               for ex, ey in options):
             keep.append(box)
     return keep
 

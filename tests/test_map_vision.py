@@ -1308,3 +1308,34 @@ def test_without_a_party_every_candidate_is_kept():
     from maalimbus.map_vision import adjacent_to
     boxes = [(576, 361, 190, 190)]
     assert adjacent_to(None, boxes) == boxes
+
+
+def test_a_neighbour_is_judged_against_this_frames_pitch():
+    from maalimbus.map_vision import adjacent_to, pitch_of
+
+    def box(cx, cy):
+        return (cx - 95, cy - 95, 190, 190)
+
+    party = (1052, 562)
+    # A 219 px pitch floor: the far box below is two steps and must be dropped.
+    near_map = [box(1052 + 189, 562 + 110), box(1052 - 189, 562 + 110),
+                box(1052 + 381, 562 + 106)]
+    across, down = pitch_of(party, near_map)
+    assert across == 189 and abs(down - 110) <= 26, (across, down)
+    kept = adjacent_to(party, near_map)
+    assert box(1052 + 189, 562 + 110) in kept
+    assert box(1052 + 381, 562 + 106) not in kept
+
+    # The same offsets on a 396 px pitch floor are all one step.
+    far_map = [box(1052 + 381, 562 + 106), box(1052 - 381, 562 + 106)]
+    assert pitch_of(party, far_map) == (381, 106)
+    assert adjacent_to(party, far_map) == far_map
+
+
+def test_an_unprovable_pitch_falls_back_and_never_invents_one():
+    from maalimbus.map_vision import adjacent_to, pitch_of
+
+    party = (1052, 562)
+    lone = [(1052 + 381 - 95, 562 + 106 - 95, 190, 190)]
+    assert pitch_of(party, lone) is None
+    assert adjacent_to(party, lone) == lone
