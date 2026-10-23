@@ -52,7 +52,9 @@ def verdict(record, outcome, started):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--app', type=Path, required=True)
-    parser.add_argument('--address', required=True)
+    # The MuMu device address is a project constant; requiring it to be retyped turned
+    # two rounds into argument-parse failures instead of runs.
+    parser.add_argument('--address', default='127.0.0.1:16416')
     parser.add_argument('--adb', type=Path, default=None)
     parser.add_argument('--input-method', default=None)
     parser.add_argument('--authorize', default='')
@@ -74,8 +76,12 @@ def main():
     args = parser.parse_args()
     app = args.app.resolve()
     if not args.observe_only and not runner.authorized(args.authorize):
+        granted = runner.granted_nonce()
         print(json.dumps({'passed': False, 'refused': 'live_input_authorized_needs_a_granted_nonce',
-                          'hint': f'{runner.AUTHORIZATION} must grant {args.authorize}'}, indent=2))
+                          'hint': f'pass --authorize {granted}' if granted else
+                                  f'{runner.AUTHORIZATION} does not grant live input yet',
+                          'authorization_file': str(runner.AUTHORIZATION),
+                          'granted_nonce': granted}, indent=2))
         return 1
     directory = ROOT / 'evidence/runtime' / ('packaged-mirror-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     directory.mkdir(parents=True)

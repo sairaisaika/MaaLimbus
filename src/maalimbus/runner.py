@@ -263,6 +263,25 @@ def authorized(nonce: str) -> bool:
             and data['nonce'] == nonce)
 
 
+def granted_nonce():
+    """The nonce the live-input gate currently grants, or ``None``.
+
+    A refusal that only says "a grant is required" costs a round: the driver printed
+    that and the operator had to go read the file.  The gate already knows the answer,
+    so it says it.
+    """
+    if not AUTHORIZATION.is_file():
+        return None
+    try:
+        data = json.loads(AUTHORIZATION.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+    if data.get('live_input_authorized') is not True:
+        return None
+    nonce = data.get('nonce')
+    return nonce if isinstance(nonce, str) and nonce else None
+
+
 # --------------------------------------------------------------------------- device
 
 
