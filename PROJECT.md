@@ -3370,3 +3370,30 @@ Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_
 修复后尚未经过一次实机跑，因此不得声称提升；下一步只看两个数——`map_view_changed` 是否出现、
 `recovery_advanced` 是否脱离 0。若两者皆无，瓶颈转到"Resume 之后客户端是否接受输入"。
 
+## DSH continuation: 一条会失败的命令，代替一次目视判断（2026-10-23）
+
+本轮不加功能，只加**能证伪自己的判据**。起因是一个真实缺陷：恢复决策表
+（`pages.REFUSAL_KINDS` → `RECOVERY_BY_KIND` → `ladder_for`）在代码里完整接通、
+`runner.py` 也确实调用，但回读证据后是 **181 次恢复、0 次命名类别**：
+`kind` 取自 `entry['reason']`，而恢复路径把原因写进 `stopped_reason`，于是
+`REFUSALS.get(None)` 恒为空，`recovery_for(None)='hold'`，每次都在盲走完整六阶阶梯。
+序列化层丢弃 `None` 值，所以事件里连字段都不出现——读代码看不出问题，读事件才看得出。
+
+修复 `e8b4599`：从 `reason / stopped_reason / plan_reason` 三处取原因。
+
+判据（新增）：
+- `src/maalimbus/evidence_audit.py` —— `recovery_kinds()` 统计"命名率"，
+  `inconsistent_decisions()` 从唯一策略表重新推导期望动作并比对；
+  **`total==0` 判失败**（空证据不等于通过），**一条静默即判假**。
+- `tools/audit_evidence.py` —— 一条命令读完 `evidence/runtime/packaged-mirror-*`，
+  退出码 0/1/2 分别表示"全部命名且动作一致"/"存在静默或不一致"/"没有证据"。
+  当前实跑：`181 / 0 named / exit 1`。
+- `tests/test_evidence_audit.py` 7 passed（含 181 条真实形态的回归基线、动作不一致反例、未知类别必须 hold）。
+
+过程教训（两次同类，已定为规则）：**门禁命令不得放在管道左侧再读 `$?`**——
+`cmd | tail && git commit` 会在 pytest 失败时照样提交；`cmd | tail; echo $?` 打印的是
+`tail` 的退出码。审计与测试一律重定向到文件后读命令自身退出码。
+
+未变：`recovery_advanced` 0/17，五层未通关，本轮实机输入/消费/领奖 0/0/0；
+"字段出现且动作正确"要等一次实机才可判定，在那之前不声称任何改善。
+
