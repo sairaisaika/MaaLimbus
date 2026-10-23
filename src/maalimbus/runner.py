@@ -4428,14 +4428,26 @@ class MirrorRunner:
         progress = self.PROGRESS_SECONDS if raw_progress is None else float(raw_progress)
         # One live run was given 450 s and took 1058 s because this watch outlived the
         # budget by 2.5x.  A watchdog may never be longer than the run it protects.
+        configured = progress
         progress = bounded_limit(progress, getattr(self, 'deadline', None))
+        # Once the window was shortened because the run's own budget is running out,
+        # a grace window would push the run past that budget again (live 420 s budget
+        # took 608.9 s: the watch fired on time, then bought up to two more windows).
+        # A clamped watch never asks for grace.
+        clamped = progress != configured
+        if clamped:
+            def on_stall():
+                record = self._record_no_progress(progress) or {}
+                record['stillness_action'] = 'stop'
+                return record
+        else:
+            on_stall = lambda: self._record_no_progress(progress)
         if progress > 0:
             self.artifacts.setdefault('event_heartbeat', time.monotonic())
             self._progress_watch = threading.Thread(
                 target=stall_watchdog, name='maalimbus-progress', daemon=True,
                 args=(lambda: self.artifacts.get('event_heartbeat', 0.0),),
-                kwargs={'limit': progress,
-                        'on_stall': lambda: self._record_no_progress(progress)})
+                kwargs={'limit': progress, 'on_stall': on_stall})
             self._progress_watch.start()
         return watch
 
