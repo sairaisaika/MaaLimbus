@@ -55,3 +55,22 @@ def inconsistent_decisions(events, table=None):
             wrong.append({'kind': kind, 'recorded': event.get('recovery_action'),
                           'expected': expected, 'page': event.get('page')})
     return wrong
+
+def frozen_build(root=None):
+    """Which build produced the packaged evidence, when the tree still has it.
+
+    A tally like `named 0 of 184` is only interpretable next to the commit that
+    wrote those events: evidence produced by an older freeze says nothing about
+    a fix that landed later.  Missing file is reported as unknown, never as a
+    match.
+    """
+    import json
+    import pathlib
+    base = pathlib.Path(root) if root is not None else pathlib.Path(__file__).resolve().parents[2]
+    path = base / 'dist' / 'MaaLimbus' / 'build-info.json'
+    try:
+        info = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {'commit': 'unknown', 'dirty': None}
+    return {'commit': str(info.get('source_commit') or 'unknown'), 'dirty': info.get('dirty')}
+

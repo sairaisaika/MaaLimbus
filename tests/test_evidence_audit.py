@@ -65,3 +65,10 @@ def test_a_silent_event_is_not_counted_as_a_wrong_decision():
     # Missing evidence is reported by recovery_kinds, not duplicated here.
     from maalimbus.evidence_audit import inconsistent_decisions
     assert inconsistent_decisions([_event()], {'no_candidate': 'pan_view'}) == []
+
+
+def test_frozen_build_reports_unknown_rather_than_a_match():
+    from maalimbus.evidence_audit import frozen_build
+    report = frozen_build('/nonexistent-root')
+    assert report['commit'] == 'unknown'
+    assert report['dirty'] is None

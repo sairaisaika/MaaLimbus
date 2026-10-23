@@ -15,7 +15,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.evidence_audit import inconsistent_decisions, recovery_kinds, silent_recoveries
+from maalimbus.evidence_audit import frozen_build, inconsistent_decisions, recovery_kinds, silent_recoveries
 
 
 def load(directory):
@@ -45,6 +45,8 @@ def main(argv):
         events.extend(load(directory))
     report = recovery_kinds(events)
     wrong = inconsistent_decisions(events)
+    build = frozen_build()
+    print(f'frozen build: {build["commit"][:8]}  dirty {build["dirty"]}')
     print(f'directories: {len(directories)}')
     print(f"window_recovery: {report['total']}  named: {report['named']}  "
           f"silent: {silent_recoveries(report)}")
