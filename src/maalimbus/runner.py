@@ -443,6 +443,7 @@ def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WI
     return str(turn).strip() == str(previous_turn).strip() and float(elapsed) > float(window)
 
 
+DEEP_STEP_SECONDS = 60.0
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
@@ -4037,6 +4038,14 @@ class MirrorRunner:
             goal = max(0, int(settings.steps))
         walked = 0
         while self.state['step'] < goal and walked < max(0, int(round_limit)):
+            # The budget is a contract with the caller, not a hint: a step can block for
+            # minutes inside the recogniser (live 420 s budget kept running to 610 s with
+            # one 423.8 s gap between a click and the next event), so check here as well
+            # as inside the step.
+            if self.deadline is not None and time.monotonic() >= self.deadline:
+                self._end_session('loop_deadline_exceeded',
+                                  overshoot_s=round(time.monotonic() - self.deadline, 1))
+                break
             if self.state.get('session_ended'):
                 self.note('mirror_loop_stopped',
                           reason='the_pipeline_node_failed_before_the_next_input',
@@ -4058,8 +4067,15 @@ class MirrorRunner:
                       phase='step_start',
                       page=self.state.get('page') or getattr(self, '_last_page', None),
                       build=_build_id(), trace_verdict=_verdict['kind'])
+            started_step = time.monotonic()
             try:
                 result = self.step()
+                blocked = time.monotonic() - started_step
+                if blocked > DEEP_STEP_SECONDS:
+                    # Names the block the budget cannot interrupt: next time this fires,
+                    # the number is the evidence for which Maa node to bound.
+                    self.note('step_outlived_its_window', seconds=round(blocked, 1),
+                              page=self.state.get('page') or getattr(self, '_last_page', None))
             except (RuntimeError, OSError) as error:
                 # One end, one reason: the deadline the caller set outranks a failure that
                 # is only its symptom, and the loop must stop rather than end twice.

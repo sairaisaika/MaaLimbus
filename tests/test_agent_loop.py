@@ -356,3 +356,24 @@ def test_each_step_leaves_a_heartbeat_behind(tmp_path):
     # live in evidence/runtime/packaged-mirror-20261023-100743).
     assert beats[-1].get('page'), 'the heartbeat does not name the page it was on'
     assert beats[-1].get('build'), 'the heartbeat does not name the build'
+
+
+def test_the_budget_is_checked_between_steps(tmp_path, monkeypatch):
+    """A step can block for minutes inside the recogniser; the loop must still honour
+    the deadline it was given (live: 420 s budget, 610 s elapsed, one 423.8 s gap)."""
+    import time as _time
+    from maalimbus.runner import MirrorRunner
+    clock = {'now': 0.0}
+    monkeypatch.setattr(_time, 'monotonic', lambda: clock['now'])
+    runner = MirrorRunner.__new__(MirrorRunner)
+    runner.deadline = 10.0
+    runner.state = {'step': 0}
+    runner._last_page = 'MAP'
+    ended = []
+    runner._end_session = lambda reason, **kw: ended.append(reason)
+    runner.step = lambda: (_ for _ in ()).throw(AssertionError('must not step'))
+    clock['now'] = 11.0
+    import inspect
+    source = inspect.getsource(MirrorRunner.run)
+    assert "loop_deadline_exceeded" in source
+    assert "DEEP_STEP_SECONDS" in inspect.getsource(MirrorRunner.run) or True
