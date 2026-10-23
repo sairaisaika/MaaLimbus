@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'src'))
-from maalimbus import crash_codes  # noqa: E402  (after the path is in place)
+from tools import run_record  # noqa: E402  (after the path is in place)
 LOG = ROOT / 'build' / 'selfrun-mirror.jsonl'
 ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 
@@ -55,16 +55,7 @@ def attempt(index: int, seconds: int) -> dict:
     if path.exists():
         events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()
                   if line.strip()]
-    record['events'] = len(events)
-    record['floors'] = sorted({e['floor'] for e in events
-                               if e['event'] == 'map_observed' and e.get('floor')})
-    stops = [e.get('reason') for e in events if e['event'] in ('mirror_loop_stopped', 'mirror_loop_error')]
-    # A native death leaves no stop event, so the exit code is the only cause
-    # left.  Without this the run counts as "ended without a stop" and its
-    # cause vanishes (`src/maalimbus/crash_codes.py`).
-    record['stop'] = (stops[0] if stops
-                      else crash_codes.name_for(int(record['exit'])))
-    record['reached_floor_5'] = 5 in record['floors']
+    record.update(run_record.summarise(events, record['exit']))
     return record
 
 
