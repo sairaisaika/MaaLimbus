@@ -216,7 +216,11 @@ RECOVERY_BY_KIND = {
     'no_candidate': 'pan_view',
     'attempts_exhausted': 'escalate_ladder',
     'unreadable_text': 'reread_text',
-    'bad_saved_state': 'recompute_state',
+    # Measured: `recompute_state` changed the page in **0 of 51** spends
+    # (`tools/recovery_outcome.py`), because re-reading cannot repair a disagreement
+    # between our state and the screen.  Escalate instead: it is the only bounded
+    # action that changes the screen, and `attempts_exhausted` already proves it runs.
+    'bad_saved_state': 'escalate_ladder',
     'refused_by_policy': 'stop',
 }
 
