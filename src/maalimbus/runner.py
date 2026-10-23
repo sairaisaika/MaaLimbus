@@ -2649,7 +2649,9 @@ class MirrorRunner:
                     return self._result(page,None,False,stopped,done=True)
                 receipt_booked=True
         plan_controls=dict(self.controls)
-        if page=='MAP' and int(state.get('map_refused_streak') or 0)>=3:
+        # One refused click is enough: the streak counts every click the game did not
+        # take, and a map that refuses one node is the map that refuses them all.
+        if page=='MAP' and int(state.get('map_refused_streak') or 0)>=1:
             # Nine refusals before `entry -> Enter -> Dungeon Progress -> Resume` and one
             # click after it (see `window.plan_map`): a map that is read but refuses every
             # node is a run that was never resumed, and the resume lives behind the map's
