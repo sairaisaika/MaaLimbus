@@ -1534,3 +1534,25 @@ def test_a_handle_that_answers_without_an_id_records_nothing_invented():
     recorder = Recorder()
     MirrorRunner._note_controller_state(recorder, Handle())
     assert recorder.events[-1][1]['empty_id_fields'] == []
+
+
+def test_a_click_with_an_empty_binding_is_refused_before_it_is_posted():
+    """The measured failure: MaaFW logged `controller not found [controller_id=]` for a
+    click that had already been posted, so the tap never landed
+    (evidence/runtime/packaged-mirror-20261023-153338).  A device whose binding is the
+    empty string must refuse, and must not reach `post_click` at all."""
+    from maalimbus.runner import MaaDevice
+
+    class _Controller:
+        id = ''
+        def __init__(self): self.posted = []
+        def set_screenshot_target_long_side(self, side): self.long_side = side
+        def post_click(self, x, y):          # pragma: no cover - must not be reached
+            self.posted.append((x, y))
+
+    controller = _Controller()
+    device = MaaDevice(controller)
+    with pytest.raises(RuntimeError) as caught:
+        device.click(963, 593)
+    assert 'binding' in str(caught.value)
+    assert controller.posted == []

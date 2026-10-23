@@ -597,6 +597,15 @@ class MaaDevice:
 
     def click(self, x, y):
         self._refuse_if_ended('click')
+        # A click posted while the binding is empty is undeliverable: MaaFW answers
+        # `controller not found [controller_id=]` and the tap never reaches the game
+        # (measured live 2026-10-23 in packaged-mirror-20261023-153338, x=963 y=593).
+        # Refuse here, where the binding is still ours to check, instead of posting it.
+        # Only an *empty* id is provably undeliverable; a controller without the
+        # attribute is a stand-in that cannot answer the question, so it is let through
+        # rather than accused (`tests/test_runner.py`'s device stub has no `id`).
+        if getattr(self.controller, 'id', None) == '':
+            raise RuntimeError('the_controller_binding_is_empty')
         self._wait(self.controller.post_click(int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
