@@ -1829,6 +1829,12 @@ class MirrorRunner:
         The party the candidate list was filtered against travels with the verdict.
         """
         fields.setdefault('party', self.state.get('map_party'))
+        # One place for "this click did not move us".  Four sites record a rejection in
+        # the 2026-10-23 tree; wiring the recovery ladder into each of them separately
+        # is how one mechanism ends up implemented four times.  Set the flag here,
+        # spend it once at the step tail.
+        if fields.get('outcome') == 'rejected':
+            self.state['map_refused_since_progress'] = True
         self.note('map_click_result', **fields)
 
     def note(self, name, **fields):
@@ -3808,10 +3814,10 @@ class MirrorRunner:
             # and let the next candidate be tried in its place.
             state['map_progress'].note_click(plan['target'])
             entry['stopped'] = 'map_click_opened_no_panel'
+            remaining = len([box for box in candidates
+                             if tuple(box) != tuple(plan['target'])])
             self.note('window_map_retry', target=list(plan['target']),
-                      attempt=state['map_attempts'],
-                      remaining=len([box for box in candidates
-                                     if tuple(box) != tuple(plan['target'])]))
+                      attempt=state['map_attempts'], remaining=remaining)
             # This click is refuted by the game itself: the page never left MAP. Record
             # it as a labelled negative while the judgement is still local -- the 91 map
             # clicks in the archived runs left 79 of them with no verdict at all, and an
@@ -3830,6 +3836,15 @@ class MirrorRunner:
             # streak of refusals has accumulated, instead of letting the run look like a
             # reader defect.
             map_refusal_streak(state, lambda event, **fields: self.note(event, page=page, **fields))
+            # A refused click that will not be retried is a *stop* like any other, so it
+            # spends the recovery ladder instead of handing control back to candidate
+            # selection.  Measured on the recovery fixture without this: the rung sat at
+            # 2 for eight consecutive steps (pinches 1, swipes 1) while the ladder has
+            # six rungs, and the last four were never reached.
+            if not remaining:
+                recovered = self._recover(page, state, entry, plan)
+                if recovered is not None:
+                    return recovered
             return self._result(page, plan.get('target'), True, None, waiting=True)
         # A click the game did take: the page it was aimed at arrived. This is the only
         # positive label the loop can earn without being told the answer.
@@ -3893,8 +3908,17 @@ class MirrorRunner:
         map_dispatch.after_settle(state, page, settled_page)
         state['page_attempts'] = 0
         state['swallowed_attempts'] = 0
-        state['recovery_for'] = None
-        state['recovery_rung'] = 0
+        # A refused click is a stop like any other: spend the next rung here, once,
+        # for every recording site instead of at each of the four call sites.
+        refused = state.pop('map_refused_since_progress', False)
+        if refused and map_dispatch.is_map(page) and settled_page == 'MAP':
+            recovered = self._recover(page, state, entry, plan)
+            if recovered is not None:
+                return recovered
+        # The rung is NOT cleared here: a step that returned without progress must
+        # keep the ladder where it is, otherwise every round starts at rung 0 and a
+        # six-rung ladder is spent one rung deep, forever.  `_recover` clears it when
+        # the page itself changes, which is the only thing that counts as fresh.
         state['map_zoom_for'] = None
         if plan['reason'] == 'the_floor_gift_card_must_be_picked_before_select':
             state['gift_picks'] += 1
@@ -3929,7 +3953,11 @@ class MirrorRunner:
             key = (page, plan['action'], plan.get('node'),
                    None if plan.get('target') is None else tuple(plan['target']))
             state['repeated_plans'][key] = state['repeated_plans'].get(key, 0) + 1
-            if state['repeated_plans'][key] >= max(2, settings.loop_guard):
+            # The guard may not end a run the ladder has not finished: the ladder is
+            # the page's own recovery budget and it is per page, not per wording.
+            spent = state.get('recovery_rung', 0) >= self._ladder_length(page)
+            if (state['repeated_plans'][key] >= max(2, settings.loop_guard)
+                    and spent):
                 entry['passed'] = False
                 entry['stopped'] = 'the_same_plan_repeated'
                 self.note('window_loop_guard', plan=list(key),
@@ -4144,7 +4172,7 @@ class MirrorRunner:
         has failed. Nothing is clicked, so it stays safe on a view the reader cannot
         classify yet.
         """
-        signature = f'{page}|{entry.get("reason")}'
+        signature = str(page)
         if state.get('map_zoom_for') == signature:
             return None
         state['map_zoom_for'] = signature
@@ -4198,7 +4226,13 @@ class MirrorRunner:
         ends the run. No rung presses a game control, which is what makes the ladder
         safe to try on a page whose layout is unknown yet.
         """
-        signature = f'{page}|{entry.get("reason")}'
+        # Identity of a *stop*, not of the wording it arrived with.  Keying on the
+        # reason made the ladder unspendable: the reason changes between rounds
+        # (`no_candidate_node_observed`, then a click verdict, then the loop guard),
+        # so the signature changed and the rung went back to 0.  Measured on the
+        # recovery fixture -- rungs spent 1, 2, then 0, 0 and the run ended with
+        # `the_same_plan_repeated` while four rungs were still unspent.
+        signature = str(page)
         if state.get('recovery_for') != signature:
             state['recovery_for'] = signature
             state['recovery_rung'] = 0
@@ -4226,6 +4260,14 @@ class MirrorRunner:
         self._recovery_gesture(name)
         time.sleep(self.settings.interval)
         return self._result(page, plan.get('target'), True, None, waiting=True)
+
+    def _ladder_length(self, page):
+        """How many rungs this page is allowed, matching :meth:`_recover` exactly."""
+        raw = self.settings.get('recovery_tries')
+        length = len(RECOVERY_LADDER) if raw is None else max(0, int(raw))
+        if str(page) in FIXED_LAYOUT_PAGES:
+            length = min(length, 1)
+        return length
 
     PROGRESS_SECONDS = 900.0
     STALL_SECONDS = 300.0
