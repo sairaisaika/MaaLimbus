@@ -3437,3 +3437,71 @@ Measured state: 0 five-floor clears, best floor 2, no native crashes in five con
 budget adherence 435/420 s. One state is still uncovered and is recorded rather than hidden:
 the framework rejecting a click with an empty `controller_id` while screenshots keep working —
 live evidence aligns it with the `RESUME_DIALOG` click at `evidence/runtime/packaged-mirror-20261023-135541`.
+
+## DSH continuation: the ending needs a writer, and a watch needs an owner (2026-10-23)
+
+只读架构审计的三个结论（证据都在 `evidence/runtime` 与 `tools/audit_*.py` 的输出里，不是推测）：
+
+1. **一页页打补丁的根因不是"页面太多"，而是页面的处置只有一个入口。** `MirrorRunner.step`
+   （老位置 `src/maalimbus/runner.py:2006`–`4074`）单方法 **2069 行 / 341 个 if-elif / 64 个 return**，
+   持有 24 个页面；`runner.py` 里页面分派实为 **111 处比较**（85 `page ==`、15 `page in (…)`、4 `page in CONST`、
+   7 `settled_page ==`、5 `settled_page in (…)`），而 D35 的棘轮只数第一种（约 77%）。`window._plan_step`
+   （`src/maalimbus/window.py:122`）是 52 个分支的 `if` 链而不是表。churn 与之吻合：最近 200 个提交里
+   `runner.py` 78 次（39%），`pages.py` 18 次。
+2. **恢复决策以散文（prose）为键。** 三套词表被 `pages.kind_of` 拼在一起（77 条 `REFUSALS` + 3 个 `STOP_KINDS`
+   + `reason_kinds.kind_for`），而 `reason_kinds.kind_for` 在模块级被**重定义 7 次、最后者生效**，
+   `RULES/EXCEPTIONS/LATE_RULES/NEGATIVE_RULES/PROGRESS_RULES/PROSE_RULES/LAST_RULES` 层层叠加。
+   度量本身也错：`test_stop_kinds` 数"标签"而不是"失败"（198 个字面量里 82 个是意图、4 个是结果），
+   于是诚实的代码让它红、不诚实的代码让它绿——见 D39。
+3. **卡住的在飞调用能吃掉整局预算，而结束记录有两个写者。** 51/142 局没有 stop；五局 15:33–16:32
+   都是"点击 → 380 s 完全静默 → 一条 `window_no_progress`"。原因有两个：就地 settle 读取继承了全局预算
+   （同一类缺陷当天已在 `7b91b6e` 修过一处、漏了第二处），以及进度看门狗**不写** canonical stop。
+   更深一层：看门狗是结束**进程**的守护线程，却不知道自己守护的那一局是否还在——2026-10-23 实测，
+   一局早已结束的进度看门狗在 pytest 返回 0 之后 **5.7 s** 用 `os._exit(4)` 杀掉了整个测试套件（两次）。
+
+已落地（三个提交，均离线可验证）：
+
+- `dea7028` runner: a read may not outlive its bound, and a watchdog writes the one ending ——
+  `ONE_READ_SECONDS = 30.0` 钳住每次读取并记 `artifacts['reading']`；`_write_ending(stop_path, record)`
+  成为两个看门狗唯一的结束写入口（`stop_path` = `stall_watchdog` / `no_progress_watchdog`），
+  结束记录带 `in_flight_phase` / `in_flight_seconds` / `in_flight`。**这是 D36 表格里早就写下、
+  却没落实的那一行。**
+- `1427bd4` vocabulary: a record that decided itself is not prose to classify —— `DECIDED_KEYS`/`DECIDED_BOOLS`；
+  `test_stop_kinds` 改数 provenance-failure（196 → **26**），`tools/audit_vocabulary.py` 并排打印两个角色模型
+  （两个模型在 **95** 个未映射名字上不一致）。
+- `8a23ff4` runner: a watch retires with the run it watches —— `stall_watchdog(..., alive=...)`、
+  `_watch_live`、`run` 变成包着 `_walk` 的薄壳并在 `finally` 退休。
+
+度量（改动前 → 改动后，同一台机器、同一份代码）：
+
+| 指标 | 前 | 后 |
+|---|---|---|
+| 整套 `run_tests.py -q` | **exit 4**，日志在 3%/5% 处截断、无摘要（两次） | **4 failed, 2058 passed in 185.53s**，exit 1（4 条全是 HEAD 就红的老账） |
+| 10 个 runner 邻近测试文件合跑 | exit 4 截断 | **172 passed**，exit 0 |
+| `pytest test_agent_loop.py` 后停 20 s | 进程被 `os._exit(4)` 杀掉 | `survived 20s` |
+| 单测 | — | settle_deadline 9、stall_watch 13、agent_loop 18 |
+
+**仍红、且 NOT mine（`git stash` 掉全部未提交改动后仍是 `4 failed, 22 passed`）：**
+`test_refuse_vocabulary::test_each_kind_maps_to_exactly_one_action`（6 个 kind 只有 5 个不同动作）、
+`test_recovery_event_fields::test_the_shared_builder_fills_a_kind_for_both_real_shapes`
+（期望 `recompute_state`、实际 `escalate_ladder`）、
+`test_evidence_audit_live::test_no_retained_recovery_contradicts_the_kind_table`
+（保留证据里的旧决策与现表冲突）、
+`test_update_install::test_real_controller_lock_blocks_installation`（Windows `PermissionError` [Errno 13]，
+`src/maalimbus/controller_lease.py:36`，本机有真实控制器租约）。
+
+前三条是**同一个缺陷**：`pages.RECOVERY_BY_KIND` 在 `src/maalimbus/pages.py:223` 把 `bad_saved_state`
+故意改成 `escalate_ladder` 并写了测量依据（`tools/recovery_outcome.py`：`recompute_state` 在 51 次花费里
+**0 次**改变了页面），但三条守卫/构建器还停在 `recompute_state`。也就是说：一个恢复决策有**三个来源**，
+这属于结论 #2 的同一类问题，下一次接续应该把这三个来源合成一个（先复核那条 0/51 的测量是否仍成立，
+再决定守卫该断言"每个 kind 都有动作且动作在白名单内"，而不是"动作互不相同"）。
+
+下一步（未做，避免在同一轮里既改语义又改守卫）：上面三条守卫 + `src/maalimbus/runner.py` 里剩下的一处
+步内原生等待（老位置 3412 的 `run_node(self.tasker, plan['node'], self.deadline)`）。
+
+**只读实机核对（MuMu `127.0.0.1:16416`，2026-10-23 17:29）**：`tools/map_live_observe.py`（Null 输入法、
+只读一帧、跑真实 pipeline 节点 `MapObserve`）→ `evidence/runtime/map-live-20261023-172952`。
+`foreground_before` 是 Limbus Company，`input_sent: false`；节点读出 **`RESUME_DIALOG`**，
+`route_recheck.reason = map_header_not_identified`，`reason = read_only_frame_is_not_an_identified_map`。
+画面本身（`frame.png`）就是那五局卡住的同一页：Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`、
+Resume / Halt Exploration / Cancel。**这是一局没打完的进度，本轮没有点任何东西**（不做未经授权的实机消费）。
