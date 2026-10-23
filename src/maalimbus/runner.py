@@ -3843,7 +3843,20 @@ class MirrorRunner:
                           frame=state.pop('map_click_frame', None),
                           reason='the_party_moved_after_the_click')
                 state['map_pending'] = None
-            if here:
+            # A reading that is not one lattice pitch from the last confirmed position is
+            # not a step: on `packaged-mirror-20261023-060803` the locator answered
+            # (703,316) for frames 0001-0005 and then (1052,439) from frame-0006 on -- a
+            # 349 px jump in one click, because the brighter blob there is the fight
+            # node's emblem, not the locomotive.  Adopting it made the adjacency filter
+            # (and every later verdict) reason about a point that is not the party, so a
+            # jump is refused and the confirmed position kept.
+            if here and was and not one_step_from(here, was):
+                if state.get('map_party_jump') != list(here):
+                    state['map_party_jump'] = list(here)
+                    self.note('map_party_jump_ignored', read=list(here),
+                              kept=list(was),
+                              reason='the_reading_is_not_one_lattice_step_away')
+            elif here:
                 state['map_player'] = list(here)
         if state.get('map_pending') is not None:
             # An intent with no verdict cannot teach a reader anything and cannot be

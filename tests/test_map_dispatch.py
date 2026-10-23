@@ -37,3 +37,14 @@ def test_a_map_frame_without_the_panel_leaves_the_probe_alone():
 def test_the_ratchet_sees_fewer_inline_map_checks_than_before():
     from maalimbus import pages
     assert pages.INLINE_RUNNER['MAP'] <= 20
+
+
+def test_a_jump_that_is_not_lattice_shaped_is_recorded_once():
+    """Two readings 349 px apart cannot be one step; the second must not be adopted.
+
+    Measured failure: `evidence/runtime/packaged-mirror-20261023-060803` read
+    (703,316) for five map frames and then (1052,439) for six more.
+    """
+    from maalimbus.runner import one_step_from as readback
+    assert readback((1052, 439), (703, 316)) is False
+    assert readback((703, 316), (703, 316)) is False   # standing still is not a step
