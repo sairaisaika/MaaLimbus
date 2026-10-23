@@ -4298,9 +4298,13 @@ class MirrorRunner:
         ladder = ladder_for(recovery_for(deciding_kind), ladder)
         rung = state['recovery_rung']
         if rung >= len(ladder):
+            # The exhausted ladder is the outcome of the same decision, so it carries
+            # the same recorded kind: otherwise the one case where the engine gave up
+            # is the one case the audit cannot classify.
             self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),
                       rungs=[name for name, _ in ladder],
-                      input_helpers=self.input_helper_line())
+                      input_helpers=self.input_helper_line(),
+                      **self._recovery_fields(entry, plan))
             return None
         name, why = ladder[rung]
         state['recovery_rung'] = rung + 1

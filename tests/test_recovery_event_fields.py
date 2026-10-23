@@ -66,3 +66,22 @@ def test_the_shared_builder_fills_a_kind_for_both_real_shapes():
     assert ladder['refused_kind'] == 'bad_saved_state'
     assert ladder['recovery_action'] == 'recompute_state'
     assert ladder['deciding_kind'] is None
+
+
+def test_the_exhausted_ladder_also_records_a_kind():
+    source = RUNNER.read_text(encoding='utf-8')
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not isinstance(func, ast.Attribute) or func.attr != 'note':
+            continue
+        if not node.args or not isinstance(node.args[0], ast.Constant):
+            continue
+        if node.args[0].value != 'window_recovery_exhausted':
+            continue
+        spread = [kw for kw in node.keywords if kw.arg is None]
+        assert spread, f'exhausted note at line {node.lineno} builds its own fields'
+        return
+    raise AssertionError('no window_recovery_exhausted note found')
