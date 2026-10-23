@@ -1079,6 +1079,9 @@ def candidates_of(directory, record):
     # (576,361) outward).  If the party cannot be read the list is left whole, because
     # an unread party must not leave the run with nothing to try.
     party = party_point(image)
+    # The verdict that follows this click must carry the same party the candidates
+    # were filtered against; nothing else records it (see `_map_verdict`).
+    record['map_party'] = list(party) if party else None
     boxes = [list(item['box']) for item in clicks]
     if party is None:
         # No party, no adjacency, no click.  Every frame of
@@ -1797,6 +1800,17 @@ class MirrorRunner:
             return None
         return dict(target=target, completed=seen)
 
+    def _map_verdict(self, **fields):
+        """Record a map click verdict together with the party it was judged against.
+
+        `map_player` is only filled after a verdict and `latest_frame()` always returns
+        the newest frame, so an offline check compared a party from one frame with
+        candidates from another and "proved" the adjacency filter broken (it was not).
+        The party the candidate list was filtered against travels with the verdict.
+        """
+        fields.setdefault('party', self.state.get('map_party'))
+        self.note('map_click_result', **fields)
+
     def note(self, name, **fields):
         """Journal one event, when a journal is attached."""
         self.last_event = name
@@ -1922,6 +1936,7 @@ class MirrorRunner:
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
+        self.state['map_party'] = record.get('map_party')
         # When a MAP page yields no candidate the reason is one of two very different
         # things -- the image handed to the reading is not the one the evidence file
         # holds, or the party was not read in it.  Record both so the next live stop
@@ -3295,7 +3310,7 @@ class MirrorRunner:
                     # Two clicks planned before one page settled would leave the first one
                     # unjudged, and an unjudged click cannot reach the refusal streak that
                     # decides a suspended exploration (3 intents produced 1 verdict live).
-                    self.note('map_click_result', target=state['map_pending'], page=page,
+                    self._map_verdict( target=state['map_pending'], page=page,
                               outcome='rejected', frame=state.pop('map_click_frame', None),
                               reason='a_new_target_replaced_this_one_before_the_page_settled')
                     # A replaced click is still a click the game did not take, and the refusal
@@ -3361,7 +3376,7 @@ class MirrorRunner:
                 # Two clicks planned before one page settled would leave the first one
                 # unjudged, and an unjudged click cannot reach the refusal streak that
                 # decides a suspended exploration (3 intents produced 1 verdict live).
-                self.note('map_click_result', target=state['map_pending'], page=page,
+                self._map_verdict( target=state['map_pending'], page=page,
                           outcome='rejected', frame=state.pop('map_click_frame', None),
                           reason='a_new_target_replaced_this_one_before_the_page_settled')
                 # A replaced click is still a click the game did not take, and the refusal
@@ -3772,7 +3787,7 @@ class MirrorRunner:
             # it as a labelled negative while the judgement is still local -- the 91 map
             # clicks in the archived runs left 79 of them with no verdict at all, and an
             # unlabelled click cannot teach a reader anything.
-            self.note('map_click_result', target=list(plan['target']), page=page,
+            self._map_verdict( target=list(plan['target']), page=page,
                       outcome='rejected',
                       frame=state.pop('map_click_frame', None),
                       kind=dict(plan.get('detail') or {}).get('kind'),
@@ -3790,7 +3805,7 @@ class MirrorRunner:
         # A click the game did take: the page it was aimed at arrived. This is the only
         # positive label the loop can earn without being told the answer.
         if page != 'MAP' and state.get('map_pending'):
-            self.note('map_click_result', target=state['map_pending'], page=page,
+            self._map_verdict( target=state['map_pending'], page=page,
                       outcome='accepted',
                       frame=state.pop('map_click_frame', None),
                       reason='the_click_opened_the_next_page')
@@ -3814,7 +3829,7 @@ class MirrorRunner:
             # in evidence/runtime/packaged-mirror-20261022-063646 while 0028..0032 read
             # (1616,82)), which a >20 px test would happily call a move.
             if here and was and one_step_from(here, was):
-                self.note('map_click_result', target=state['map_pending'], page=page,
+                self._map_verdict( target=state['map_pending'], page=page,
                           outcome='accepted',
                           frame=state.pop('map_click_frame', None),
                           reason='the_party_moved_after_the_click')
@@ -3827,7 +3842,7 @@ class MirrorRunner:
             # state).  The click was made, the page settled, and neither "the party
             # moved" nor "a new control appeared" was true: record that, do not stay
             # silent.
-            self.note('map_click_result', target=state['map_pending'], page=page,
+            self._map_verdict( target=state['map_pending'], page=page,
                       outcome='rejected',
                       frame=state.pop('map_click_frame', None),
                       reason='the_map_stayed_with_the_party_in_place')
