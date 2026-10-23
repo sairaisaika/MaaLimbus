@@ -2722,6 +2722,17 @@ class MirrorRunner:
             # early costs less than a run that never gets there.
             if int(state.get('map_refused_streak') or 0)>=1 or state.get('resume_requested'):
                 plan_controls['dungeon_progress.resume_via_entry']=True
+        if page=='RESUME_DIALOG':
+            # The entry asks whether to rejoin the run that is still in progress.
+            # The panel's own words are `Resume` [902,579,114,34] (live
+            # `evidence/runtime/packaged-mirror-20261023-054332/frame-0027.json`,
+            # 41 OCR rows), and the chain reaches this page only after it has
+            # already left for the entry on purpose, so the answer is `Resume`.
+            for row in (record.get('ocr') or []):
+                text=str(row.get('text') or '').strip().lower()
+                if text=='resume' or text.endswith(' resume') or text.startswith('resume '):
+                    plan_controls['resume.resume_button']=[int(v) for v in row['box']]
+                    break
         if page=='UNKNOWN_DIALOG':
             # A modal that named no page is dismissed through its own close control,
             # bound from this frame: the modal is drawn wherever the page under it puts
