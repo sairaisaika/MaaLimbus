@@ -335,3 +335,19 @@ def test_a_run_out_of_budget_stops_bounded(tmp_path):
     stopped, = runner.events(ran.directory, 'mirror_loop_stopped')
     assert stopped['reason'] == 'loop_deadline_exceeded'
     assert read_result(ran.directory)['reason'] == 'loop_deadline_exceeded'
+
+
+def test_each_step_leaves_a_heartbeat_behind(tmp_path):
+    """A run that dies natively must still say what it was starting.
+
+    22 of 107 retained runs end on an ordinary business event with no stop and no
+    error (`tools/audit_runs.py`), because the process is killed inside `step()`.  The
+    heartbeat is the only record that survives a native death, so it has to exist for
+    every step a loop actually begins.
+    """
+    ran = run_loop(tmp_path, {'steps': 2, 'interval': 0.0,
+                              'run_store': str(tmp_path / 'ledger.json')})
+    beats = runner.events(ran.directory, 'loop_heartbeat')
+    assert beats, 'a step ran without leaving a heartbeat'
+    assert all(beat.get('phase') == 'step_start' for beat in beats)
+    assert {beat.get('step') for beat in beats} <= {0, 1}
