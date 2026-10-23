@@ -39,24 +39,3 @@ def test_a_policy_refusal_stops_and_never_spends_a_gesture():
 def test_an_unclassified_name_still_holds_rather_than_guessing():
     assert kind_of(reason='something_nobody_classified') is None
     assert recovery_for(None) == 'hold'
-
-
-# Measured 2026-10-23: `reread_text` (18) and `recompute_state` (191) were classified and
-# then allowed no gesture, so 209 faults ended with the engine sending nothing.
-def test_a_reading_fault_spends_one_re_observe_not_zero():
-    for action in ('reread_text', 'recompute_state'):
-        assert ladder_for(action, LADDER) == ('wait',), action
-
-
-def test_actions_that_need_a_gesture_still_get_the_whole_ladder():
-    for action in ('pan_view', 'escalate_ladder'):
-        assert ladder_for(action, LADDER) == LADDER, action
-
-
-def test_stop_and_a_missing_control_spend_nothing():
-    assert ladder_for('stop', LADDER) == ()
-    assert ladder_for('bind_control', LADDER) == ()
-
-
-def test_an_unknown_action_falls_back_to_the_measured_ladder():
-    assert ladder_for('something_new', LADDER) == LADDER

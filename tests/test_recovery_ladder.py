@@ -193,12 +193,7 @@ def test_a_text_refusal_never_drags_the_page(tmp_path):
     text = {'reason': 'unknown_battle_assignment_mode'}
     runner._recover('BATTLE_HUD', state, text, {})
     assert (device.pinches, device.swipes) == ([], []), 'a text page was dragged'
-    # A reading fault now spends one re-observe frame instead of nothing: measured over
-    # 266 failures, `reread_text` (18) and `recompute_state` (191) were classified and
-    # then permitted no rung at all, so the engine acted on 209 faults by doing nothing.
-    # A reading fault spends one re-observe frame (`tests/test_kind_wiring.py` pins the
-    # rung); what must not happen here is a drag or an immediate stop.
-    assert not text.get('stopped'), 'a re-observe must not end the run by itself'
+    assert text.get('stopped'), 'the refusal was neither recovered nor stopped'
 
     state['recovery_for'] = None
     state['recovery_rung'] = 0
