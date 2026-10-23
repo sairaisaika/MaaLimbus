@@ -95,6 +95,44 @@ PAGES = {
 #: producer, and are recorded here so the next reader does not hunt for one.
 UNREACHABLE = ('EVENT_DIALOG', 'REWARD_SETTLE')
 
+
+#: Per-page contract: the four questions every state must answer before the loop
+#: may act on it.  Only the pages that historically dead-locked are written down
+#: so far; `tests/test_pages.py` requires each entry to name real pages.
+CONTRACTS = {
+    'MAP': {
+        'entry_evidence': ('Exploring Floor <n> header readable OR the page '
+                           'classifier returned MAP from the agent scene'),
+        'allowed_inputs': ('click a candidate node that is adjacent to the party',
+                           'open the gear to the progress panel',
+                           'leave the floor when the summary is offered'),
+        'success_proof': ('the party moved one lattice pitch, OR the successor '
+                          'page is not MAP, OR a verdict fired'),
+        'failure_handling': ('bounded re-read, then the viewport ladder '
+                             '(pinch out / pan), then a typed stop'),
+        'irreversible': (),
+    },
+    'SHOP': {
+        'entry_evidence': ('"Shop" title with a Leave control and an offer grid'),
+        'allowed_inputs': ('buy when the receipt is proven', 'leave the shop'),
+        'success_proof': ('the purchase dialog answered and the balance moved, '
+                          'OR the successor page is not SHOP'),
+        'failure_handling': ('cancel an unproven purchase and leave; never '
+                             're-send an unclosed transaction'),
+        'irreversible': ('a confirmed purchase',),
+    },
+    'DUNGEON_PROGRESS': {
+        'entry_evidence': ('"Dungeon Progress" panel with Resume / Halt / Cancel'),
+        'allowed_inputs': ('continue (closes the panel)', 'resume the exploration',
+                           'halt the exploration'),
+        'success_proof': 'the panel is gone',
+        'failure_handling': ('re-read once, then stop with the missing control '
+                             'named by the anchor contract'),
+        'irreversible': ('halting an exploration throws the run away',),
+    },
+}
+
+
 #: Inline ``page == 'X'`` comparisons in ``runner.py``, measured 2026-10-23:
 #: **88 comparisons across 24 pages**, against 52 branches in
 #: ``window.plan_step``.  MAP alone is compared 22 times.  That split is what lets one page be

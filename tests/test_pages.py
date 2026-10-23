@@ -114,3 +114,34 @@ def test_the_ratchet_is_not_vacuous():
 
 def test_the_ratchet_allows_the_count_to_fall():
     assert pages.inline_overrun({'MAP': 1}) == []
+
+
+# -- the per-page contract table -------------------------------------------
+
+CONTRACT_FIELDS = ('entry_evidence', 'allowed_inputs', 'success_proof',
+                   'failure_handling', 'irreversible')
+
+
+def test_every_contract_names_a_registered_page():
+    assert pages.undeclared(pages.CONTRACTS) == []
+
+
+@pytest.mark.parametrize('name', sorted(pages.CONTRACTS))
+def test_a_contract_answers_all_four_questions(name):
+    row = pages.CONTRACTS[name]
+    for field in CONTRACT_FIELDS:
+        assert field in row, f'{name} does not declare {field}'
+        value = row[field]
+        assert value not in ('', None), f'{name}.{field} is empty'
+
+
+@pytest.mark.parametrize('name', sorted(pages.CONTRACTS))
+def test_a_contract_names_what_cannot_be_undone(name):
+    """`irreversible` may be empty, but it must be a decision, not an omission."""
+    assert isinstance(pages.CONTRACTS[name]['irreversible'], tuple)
+
+
+def test_the_dead_lock_pages_all_have_a_contract():
+    """The three pages that stopped live runs most often are written down."""
+    for name in ('MAP', 'SHOP', 'DUNGEON_PROGRESS'):
+        assert name in pages.CONTRACTS
