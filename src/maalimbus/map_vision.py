@@ -1708,11 +1708,24 @@ def party_point(image):
     scale = (width / 1920.0) ** 2
     floor = max(4, int(round(15 * scale)))
     ceiling = max(60, int(round(900 * scale)))
-    blobs = [(int(stats[i, 4]), float(centres[i][0]), float(centres[i][1]))
+    value = hsv[:, :, 2]
+    blobs = [(int(stats[i, 4]), float(centres[i][0]), float(centres[i][1]),
+              float(value[stats[i, 1]:stats[i, 1] + stats[i, 3],
+                          stats[i, 0]:stats[i, 0] + stats[i, 2]].mean()))
              for i in range(1, count) if floor <= stats[i, 4] <= ceiling]
     if len(blobs) < 1:
         return None
     blobs.sort(reverse=True)
+    # The torch is filled as well as bright; a badge ring is bright but hollow and an
+    # enemy marker is filled but small.  Measured on one frame of
+    # `evidence/runtime/packaged-mirror-20261023-055547` (180x180 crops, same mask):
+    # badge (399 px, V 128), party (539 px, V 209), enemy (270 px, V 216) -- so neither
+    # size nor brightness separates them alone, and both together do.  When exactly one
+    # blob is filled *and* bright it is the flame, and it is tried first.
+    solid = max(4, int(round(400 * scale)))
+    anchor = [b for b in blobs if b[0] >= solid and b[3] >= 190]
+    if len(anchor) == 1:
+        blobs = anchor + [b for b in blobs if b is not anchor[0]]
     # A second, nearby blob makes it the flame: two bright specks a few pixels apart.
     # Every blob is tried as the upper speck, not just the largest: once the colour band
     # admits the map's own warm furniture (the chest icons on the right edge), the
