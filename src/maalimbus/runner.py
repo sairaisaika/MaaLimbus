@@ -4764,7 +4764,7 @@ def wait_decision(waited, *, limit=WAIT_LIMIT):
             'reason': 'a_waiting_step_is_still_a_step'}
 
 
-def _settle(observer, before, before_sha, rounds, interval, deadline):
+def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_round=None):
     """Read until the screen moves, at most ``rounds`` times: the window's own loop.
 
     The first observation is the frame the caller already has; a reading that is
@@ -4777,6 +4777,11 @@ def _settle(observer, before, before_sha, rounds, interval, deadline):
         if round_index:
             time.sleep(interval)
         after = observe(observer, deadline)
+        # A re-read is a step the run took, so it must be visible in the journal: the
+        # 383 s gap in evidence/runtime/packaged-mirror-20261023-134753 was spent here
+        # and wrote nothing, which is why it read as a hang of unknown origin.
+        if on_round is not None:
+            on_round(round_index + 1)
         if after.get('image_sha256') not in (None, before_sha):
             break
     changed = after.get('image_sha256') not in (None, before_sha)
@@ -4805,7 +4810,9 @@ def one_shot_click(device, observer, box, *, label='one_shot_click', index=None,
                        delay_ms=delay)
     device.click(point[0], point[1])
     time.sleep(delay / 1000)
-    after, changed = _settle(observer, before, before_sha, rounds, interval, deadline)
+    after, changed = _settle(observer, before, before_sha, rounds, interval, deadline,
+                            on_round=(None if journal is None
+                                      else lambda index: journal.note('window_reobserve', round=index)))
     return {'label': label, 'action': 'click', 'target': box,
             'click_point': list(point), 'delay_ms': delay,
             'page_before': before.get('scene'), 'page_after': after.get('scene'),
@@ -4828,7 +4835,9 @@ def one_shot_swipe(device, observer, parts, *, label='one_shot_click', index=Non
                        points=list(parts), duration_ms=duration)
     device.swipe(parts[0], parts[1], parts[2], parts[3], duration)
     time.sleep(max(0.6, duration / 1000))
-    after, changed = _settle(observer, before, before_sha, rounds, interval, deadline)
+    after, changed = _settle(observer, before, before_sha, rounds, interval, deadline,
+                            on_round=(None if journal is None
+                                      else lambda index: journal.note('window_reobserve', round=index)))
     return {'label': label, 'action': 'swipe', 'target': parts,
             'duration_ms': duration,
             'page_before': before.get('scene'), 'page_after': after.get('scene'),
