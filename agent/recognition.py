@@ -36,7 +36,8 @@ from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_label
 from maalimbus import star_vision
 from maalimbus import initial_gifts
 from maalimbus.grace_vision import AVAILABLE_LABEL, AVAILABLE_PATTERN
-from maalimbus.map_vision import map_header, route_decision, node_panel, pre_battle_team_page
+from maalimbus.map_vision import (map_header, node_panel, party_point, pre_battle_team_page,
+                                     route_decision)
 from maalimbus.storage import read_json, write_json
 from maalimbus.storage import RunStore
 from maalimbus.global_settings import apply_builds, collect_builds
@@ -1148,7 +1149,6 @@ class ThemeObservation(CustomAction):
         # could not fire in 5384 recorded observations.
         party=None
         if scene=='MAP':
-            from maalimbus.map_vision import party_point
             party=party_point(image)
         header=map_header(records,size) if scene=='MAP' else None
         # The pack line must equal the pack this run planned; any other name keeps
@@ -1169,10 +1169,13 @@ class ThemeObservation(CustomAction):
         if header is not None:
             self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
                 pack=header.pack,route=route_decision(header,size),
-                # This writer sees a fresh map page before the main observation does, so it
-                # has no party reading; the field is written explicitly (not omitted) so a
-                # reader never has to guess whether "no key" means "not measured yet".
-                map_player=None,
+                # This writer sees a fresh map page before the main observation does. It used
+                # to hard-code None, and because it is the writer that actually runs on a map
+                # page, every one of 235 events in
+                # evidence/runtime/packaged-mirror-20261023-161759 carried None even though the
+                # same frames read (702,316) and then (828,440) offline -- i.e. the party had
+                # moved and the field said nothing. Read it here instead of assuming.
+                map_player=(party_point(image) if scene == 'MAP' else None),
                 scope='header identity and bounded route refusal; no node identity or input')
         return True
 
