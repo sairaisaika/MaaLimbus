@@ -139,7 +139,13 @@ def controller_ready(controller) -> dict:
                 ident = getter()
             except (RuntimeError, OSError, ValueError):
                 ident = None
-    text = '' if ident is None else str(ident).strip()
+    if ident is None:
+        # Unknown is not empty: a controller that does not expose an id cannot be
+        # proven unroutable, and refusing every such object would turn a missing
+        # attribute into a dead click.  Only a *readable* empty id is refused.
+        return {'ready': True, 'reason': 'the_controller_id_is_not_exposed',
+                'controller_id': ''}
+    text = str(ident).strip()
     if not text:
         return {'ready': False, 'reason': EMPTY_CONTROLLER_REASON, 'controller_id': text}
     return {'ready': True, 'reason': 'the_controller_id_is_present', 'controller_id': text}
@@ -155,6 +161,13 @@ def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on
     click is treated as delivered and ``on_soft`` is told why; without a probe, or
     with a probe that also fails, the state is ``InputNeverReturned``.
     """
+
+    # An empty id cannot be routed by MaaFW: it answers `controller not found
+    # [req.controller_id=]` and the caller would read that as a slow click
+    # (measured 2026-10-23, run `packaged-mirror-20261023-160749`).
+    verdict = controller_ready(controller)
+    if not verdict['ready']:
+        raise InputLost(verdict['reason'])
     try:
         return wait_job(job, timeout=timeout, deadline=deadline, clock=clock, sleep=sleep)
     except TimeoutError as error:
