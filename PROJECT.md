@@ -3568,3 +3568,23 @@ Resume / Halt Exploration / Cancel。**这是一局没打完的进度，本轮�
 **仍然保留的状态**：MuMu 上那局镜牢仍是 `RESUME_DIALOG`（Mirror of Sisyphus 08、F2、`Floor 2 2/6 [HARD]`），本轮没有点 Resume、没有领奖、没有消费。
 
 **下一单元（按影响面排序）**：① D35 的棘轮只数 `page ==` 一种写法（111 个页面比较里 26 个绕过它）——下一步让「页面分发不得静默增长」覆盖全部五种写法；② `MirrorRunner.step` 的节点动作仍只受 run 预算约束（旧 3412 / 现 3424），需要一条「动作也能被独立界住」的设计；③ `tools/` 里其余「缺证据=结果」的评分器统一成三态计数。
+
+## DSH continuation: 棘轮数的是总体，不是写法 (2026-10-23)
+
+第五轮，仍是一次实机输入都没发。任务是「只读审计 → 一个最小、可离线验证的架构改进 + 代码与测试」。
+
+**发现（可证伪，且已证伪）。** 第三轮把「缺证据当成结果」修进了 `tools/recovery_outcome.py`，本轮换一个对象问同一类问题：**守卫的检测器是否覆盖它宣称守护的总体**。D35 的规则是「页面分派不允许无声增长」，实现是 `re.search(r"page == 'X'")`。用 AST 遍历 `runner.py` 里真正的页面读取方式，同一天的测量是 **149 行 / 125 个站点 / 34 个页面名**（MAP 独占 29），而旧正则看到 **85 行 / 23 个名字**。漏掉的 64 行分布在 `page != 'X'`（9）、`page in (...)`（11）、`settled_page in (...)`（8）、`page in 常量`（7）和 `state.get('page')`：某一页可以用五种写法中的任意一种多长一个内联判断，而套件全绿。
+
+**这是同一类缺陷的第三次出现**：D39 的守卫数标签而不是失败；`tests/test_map_dispatch.py` 把 `INLINE_RUNNER['MAP']` 的答案抄成 `<= 20`；这一次数的是同一问题的某一种写法。共同抽象是**守卫的有效宽度等于检测器的宽度**。
+
+**改动（类别修复，不是单点）。**
+- `src/maalimbus/pages.py` 新增 `dispatch_sites(source)`：唯一计数器，按「页面读取表达式 × 比较算子」记站点，`page`/`settled_page`/`was_page`/`X.page`/`X.get('page')`/`X['page']` 与 `==`/`!=`/`in`/`not in` 全在内，左右两侧皆可；无法静态解析的比较记在 `'?'` 名下，所以 `page in WAIT_PAGES` 的增长同样会红。
+- `INLINE_RUNNER` 按新测量重设（149 行），并写明旧表现在只覆盖 85/125；新增 `INLINE_WINDOW = 61` 与 `window_overrun()`：把页面从 runner 的链搬进 `plan_step` 是同一问题晚一个模块发生，所以搬迁必须出现在 diff 里。
+- `tests/test_pages.py`：棘轮改用检测器；新增八种写法的参数化用例、误报反例（`plan.get('availability') in (...)` 不是页面分派）、**真实文件的加一站点反例**（`runner.py` 追加 `page in ('MAP',)` → 点名 MAP）、窗口链棘轮、以及把旧正则保留为地板（`counted > one_spelling` 且差距 ≥ 40），防止检测器被偷偷收窄回一种写法。
+- `tests/test_map_dispatch.py`：删掉 `INLINE_RUNNER['MAP'] <= 20` 这份抄来的数字，改为向检测器提问（并断言 `counted > one_spelling`）。
+
+**验证。** `tests/test_pages.py` 34 passed；`test_pages + test_map_dispatch + test_window + test_runner` 191 passed；整套见本轮提交时的 `build/full-r5.log`；`tools/verify_pipeline_spec.py` → `ok — 0 problem(s)`（805 节点、16 个 agent 名、6 入口）；只读实机 `evidence/runtime/map-live-20261023-175933`：21 帧、`scene: RESUME_DIALOG`、`input_sent: false`、`reason: read_only_frame_is_not_an_identified_map`。MuMu 上那局 F2 `2/6 [HARD]` 仍未被动过。
+
+**已知局限（写进 D44）。** 计数器量站点不量决策（`page in ('A','B')` 一站点两行）；解析不了常量，`page in WAIT_PAGES` 只在总量可见；只读 `runner.py` 与 `window.py`。
+
+**下一单元（按影响面排序）。** ① `MAP` 的 29 个内联判断是唯一最大的收敛点，且它与 `map_dispatch`/`map_vision` 已有抽象重叠，适合作为「把分派搬进表」的第一个完整案例；② `window.plan_step` 的 61 行链（现已被棘轮冻住，可以安全地逐页搬进 `PAGES`/`CONTRACTS`）；③ `MirrorRunner.step` 的动作仍只受 run 预算约束。
