@@ -85,3 +85,32 @@ def test_the_unreachable_observe_names_are_documented():
     for name in pages.UNREACHABLE:
         assert pages.producers(name) == ['unknown']
         assert pages.handling(name) == 'observe'
+
+
+# -- the inline-dispatch ratchet -------------------------------------------
+
+def _inline_counts():
+    import collections
+    text = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
+    return collections.Counter(
+        re.findall(r"page\s*==\s*'([A-Z][A-Z0-9_]*)'", text))
+
+
+def test_the_runner_does_not_accumulate_new_page_specific_checks():
+    """Ratchet: moving cases into window/pages lowers the count; adding fails.
+
+    Measured 2026-10-23: 88 inline comparisons across 24 pages against 52
+    branches in `window.plan_step`.  A new page-specific `page == 'X'` in the
+    runner is exactly the mechanism that produced page-by-page patching, so it
+    must replace an existing one or edit this table on purpose.
+    """
+    overrun = pages.inline_overrun(_inline_counts())
+    assert overrun == [], f'inline page dispatch grew for: {overrun}'
+
+
+def test_the_ratchet_is_not_vacuous():
+    assert pages.inline_overrun({'MAP': pages.INLINE_RUNNER['MAP'] + 1}) == ['MAP']
+
+
+def test_the_ratchet_allows_the_count_to_fall():
+    assert pages.inline_overrun({'MAP': 1}) == []

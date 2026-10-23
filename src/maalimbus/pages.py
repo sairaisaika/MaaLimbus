@@ -95,6 +95,48 @@ PAGES = {
 #: producer, and are recorded here so the next reader does not hunt for one.
 UNREACHABLE = ('EVENT_DIALOG', 'REWARD_SETTLE')
 
+#: Inline ``page == 'X'`` comparisons in ``runner.py``, measured 2026-10-23:
+#: **88 comparisons across 24 pages**, against 52 branches in
+#: ``window.plan_step``.  MAP alone is compared 22 times.  That split is what lets one page be
+#: planned in one module and refused in another.
+#:
+#: This is a **ratchet, not a target**: the numbers may go down as cases move
+#: into ``window``/``pages``, and ``tests/test_pages.py`` fails if any of them
+#: goes up.  A new page-specific inline check must therefore either replace an
+#: existing one or be argued for by editing this table deliberately.
+INLINE_RUNNER = {
+    'BATTLE_DEFEAT': 1,
+    'DEPLOYMENT_RESET': 3,
+    'DUNGEON_PROGRESS': 1,
+    'DUNGEON_TEAM': 5,
+    'EVENT_CHOICE': 1,
+    'EVENT_RESULT': 2,
+    'GIFT_GET': 11,
+    'GIFT_PICK': 4,
+    'HEAL_SINNERS': 2,
+    'INITIAL_GIFTS': 3,
+    'MAP': 22,
+    'NODE_PANEL': 1,
+    'PRE_BATTLE_TEAM': 5,
+    'RESUME_DIALOG': 1,
+    'REVIVE_DONE': 1,
+    'REWARD_CARD': 3,
+    'SHOP': 4,
+    'SHOP_PURCHASE': 2,
+    'STAR_CONFIRM': 1,
+    'STAR_GRACES': 5,
+    'THEME_PACKS': 1,
+    'TUTORIAL': 3,
+    'UNKNOWN': 3,
+    'UNKNOWN_DIALOG': 3,
+}
+
+
+def inline_overrun(counts):
+    """Pages whose inline checks grew past the recorded baseline."""
+    return sorted(name for name, n in counts.items()
+                  if n > INLINE_RUNNER.get(name, 0))
+
 
 def producers(name):
     """Which module(s) can emit ``name`` (``'vision'``, ``'agent'`` or both)."""
