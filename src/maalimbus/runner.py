@@ -4263,7 +4263,14 @@ class MirrorRunner:
             # (2026-10-22 00:09 run, access violation right after rung 0 on DRIVE), so
             # those pages get the settle wait and nothing that drags or pinches.
             ladder = tuple(entry for entry in ladder if entry[0] == 'wait')
-        kind = REFUSALS.get(entry.get('reason'), None)
+        # The refusal's reason is not always `entry['reason']`: the pinch path of the
+        # same ladder names it `stopped_reason`, and the plan carries `plan_reason`.
+        # Reading only `reason` left every historical recovery event with a null
+        # kind (0 of 181 events carried `refused_kind`), so the table below never
+        # decided anything and the full six-rung ladder was always spent.
+        refused_reason = (entry.get('reason') or entry.get('stopped_reason')
+                          or entry.get('plan_reason'))
+        kind = REFUSALS.get(refused_reason)
         ladder = ladder_for(recovery_for(kind), ladder)
         rung = state['recovery_rung']
         if rung >= len(ladder):
@@ -4281,7 +4288,7 @@ class MirrorRunner:
         kind = REFUSALS.get(entry.get('reason'), None)
         self.note('window_recovery', page=page, gesture=name, rung=rung,
                   refused_kind=kind, recovery_action=recovery_for(kind),
-                  stopped_reason=entry.get('reason'), plan_reason=plan.get('reason'),
+                  stopped_reason=refused_reason, plan_reason=plan.get('reason'),
                   input_helpers=self.input_helper_line())
         self._recovery_gesture(name)
         time.sleep(self.settings.interval)
