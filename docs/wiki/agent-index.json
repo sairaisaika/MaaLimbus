@@ -1238,7 +1238,12 @@
         "构造回放",
         "neighbour import",
         "邻居 import",
-        "build a controller"
+        "build a controller",
+        "blank_replay",
+        "全零帧",
+        "把帧存进类里",
+        "neighbour controller",
+        "摊平 import"
       ],
       "sources": [
         {
@@ -1256,13 +1261,19 @@
         {
           "path": "tools/replay_inventory.py",
           "symbol": "report"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "def blank_replay("
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d52-一句承诺写十遍就是十句承诺",
         "docs/wiki/en_us/2.3-decisions.md#d52-a-promise-written-ten-times-is-ten-promises",
         "docs/wiki/zh_cn/2.3-decisions.md#d53-只靠清点证明的承诺不算被证明",
-        "docs/wiki/en_us/2.3-decisions.md#d53-a-promise-proven-by-a-count-is-not-proven"
+        "docs/wiki/en_us/2.3-decisions.md#d53-a-promise-proven-by-a-count-is-not-proven",
+        "docs/wiki/zh_cn/2.3-decisions.md#d54-一个只会存帧的类体不是子类",
+        "docs/wiki/en_us/2.3-decisions.md#d54-a-body-that-only-stores-a-frame-is-not-a-subclass"
       ],
       "tests": [
         "tests/test_replay_surface.py",
@@ -1271,31 +1282,37 @@
       "checks": [
         "python tools/replay_inventory.py"
       ],
-      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened.",
+      "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened. D54 flattened every tool whose source class only stored a frame (46 -> 12 neighbour imports), so what remains is exactly the tools whose expectation needs flattening one at a time.",
       "locations": [
         {
           "path": "src/maalimbus/replay.py",
           "symbol": "ReplayFrames",
           "line": 45,
-          "sha256": "cf2e1f3841d8590ef16ffa5848f80e396e95bf59dedb5e31c85802c528fade34"
+          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
         },
         {
           "path": "src/maalimbus/replay.py",
           "symbol": "ReplayController",
           "line": 145,
-          "sha256": "cf2e1f3841d8590ef16ffa5848f80e396e95bf59dedb5e31c85802c528fade34"
+          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
         },
         {
           "path": "src/maalimbus/replay.py",
           "needle": "def _input(",
           "line": 133,
-          "sha256": "cf2e1f3841d8590ef16ffa5848f80e396e95bf59dedb5e31c85802c528fade34"
+          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
         },
         {
           "path": "tools/replay_inventory.py",
           "symbol": "report",
           "line": 106,
           "sha256": "b546efa18009cefbf5627c183dc6a6a233b2e2995b3aabf4107c965e8f2a9729"
+        },
+        {
+          "path": "src/maalimbus/replay.py",
+          "needle": "def blank_replay(",
+          "line": 153,
+          "sha256": "def28615b713d25b33e81af42242e007dacd897d36a61a719bacbf7ef6251457"
         }
       ]
     }

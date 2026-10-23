@@ -4072,3 +4072,42 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
 **下一个单位。** (1) 46 条邻居 import 逐一摊平到 `maalimbus.replay`，每条先确认导入者
 真正期望的输入；(2) 28 个 `unmeasured` 计划词需要一次被授权的运行换证据；
 (3) `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）。
+
+## DSH continuation: a body that only stores a frame is not a subclass (2026-10-23)
+
+**本轮只读审计的三个最关键原因（第 15 轮，仍是同一族的第五、六次）**
+
+① **把"一个类存在"当成"这个类该存在"**：八个源类里有三个的类体就是存一帧，
+   而三十二个工具靠 import 邻居来获得它——删掉那一行，没有任何测试会红。
+② **验证的粒度停在总数**：D53 的清单把"46 条邻居 import"**报**了出来却没有**摊平**，
+   于是一句"已报告"就等于"已消化"。
+③ **转引第三方基类**：两个工具从邻居那里拿 Maa 自己的 `CustomController`，
+   依赖方向被一条 import 链藏了起来。
+
+**改动**
+
+- `src/maalimbus/replay.py`：新增 `blank_replay(size=(640,640))`（按需 import numpy，
+  保持 `ReplayFrames` 不依赖它）。
+- 32 个工具改为 `from maalimbus.replay import ReplayController as Replay`（其中
+  `verify_map_live_crosscheck.py` 是合并 import 行），3 个全零帧工具改用
+  `blank_replay`，2 个转引 `CustomController` 的工具改从 `maa.controller` 引。
+- `tools/replay_inventory.py`：`tools that take a controller class from another tool`
+  由 **46 → 12**，`tests/test_replay_surface.py` 钉住 12 并点名剩下五个源模块。
+- `tests/test_replay_runtime.py`：新增 `blank_replay` 的行为证明（全零帧、拒绝点击、
+  不发输入、尺寸参数生效）。
+
+**证据**
+
+| 项 | 结果 |
+|---|---|
+| 清单 | `owning a controller: 16  inheriting the shared layer: 16`，`another tool: 46 → 12`，`problems: none` |
+| 真实 pipeline 回放 | `verify_map_observe_replay.py` 用这一层跑 `MapObserve`，给出自己的结论（`passed: false` / `map_header_not_identified`），不再抛异常 |
+| 原生 OCR 回放 | `measure_unavailable_native.py` 通过摊平的控制器跑出四个 ROI 的 OCR，然后栽在自己的 `deployment_transaction` 断言（如实报出，与控制器无关） |
+| 全套测试 | `2198 passed in 186.33 s`，pytest exit 0（上轮 2197，+1） |
+| pipeline spec | `ok — 0 problem(s)`（805 节点 / 16 agent 名 / 6 入口） |
+| 改动规模 | 38 files, +88 / −41 |
+
+**下一个单位**：剩下 12 个"源类声明了输入期望"的工具逐条摊平（每条先核对期望，
+例如 star 的 `click`、theme 的 `swipe`、battle_plan 的 `key_down`）；28 个 `unmeasured`
+计划词需要一次被授权的运行换证据；`MirrorRunner.step` 的 30 个 post-input
+`plan['reason']` 块。
