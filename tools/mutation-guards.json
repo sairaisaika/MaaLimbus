@@ -33,5 +33,12 @@
     "find": "    if not pending:",
     "replace": "    if True:",
     "test": "tests/test_pages.py::test_a_click_replaced_before_the_page_settled_is_named_not_dropped"
+  },
+  {
+    "name": "a re-read that saw pixels outranks the page's name",
+    "file": "src/maalimbus/stillness.py",
+    "find": "    if probe_changed is True:",
+    "replace": "    if False:",
+    "test": "tests/test_stillness.py"
   }
 ]
