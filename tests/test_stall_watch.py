@@ -62,3 +62,35 @@ def test_the_loop_is_watched_for_events_and_not_only_for_frames():
     assert hasattr(R.MirrorRunner, '_record_no_progress')
     record = R.MirrorRunner._record_no_progress.__doc__ or ''
     assert 'stopped moving' in record or True
+
+
+def test_a_screen_that_answers_a_reread_is_not_pronounced_frozen():
+    """The probe is the only honest source for `probe_changed`; an alive page waits."""
+    from maalimbus.runner import stall_watchdog
+    seen = []
+    exits = []
+    ready = iter([0.0, 999.0, 999.0])
+
+    def heartbeat():
+        return next(ready, 999.0)
+
+    def on_stall(probe_changed=None):
+        seen.append(probe_changed)
+        return {'stillness_action': 'keep_waiting', 'stillness_kind': 'the_page_still_answers_a_reread'}
+
+    stall_watchdog(heartbeat, limit=1.0, on_stall=on_stall, every=0.0, rounds=2,
+                   probe=lambda: True, sleep=lambda _s: None, exit=exits.append)
+    assert seen == [True, True]      # the probe result reached the classifier
+    assert exits == []               # and no exit was requested inside the bound
+
+
+def test_the_third_wait_still_ends_the_process():
+    from maalimbus.runner import stall_watchdog
+    exits = []
+    stall_watchdog(lambda: 0.0, limit=1.0,
+                   on_stall=lambda probe_changed=None: {'stillness_action': 'keep_waiting'},
+                   every=0.0, rounds=4, probe=lambda: True,
+                   sleep=lambda _s: None, exit=exits.append)
+    # The real `exit` is os._exit and terminates; this stub records every request, so
+    # the assertion is about the first one and about the bound being reached at all.
+    assert exits and exits[0] == 4

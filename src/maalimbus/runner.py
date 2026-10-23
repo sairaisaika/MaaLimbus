@@ -480,7 +480,7 @@ def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
 
 
 def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
-                   sleep=time.sleep, exit=os._exit):
+                   probe=None, sleep=time.sleep, exit=os._exit):
     """End a process that has stopped producing frames.
 
     ``heartbeat_of`` returns the monotonic stamp of the newest frame. A recognition
@@ -497,7 +497,15 @@ def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
         sleep(every)
         looked += 1
         if time.monotonic() - float(heartbeat_of()) > limit * (1 + grace):
-            record = on_stall() or {}
+            # One bounded re-read is the only honest source for `probe_changed`: a
+            # static screen that still answers a re-read is alive, one that answers
+            # nothing is frozen.  Without a probe the answer stays `None`, which the
+            # classifier treats as "no evidence", never as "dead".
+            changed = probe() if probe is not None else None
+            try:
+                record = on_stall(probe_changed=changed) or {}
+            except TypeError:
+                record = on_stall() or {}
             verdict = _stillness.should_exit(
                 action=record.get('stillness_action', _stillness.STOP),
                 grace_used=grace)
@@ -4253,7 +4261,10 @@ class MirrorRunner:
         watch = threading.Thread(
             target=stall_watchdog, name='maalimbus-stall', daemon=True,
             args=(lambda: self.artifacts.get('heartbeat', 0.0),),
-            kwargs={'limit': limit, 'on_stall': lambda: self._record_stall(limit)})
+            kwargs={'limit': limit,
+                    'on_stall': lambda probe_changed=None: self._record_stall(
+                        limit, probe_changed=probe_changed),
+                    'probe': self._screen_answers_a_reread})
         watch.start()
         self._stall_watch = watch
         # The frame watchdog only catches a recognition call that never returns.
@@ -4271,7 +4282,24 @@ class MirrorRunner:
             self._progress_watch.start()
         return watch
 
-    def _record_stall(self, limit):
+    def _screen_answers_a_reread(self):
+        """Re-read the current screen once and say whether anything changed."""
+        try:
+            first = self.device.screencap() if hasattr(self.device, 'screencap') else None
+        except Exception:
+            return None
+        if first is None:
+            return None
+        time.sleep(1.5)
+        try:
+            second = self.device.screencap() if hasattr(self.device, 'screencap') else None
+        except Exception:
+            return None
+        if second is None:
+            return None
+        return bytes(first) != bytes(second)
+
+    def _record_stall(self, limit, *, probe_changed=None):
         """Leave the evidence of the wedge before the process ends itself."""
         heartbeat = self.artifacts.get('heartbeat', 0.0)
         # Name the stillness before acting on it.  With no probe available this is
@@ -4282,7 +4310,8 @@ class MirrorRunner:
         _age = round(time.monotonic() - heartbeat, 1)
         _verdict = _stillness.classify(still_seconds=_age, limit=limit,
                                        page=self.state.get('page'),
-                                       probe_changed=None, last_event=self.last_event)
+                                       probe_changed=probe_changed,
+                                       last_event=self.last_event)
         record = {'reason': _verdict['reason'],
                   'stillness_kind': _verdict['kind'],
                   'stillness_action': _verdict['action'],
