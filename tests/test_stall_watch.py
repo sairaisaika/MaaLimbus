@@ -50,18 +50,100 @@ def test_an_explicit_zero_leaves_the_watch_off(tmp_path):
     assert runner._start_stall_watch() is None
 
 
-def test_the_loop_is_watched_for_events_and_not_only_for_frames():
-    """A run can keep taking frames and still stop moving (2026-10-22).
+class _Journal:
+    """The smallest journal the watch needs: one JSON line per event."""
 
-    packaged-mirror-20261022-033911 wrote its last event at 07:41:23 and then sat
-    with a healthy frame heartbeat: the frame watchdog cannot see that wedge, so a
-    second watch runs over the newest journal event and leaves its own record.
+    def __init__(self, directory):
+        self.directory = Path(directory)
+
+    def record(self, event, **details):
+        with (self.directory / 'events.jsonl').open('a', encoding='utf-8') as handle:
+            handle.write(json.dumps({'event': event, **details}, ensure_ascii=False))
+            handle.write('\n')
+
+
+def _watched_runner(tmp_path, **settings):
+    return MirrorRunner(FakeDevice(), settings={'rounds': 1, 'interval': 0, **settings},
+                        directory=tmp_path, journal=_Journal(tmp_path))
+
+
+def _events(tmp_path, name):
+    path = tmp_path / 'events.jsonl'
+    if not path.exists():
+        return []
+    return [row for row in (json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()
+                            if line.strip())
+            if row.get('event') == name]
+
+
+def test_the_progress_watch_writes_the_same_canonical_stop(tmp_path):
+    """Both watches end a run; neither may leave it silent.
+
+    Measured on `evidence/runtime` 2026-10-23: 16 of 51 runs without a stop ended on
+    `window_no_progress` (`packaged-mirror-20261023-153338` … `-163257`). Only the
+    frame watch wrote `mirror_loop_stopped`, so the journal of those runs said what
+    went quiet and never said the run had ended.
     """
-    from maalimbus import runner as R
-    assert R.MirrorRunner.PROGRESS_SECONDS > 0
-    assert hasattr(R.MirrorRunner, '_record_no_progress')
-    record = R.MirrorRunner._record_no_progress.__doc__ or ''
-    assert 'stopped moving' in record or True
+    runner = _watched_runner(tmp_path)
+    runner.state['step'] = 4
+    runner.state['page'] = 'RESUME_DIALOG'
+    runner.last_event = 'window_intent'
+    runner.artifacts['event_heartbeat'] = time.monotonic() - 901.0
+    runner.artifacts['reading'] = {'phase': 'settle', 'page': 'RESUME_DIALOG',
+                                   'since': time.monotonic() - 380.0,
+                                   'limit_seconds': 30.0}
+    record = runner._record_no_progress(900.0)
+    kinds = [row.get('event') for row in
+             (json.loads(line) for line in
+              (tmp_path / 'events.jsonl').read_text(encoding='utf-8').splitlines() if line.strip())]
+    assert kinds == ['window_no_progress', 'mirror_loop_stopped'], kinds
+    stopped, = _events(tmp_path, 'mirror_loop_stopped')
+    assert stopped['stop_path'] == 'no_progress_watchdog'
+    assert stopped['reason'] == record['reason']
+    assert stopped['page'] == 'RESUME_DIALOG' and stopped['step'] == 4
+    # The silence belonged to a call, and only memory knew which one: the ending has
+    # to name it, or the next reader re-reads the whole run to learn it.
+    assert stopped['in_flight_phase'] == 'settle' and stopped['in_flight'] is True
+    assert stopped['in_flight_seconds'] > 300
+    written = json.loads((tmp_path / 'agent-no-progress.json').read_text(encoding='utf-8'))
+    assert written['in_flight']['phase'] == 'settle'
+
+
+def test_a_read_that_finished_is_not_reported_as_a_wedge(tmp_path):
+    """Counter-example: a slow read that *did* return is not an in-flight call."""
+    runner = _watched_runner(tmp_path)
+    runner.artifacts['event_heartbeat'] = time.monotonic() - 901.0
+    runner.artifacts['reading'] = {'phase': 'settle', 'page': 'MAP',
+                                   'since': time.monotonic() - 380.0,
+                                   'limit_seconds': 30.0, 'lasted_seconds': 29.0}
+    record = runner._record_no_progress(900.0)
+    assert record['in_flight']['phase'] == 'settle'
+    assert 'in_flight' not in record['in_flight']
+    stopped, = _events(tmp_path, 'mirror_loop_stopped')
+    assert stopped['in_flight'] is False
+
+
+def test_the_frame_watch_names_the_finished_read_too(tmp_path):
+    """The stall record carries the same breadcrumb, so both endings read alike."""
+    runner = _watched_runner(tmp_path)
+    runner.artifacts['heartbeat'] = time.monotonic() - 301.0
+    runner.artifacts['reading'] = {'phase': 'settle', 'page': 'MAP',
+                                   'since': time.monotonic() - 301.0,
+                                   'limit_seconds': 30.0}
+    runner._record_stall(300.0)
+    stopped, = _events(tmp_path, 'mirror_loop_stopped')
+    assert stopped['stop_path'] == 'stall_watchdog'
+    assert stopped['in_flight_phase'] == 'settle' and stopped['in_flight'] is True
+
+
+def test_a_watch_is_never_longer_than_the_run_it_protects():
+    """A watchdog may not outlive its run: 450 s budget, 1058 s run, 905 s block
+    (`packaged-mirror-20261023-124006`, gap `window_intent -> window_no_progress`)."""
+    from maalimbus.jobs import bounded_limit
+    now = time.monotonic()
+    assert bounded_limit(900.0, now + 100.0) <= 100.0
+    assert bounded_limit(900.0, None) == 900.0
+    assert bounded_limit(900.0, now + 5000.0) == 900.0
 
 
 def test_a_screen_that_answers_a_reread_is_not_pronounced_frozen():

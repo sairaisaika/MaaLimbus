@@ -1977,14 +1977,35 @@ class MirrorRunner:
         from . import input_helpers
         return input_helpers.line(input_helpers.report(ROOT))
 
-    def _observe(self, deadline=None):
+    def _observe(self, deadline=None, *, phase='observe'):
         """One page, from the injected observer, with the journal details attached.
 
         The frame that comes back is the stall watch's heartbeat: a loop that cannot
         produce a frame is exactly the loop the watch exists for.
+
+        Every read is also bounded by ``ONE_READ_SECONDS``, not only by the run's own
+        deadline.  The run budget used to be advisory for native calls: it was checked
+        between steps and never inside one, so a single wedged screenshot could spend
+        the rest of the budget and leave the watchdog to end a run nobody could explain
+        (five runs on 2026-10-23 15:33-16:32 sat 380 s in the settle read after a
+        ``RESUME_DIALOG`` click and wrote nothing).  A read that overruns now fails as
+        a read, inside the step, and the loop ends with the failure's own name.
         """
-        self.artifacts['heartbeat'] = time.monotonic()
-        return observe(self.observer, self.deadline if deadline is None else deadline)
+        now = time.monotonic()
+        self.artifacts['heartbeat'] = now
+        run_deadline = self.deadline if deadline is None else deadline
+        own = now + ONE_READ_SECONDS
+        # `min`: the caller's tighter window wins, and a read may never outlive the run.
+        deadline = own if run_deadline is None else min(run_deadline, own)
+        # The watchdog thread reads this while the call is in flight; the journal
+        # cannot say afterwards which call the silence belonged to.
+        reading = {'phase': phase, 'since': now, 'page': self.state.get('page'),
+                   'limit_seconds': round(deadline - now, 1)}
+        self.artifacts['reading'] = reading
+        try:
+            return observe(self.observer, deadline)
+        finally:
+            reading['lasted_seconds'] = round(time.monotonic() - now, 1)
 
     def _flow(self, deadline, steps, observe_only):
         """Walk the named session flow, then report its records.
@@ -3565,7 +3586,9 @@ class MirrorRunner:
         for index in range(settle_budget):
             if index:
                 time.sleep(settings.interval)
-            settled = self._observe()
+            # The read after an input is the one that wedged: name it in the breadcrumb
+            # the watchdog writes down, so a silent stop says *this* call and not "observe".
+            settled = self._observe(phase='settle')
             settled_page = resolve_scene(self.registry, directory, settled)
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
@@ -4568,6 +4591,7 @@ class MirrorRunner:
                   'heartbeat_age_seconds': round(time.monotonic() - heartbeat, 1),
                   'step': self.state.get('step'), 'page': self.state.get('page'),
                   'last_event': self.last_event,
+                  'in_flight': self._reading_report(),
                   'steps_recorded': len(self.artifacts.get('steps', []))}
         try:
             # The event carried only the heartbeat age, so every diagnosis of this stop
@@ -4582,16 +4606,9 @@ class MirrorRunner:
                       last_event=record['last_event'],
                       stillness_kind=record['stillness_kind'],
                       stillness_action=record['stillness_action'])
-            # The watchdog ends the process with `os._exit(4)`, so the loop's normal
-            # `mirror_loop_stopped` never runs and the run reads as a silent death to
-            # `tools/audit_silent.py` -- 4 of 23 silent runs ended exactly here, on a
-            # `window_stall` with no stop event.  Write the stop before the exit: the
-            # canonical record of why a run ended must not depend on which path ended it.
-            self.note('mirror_loop_stopped', reason=record['reason'],
-                      stop_path='stall_watchdog', step=record['step'],
-                      page=record['page'], last_event=record['last_event'])
         except Exception:  # pragma: no cover - a journal may be closing
             pass
+        self._write_ending('stall_watchdog', record)
         try:
             (Path(self.directory) / 'agent-stall.json').write_text(
                 json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -4599,20 +4616,70 @@ class MirrorRunner:
             pass
         return record
 
+    def _reading_report(self):
+        """What the loop was reading when the journal went quiet.
+
+        A wedge inside a native call writes nothing, so the only witness is memory:
+        ``_observe`` stamps the read it entered, and this turns that stamp into the
+        piece of the ending record that names the call (and says whether it is still
+        inside it).
+        """
+        reading = self.artifacts.get('reading') or {}
+        if not reading.get('since'):
+            return None
+        report = {'phase': reading.get('phase'), 'page': reading.get('page'),
+                  'age_seconds': round(time.monotonic() - float(reading['since']), 1),
+                  'limit_seconds': reading.get('limit_seconds')}
+        if 'lasted_seconds' in reading:
+            report['lasted_seconds'] = reading['lasted_seconds']
+        else:
+            report['in_flight'] = True
+        return report
+
+    def _write_ending(self, stop_path, record):
+        """Write the end of a run, whichever watch ended it.
+
+        ``stall_watchdog`` ends the process with ``os._exit(4)``, so the loop's own
+        ``mirror_loop_stopped`` never runs for a watchdog stop.  Both watches therefore
+        write the stop themselves, through this one function: the canonical record of
+        why a run ended must not depend on which path ended it.  The frame watch did
+        this and the progress watch did not, so 16 of 51 silent runs (measured on
+        ``evidence/runtime`` 2026-10-23 with ``tools/audit_runs.py``) ended on a
+        ``window_no_progress`` and no cause at all.
+        """
+        in_flight = record.get('in_flight') or {}
+        fields = {'reason': record.get('reason'), 'stop_path': stop_path,
+                  'step': record.get('step'), 'page': record.get('page'),
+                  'last_event': record.get('last_event')}
+        if in_flight:
+            fields.update(in_flight_phase=in_flight.get('phase'),
+                          in_flight_seconds=in_flight.get('age_seconds'),
+                          in_flight=bool(in_flight.get('in_flight')))
+        try:
+            self.note('mirror_loop_stopped', **fields)
+        except Exception:  # pragma: no cover - a journal may be closing
+            pass
+
     def _record_no_progress(self, limit):
         """Leave the record of a loop that kept looking and stopped moving."""
         heartbeat = self.artifacts.get('event_heartbeat', 0.0)
+        reading = self._reading_report() or {}
         record = {'reason': 'the_run_kept_observing_without_writing_anything',
                   'limit_seconds': limit,
                   'event_age_seconds': round(time.monotonic() - heartbeat, 1),
                   'step': self.state.get('step'), 'page': self.state.get('page'),
-                  'last_event': self.last_event}
+                  'last_event': self.last_event, 'in_flight': reading}
         try:
             self.note('window_no_progress', reason=record['reason'],
                       limit_seconds=record['limit_seconds'],
-                      event_age=record['event_age_seconds'], step=record['step'])
+                      event_age=record['event_age_seconds'], step=record['step'],
+                      page=record['page'],
+                      in_flight_phase=reading.get('phase'),
+                      in_flight_seconds=reading.get('age_seconds'),
+                      in_flight=bool(reading.get('in_flight')))
         except Exception:  # pragma: no cover - a journal may be closing
             pass
+        self._write_ending('no_progress_watchdog', record)
         try:
             (Path(self.directory) / 'agent-no-progress.json').write_text(
                 json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -4764,7 +4831,8 @@ def wait_decision(waited, *, limit=WAIT_LIMIT):
             'reason': 'a_waiting_step_is_still_a_step'}
 
 
-RE_SETTLE_LIMIT_S = 30.0   # one settle round may not outlive this
+ONE_READ_SECONDS = 30.0   # one page read may not outlive this
+RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
 
 
 def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_round=None):

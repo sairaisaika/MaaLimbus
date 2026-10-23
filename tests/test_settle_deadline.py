@@ -1,13 +1,25 @@
-"""The settle loop may not read with an unbounded deadline.
+"""No read the loop waits on may outlive a bound, and a wedged one must end the run.
 
 Negative case: the 383 s gap in
 `evidence/runtime/packaged-mirror-20261023-134753` happened because a re-read ran with
 `deadline=None` and nothing wrote an event while it waited.
+
+Negative case, second site: bounding `_settle` left every *inline* read in
+`MirrorRunner.step` unbounded, so five runs on 2026-10-23 15:33-16:32
+(`packaged-mirror-20261023-153338` … `-163257`) sat 380 s in the settle read after a
+`RESUME_DIALOG` click and were ended by the watchdog with no cause in the journal. The
+same fix applied to one of two sites is the defect, not the fix.
 """
 
+import json
 import time
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from maalimbus import runner
+from maalimbus.runner import FakeDevice, MaaObserver, MirrorRunner
 
 
 def _patch_observe(monkeypatch, record, sha="same"):
@@ -16,6 +28,23 @@ def _patch_observe(monkeypatch, record, sha="same"):
         return {"image_sha256": sha}
 
     monkeypatch.setattr(runner, "observe", fake)
+
+
+class _Journal:
+    """The smallest journal a run needs: one JSON line per event."""
+
+    def __init__(self, directory):
+        self.directory = Path(directory)
+
+    def record(self, event, **details):
+        with (self.directory / "events.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"event": event, **details}, ensure_ascii=False))
+            handle.write("\n")
+
+
+def _runner(tmp_path, **settings):
+    return MirrorRunner(FakeDevice(), settings={"rounds": 1, "interval": 0, **settings},
+                        directory=tmp_path)
 
 
 def test_a_round_without_a_caller_deadline_still_gets_one(monkeypatch):
@@ -50,3 +79,115 @@ def test_every_round_is_announced(monkeypatch):
     runner._settle(None, {"image_sha256": "same"}, "same", 3, 0, None,
                    on_round=rounds.append)
     assert rounds == [1, 2, 3], "a silent re-read is what made 383 s look like a hang"
+
+
+# -- the runner's own reads: one rule, every call site ---------------------
+
+def test_a_runner_read_is_bounded_without_a_caller_deadline(tmp_path, monkeypatch):
+    """`_observe` is the single door every read goes through, so it takes the bound.
+
+    The five 2026-10-23 runs read through `MirrorRunner.step`'s own settle loop, not
+    through `_settle`; a bound on the helper alone could not reach them.
+    """
+    seen = []
+    _patch_observe(monkeypatch, seen)
+    now = time.monotonic()
+    _runner(tmp_path)._observe()
+    assert seen and seen[0] is not None, "an unbounded read is the defect"
+    assert seen[0] <= now + runner.ONE_READ_SECONDS + 1
+
+
+def test_a_tighter_run_deadline_still_wins(tmp_path, monkeypatch):
+    """The read may not outlive the run either: the bound is a min, not a replacement."""
+    seen = []
+    _patch_observe(monkeypatch, seen)
+    loop = _runner(tmp_path)
+    loop.deadline = time.monotonic() + 5
+    loop._observe()
+    assert seen[0] <= loop.deadline + 0.1 or seen[0] < time.monotonic() + runner.ONE_READ_SECONDS
+
+
+def test_the_read_in_flight_is_visible_to_the_watchdog(tmp_path, monkeypatch):
+    """The watchdog runs beside the call, so it can only report what memory holds."""
+    loop = _runner(tmp_path)
+    during = []
+
+    def fake(observer, deadline=None):
+        during.append(loop._reading_report())
+        return {"image_sha256": "same"}
+
+    monkeypatch.setattr(runner, "observe", fake)
+    loop.state["page"] = "RESUME_DIALOG"
+    loop._observe(phase="settle")
+    inside, = during
+    assert inside["phase"] == "settle" and inside["page"] == "RESUME_DIALOG"
+    assert inside["in_flight"] is True and inside["limit_seconds"] > 0
+    after = loop._reading_report()
+    assert "in_flight" not in after, "a finished read is not a wedge"
+    assert after["lasted_seconds"] >= 0
+
+
+def test_a_wedged_node_read_returns_instead_of_spending_the_run(tmp_path):
+    """The live wedge itself: one pipeline node that never finishes.
+
+    `packaged-mirror-20261023-153338` … `-163257` each spent 380 s here. With a
+    bounded deadline the same node returns, the observer refuses to hand back a page
+    it did not read, and the run ends on a stated reason instead of on silence.
+    """
+
+    class NeverDone:
+        done = False
+        succeeded = False
+
+    class Finished:
+        done = True
+        succeeded = False
+
+    class Tasker:
+        def post_task(self, name):
+            return NeverDone()
+
+        def post_stop(self):
+            return Finished()
+
+    context = SimpleNamespace(tasker=Tasker(), directory=tmp_path, run=None, journal=None)
+    observer = MaaObserver(context, tmp_path, read_tries=1)
+    started = time.monotonic()
+    with pytest.raises(RuntimeError, match="observation node recorded no page"):
+        observer.observe(deadline=time.monotonic() + 0.3)
+    assert time.monotonic() - started < 3.0, "a wedged read must return, not wait"
+
+
+def test_a_wedged_read_ends_its_run_instead_of_eating_the_budget(tmp_path, monkeypatch):
+    """Integration: the runner's own loop ends on the read's reason, quickly."""
+
+    class NeverDone:
+        done = False
+        succeeded = False
+
+    class Finished:
+        done = True
+        succeeded = False
+
+    class Tasker:
+        def post_task(self, name):
+            return NeverDone()
+
+        def post_stop(self):
+            return Finished()
+
+    monkeypatch.setattr(runner, "ONE_READ_SECONDS", 0.2)
+    context = SimpleNamespace(tasker=Tasker(), directory=tmp_path, run=None, journal=None)
+    loop = MirrorRunner(FakeDevice(), settings={"rounds": 1, "interval": 0, "steps": 1,
+                                                "stall_seconds": 0, "progress_seconds": 0},
+                        directory=tmp_path, journal=_Journal(tmp_path),
+                        observer=MaaObserver(context, tmp_path, read_tries=1))
+    started = time.monotonic()
+    result = loop.run(steps=1, interval=0, round_limit=1)
+    spent = time.monotonic() - started
+    assert result["passed"] is False
+    assert loop.state["session_ended"] == "the_task_raised_before_the_next_input"
+    assert spent < 10.0, f"one wedged read may not spend the run (took {spent:.1f}s)"
+    ended = runner.events(tmp_path, "mirror_session_ended")
+    assert ended and "no page for this frame" in ended[-1]["error"]
+
