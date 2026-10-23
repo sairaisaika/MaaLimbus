@@ -29,3 +29,23 @@ def wake_commands(locked: bool | None) -> tuple:
     if locked is False:
         return ()
     return TO_WAKE
+
+
+def ensure_awake(run_adb, *, dump=('shell', 'dumpsys', 'window')):
+    """Ask the device once, wake it only if needed, and report what was seen.
+
+    `run_adb(argv) -> str` is injected so this stays testable without a device.
+    Returns {'locked': True|False|None, 'woken': bool}.
+    """
+    try:
+        locked = is_locked(run_adb(dump))
+    except (OSError, RuntimeError, AttributeError, TypeError):
+        locked = None
+    woken = False
+    for argv in wake_commands(locked):
+        try:
+            run_adb(argv)
+            woken = True
+        except (OSError, RuntimeError, AttributeError, TypeError):
+            break
+    return {'locked': locked, 'woken': woken}
