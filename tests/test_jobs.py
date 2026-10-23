@@ -189,3 +189,21 @@ def test_a_click_with_no_live_screen_is_still_fatal():
         assert error.drained is True
     else:  # pragma: no cover
         raise AssertionError('a dead screen must stay fatal')
+
+
+class _TaskerStop:
+    def __init__(self, done):
+        self.done = done
+
+    def post_stop(self):
+        return _Shot(self.done)
+
+
+def test_a_confirmed_teardown_says_so():
+    from maalimbus.jobs import stop_tasker
+    assert stop_tasker(_TaskerStop(True), timeout=1) is True
+
+
+def test_an_unconfirmed_teardown_records_instead_of_raising():
+    from maalimbus.jobs import stop_tasker
+    assert stop_tasker(_TaskerStop(False), timeout=0.0, clock=lambda: 0.0) is False

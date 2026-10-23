@@ -128,3 +128,19 @@ def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on
                 return job
         raise InputNeverReturned(str(error) or 'the input never returned',
                                  drained=drained) from error
+
+
+def stop_tasker(tasker, *, timeout=8, clock=time.monotonic, sleep=time.sleep):
+    """Ask the tasker to stop and report whether it confirmed -- never raise.
+
+    Evidence: `tools/verify_packaged_mirror_loop.py:208` called
+    ``wait_job(tasker.post_stop(), timeout=8)`` bare.  When the stop did not confirm
+    the TimeoutError unwound *inside* the native teardown and the process died with
+    0xC0000409 -- every long run "crashed" at exactly its budget, because the crash
+    was in the reporting path, not in the run.  A teardown must record, not throw.
+    """
+    try:
+        wait_job(tasker.post_stop(), timeout=timeout, clock=clock, sleep=sleep)
+        return True
+    except (TimeoutError, RuntimeError, AttributeError):
+        return False

@@ -31,7 +31,7 @@ from maa.toolkit import Toolkit
 
 from maalimbus.adb_device import build, discover, foreground_of, input_policy, pin_input
 from maalimbus.controller_lease import ControllerLease
-from maalimbus.jobs import dispatch, wait_job, wait_task
+from maalimbus.jobs import dispatch, wait_job, wait_task, stop_tasker
 from maalimbus import runner
 
 
@@ -205,7 +205,7 @@ def main():
                 result['task'] = outcome
             finally:
                 if tasker is not None and tasker.running:
-                    wait_job(tasker.post_stop(), timeout=8)
+                    stop_confirmed = stop_tasker(tasker, timeout=8)
                 try:
                     agent.disconnect()
                 except OSError as error:
