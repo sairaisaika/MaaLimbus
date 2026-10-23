@@ -97,6 +97,18 @@ def main():
         result['gui_override_sha256']=hashlib.sha256(rows[-1].encode()).hexdigest()
         result['gui_choice_replayed']=True
         result['gui_click_verified']=False
+    else:
+        # Without a GUI log the driver used to run the packaged defaults while the GUI
+        # held the player's real choices.  Both are read now, so "which team and which
+        # build" has one source: the configuration the player actually set.
+        from maalimbus import gui_preferences, mirror_task_options
+        prefs=gui_preferences.read()
+        result['gui_preferences']=gui_preferences.describe(prefs)
+        from_gui=mirror_task_options.gui_override(prefs)
+        if from_gui:
+            gui_overrides=from_gui
+            result['gui_choice_replayed']=False
+            result['gui_choice_from_config']=sorted(from_gui)
     Library.open(app / 'maafw', agent_server=False)
     Toolkit.init_option(directory / 'debug')
     lease = ControllerLease.acquire(ROOT / 'build/controller.lock')
