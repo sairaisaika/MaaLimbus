@@ -727,50 +727,63 @@ PLANNED_REASONS = {
 }
 
 
-# Words whose plan sends an input and states no way for that input to be *wrong*:
-# no `expect` for `window.step_result` to judge and no hook in the runner that reads the
-# word back.  Measured 2026-10-23 with `maalimbus.plan_reasons.acting_plans`: 80 acting
-# plans, 45 carrying an expectation, 21 named by a hook, and these 28 neither -- so for
-# them a swallowed tap is indistinguishable from a landed one, and the run finds out
-# later (the retained failures all end in `window_no_progress`, not in a named refusal).
+# Words whose plan sends an input and whose only proof is `expect=(ANY,)`: the page
+# must *change*, without saying where to.  That is a proof, and D49 mis-measured it:
+# `plan_reasons._elements` drops every symbol, so `ANY` read as zero expectations and
+# twenty-eight words were declared unjudgeable.  Measured 2026-10-23 after the fix --
+# 80 acting plans, 45 with a named successor, 43 with a dismissal, 21 named by a runner
+# hook, 0 with nothing at all.  What remains is weaker than a named successor: the loop
+# learns the input landed, not where it landed, so a click that lands on the wrong page
+# passes.--  The value is `page_must_change`, and `tests/test_plan_proof.py` fails when a
+# new acting plan carries only that and is not declared here.
+PLANS_WITH_ONLY_A_DISMISSAL = {
+    'a_completed_run_spends_one_weekly_bonus_on_its_rewards': 'page_must_change',
+    'a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back': 'page_must_change',
+    'a_lost_run_opens_its_rewards_only_to_give_them_up': 'page_must_change',
+    'a_run_that_was_not_completed_keeps_the_weekly_bonus': 'page_must_change',
+    'claiming_is_the_only_forward_input_on_the_run_summary': 'page_must_change',
+    'confirm_grants_the_picked_encounter_reward': 'page_must_change',
+    'disable_unauthorized_starlight_conversion': 'page_must_change',
+    'dungeon_team_slot_is_selected_for_the_rotation': 'page_must_change',
+    'grace_card_is_bought_within_the_available_starlight': 'page_must_change',
+    'the_check_outcome_is_left_with_its_lit_continue': 'page_must_change',
+    'the_event_result_story_is_tapped_to_reveal_its_continue': 'page_must_change',
+    'the_expired_session_is_confirmed_so_its_rewards_are_claimed': 'page_must_change',
+    'the_factory_result_is_acknowledged_on_its_own_panel': 'page_must_change',
+    'the_pass_level_up_notice_is_acknowledged_to_clear_the_menu': 'page_must_change',
+    'the_reward_card_must_be_picked_before_confirm': 'page_must_change',
+    'the_reward_claim_is_confirmed_and_never_cancelled': 'page_must_change',
+    'the_reward_modal_is_claimed_and_never_given_up': 'page_must_change',
+    'the_skill_detail_popup_is_dismissed_off_the_board': 'page_must_change',
+    'the_suspended_exploration_is_left_for_the_entry': 'page_must_change',
+    'the_suspended_exploration_is_resumed_from_the_entry': 'page_must_change',
+    'the_unexpected_dialog_is_dismissed_with_its_own_close': 'page_must_change',
+    'the_way_back_to_the_entry_is_confirmed': 'page_must_change',
+    'the_weekly_reset_notice_is_declined_and_the_run_stays': 'page_must_change',
+    'the_wiped_run_is_accepted_and_the_stage_select_comes_back': 'page_must_change',
+    'tutorial_book_is_closed_from_its_own_header_arrow': 'page_must_change',
+    'tutorial_last_page_is_closed_from_the_book_header': 'page_must_change',
+    'tutorial_overlay_must_be_dismissed_before_enter_is_live': 'page_must_change',
+    'victory_confirm_clears_the_result_and_carries_the_rewards': 'page_must_change',
+}
+
+
+# The dismissal is not merely weak for these words, it is *wrong*: the retained archive
+# shows their input never moved the page -- the two starting-gift picks stayed 6 and 8
+# times out of 6 and 8 sends, because picking a gift changes state, not page.  They need
+# a proof of the state they change (which row is taken, which keyword is lit), which the
+# loop does not have.  `maalimbus.plan_outcomes` derives this from the archive and the
+# gate fails when a declared word is not classified that way.
 #
-# They are *declared*, not excused: `tests/test_plan_proof.py` fails when a new acting
-# plan has no proof and is not in this table, and the count may only shrink.  The value
-# is deliberately one word, `unmeasured`, because none of the 28 has been observed often
-# enough to say whether the screen must change: they cannot be given `expect=ANY` ("the
-# page must differ") on a guess -- a click that legitimately leaves the page where it is
-# (a toggle, a card picked on the same panel) would then report a false failure.  The
-# loop now journals `input_without_a_proof` each time one of them is sent, which is the
-# evidence that will let a later round replace `unmeasured` with a real successor set.
-PLANS_WITHOUT_PROOF = {
-    'a_completed_run_spends_one_weekly_bonus_on_its_rewards': 'unmeasured',
-    'a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back': 'unmeasured',
-    'a_lost_run_opens_its_rewards_only_to_give_them_up': 'unmeasured',
-    'a_run_that_was_not_completed_keeps_the_weekly_bonus': 'unmeasured',
-    'claiming_is_the_only_forward_input_on_the_run_summary': 'unmeasured',
-    'confirm_grants_the_picked_encounter_reward': 'unmeasured',
-    'disable_unauthorized_starlight_conversion': 'unmeasured',
-    'dungeon_team_slot_is_selected_for_the_rotation': 'unmeasured',
-    'grace_card_is_bought_within_the_available_starlight': 'unmeasured',
-    'the_check_outcome_is_left_with_its_lit_continue': 'unmeasured',
-    'the_event_result_story_is_tapped_to_reveal_its_continue': 'unmeasured',
-    'the_expired_session_is_confirmed_so_its_rewards_are_claimed': 'unmeasured',
-    'the_factory_result_is_acknowledged_on_its_own_panel': 'unmeasured',
-    'the_pass_level_up_notice_is_acknowledged_to_clear_the_menu': 'unmeasured',
-    'the_reward_card_must_be_picked_before_confirm': 'unmeasured',
-    'the_reward_claim_is_confirmed_and_never_cancelled': 'unmeasured',
-    'the_reward_modal_is_claimed_and_never_given_up': 'unmeasured',
-    'the_skill_detail_popup_is_dismissed_off_the_board': 'unmeasured',
-    'the_suspended_exploration_is_left_for_the_entry': 'unmeasured',
-    'the_suspended_exploration_is_resumed_from_the_entry': 'unmeasured',
-    'the_unexpected_dialog_is_dismissed_with_its_own_close': 'unmeasured',
-    'the_way_back_to_the_entry_is_confirmed': 'unmeasured',
-    'the_weekly_reset_notice_is_declined_and_the_run_stays': 'unmeasured',
-    'the_wiped_run_is_accepted_and_the_stage_select_comes_back': 'unmeasured',
-    'tutorial_book_is_closed_from_its_own_header_arrow': 'unmeasured',
-    'tutorial_last_page_is_closed_from_the_book_header': 'unmeasured',
-    'tutorial_overlay_must_be_dismissed_before_enter_is_live': 'unmeasured',
-    'victory_confirm_clears_the_result_and_carries_the_rewards': 'unmeasured',
+# Two words the archive also never saw move are deliberately NOT here, because the page
+# was never their proof: an `advance` plan accepts a changed frame, so
+# team_card_joins_the_next_unpicked_identity (107 stays in 109) and the floor-gift card
+# are judged by pixels.  Reading only the page label would call them defects -- the exact
+# mistake this distinction exists to prevent.  The value is the number of sends that
+# stayed on the same page, so the evidence travels with the declaration.
+PLANS_AWAITING_A_STATE_PROOF = {
+    'the_starting_gift_row_is_taken_from_the_tray': 8,
+    'the_starting_gift_is_picked_from_the_rotation_keyword': 6,
 }
 
 

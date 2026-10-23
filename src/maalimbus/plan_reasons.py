@@ -66,6 +66,32 @@ def _elements(node):
     return [] if value is None else [value]
 
 
+def _dismissal(node):
+    """True when an ``expect`` value admits :data:`maalimbus.window.ANY`.
+
+    ``ANY`` is a proof, just a weak one: it says the page must *change*, without
+    naming where to.  D49 counted only string constants here, so ``expect=(ANY,)``
+    read as *no* expectation and eighteen words were declared unprovable when they
+    carried a proof.  Measured 2026-10-23 against the retained archive: 28 declared,
+    10 with nothing at all.
+    """
+    if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return any(getattr(element, 'id', None) == 'ANY' for element in node.elts)
+    return getattr(node, 'id', None) == 'ANY'
+
+
+def _advances(node):
+    """True when an ``_plan``/row says ``advance=True`` -- its proof is the pixels.
+
+    An advance plan is one whose own page is *expected* to stay (the tutorial overlay
+    walks card after card), so `window.step_result` accepts a changed frame as proof.
+    The page label therefore cannot judge it, which matters to
+    :mod:`maalimbus.plan_outcomes`: a word whose page never moved may be perfectly
+    judged if it advances.
+    """
+    return node is not None and getattr(node, 'value', None) is True
+
+
 def _dict_reason(node):
     """The ``reason`` a plan-shaped dict literal or ``dict(...)`` call carries."""
     if isinstance(node, ast.Dict):
@@ -203,7 +229,7 @@ def _plan_index(node):
     name = getattr(node.func, 'id', None) or getattr(node.func, 'attr', None)
     if name == '_refuse' and len(node.args) >= 2:
         words = _elements(node.args[1])
-        return [(word, REFUSAL_ACTION, 0) for word in words]
+        return [(word, REFUSAL_ACTION, 0, False, False) for word in words]
     if name != '_plan':
         return []
     keywords = {keyword.arg: keyword.value for keyword in node.keywords}
@@ -213,10 +239,10 @@ def _plan_index(node):
     action = None
     if len(node.args) >= 2:
         action = _constant(node.args[1]) or getattr(node.args[1], 'id', None)
-    count = 0
-    if 'expect' in keywords:
-        count = len(_elements(keywords['expect']))
-    return [(word, action or '?', count) for word in words]
+    count = len(_elements(keywords['expect'])) if 'expect' in keywords else 0
+    dismissal = _dismissal(keywords['expect']) if 'expect' in keywords else False
+    advance = _advances(keywords.get('advance'))
+    return [(word, action or '?', count, dismissal, advance) for word in words]
 
 
 def _row_facts(node):
@@ -237,11 +263,13 @@ def _row_facts(node):
         return []
     action = _constant(fields.get('action')) or 'click'
     count = len(_elements(fields['expect'])) if 'expect' in fields else 0
-    return [(word, action, count)]
+    dismissal = _dismissal(fields['expect']) if 'expect' in fields else False
+    advance = _advances(fields.get('advance'))
+    return [(word, action, count, dismissal, advance)]
 
 
 def acting_plans(source=None):
-    """``{word: {'actions': [...], 'expects': int, 'hooked': bool}}`` for sent input.
+    """``{word: {'actions', 'expects', 'dismissal', 'advance', 'hooked'}}`` for sent input.
 
     A plan whose action is ``record`` refuses, so nothing was sent and nothing is owed.
     Every other action sends input, and then the plan states what *disproves* it: either
@@ -254,23 +282,27 @@ def acting_plans(source=None):
     tree = ast.parse(window_source)
     found = {}
 
-    def take(word, action, expects, hooked):
-        entry = found.setdefault(word, {'actions': set(), 'expects': 0, 'hooked': False})
+    def take(word, action, expects, hooked, dismissal=False, advance=False):
+        entry = found.setdefault(
+            word, {'actions': set(), 'expects': 0, 'dismissal': False,
+                   'advance': False, 'hooked': False})
         if action:
             entry['actions'].add(action)
         entry['expects'] = max(entry['expects'], expects)
+        entry['dismissal'] = entry['dismissal'] or dismissal
+        entry['advance'] = entry['advance'] or advance
         entry['hooked'] = entry['hooked'] or hooked
 
     read = set(consumers())
     for node in ast.walk(tree):
-        for word, action, expects in _row_facts(node) + _plan_index(node):
-            take(word, action, expects, word in read)
+        for word, action, expects, dismissal, advance in _row_facts(node) + _plan_index(node):
+            take(word, action, expects, word in read, dismissal, advance)
         if isinstance(node, ast.Assign) and any(
                 getattr(target, 'id', None) == 'STEP_ROWS' for target in node.targets):
             if isinstance(node.value, ast.Dict):
                 for row in node.value.values:
-                    for word, action, expects in _row_facts(row):
-                        take(word, action, expects, word in read)
+                    for word, action, expects, dismissal, advance in _row_facts(row):
+                        take(word, action, expects, word in read, dismissal, advance)
 
     for name in _runner_plans(source=source):
         # A hand-built plan names its own action and expectation, and no caller can add
@@ -284,12 +316,14 @@ def acting_plans(source=None):
                 continue
             if _dict_reason(node.value) != name:
                 continue
-            action, expects = _hand_plan_facts(node.value)
-            take(name, action, expects, name in read)
+            action, expects, dismissal = _hand_plan_facts(node.value)
+            take(name, action, expects, name in read, dismissal)
 
     return {
         word: {'actions': sorted(entry['actions']),
                'expects': entry['expects'],
+               'dismissal': entry['dismissal'],
+               'advance': entry['advance'],
                'hooked': entry['hooked']}
         for word, entry in sorted(found.items())
         if entry['actions'] - {REFUSAL_ACTION}
@@ -297,23 +331,28 @@ def acting_plans(source=None):
 
 
 def _hand_plan_facts(node):
-    """``(action, expectation count)`` of a plan the runner assembles itself."""
+    """``(action, expectation count, dismissal)`` of a plan the runner builds itself."""
     if isinstance(node, ast.Call) and getattr(node.func, 'id', None) == 'dict':
         fields = {keyword.arg: keyword.value for keyword in node.keywords}
     elif isinstance(node, ast.Dict):
         fields = {_constant(key): value for key, value in zip(node.keys, node.values)}
     else:
-        return (None, 0)
+        return (None, 0, False)
     action = _constant(fields.get('action'))
     count = len(_elements(fields['expect'])) if 'expect' in fields else 0
-    return (action, count)
+    dismissal = _dismissal(fields['expect']) if 'expect' in fields else False
+    return (action, count, dismissal)
 
 
 def unproven(source=None):
-    """The acting words whose result nothing can judge."""
+    """The acting words whose result nothing can judge.
+
+    A dismissal is a judgement: ``expect=(ANY,)`` fails when the page did not change.
+    Only a word with no expectation, no dismissal and no hook is unprovable.
+    """
     plans = acting_plans(source)
     return sorted(word for word, facts in plans.items()
-                  if not facts['expects'] and not facts['hooked'])
+                  if not facts['expects'] and not facts['dismissal'] and not facts['hooked'])
 
 
 def main(argv=None):
