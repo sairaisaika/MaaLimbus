@@ -15,14 +15,12 @@ from maa.tasker import Tasker
 from recognition import Journal, LimbusRecognition, LimbusTerminal, TeamAction
 from maalimbus.jobs import wait_job, wait_task
 import time
+from maalimbus.replay import ReplayController
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self, frame, drive=False, tutorial=False, confirm=False, dungeon_team=False, stuck=False):
         super().__init__(); self.frame=frame; self.clicks=[]; self.drive=drive; self.tutorial=tutorial; self.confirm=confirm; self.dungeon_team=dungeon_team; self.stuck=stuck
-    def connect(self): return True
-    def request_uuid(self): return 'home-offline'
-    def get_features(self): return 0
     def screencap(self): return self.frame.copy()
     def click(self,x,y):
         if self.dungeon_team: assert 1600<x<1820 and 825<y<945

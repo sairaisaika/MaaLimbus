@@ -3,14 +3,10 @@ import json,time,cv2
 from pathlib import Path
 from verify_theme_replay import ROOT,CustomController,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task
 from maalimbus.grace_vision import available_starlight
-class Replay(CustomController):
+from maalimbus.replay import ReplayController
+class Replay(ReplayController):
     def __init__(self,image):super().__init__();self.image=image
-    def connect(self):return True
-    def request_uuid(self):return 'grace-balance-offline'
-    def get_features(self):return 0
     def screencap(self):return self.image.copy()
-    def click(self,*args):raise AssertionError('Offline replay must never input')
-    def swipe(self,*args):raise AssertionError('Offline replay must never input')
 def main():
     Library.open(ROOT/'dist/MaaLimbus/maafw',agent_server=False)
     results=[]

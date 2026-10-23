@@ -14,20 +14,17 @@ from maa.toolkit import Toolkit
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'agent'),str(ROOT/'tests')]
 from recognition import Journal,LimbusRecognition,LimbusTerminal,BattlePlanObservation
+from maalimbus.replay import ReplayController
 from test_battle_vision import derived_battle_frame
 from maalimbus.jobs import wait_job,wait_task
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,case):
         super().__init__();self.case=case;self.keys=[]
         self.image=derived_battle_frame(missing=case=='missing',duplicate=case=='duplicate',
             paid=case=='paid',defeat=case=='defeat')
-    def connect(self):return True
-    def request_uuid(self):return 'battle-plan-offline-no-game'
-    def get_features(self):return 0
     def screencap(self):return self.image.copy()
-    def click(self,*args):raise AssertionError('No mouse or EGO input in planning task')
     def click_key(self,keycode):
         return self.key_down(keycode) and self.key_up(keycode)
     def key_down(self,keycode):

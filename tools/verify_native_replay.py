@@ -15,18 +15,16 @@ from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
 ROOT = Path(__file__).resolve().parents[1]
+from maalimbus.replay import ReplayController
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'agent')]
 from recognition import Journal, LimbusRecognition, LimbusTerminal
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self, frames):
         super().__init__()
         self.frames, self.position, self.clicks = frames, 0, []
 
-    def connect(self): return True
-    def request_uuid(self): return 'maalimbus-offline-no-game'
-    def get_features(self): return 0
     def screencap(self): return self.frames[self.position].copy()
     def click(self, x, y):
         self.clicks.append([x, y])
@@ -40,8 +38,6 @@ class Replay(CustomController):
             raise AssertionError('No input allowed after team-selection boundary')
         self.position += 1
         return True
-    def touch_down(self, *args): raise AssertionError('Unexpected touch')
-    def touch_up(self, *args): raise AssertionError('Unexpected touch')
 
 
 def redact(frame, kind, prepared=False):

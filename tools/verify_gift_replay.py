@@ -17,6 +17,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
+from maalimbus.replay import ReplayController
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'agent')]
 from recognition import Journal,LimbusRecognition,LimbusTerminal
@@ -25,12 +26,9 @@ from maalimbus.policies import Team
 from maalimbus.jobs import wait_job,wait_task
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,frame,expected):
         super().__init__();self.frame=frame;self.expected=expected;self.clicks=[]
-    def connect(self):return True
-    def request_uuid(self):return 'gift-replay-no-game'
-    def get_features(self):return 0
     def screencap(self):return self.frame.copy()
     def click(self,x,y):
         assert self.expected is not None, 'No input on paid or unidentified choices'

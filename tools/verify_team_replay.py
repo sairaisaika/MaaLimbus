@@ -15,6 +15,7 @@ from maa.controller import CustomController
 from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
+from maalimbus.replay import ReplayController
 from maa.toolkit import Toolkit
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -22,13 +23,10 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'agent')]
 from recognition import Journal,LimbusRecognition,LimbusTerminal,TeamAction
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,frame,after=None):
         super().__init__(); self.frame=frame; self.after=after
         self.clicks=[]; self.swipes=[]
-    def connect(self): return True
-    def request_uuid(self): return 'team-replay-no-device'
-    def get_features(self): return 0
     def screencap(self): return self.frame.copy()
     def click(self,x,y):
         h,w=self.frame.shape[:2]

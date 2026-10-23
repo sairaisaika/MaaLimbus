@@ -19,6 +19,7 @@ from maa.toolkit import Toolkit
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'agent')]
+from maalimbus.replay import ReplayController
 from recognition import Journal,LimbusRecognition,LimbusTerminal,TeamAction,DeploymentProof
 from maalimbus.deployment import CENTERS
 from maalimbus.storage import ProfileStore,SINNERS
@@ -43,17 +44,13 @@ def derived_frame(order=(),*,count=None,capacity=3,paid=False,missing=False,seed
     return image
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,case,order=ORDER):
         super().__init__();self.case=case;self.clicks=[];self.expected_order=order
         initial={'resume':order[:1],'already_ready':order,'wrong_order':('Yi Sang',)}.get(case,())
         self.order=initial
         self.frame=derived_frame(initial,paid=case=='paid',missing=case=='missing_count')
-    def connect(self):return True
-    def request_uuid(self):return 'deployment-replay-no-game'
-    def get_features(self):return 0
     def screencap(self):return self.frame.copy()
-    def swipe(self,*args):raise AssertionError('No deployment swipe or reset')
     def click(self,x,y):
         assert self.case not in ('already_ready','wrong_order','missing_count','paid','unconfigured',
             'duplicate_choices','partial_choices','callback_json','callback_ocr','callback_journal','callback_profile')

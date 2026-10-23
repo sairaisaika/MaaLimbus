@@ -10,6 +10,7 @@ from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
+from maalimbus.replay import ReplayController
 
 from verify_theme_replay import ROOT, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task
 
@@ -27,45 +28,22 @@ PIPELINE = {
 }
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self, frame):
         super().__init__()
         self.frame = frame
         self.input_attempts = []
 
-    def connect(self):
-        return True
 
-    def request_uuid(self):
-        return 'retained-map-no-device'
 
-    def get_features(self):
-        return 0
 
-    def screencap(self):
-        return self.frame.copy()
 
-    def _forbidden(self, name):
-        self.input_attempts.append(name)
-        raise AssertionError('Retained map replay must never send input: ' + name)
 
-    def click(self, x, y):
-        self._forbidden('click')
 
-    def swipe(self, x1, y1, x2, y2, duration):
-        self._forbidden('swipe')
 
-    def touch_down(self, contact, x, y, pressure):
-        self._forbidden('touch_down')
 
-    def touch_move(self, contact, x, y, pressure):
-        self._forbidden('touch_move')
 
-    def touch_up(self, contact):
-        self._forbidden('touch_up')
 
-    def key(self, keycode):
-        self._forbidden('key')
 
 
 def directory():

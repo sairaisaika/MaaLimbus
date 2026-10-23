@@ -15,14 +15,12 @@ from maa.tasker import Tasker
 from recognition import Journal,LimbusRecognition,LimbusTerminal,StarProof
 from maalimbus.jobs import wait_job,wait_task
 from maalimbus.storage import write_json,read_json
+from maalimbus.replay import ReplayController
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,frame,after=None):
         super().__init__();self.frame=frame;self.after=after;self.clicks=[]
-    def connect(self):return True
-    def request_uuid(self):return 'star-offline'
-    def get_features(self):return 0
     def screencap(self):return self.frame.copy()
     def click(self,x,y):
         assert 555<x<733 and 281<y<336, 'Only ordinal1 card body; never +/++'

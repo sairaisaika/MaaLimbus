@@ -7,6 +7,7 @@ instead of intent:
   real pre-battle team-card ROIs;
 * which preprocessing path the native detection actually took, measured on a
   synthetic control image rather than assumed;
+from maalimbus.replay import ReplayController
 * whether a completely different teacher (mean-absolute-difference template
   matching against the reviewed owned-gallery crops) agrees with the neural
   class on each card, so a "correct" count is never the model approving itself.
@@ -89,15 +90,10 @@ def main():
             raise ValueError('Reviewed gallery crop size differs')
         label=line['boxes'][0]['label']
         candidates.append((label,signature(pixels,line['boxes'][0]['box'])))
-    class Offline(CustomController):
+    class Offline(ReplayController):
         """No screencap, no click; any input attempt is a hard failure."""
-        def connect(self):return True
-        def request_uuid(self):return 'card-roi-native-replay-no-device'
-        def get_features(self):return 0
-        def screencap(self):return np.zeros((640,640,3),np.uint8)
-        def click(self,*a):raise AssertionError('No game input')
-        def touch_down(self,*a):raise AssertionError('No game input')
-        def touch_up(self,*a):raise AssertionError('No game input')
+        def __init__(self):
+            super().__init__(np.zeros((640,640,3),np.uint8))
     Library.open(args.maafw,agent_server=False)
     out=Path(args.out);bundle=out.parent/f'.{out.stem}-bundle'
     (bundle/'model/detect').mkdir(parents=True,exist_ok=True)

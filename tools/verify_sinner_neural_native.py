@@ -13,15 +13,11 @@ from maalimbus.jobs import wait_job
 from maalimbus.storage import write_json
 from maalimbus.sinner_detection import LABELS
 
+from maalimbus.replay import ReplayController
 
-class Offline(CustomController):
-    def connect(self):return True
-    def request_uuid(self):return 'synthetic-sinner-protocol-no-device'
-    def get_features(self):return 0
-    def screencap(self):return np.zeros((640,640,3),dtype=np.uint8)
-    def click(self,*args):raise AssertionError('No input allowed')
-    def touch_down(self,*args):raise AssertionError('No input allowed')
-    def touch_up(self,*args):raise AssertionError('No input allowed')
+class Offline(ReplayController):
+    def __init__(self):
+        super().__init__(np.zeros((640,640,3),dtype=np.uint8))
 
 
 def main():

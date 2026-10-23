@@ -6,16 +6,13 @@ import time
 from pathlib import Path
 import cv2
 from verify_theme_replay import ROOT, CustomController, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, ThemeObservation, TeamAction, wait_job, wait_task, ProfileStore, Team
+from maalimbus.replay import ReplayController
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self, frame, allowed):
         super().__init__(); self.frame=frame; self.allowed=allowed; self.drags=[]
-    def connect(self): return True
-    def request_uuid(self): return 'retained-hard-no-device'
-    def get_features(self): return 0
     def screencap(self): return self.frame.copy()
-    def click(self,x,y): raise AssertionError('Pack routing must use Swipe')
     def swipe(self,x1,y1,x2,y2,duration):
         assert self.allowed
         assert 633<=x1<=675 and 388<=y1<=406,(x1,y1)

@@ -7,6 +7,7 @@ from maalimbus.learning_dataset import digest,local_file
 from maalimbus.neural_shadow import verified_model,verified_card_rois
 from maalimbus.sinner_detection import LABELS,proposals
 
+from maalimbus.replay import ReplayController
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -21,14 +22,9 @@ def main():
     from maa.controller import CustomController
     from maa.pipeline import JRecognitionType,JNeuralNetworkDetect
     from maalimbus.jobs import wait_job
-    class Offline(CustomController):
-        def connect(self):return True
-        def request_uuid(self):return 'trained-shadow-real-frames-no-device'
-        def get_features(self):return 0
-        def screencap(self):return np.zeros((640,640,3),np.uint8)
-        def click(self,*args):raise AssertionError('No input')
-        def touch_down(self,*args):raise AssertionError('No input')
-        def touch_up(self,*args):raise AssertionError('No input')
+    class Offline(ReplayController):
+        def __init__(self):
+            super().__init__(np.zeros((640,640,3),np.uint8))
     Library.open(a.maafw,agent_server=False);resource=Resource()
     wait_job(resource.post_bundle(a.resource.resolve()),timeout=30)
     controller=Offline();wait_job(controller.post_connection(),timeout=10);tasker=Tasker()

@@ -8,6 +8,7 @@ from maalimbus.learning_dataset import digest,local_file
 from maalimbus.neural_shadow import detection_metrics
 from maalimbus.storage import write_json
 
+from maalimbus.replay import ReplayController
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -27,14 +28,9 @@ def main():
     from maa.controller import CustomController
     from maa.pipeline import JRecognitionType,JNeuralNetworkDetect
     from maalimbus.jobs import wait_job
-    class Offline(CustomController):
-        def connect(self):return True
-        def request_uuid(self):return 'held-out-sinner-native-no-device'
-        def get_features(self):return 0
-        def screencap(self):return np.zeros((640,640,3),dtype=np.uint8)
-        def click(self,*args):raise AssertionError('No game input')
-        def touch_down(self,*args):raise AssertionError('No game input')
-        def touch_up(self,*args):raise AssertionError('No game input')
+    class Offline(ReplayController):
+        def __init__(self):
+            super().__init__(np.zeros((640,640,3),dtype=np.uint8))
     Library.open(a.maafw,agent_server=False);rows=[]
     with tempfile.TemporaryDirectory(prefix='maalimbus-heldout-') as directory:
         bundle=Path(directory);(bundle/'model/detect').mkdir(parents=True)

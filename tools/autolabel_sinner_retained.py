@@ -8,6 +8,7 @@ import argparse,json,sys,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from maalimbus.storage import read_json,write_json
+from maalimbus.replay import ReplayController
 from maalimbus.learning_dataset import local_file,digest
 from maalimbus.owned_inventory import owned_page
 from maalimbus.sinner_detection import LABELS
@@ -35,14 +36,9 @@ def main():
     from maa.controller import CustomController
     from maa.pipeline import JRecognitionType,JTemplateMatch
     from maalimbus.jobs import wait_job
-    class Offline(CustomController):
-        def connect(self):return True
-        def request_uuid(self):return 'retained-native-seal-teacher-no-device'
-        def get_features(self):return 0
-        def screencap(self):return np.zeros((640,640,3),np.uint8)
-        def click(self,*args):raise AssertionError('No input')
-        def touch_down(self,*args):raise AssertionError('No input')
-        def touch_up(self,*args):raise AssertionError('No input')
+    class Offline(ReplayController):
+        def __init__(self):
+            super().__init__(np.zeros((640,640,3),np.uint8))
     Library.open(a.maafw,agent_server=False);accepted=[];rejected=[];templates=[]
     a.out.mkdir(parents=True)
     with tempfile.TemporaryDirectory(prefix='maalimbus-native-teachers-') as directory:

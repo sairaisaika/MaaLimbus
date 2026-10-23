@@ -20,18 +20,15 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'agent')]
 from recognition import Journal,LimbusRecognition,LimbusTerminal,ThemeObservation,TeamAction
 from maalimbus.policies import Team
 from maalimbus.theme_vision import ThemeCatalog
+from maalimbus.replay import ReplayController
 from maalimbus.jobs import wait_job,wait_task
 from maalimbus.storage import ProfileStore
 
 
-class Replay(CustomController):
+class Replay(ReplayController):
     def __init__(self,frame,target):
         super().__init__();self.frame=frame;self.target=target;self.drags=[]
-    def connect(self):return True
-    def request_uuid(self):return 'theme-replay-no-game'
-    def get_features(self):return 0
     def screencap(self):return self.frame.copy()
-    def click(self,x,y):raise AssertionError('Theme routing must never click or refresh')
     def swipe(self,x1,y1,x2,y2,duration):
         assert self.target is not None,'No drag on unsafe or unidentified frame'
         left=135 if self.target=='ASEA' else 535
