@@ -82,9 +82,19 @@ def screencap(controller, *, timeout=5, drain=2, clock=time.monotonic, sleep=tim
 
 
 class InputNeverReturned(TimeoutError):
-    def __init__(self, message, *, drained=True):
+    """A click/swipe did not come back inside its deadline.
+
+    ``drained`` says whether the pending request was cancelled.  ``lost`` says the
+    screen stopped answering after that drain, which means the controller itself is
+    gone: a click sent now is posted with an empty ``controller_id`` and the
+    framework rejects it (live: ``controller not found [controller_id=]``), while the
+    agent side waits for a request that will never be handled.
+    """
+
+    def __init__(self, message, *, drained=True, lost=False):
         super().__init__(message)
         self.drained = drained
+        self.lost = lost
     """A click/swipe/launch did not come back inside its deadline.
 
     The live runs died with 0xC0000409 right after `Maa job exceeded its deadline`,
@@ -117,17 +127,22 @@ def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on
             wait_job(controller.post_stop(), timeout=drain, clock=clock, sleep=sleep)
         except (TimeoutError, RuntimeError, AttributeError):
             drained = False
+        lost = False
         if probe is not None:
             try:
                 alive = bool(probe())
             except Exception:
                 alive = False
+            if not alive:
+                # The controller is gone, not merely slow: any further click would be
+                # posted with an empty id and hang the agent side.
+                lost = True
             if alive:
                 if on_soft is not None:
                     on_soft(SOFT_INPUT_REASON)
                 return job
         raise InputNeverReturned(str(error) or 'the input never returned',
-                                 drained=drained) from error
+                                 drained=drained, lost=lost) from error
 
 
 def stop_tasker(tasker, *, timeout=8, clock=time.monotonic, sleep=time.sleep):

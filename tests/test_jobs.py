@@ -222,3 +222,30 @@ def test_a_watchdog_without_a_budget_is_left_alone():
 def test_a_spent_budget_still_gives_a_positive_window():
     from maalimbus.jobs import bounded_limit
     assert bounded_limit(900.0, 100.0, clock=lambda: 500.0) == 1.0
+
+
+def test_a_drain_that_leaves_the_screen_dead_says_the_controller_is_lost():
+    """The empty-id click comes from here: a drain without a live screen."""
+    import pytest
+    from maalimbus.jobs import InputNeverReturned, dispatch
+
+    class Wedged:
+        def post_click(self, *a):
+            return 'job'
+        def post_stop(self):
+            return 'stop'
+
+    def never(_job, **_kwargs):
+        raise TimeoutError('deadline')
+
+    import maalimbus.jobs as jobs_module
+    original = jobs_module.wait_job
+    jobs_module.wait_job = never
+    try:
+        with pytest.raises(InputNeverReturned) as caught:
+            dispatch(Wedged(), 'job', timeout=1, probe=lambda: None)
+    finally:
+        jobs_module.wait_job = original
+    # With no wait succeeding at all the drain also fails, so ``drained`` stays
+    # False; what matters is that the state is named as a lost controller.
+    assert caught.value.lost is True
