@@ -279,8 +279,15 @@ def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     only one of them left every historical recovery unnamed, so the action table
     never decided anything.  Precedence is most-specific first; unknown is None.
     """
+    from .reason_kinds import kind_for
+
     for name in (reason, stopped_reason, plan_reason):
         kind = REFUSALS.get(name, STOP_KINDS.get(name))
+        if kind is None:
+            # The two literal tables only ever held the names somebody remembered to add.
+            # `reason_kinds.kind_for` classifies *every* failure name by meaning, so a
+            # page-specific sentence now inherits its class's action instead of holding.
+            kind = kind_for(name)
         if kind is not None:
             return kind
     return None

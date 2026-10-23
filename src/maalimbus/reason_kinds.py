@@ -185,3 +185,38 @@ def kind_for(name):
         if pattern.search(name):
             return kind
     return None
+
+
+# --- the shapes the earlier patterns missed ----------------------------------------
+# `caption_not_read`, `auto_assign_buttons_not_present` and `current_position_not_proven`
+# survived every rule above because they say "not X" instead of "unreadable"/"missing".
+# The negative form is the most common one in this repository, so it gets its own rules.
+NEGATIVE_RULES = (
+    (r'_not_(read|identified|registered|recogni[sz]ed|found|visible)$|_(not_)?read_', 'unreadable_text',
+     'a reading that did not happen; the text is what must be redone'),
+    (r'_not_present$|_not_found$|_absent$', 'missing_control',
+     'a control the step needs is not on the page'),
+    (r'_not_proven$|_unproven$', 'bad_saved_state',
+     'a fact we believed was never confirmed, so it must be re-derived'),
+    (r'_too_short$|_too_small$|_no_size$|_has_no_size$', 'unreadable_text',
+     'the region was found but is not readable, so the reading is what must be redone'),
+    (r'_unknown$', 'unreadable_text',
+     'a field could not be read at all'),
+)
+
+_NEG = tuple((re.compile(p), k, w) for p, k, w in NEGATIVE_RULES)
+
+
+def kind_for(name):
+    """The class of one reason-like name, or None when nobody has classified it.
+
+    Final definition: EXCEPTIONS, then the specific patterns, then the negative forms.
+    """
+    if not isinstance(name, str) or not name:
+        return None
+    if name in EXCEPTIONS:
+        return EXCEPTIONS[name]
+    for pattern, kind, _why in _COMPILED + _LATE + _NEG:
+        if pattern.search(name):
+            return kind
+    return None
