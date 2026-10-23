@@ -358,6 +358,17 @@ def party_point(image, *, board=BOARD):
     and 0028..0032 read (1616,82), a 922 px jump into the HUD.  Anything outside the
     board is not the party.
     """
+    # `map_vision.party_point` is the reading this repo maintains (torch specks, all-pairs
+    # search, scale-free thresholds); this module's own definition used to shadow it, so
+    # every fix made there never ran and the live loop answered None where the离线 reading
+    # of the same PNG answers a point -- evidence/runtime/packaged-mirror-20261023-045452/
+    # frame-0020.png: map_vision (1628,561) vs runner None, and candidates_of 0 vs 5.
+    try:
+        fresh = map_vision.party_point(image)
+    except (AttributeError, TypeError, ValueError):
+        fresh = None
+    if fresh:
+        return fresh
     try:
         point = map_vision.player_of(image, [])
     except (AttributeError, TypeError, ValueError):
