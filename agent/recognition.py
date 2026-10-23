@@ -1169,6 +1169,10 @@ class ThemeObservation(CustomAction):
         if header is not None:
             self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
                 pack=header.pack,route=route_decision(header,size),
+                # This writer sees a fresh map page before the main observation does, so it
+                # has no party reading; the field is written explicitly (not omitted) so a
+                # reader never has to guess whether "no key" means "not measured yet".
+                map_player=None,
                 scope='header identity and bounded route refusal; no node identity or input')
         return True
 
