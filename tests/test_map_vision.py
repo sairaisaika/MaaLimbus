@@ -1,5 +1,8 @@
 import numpy as np
 import pytest
+import cv2
+
+from pathlib import Path
 
 from maalimbus.map_vision import (BADGE_TO_CENTRE, HEADER_PATTERN, LATTICE_PITCH, MapHeader,
                                   ORNAMENT_LIFT, advance_candidates, enter_target, floor_label,
@@ -1368,3 +1371,26 @@ def test_a_missing_reading_is_unknown_not_a_movement():
                             {'party': (1, 2), 'badges': [(3, 4)]}) == 'unknown'
     unchanged = {'party': (700, 300), 'badges': [(900, 400)]}
     assert movement_between(unchanged, dict(unchanged)) == 'unknown'
+
+
+def test_the_party_reader_accepts_the_frameworks_channel_order():
+    """A reader that only understands BGR reports "no party" on every RGB frame.
+
+    Measured live 2026-10-23 (`packaged-mirror-20261023-162903`): the packaged agent
+    handed `party_point` the framework's RGB `cached_image`; all six map frames carried
+    `image_mean 126.8` with `map_player None`, while 88 of 90 offline frames read a
+    position.  The same real frame is fed back in both orders, so the test cannot pass
+    by inventing a blobby fixture the reader happens to like.
+    """
+    from maalimbus.map_vision import party_point
+
+    path = Path('evidence/runtime/packaged-mirror-20261023-161759/frame-0004.png')
+    if not path.exists():
+        pytest.skip('retained frame is not in this checkout')
+    frame = cv2.imread(str(path))
+    bgr = party_point(frame)
+    rgb = party_point(frame[:, :, ::-1].copy())
+    rgba = party_point(np.dstack([frame[:, :, ::-1], np.full(frame.shape[:2], 255, np.uint8)]))
+    assert bgr is not None, 'the BGR case must keep working'
+    assert rgb == bgr, 'the RGB order the agent passes must give the same point'
+    assert rgba == bgr, 'and RGBA when the controller adds alpha'

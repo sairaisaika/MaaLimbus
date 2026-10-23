@@ -1948,3 +1948,27 @@ def movement_between(before, after, *, tolerance=VIEW_TOLERANCE):
                                 for x, y in marks_before for ax, ay in marks_after):
         return 'the_view_changed'
     return 'moved'
+
+
+# --- channel-order tolerance for the party reader ---------------------------
+# The torch mask is warm-hue under **BGR**, and the packaged agent hands readers the
+# framework's `cached_image`, which is **RGB** (measured live 2026-10-23: six map
+# frames carried `image_mean 126.8` and zero `map_player`, while 88 of 90 offline
+# frames read fine).  A reader that returns None on an order it cannot see is the
+# defect that cost three rounds of retracting "the reader is broken", so the second
+# order is tried before giving up.
+_bgr_party_point = party_point
+
+
+def party_point(image):
+    """`party_point` for either channel order; BGR first, RGB(A) as the fallback."""
+
+    found = _bgr_party_point(image)
+    if found is not None:
+        return found
+    import cv2
+    if image is None or getattr(image, 'ndim', 0) != 3 or image.shape[2] not in (3, 4):
+        return None
+    swapped = cv2.cvtColor(image, cv2.COLOR_RGB2BGR if image.shape[2] == 3
+                           else cv2.COLOR_RGBA2BGR)
+    return _bgr_party_point(swapped)
