@@ -1039,6 +1039,13 @@ def looks_like_transition(record):
     return not any(control in lowered for control in CONTROLS)
 
 
+def overlaps(box, other):
+    """True when two boxes share any area (used to drop page chrome from the map list)."""
+    x, y, w, h = (float(v) for v in box)
+    ox, oy, ow, oh = (float(v) for v in other)
+    return x < ox + ow and ox < x + w and y < oy + oh and oy < y + h
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -1059,6 +1066,12 @@ def candidates_of(directory, record):
     chrome = header_chrome(record)
     if chrome:
         clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
+    # The map page's own progress button is warm and framed like a node, so it was offered
+    # as a destination -- and because opening it dims the board, the party reading moved and
+    # the click was booked `accepted` (evidence/runtime/packaged-mirror-20261023-050219:
+    # the only two acceptances are target=[1780,8,128,104], the progress button, while all
+    # six real nodes came back `rejected`).  A control is never a destination.
+    clicks = [item for item in clicks if not overlaps(item['box'], MAP_PROGRESS_CONTROL)]
     # Only a node one step from the party can move it.  Without this filter the list
     # was ordered but unconstrained, so runs kept clicking nodes two or more steps out
     # and every verdict came back `rejected` while the party stood still
