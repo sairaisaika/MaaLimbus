@@ -15,6 +15,8 @@ import glob
 import json
 import os
 
+from maalimbus.run_metrics import stopped_in_events as _stopped
+
 STOPS = {'mirror_loop_stopped', 'mirror_loop_error'}
 
 
@@ -41,7 +43,7 @@ def summarise(root):
         if not records:
             runs['empty'] += 1
             continue
-        if any(r.get('event') in STOPS for r in records):
+        if _stopped(records):
             runs['stopped'] += 1
             continue
         runs['silent'] += 1

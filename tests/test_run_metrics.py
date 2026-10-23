@@ -62,3 +62,14 @@ def test_a_run_that_died_without_a_stop_is_not_counted_as_success():
     stopped = crashed + [{'event': 'mirror_loop_stopped', 'reason': 'a_real_stop'}]
     assert run_metrics.summarise(stopped)['ended_without_a_stop'] is False
     assert run_metrics.summarise([])['ended_without_a_stop'] is False
+
+
+def test_one_definition_of_stopped():
+    """Two tools disagreed about the same corpus; the journal now decides."""
+    from maalimbus.run_metrics import stopped_in_events
+    assert stopped_in_events([{'event': 'map_observed'},
+                              {'event': 'mirror_loop_stopped'}]) is True
+    assert stopped_in_events([{'event': 'map_observed'},
+                              {'event': 'mirror_loop_error'}]) is True
+    assert stopped_in_events([{'event': 'map_observed'}]) is False
+    assert stopped_in_events([]) is False

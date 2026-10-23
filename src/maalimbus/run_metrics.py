@@ -129,3 +129,18 @@ def summarise(rows):
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
     }
+
+STOP_EVENTS = ('mirror_loop_stopped', 'mirror_loop_error')
+
+
+def stopped_in_events(records):
+    """Did this run end on a recorded stop?
+
+    One definition, because two existed and disagreed: `tools/audit_runs.py` read the
+    summary report (76 stopped / 33 died of 109) while `tools/audit_silent.py` read the
+    journal (86 / 23 of the same corpus).  The journal is the durable record -- the
+    report is written by the same process that may have died -- so the journal decides,
+    and the report is only a fallback when no events were written at all.
+    """
+    return any(record.get('event') in STOP_EVENTS for record in records)
+
