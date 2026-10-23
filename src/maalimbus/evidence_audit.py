@@ -31,3 +31,27 @@ def recovery_kinds(events):
 def silent_recoveries(report):
     """How many recoveries ran without naming their decision (0 is the goal)."""
     return int(report.get('total', 0)) - int(report.get('named', 0))
+
+
+def inconsistent_decisions(events, table=None):
+    """Recoveries whose recorded action disagrees with the kind's table entry.
+
+    Presence is not correctness: an event can name a kind and still have spent a
+    different action than the table allows.  The expected action comes from the
+    single table, so this check never re-states the policy a second time.
+    """
+    if table is None:
+        from .pages import REFUSAL_KINDS, recovery_for
+        table = {kind: recovery_for(kind) for kind in REFUSAL_KINDS}
+    wrong = []
+    for event in events:
+        if not isinstance(event, dict) or event.get('event') != 'window_recovery':
+            continue
+        kind = event.get('refused_kind')
+        if kind is None:
+            continue
+        expected = table.get(kind, 'hold')
+        if event.get('recovery_action') != expected:
+            wrong.append({'kind': kind, 'recorded': event.get('recovery_action'),
+                          'expected': expected, 'page': event.get('page')})
+    return wrong
