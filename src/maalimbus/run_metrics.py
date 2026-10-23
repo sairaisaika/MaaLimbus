@@ -12,7 +12,11 @@ Definitions (deliberately narrow, because a wide one invites self-congratulation
 - `verdicts`          `map_click_result` by outcome; an accepted one must name a
                       movement reason, otherwise it is recorded as `accepted_other`.
 """
-ACCEPTED_MOVEMENT = ('the_party_moved_after_the_click', 'the_click_opened_the_next_page')
+ACCEPTED_MOVEMENT = ('the_party_moved_after_the_click',)
+# `the_click_opened_the_next_page` is deliberately NOT a movement: every accepted click of
+# that kind in `evidence/runtime/packaged-mirror-20261023-05xxxx` has target centre
+# (1844,60) -- the top-right progress gear.  Counting it as advancement treated opening a
+# panel as walking, which inflated `recovery_advanced` to 6/17 when the party never moved.
 
 
 def recovery_effect(rows, *, window=3):
