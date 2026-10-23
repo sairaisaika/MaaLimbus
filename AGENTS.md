@@ -47,3 +47,11 @@ multi-context. See `docs/agents/domain.md`.
 ### Memory
 
 Session conclusions are written back to agentmemory (project `MaaLimbus`) so the next session can retrieve them. See `docs/agents/memory.md`.
+
+## 验证命令与退出码
+
+跑测试一律用 `python tools/run_tests.py <参数>`，或者直接调用 pytest 并检查它自己的退出码。
+
+不要写成 `pytest ... | tail && git commit`：管道的退出码来自 `tail`（或任何最后一段命令），于是红的套件会被提交。这个项目在 2026-10-22/23 各犯过一次，第二次是一个守卫测试红着进了仓库。
+
+判定规则：退出码只有来自 pytest 进程本身才算数；要看裁剪后的输出就先用 `> build/x.log 2>&1` 落盘，再 `tail` 日志。
