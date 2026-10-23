@@ -64,7 +64,9 @@ def test_the_shared_builder_fills_a_kind_for_both_real_shapes():
     ladder = MirrorRunner._recovery_fields(
         None, {'stopped_reason': 'unexpected_successor'}, {'reason': 'mirror_menu'})
     assert ladder['refused_kind'] == 'bad_saved_state'
-    assert ladder['recovery_action'] == 'recompute_state'
+    # `bad_saved_state` moved off the wait-only action after the outcome measurement
+    # (52 recoveries, 51 followed by the same page); the table now spends a gesture.
+    assert ladder['recovery_action'] == 'reset_state'
     assert ladder['deciding_kind'] is None
 
 
