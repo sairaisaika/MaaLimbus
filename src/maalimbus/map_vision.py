@@ -1864,3 +1864,46 @@ def adjacent_to(party, boxes, *, near=150.0, far=430.0, tolerance=0.34):
     return keep
 
 
+
+
+VIEW_TOLERANCE = 12.0
+
+
+def movement_between(before, after, *, tolerance=VIEW_TOLERANCE):
+    """Did the party walk, or did the camera move the whole page?
+
+    The measurement that forced this: in `evidence/runtime/packaged-mirror-20261023-055547`
+    the party sat at (703,316) for the early frames and at (1052,439) for the late ones --
+    a delta of (349,122) -- but the badges around it were a *different set*
+    ((888,432),(318,680) before versus (671,290),(671,450),(288,610) after), and
+    (888,432)+(349,122) appears nowhere in the later view.  A whole-page translation
+    would carry the badges with it; a different badge set means the view changed.
+
+    `before` / `after` are dicts with `party` and `badges`.  Returns one of
+    `'moved'`, `'the_view_moved'`, `'the_view_changed'` or `'unknown'` -- never a guess:
+    a missing reading on either side is `'unknown'`.
+    """
+    if not before or not after:
+        return 'unknown'
+    before_party, after_party = before.get('party'), after.get('party')
+    if before_party is None or after_party is None:
+        return 'unknown'
+    dx = after_party[0] - before_party[0]
+    dy = after_party[1] - before_party[1]
+    if abs(dx) <= tolerance and abs(dy) <= tolerance:
+        return 'unknown'
+    marks_before = list(before.get('badges') or [])
+    marks_after = list(after.get('badges') or [])
+    if not marks_before or not marks_after:
+        return 'unknown'
+    carried = 0
+    for x, y in marks_before:
+        if any(abs((x + dx) - ax) <= tolerance and abs((y + dy) - ay) <= tolerance
+               for ax, ay in marks_after):
+            carried += 1
+    if carried * 2 >= len(marks_before):
+        return 'the_view_moved'
+    if carried == 0 and not any(abs(x - ax) <= tolerance and abs(y - ay) <= tolerance
+                                for x, y in marks_before for ax, ay in marks_after):
+        return 'the_view_changed'
+    return 'moved'

@@ -1339,3 +1339,32 @@ def test_an_unprovable_pitch_falls_back_and_never_invents_one():
     lone = [(1052 + 381 - 95, 562 + 106 - 95, 190, 190)]
     assert pitch_of(party, lone) is None
     assert adjacent_to(party, lone) == lone
+
+
+def test_the_camera_moving_is_not_the_party_walking():
+    from maalimbus.map_vision import movement_between
+
+    # Whole page translated by the same delta as the party: the camera moved.
+    before = {'party': (700, 300), 'badges': [(900, 400), (500, 300)]}
+    after = {'party': (1050, 422), 'badges': [(1250, 522), (850, 422)]}
+    assert movement_between(before, after) == 'the_view_moved'
+
+    # Badges hold still while the party moves one step: the party walked.
+    still = {'party': (700, 300), 'badges': [(900, 400), (500, 300)]}
+    walked = {'party': (889, 410), 'badges': [(900, 400), (500, 300)]}
+    assert movement_between(still, walked) == 'moved'
+
+    # The live case: a different badge set, so neither is provable.
+    old = {'party': (703, 316), 'badges': [(888, 432), (318, 680)]}
+    new = {'party': (1052, 439), 'badges': [(671, 290), (671, 450), (288, 610)]}
+    assert movement_between(old, new) == 'the_view_changed'
+
+
+def test_a_missing_reading_is_unknown_not_a_movement():
+    from maalimbus.map_vision import movement_between
+
+    assert movement_between(None, {'party': (1, 2), 'badges': [(3, 4)]}) == 'unknown'
+    assert movement_between({'party': None, 'badges': [(3, 4)]},
+                            {'party': (1, 2), 'badges': [(3, 4)]}) == 'unknown'
+    unchanged = {'party': (700, 300), 'badges': [(900, 400)]}
+    assert movement_between(unchanged, dict(unchanged)) == 'unknown'
