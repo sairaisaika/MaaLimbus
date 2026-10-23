@@ -22,8 +22,11 @@ SOURCE = ROOT / "src" / "maalimbus"
 
 # file -> sorted `enclosing scope` names that start a pipeline node.
 RUN_NODE_SITES = {
-    "runner.py": ["MaaObserver.observe", "MirrorRunner.step"],
+    "runner.py": ["MaaObserver.observe", "MirrorRunner._act"],
 }
+
+# The doors a `run_node` call may hand its deadline to: a bare deadline is the defect.
+BOUNDED_DOORS = ("bounded_read", "bounded_action")
 
 # file -> sorted scopes that call a page observer's own `.observe()`: the module door.
 OBSERVER_CALLS = {
@@ -99,6 +102,71 @@ def test_the_native_read_door_is_the_only_place_a_node_is_started():
         "(or add it to RUN_NODE_SITES with the measurement that says it is bounded)")
 
 
+def _door_name(node):
+    """The door a call names, when it names one of them."""
+    if not isinstance(node, ast.Call):
+        return None
+    func = node.func
+    called = func.id if isinstance(func, ast.Name) else (
+        func.attr if isinstance(func, ast.Attribute) else None)
+    return called if called in BOUNDED_DOORS else None
+
+
+def _walk_scopes(node, owner, visit):
+    """Depth-first walk that keeps the dotted scope of the node it is visiting."""
+    if isinstance(node, ast.ClassDef):
+        owner = f"{owner}.{node.name}" if owner else node.name
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        owner = f"{owner}.{node.name}" if owner else node.name
+    visit(node, owner)
+    for child in ast.iter_child_nodes(node):
+        _walk_scopes(child, owner, visit)
+
+
+def _unbounded_nodes(source):
+    """Every `run_node(...)` whose window did not come from one of the two doors.
+
+    The inventory above says *where* a node is started; this says *what window* it is
+    given.  They are different defects: `dea7028` bounded one site and left the other
+    naming `self.deadline`, a whole run's budget for one read.  So the third argument
+    has to be a door call -- or a local the *same scope* assigned from one, which is
+    what a site needs when it also has to record the window before spending it.
+    """
+    tree = ast.parse(source)
+    doors = {}
+
+    def collect(node, owner):
+        if isinstance(node, ast.Assign) and _door_name(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    doors.setdefault(owner, set()).add(target.id)
+
+    _walk_scopes(tree, "", collect)
+
+    offences = []
+
+    def check(node, owner):
+        if isinstance(node, ast.Call):
+            func = node.func
+            called = func.id if isinstance(func, ast.Name) else None
+            if called == "run_node":
+                window = node.args[2] if len(node.args) >= 3 else None
+                allowed = bool(_door_name(window)) or (
+                    isinstance(window, ast.Name) and window.id in doors.get(owner, ()))
+                if not allowed:
+                    offences.append(f"{owner}:{getattr(node, 'lineno', '?')}")
+
+    _walk_scopes(tree, "", check)
+    return offences
+
+
+def test_every_node_start_hands_over_its_own_bound():
+    offenders = _inventory(_unbounded_nodes)
+    assert offenders == {}, (
+        "a run_node call was handed something other than bounded_read/bounded_action: "
+        "one native call may not get the whole run's budget")
+
+
 def test_only_the_door_reads_a_page_observer():
     assert _inventory(_observer_calls) == OBSERVER_CALLS, (
         "a new site reads an observer directly: call runner.observe so the read is "
@@ -118,6 +186,21 @@ def _new_page_reader(tasker):
 '''
     assert _calls(snippet, "run_node") == ["_new_page_reader"]
     assert _observer_calls(snippet) == ["Reader.page"]
+    assert _unbounded_nodes(snippet), "a bare deadline at a new site must be visible"
+
+
+def test_every_node_start_names_its_bound_in_the_source():
+    """The counter-example for the door rule: a bare deadline is reported."""
+    unbounded = """
+def _old_style(self):
+    return run_node(self.tasker, plan['node'], self.deadline)
+"""
+    bounded = """
+def _new_style(self):
+    return run_node(self.tasker, plan['node'], bounded_action(self.deadline))
+"""
+    assert _unbounded_nodes(unbounded) == ["_old_style:3"]
+    assert _unbounded_nodes(bounded) == []
 
 
 def test_the_replay_observer_still_reads_frames(tmp_path):

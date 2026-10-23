@@ -113,7 +113,7 @@ def test_the_read_in_flight_is_visible_to_the_watchdog(tmp_path, monkeypatch):
     during = []
 
     def fake(observer, deadline=None):
-        during.append(loop._reading_report())
+        during.append(loop._in_flight_report())
         return {"image_sha256": "same"}
 
     monkeypatch.setattr(runner, "observe", fake)
@@ -122,7 +122,7 @@ def test_the_read_in_flight_is_visible_to_the_watchdog(tmp_path, monkeypatch):
     inside, = during
     assert inside["phase"] == "settle" and inside["page"] == "RESUME_DIALOG"
     assert inside["in_flight"] is True and inside["limit_seconds"] > 0
-    after = loop._reading_report()
+    after = loop._in_flight_report()
     assert "in_flight" not in after, "a finished read is not a wedge"
     assert after["lasted_seconds"] >= 0
 

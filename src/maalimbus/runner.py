@@ -455,6 +455,18 @@ that measured p50 and still two orders of magnitude below the 420 s budget it pr
 """
 
 
+def _ceiling(deadline, limit, clock):
+    """The moment one native call has to be over by: its own window or the caller's.
+
+    One formula for both doors, because the arithmetic drifting between two copies is
+    the same class of defect as a rule written twice: ``bounded_read`` protects a page
+    read, ``bounded_action`` protects a node action, and neither may extend a window
+    its caller already closed.
+    """
+    own = clock() + float(limit)
+    return own if deadline is None else min(float(deadline), own)
+
+
 def bounded_read(deadline, *, limit=None, clock=time.monotonic):
     """The moment one read has to be over by: the caller's window or the read's own.
 
@@ -471,8 +483,47 @@ def bounded_read(deadline, *, limit=None, clock=time.monotonic):
     The caller's tighter window still wins: this is a ceiling, never an extension.
     """
     limit = ONE_READ_SECONDS if limit is None else float(limit)
-    own = clock() + limit
-    return own if deadline is None else min(float(deadline), own)
+    return _ceiling(deadline, limit, clock)
+
+
+ONE_ACTION_SECONDS = 60.0
+"""One pipeline node action may not outlive this, whoever asked for it.
+
+This one is a policy ceiling, not a measurement, and the record says so instead of
+implying a measurement: of the 142 retained runs, exactly one ``window_intent``
+carries a ``node`` (the only plan that uses one is DRIVE's
+``mirror_menu_recognition_owns_the_click_box``), and that row's ISO timestamp cannot
+be turned into a duration.  So the number comes from its shape -- an action node is a
+click or a short execute -- plus the loop's own ``DEEP_STEP_SECONDS`` (60 s) and the
+420 s budget it protects.  The in-flight record added beside it is what will produce
+the distribution the next revision of this number needs.
+"""
+
+
+class ActionNeverReturned(RuntimeError):
+    """A node action did not come back inside its window.
+
+    Raised instead of returning a verdict-shaped dict, because the loop's ending path
+    reads ``error.reason``: a wedged action must become a named ending
+    (``the_action_node_did_not_finish_inside_its_window``) rather than a step that
+    silently spends the budget, which is how five runs on 2026-10-23 died inside a
+    read before ``dea7028`` and ``92be12e`` put a bound on the read door.
+    """
+
+    reason = 'the_action_node_did_not_finish_inside_its_window'
+
+
+def bounded_action(deadline, *, limit=None, clock=time.monotonic):
+    """The moment one node action has to be over by: the caller's window or its own.
+
+    The read door got its bound in ``dea7028``/``92be12e``; this is the same rule for
+    the action door, which stayed on the run-wide deadline: ``MirrorRunner.step``
+    passed ``run_node(tasker, plan['node'], self.deadline)``, so one wedged action
+    could sit inside the budget exactly like the read that motivated D37 -- and no
+    watchdog could name it, because only reads stamped ``artifacts['reading']``.
+    """
+    limit = ONE_ACTION_SECONDS if limit is None else float(limit)
+    return _ceiling(deadline, limit, clock)
 
 
 MIN_SETTLE = 1.5
@@ -2054,6 +2105,46 @@ class MirrorRunner:
         finally:
             reading['lasted_seconds'] = round(time.monotonic() - now, 1)
 
+    def _act(self, node, *, phase='node_action'):
+        """One pipeline node action, bounded and visible while it runs.
+
+        A read stamps itself so the watchdog can name the call the silence belongs to;
+        an action did not, so a run wedged inside ``run_node`` looked exactly like a run
+        with nothing in flight.  This stamps the same way, bounds the call with
+        ``bounded_action``, and refuses to carry on when the node never came back: the
+        plan said an input would be sent, so a missing answer is a failed step, not a
+        step to repeat silently.
+
+        A node that *did* come back and reported failure is different: the screen still
+        answers, nothing is stuck, and the page is re-read next step.  That case is
+        journalled as ``node_action_unconfirmed`` so it stops being invisible, but it
+        does not end a run that may simply be a frame late.
+        """
+        if self.tasker is None:
+            raise RuntimeError('a node plan needs a Maa tasker')
+        now = time.monotonic()
+        self.artifacts['heartbeat'] = now
+        deadline = bounded_action(self.deadline)
+        acting = {'phase': phase, 'since': now, 'node': node,
+                  'page': self.state.get('page'),
+                  'limit_seconds': round(deadline - now, 1)}
+        self.artifacts['acting'] = acting
+        try:
+            verdict = run_node(self.tasker, node, deadline)
+        finally:
+            acting['lasted_seconds'] = round(time.monotonic() - now, 1)
+        if verdict.get('error') or verdict.get('timed_out'):
+            raise ActionNeverReturned(
+                'the action node %s did not come back inside %.1f s (%s)'
+                % (node, acting['limit_seconds'],
+                   verdict.get('error') or verdict.get('verdict')))
+        if not verdict.get('task_succeeded'):
+            self.note('node_action_unconfirmed', node=node,
+                      verdict=verdict.get('verdict'),
+                      lasted_seconds=acting['lasted_seconds'],
+                      page=acting['page'])
+        return verdict
+
     def _flow(self, deadline, steps, observe_only):
         """Walk the named session flow, then report its records.
 
@@ -3456,7 +3547,7 @@ class MirrorRunner:
                       reason=plan['reason'], delay_ms=delay)
             if self.tasker is None:
                 raise RuntimeError('a node plan needs a Maa tasker')
-            run_node(self.tasker, plan['node'], self.deadline)
+            self._act(plan['node'])
         elif plan['action'] == SWIPE:
             # A drag's start point is jittered inside its anchored box just like a click,
             # and its end point is jittered around the anchored pull target (``to`` is a
@@ -4665,7 +4756,7 @@ class MirrorRunner:
                   'heartbeat_age_seconds': round(time.monotonic() - heartbeat, 1),
                   'step': self.state.get('step'), 'page': self.state.get('page'),
                   'last_event': self.last_event,
-                  'in_flight': self._reading_report(),
+                  'in_flight': self._in_flight_report(),
                   'steps_recorded': len(self.artifacts.get('steps', []))}
         try:
             # The event carried only the heartbeat age, so every diagnosis of this stop
@@ -4690,25 +4781,34 @@ class MirrorRunner:
             pass
         return record
 
-    def _reading_report(self):
-        """What the loop was reading when the journal went quiet.
+    def _in_flight_report(self):
+        """What the loop was waiting on when the journal went quiet.
 
         A wedge inside a native call writes nothing, so the only witness is memory:
-        ``_observe`` stamps the read it entered, and this turns that stamp into the
-        piece of the ending record that names the call (and says whether it is still
-        inside it).
+        ``_observe`` stamps the read it entered and ``_act`` stamps the action, and this
+        turns the later of those two stamps into the piece of the ending record that
+        names the call (and says whether the loop is still inside it).  Both stamps are
+        needed: with only reads stamped, a run stuck inside ``run_node`` reported
+        ``in_flight: false`` and read as if nothing had been in flight at all.
         """
-        reading = self.artifacts.get('reading') or {}
-        if not reading.get('since'):
+        stamps = [stamp for stamp in (self.artifacts.get('reading'),
+                                      self.artifacts.get('acting'))
+                  if stamp and stamp.get('since')]
+        if not stamps:
             return None
-        report = {'phase': reading.get('phase'), 'page': reading.get('page'),
-                  'age_seconds': round(time.monotonic() - float(reading['since']), 1),
-                  'limit_seconds': reading.get('limit_seconds')}
-        if 'lasted_seconds' in reading:
-            report['lasted_seconds'] = reading['lasted_seconds']
+        stamp = max(stamps, key=lambda item: float(item['since']))
+        report = {'phase': stamp.get('phase'), 'page': stamp.get('page'),
+                  'age_seconds': round(time.monotonic() - float(stamp['since']), 1),
+                  'limit_seconds': stamp.get('limit_seconds')}
+        if stamp.get('node'):
+            report['node'] = stamp['node']
+        if 'lasted_seconds' in stamp:
+            report['lasted_seconds'] = stamp['lasted_seconds']
         else:
             report['in_flight'] = True
         return report
+
+    _reading_report = _in_flight_report   # the name D37 shipped under
 
     def _write_ending(self, stop_path, record):
         """Write the end of a run, whichever watch ended it.
@@ -4729,6 +4829,8 @@ class MirrorRunner:
             fields.update(in_flight_phase=in_flight.get('phase'),
                           in_flight_seconds=in_flight.get('age_seconds'),
                           in_flight=bool(in_flight.get('in_flight')))
+            if in_flight.get('node'):
+                fields['in_flight_node'] = in_flight['node']
         try:
             self.note('mirror_loop_stopped', **fields)
         except Exception:  # pragma: no cover - a journal may be closing
@@ -4737,7 +4839,7 @@ class MirrorRunner:
     def _record_no_progress(self, limit):
         """Leave the record of a loop that kept looking and stopped moving."""
         heartbeat = self.artifacts.get('event_heartbeat', 0.0)
-        reading = self._reading_report() or {}
+        reading = self._in_flight_report() or {}
         record = {'reason': 'the_run_kept_observing_without_writing_anything',
                   'limit_seconds': limit,
                   'event_age_seconds': round(time.monotonic() - heartbeat, 1),
@@ -4750,7 +4852,8 @@ class MirrorRunner:
                       page=record['page'],
                       in_flight_phase=reading.get('phase'),
                       in_flight_seconds=reading.get('age_seconds'),
-                      in_flight=bool(reading.get('in_flight')))
+                      in_flight=bool(reading.get('in_flight')),
+                      **({'in_flight_node': reading['node']} if reading.get('node') else {}))
         except Exception:  # pragma: no cover - a journal may be closing
             pass
         self._write_ending('no_progress_watchdog', record)
