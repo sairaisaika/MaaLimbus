@@ -63,14 +63,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 566,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "line": 597,
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1536,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "line": 1570,
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         },
         {
           "path": "agent/recognition.py",
@@ -626,7 +626,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 188,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         }
       ]
     },
@@ -810,20 +810,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
-          "line": 478,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "line": 509,
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4439,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "line": 4474,
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
-          "line": 505,
-          "sha256": "b5966482ec51393ba5888a3ccc31bdc06f3cfc1c12dd2493c2c58c7557d61a43"
+          "line": 536,
+          "sha256": "5484ac3a60d099c1109c34eafa625b893ca64c52597c579cf33b20d0ee50794d"
         }
       ]
     },
