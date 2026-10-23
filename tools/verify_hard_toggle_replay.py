@@ -8,17 +8,17 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from recognition import DifficultyProof
 from maalimbus.theme_vision import ThemeCatalog
 
 
-class ToggleReplay(Replay):
-    def click(self,x,y):
-        assert 1355<x<1410 and 50<y<85
-        self.clicks.append([x,y])
-        if self.after is not None:self.frame=self.after.copy()
-        return True
+def expects_toggle(kind,position,*args):
+    """Only the hard-mode switch, and only where the glyph sits."""
+    if kind!='click':return False
+    x,y=args[0],args[1]
+    return 1355<x<1410 and 50<y<85
 
 
 def main():
@@ -38,7 +38,8 @@ def main():
         if case=='missing_refresh':frame[34:99,1510:1745]=0
         if case=='missing_header':frame[145:211,750:1180]=0
         if case=='pending':write_json(data/'difficulty-switch-progress.json',dict(pending={'unknown':True}))
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=ToggleReplay(frame,derived if case=='derived_hard' else None)
+        rec=LimbusRecognition('en',journal);resource=Resource();controller=ReplayController([frame,derived] if case=='derived_hard' else [frame],
+            expects=expects_toggle,advance=case=='derived_hard')
         if case=='foreground_changed':
             def reject():raise RuntimeError('Foreground changed')
             rec.input_validator=reject

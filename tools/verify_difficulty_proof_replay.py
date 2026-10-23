@@ -8,7 +8,8 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from recognition import DifficultyProof
 from maalimbus.storage import read_json
 
@@ -26,7 +27,7 @@ def main():
         if case=='missing_header':frame[145:211,750:1180]=0
         if case=='missing_refresh':frame[34:99,1510:1745]=0
         write_json(data/'difficulty-switch-progress.json',read_json(ROOT/'config/difficulty-switch-progress.json'))
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=Replay(frame)
+        rec=LimbusRecognition('en',journal);resource=Resource();controller=ReplayController(frame)
         resource.register_custom_recognition('limbus_scene',rec)
         resource.register_custom_action('limbus_terminal',LimbusTerminal(rec))
         resource.register_custom_action('limbus_difficulty_proof',DifficultyProof(rec))

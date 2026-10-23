@@ -123,19 +123,37 @@ def test_every_owning_tool_inherits_the_shared_layer():
             assert controller['shared'], (row['tool'], controller)
 
 
-def test_the_neighbour_imports_are_reported_and_only_shrink():
-    """14 tools still take a controller from a tool that declares expectations.
+REPO = pathlib.Path(__file__).resolve().parents[1]
 
-    It was 46 until D54 flattened the 32 that imported a body of "store this frame"
-    and nothing else. What is left imports a class whose own `click`/`swipe`/key
-    body *is* the expectation its loop needs, so each one has to be flattened
-    against the input it really expects, not mechanically. The number may fall but
-    not grow, and the sources are named so a new one cannot arrive unnoticed.
+
+def _tool_module(name):
+    """Load a tool by filename, so its own scene expectation can be asked a question."""
+    import sys
+
+    for path in (REPO / 'tools', REPO / 'src'):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    spec = importlib.util.spec_from_file_location(name, REPO / 'tools' / (name + '.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_neighbour_imports_are_reported_and_only_shrink():
+    """Five tools still take a controller from a tool that owns a real scene.
+
+    It was 46 until D54 flattened the 32 that imported a body of "store this frame",
+    then 12 until D55 gave the layer the two capabilities seven of them existed for
+    (a screen that advances when the input is accepted, and a click log). What is
+    left is one scene replay reused by another tool of the same scene -- deployment
+    twice, battle, native, theme -- which is a dependency, not a duplicate. The
+    number may fall but not grow, and the sources are named so a new one cannot
+    arrive unnoticed.
     """
     data = _inventory_module().report()
-    assert data['importing_a_controller_from_a_tool'] == 12
+    assert data['importing_a_controller_from_a_tool'] == 5
     sources = {edge[0] for edges in data['controller_imports'].values() for edge in edges}
-    assert sources == {'verify_star_replay', 'verify_theme_replay', 'verify_deployment_replay',
+    assert sources == {'verify_theme_replay', 'verify_deployment_replay',
                        'verify_native_replay', 'verify_battle_plan_replay'}, sources
 
 
@@ -192,3 +210,35 @@ def test_the_inventory_tool_runs_clean(capsys):
     out = capsys.readouterr().out
     assert 'inheriting the shared layer: 16' in out
     assert 'problems: none' in out
+
+
+def test_an_accepted_input_moves_the_screen_on_and_a_refused_one_does_not():
+    """The frame swap seven tools wrote inside their own `click` is the layer's job.
+
+    Before D55 each of them carried `if self.after is not None: self.frame = ...`,
+    so the capability existed seven times and nowhere a stranger could find it.
+    """
+    import numpy as np
+
+    frames = [np.zeros((4, 4, 3), np.uint8), np.full((4, 4, 3), 9, np.uint8)]
+    yes = ReplayFrames(frames, expects=lambda kind, position, *args: True, advance=True)
+    assert yes.screencap()[0, 0, 0] == 0
+    yes.click(3, 3)
+    assert yes.screencap()[0, 0, 0] == 9, 'an accepted input shows the next frame'
+    yes.click(3, 3)
+    assert yes.screencap()[0, 0, 0] == 9, 'the last frame stays the last frame'
+    assert yes.clicks == [[3, 3], [3, 3]]
+
+    no = ReplayFrames(frames, expects=lambda kind, position, *args: False, advance=True)
+    with pytest.raises(ReplayInputRefused):
+        no.click(3, 3)
+    assert no.screencap()[0, 0, 0] == 0, 'a refused input never moves the screen'
+    assert no.clicks == []
+
+
+def test_a_scene_expectation_built_from_flags_still_refuses_the_other_box():
+    """The migration kept each tool's own box, and the boxes still say no."""
+    expects = _tool_module('verify_hard_toggle_replay').expects_toggle
+    assert expects('click', 0, 1380, 70) is True
+    assert expects('click', 0, 900, 500) is False
+    assert expects('swipe', 0, 1, 2, 3, 4) is False

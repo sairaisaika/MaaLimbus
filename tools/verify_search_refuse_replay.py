@@ -8,15 +8,19 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from maalimbus.storage import read_json
 
 
-class RefuseReplay(Replay):
-    def click(self,x,y):
-        if getattr(self,'forgo',False):assert 1100<x<1240 and 720<y<775
-        else:assert 1320<x<1440 and 845<y<885
-        self.clicks.append([x,y]);return True
+def expects_search(forgo):
+    """Refuse the optional gift search, or forgo it; nothing else is expected."""
+    def expects(kind,position,*args):
+        if kind!='click':return False
+        x,y=args[0],args[1]
+        if forgo:return 1100<x<1240 and 720<y<775
+        return 1320<x<1440 and 845<y<885
+    return expects
 
 
 def main():
@@ -40,8 +44,8 @@ def main():
         progress=read_json(ROOT/'config/initial-gift-progress.json')
         if case=='pending':progress['search_confirm_pending' if args.forgo else 'search_refuse_pending']={'unknown':True}
         write_json(data/'initial-gift-progress.json',progress)
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=RefuseReplay(frame)
-        controller.forgo=args.forgo
+        rec=LimbusRecognition('en',journal);resource=Resource()
+        controller=ReplayController(frame,expects=expects_search(args.forgo))
         if case=='foreground_changed':
             def reject():raise RuntimeError('Foreground changed')
             rec.input_validator=reject

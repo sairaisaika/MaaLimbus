@@ -8,16 +8,19 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 
 
-class EntryReplay(Replay):
-    def click(self,x,y):
-        if getattr(self,'confirm',False):assert 1040<x<1200 and 780<y<815
-        elif getattr(self,'conversion',False):assert 1075<x<1104 and 532<y<563
-        else:assert 1740<x<1845 and 985<y<1028
-        self.clicks.append([x,y])
-        return True
+def expects_entry(confirm,conversion):
+    """The star map's enter button, or one of the two modals over it."""
+    def expects(kind,position,*args):
+        if kind!='click':return False
+        x,y=args[0],args[1]
+        if confirm:return 1040<x<1200 and 780<y<815
+        if conversion:return 1075<x<1104 and 532<y<563
+        return 1740<x<1845 and 985<y<1028
+    return expects
 
 
 def main():
@@ -43,9 +46,8 @@ def main():
             entry_pending={'choices':['1','3','4','6'],'cost':100} if modal else None))
         frame=original.copy()
         if case=='missing_check':frame[529:565,1071:1107]=0
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=EntryReplay(frame)
-        controller.conversion=args.conversion
-        controller.confirm=args.confirm
+        rec=LimbusRecognition('en',journal);resource=Resource()
+        controller=ReplayController(frame,expects=expects_entry(args.confirm,args.conversion))
         resource.register_custom_recognition('limbus_scene',rec)
         resource.register_custom_action('limbus_terminal',LimbusTerminal(rec))
         wait_job(resource.post_bundle(ROOT/'assets/resource/base'),timeout=20)

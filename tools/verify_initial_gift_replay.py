@@ -8,19 +8,23 @@ import json
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from recognition import InitialGiftProof
 from maalimbus.storage import read_json
 
 
-class GroupReplay(Replay):
-    def click(self,x,y):
-        if getattr(self,'commit',False):assert 1510<x<1630 and 855<y<905
-        elif getattr(self,'pick',False):
-            top=335+160*(getattr(self,'choice',1)-1)
-            assert 1300<x<1740 and top<y<top+35
-        else:assert 495<x<600 and 237<y<275
-        self.clicks.append([x,y]);return True
+def expects_group(commit,pick,choice):
+    """The group panel's three boxes: confirm, one gift in the grid, or the row."""
+    def expects(kind,position,*args):
+        if kind!='click':return False
+        x,y=args[0],args[1]
+        if commit:return 1510<x<1630 and 855<y<905
+        if pick:
+            top=335+160*(choice-1)
+            return 1300<x<1740 and top<y<top+35
+        return 495<x<600 and 237<y<275
+    return expects
 
 
 def main():
@@ -50,12 +54,12 @@ def main():
             write_json(data/'initial-gift-progress.json',progress)
         elif (args.pick or args.commit) and (ROOT/'config/initial-gift-progress.json').exists():
             write_json(data/'initial-gift-progress.json',read_json(ROOT/'config/initial-gift-progress.json'))
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=GroupReplay(frame)
-        controller.pick=args.pick
-        controller.commit=args.commit
+        choice=1
         if args.pick and (data/'initial-gift-progress.json').exists():
             selected=read_json(data/'initial-gift-progress.json')['selected']
-            controller.choice=next(g for g in (1,2,3) if g not in selected)
+            choice=next(g for g in (1,2,3) if g not in selected)
+        rec=LimbusRecognition('en',journal);resource=Resource()
+        controller=ReplayController(frame,expects=expects_group(args.commit,args.pick,choice))
         if case=='foreground_changed':
             def reject():raise RuntimeError('Foreground changed')
             rec.input_validator=reject

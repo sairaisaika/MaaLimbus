@@ -55,7 +55,7 @@ class ReplayFrames:
     #: rewrite it between packets, by overriding `screencap` itself
     frame = None
 
-    def __init__(self, frames=None, *, uuid=OFFLINE_UUID, expects=None):
+    def __init__(self, frames=None, *, uuid=OFFLINE_UUID, expects=None, advance=False):
         if frames is None:
             self.frames = []
         elif isinstance(frames, (list, tuple)):
@@ -73,9 +73,17 @@ class ReplayFrames:
         self.scenario_uuid = uuid
         self.expects = expects
         self.inputs = []
+        #: accepted clicks as `[x, y]`, the record seven tools already read off
+        #: their own `Replay` class; a refusal never lands here
+        self.clicks = []
         self.attempts = []
         # the name the retained-map replay used before this layer existed
         self.input_attempts = self.attempts
+        #: whether an accepted input moves the screen on to the next frame. Seven
+        #: tools each wrote `if self.after is not None: self.frame = self.after.copy()`
+        #: inside their own `click`, which is a capability of the scene, not of
+        #: the tool; the frame swap is the layer's job (D55).
+        self.advance = advance
 
     # -- the identical half: one implementation in the whole repository --------
 
@@ -92,8 +100,13 @@ class ReplayFrames:
         return True
 
     def screencap(self):
-        frame = self.frame if self.frame is not None else (
-            self.frames[min(self.position, len(self.frames) - 1)] if self.frames else None)
+        # a frames list is what the position advances through, so it wins over a
+        # single `frame` a subclass may also have set; reading the list first is
+        # what makes `advance` visible at all (D55).
+        if self.frames:
+            frame = self.frames[min(self.position, len(self.frames) - 1)]
+        else:
+            frame = self.frame
         if frame is None:
             raise ReplayInputRefused('a replay has no frame to show')
         return frame.copy()
@@ -139,15 +152,19 @@ class ReplayFrames:
             raise ReplayInputRefused(
                 'a replay refused %s%s at frame %d' % (kind, args, self.position))
         self.inputs.append((kind,) + args)
+        if kind == 'click':
+            self.clicks.append([args[0], args[1]])
+        if self.advance and self.position + 1 < len(self.frames):
+            self.position += 1
         return True
 
 
 class ReplayController(ReplayFrames, CustomController):
     """A Maa controller that answers from frames and refuses input by default."""
 
-    def __init__(self, frames=None, *, uuid=OFFLINE_UUID, expects=None):
+    def __init__(self, frames=None, *, uuid=OFFLINE_UUID, expects=None, advance=False):
         CustomController.__init__(self)
-        ReplayFrames.__init__(self, frames, uuid=uuid, expects=expects)
+        ReplayFrames.__init__(self, frames, uuid=uuid, expects=expects, advance=advance)
 
 
 def blank_replay(size=(640, 640)):

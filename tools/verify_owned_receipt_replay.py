@@ -8,7 +8,8 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from recognition import InitialReceiptProof
 from maalimbus.storage import read_json
 
@@ -31,7 +32,7 @@ def main():
             metadata=read_json(source.with_suffix('.json'));metadata['image_sha256']='00'
             write_json(copy.with_suffix('.json'),metadata);progress['proof']=str(copy)
         write_json(data/'initial-gift-progress.json',progress)
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=Replay(frame)
+        rec=LimbusRecognition('en',journal);resource=Resource();controller=ReplayController(frame)
         resource.register_custom_recognition('limbus_scene',rec)
         resource.register_custom_action('limbus_terminal',LimbusTerminal(rec))
         resource.register_custom_action('limbus_initial_receipt_proof',InitialReceiptProof(rec))

@@ -8,17 +8,17 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_star_replay import ROOT, Replay, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
+from maalimbus.replay import ReplayController
+from verify_star_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task, write_json
 from recognition import InitialReceiptProof
 from maalimbus.storage import read_json
 
 
-class ReceiptReplay(Replay):
-    def click(self,x,y):
-        assert 935<x<1058 and 783<y<817
-        self.clicks.append([x,y])
-        if self.after is not None:self.frame=self.after.copy()
-        return True
+def expects_receipt(kind,position,*args):
+    """Only the receipt's own confirm box."""
+    if kind!='click':return False
+    x,y=args[0],args[1]
+    return 935<x<1058 and 783<y<817
 
 
 def main():
@@ -47,7 +47,8 @@ def main():
             write_json(copy.with_suffix('.json'),metadata);progress['proof']=str(copy)
         write_json(data/'initial-gift-progress.json',progress)
         after=derived if case=='derived_next' else original*0 if case=='derived_unknown' else None
-        rec=LimbusRecognition('en',journal);resource=Resource();controller=ReceiptReplay(frame,after)
+        rec=LimbusRecognition('en',journal);resource=Resource();controller=ReplayController([frame,after] if after is not None else [frame],
+            expects=expects_receipt,advance=after is not None)
         if case=='foreground_changed':
             def reject():raise RuntimeError('Foreground changed')
             rec.input_validator=reject
