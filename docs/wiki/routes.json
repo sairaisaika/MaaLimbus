@@ -679,7 +679,15 @@
         "input_without_a_proof",
         "证据关系",
         "无证据的点击",
-        "证伪"
+        "证伪",
+        "plan_outcomes",
+        "归档证据",
+        "never_changed",
+        "证明类型",
+        "state proof",
+        "pixel proof",
+        "PLANS_AWAITING_A_STATE_PROOF",
+        "PLANS_WITH_ONLY_A_DISMISSAL"
       ],
       "sources": [
         {
@@ -712,23 +720,43 @@
         },
         {
           "path": "src/maalimbus/pages.py",
-          "needle": "PLANS_WITHOUT_PROOF = {"
+          "needle": "PLANS_WITH_ONLY_A_DISMISSAL = {"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "PLANS_AWAITING_A_STATE_PROOF = {"
+        },
+        {
+          "path": "src/maalimbus/plan_outcomes.py",
+          "symbol": "main"
+        },
+        {
+          "path": "src/maalimbus/plan_outcomes.py",
+          "needle": "def outcomes("
+        },
+        {
+          "path": "src/maalimbus/plan_reasons.py",
+          "needle": "def _dismissal("
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d48-计划的-reason-是一个有写方的词它的类别不能从拼写里读出来",
         "docs/wiki/en_us/2.3-decisions.md#d48-a-plans-reason-is-a-word-with-a-writer-and-a-kind-that-is-not-read-off-its-spelling",
         "docs/wiki/zh_cn/2.3-decisions.md#d49-无法被证伪的输入是一个决定不是一次诊断",
-        "docs/wiki/en_us/2.3-decisions.md#d49-an-input-nothing-can-judge-is-a-decision-not-a-diagnosis"
+        "docs/wiki/en_us/2.3-decisions.md#d49-an-input-nothing-can-judge-is-a-decision-not-a-diagnosis",
+        "docs/wiki/en_us/2.3-decisions.md#d56-the-instrument-that-measured-the-gap-was-the-gap",
+        "docs/wiki/zh_cn/2.3-decisions.md#d56-度量缺口的仪器本身就是缺口"
       ],
       "tests": [
         "tests/test_plan_reasons.py",
-        "tests/test_plan_proof.py"
+        "tests/test_plan_proof.py",
+        "tests/test_plan_outcomes.py"
       ],
       "checks": [
-        "python -m pytest -q tests/test_plan_reasons.py tests/test_plan_proof.py"
+        "python -m pytest -q tests/test_plan_reasons.py tests/test_plan_proof.py",
+        "python tools/audit_plan_evidence.py"
       ],
-      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。"
+      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。 D56: the archive can only see pages and only from runs older than the change; a state proof can be demanded, never derived from it."
     },
     {
       "id": "endings",

@@ -4121,3 +4121,43 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
 - 证据：邻居边 12 → 5 且点名五个源；`verify_hard_toggle_replay.py` 真实回放 **exit 0**（`unchanged` 记下 `[[1370,78]]`，`derived_hard` 记下 `[[1372,57]]` 且推进帧读出 `difficulty: hard, verified: true`，拒绝用例 `clicks []`）；另外五个迁移过的工具也跑了，同样 exit 1，而 `HEAD` 上同样的命令在同一条断言上 exit 1、同样是空点击列表——失败来自我挑的“故意做坏”的帧，不是迁移。
 - 测试：`tests/test_replay_surface.py` 新增“被接受的输入推进画面、被拒绝的不推进也不记录”“按开关构造的期望仍会拒绝另一个盒子”，并把邻居边钉在 5、点名五个源。全套 `2200 passed in 186.57 s`，pytest exit 0；`tools/verify_pipeline_spec.py` ok，0 problems；实机只读 `evidence/runtime/map-live-20261023-194055`（`input_sent: false`，`RESUME_DIALOG`，F2 那局未动）。
 - 下一个单位：五条场景复用里 `verify_native_replay` 的分位置期望要不要进这一层；28 个 `unmeasured` 计划词仍需要一次被授权的运行换证据；`MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块。
+## DSH continuation: the instrument that measured the gap was the gap (2026-10-23)
+
+**三原因（第 17 轮，同族第八次）**
+
+1. **度量缺口的仪器本身有盲点**：D49 的 28 是"仪器看不见符号"的结果，不是代码没有证明。
+   `plan_reasons._elements` 只回字符串常量，`expect=(ANY,)`（页面必须变）数成 0。
+2. **数字被当成结论发布**：门只问"有证明吗"，没有对照"有证明但没数到"的计划。
+3. **只看页面就给输入下判断**：7 个 `advance` 计划的页面本来就不该动（像素才是证明），
+   只看页面会把它们全判成缺陷。
+
+**改了什么（D56）**
+
+| 项 | 之前 | 之后 |
+|---|---|---|
+| 无法判定的计划词 | 28 | **0**（45 具名 / 43 驳回 / 21 钩子 / 44 advance，80 个会发输入的计划） |
+| `pages` 声明 | `PLANS_WITHOUT_PROOF`（28×`unmeasured`，名字断言错误） | `PLANS_WITH_ONLY_A_DISMISSAL`（28×`page_must_change`）+ `PLANS_AWAITING_A_STATE_PROOF`（2 个，值=没动的次数） |
+| 归档证据 | 没有读者 | `maalimbus.plan_outcomes`：52 词 / 1643 次意图 / 773 变 / 815 未变 / 55 无证据 |
+| 分类 | 无 | `unanimous` 23、`few` 2、`mixed` 16、`never_changed` 11 |
+| 工具 | 无 | `tools/audit_plan_evidence.py`（exit 1 当声明与归档不符） |
+| 测试 | 25 | +13（`tests/test_plan_outcomes.py`），D49 的门改写为"没有不可判定的词" |
+
+**证据**
+
+- 计划相关套件：93 passed。
+- 全套：2214 passed in 193.54 s，`EXIT=0`。
+- `python tools/verify_pipeline_spec.py` → `ok — 0 problem(s)`（805 节点 / 16 agent 名 / 6 入口）。
+- 实机只读：`evidence/runtime/map-live-20261023-195021`，`input_sent: false`，
+  `scene: RESUME_DIALOG`，`reason: read_only_frame_is_not_an_identified_map`；F2 `2/6 [HARD]`
+  未动。
+- wiki：`--build` 22 路由、`--check` `snapshot_stale: false`、`verify_wiki_routes` 12 用例、
+  `check_wiki` 0 problems。
+
+**下一个单位**
+
+1. 两个"点名了却从未到达"的词（`refreshing_the_shelf_for_the_gift_the_plan_wants` 5 次、
+   `scrolling_visible_team_list_for_saved_slot` 1 次）：要么 `expect` 写错，要么点击无效，
+   需要用一次被授权的回放/运行把两者分开。
+2. 两个欠状态证明的起始礼物词：需要一个"哪一行被取走 / 哪个关键词亮了"的状态读数。
+3. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）。
+4. 46 条邻居 import 里剩余 5 条同场景复用是否该抽公共场景层。
