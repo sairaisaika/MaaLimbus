@@ -630,6 +630,30 @@ RECOVERY_ACTIONS = ('bind_control', 'pan_view', 'escalate_ladder', 'reread_text'
 # which of the two decided (`deciding_kind`).  A *new* shared action is a new decision.
 SHARED_ACTIONS = {'escalate_ladder': ('attempts_exhausted', 'bad_saved_state')}
 
+# D50.  Every ending names the path that wrote it.
+#
+# A run can end in four ways and, measured on 2026-10-23, one of them was invisible:
+# `tools/audit_runs.py` printed `stopped: 81  died_without_a_stop: 51` over 142 runs and
+# the two numbers do not add up, because 10 runs ended on `mirror_loop_error` alone --
+# neither a stop nor a death, so the census dropped them.  A denominator that silently
+# loses runs makes every rate above it wrong.
+#
+# The vocabulary is closed: a writer names one of these, or the census calls the ending
+# unrecorded / a death, and both of those are verdicts about a missing writer rather
+# than paths anything can take.
+STOP_PATHS = {
+    'agent_loop': 'the agent wrapper wrote the stop after the loop returned',
+    'pipeline_error': 'the loop ended its own session on a node failure and wrote the stop',
+    'stall_watchdog': 'the frame watch found the page frozen and ended the process',
+    'no_progress_watchdog': 'the progress watch found no event for its window and ended the process',
+    'process_died': 'no ending record was written: a census verdict, not a writer',
+    'unrecorded': 'an ending written before the stop path existed, so it names none',
+}
+
+# The path a writer must name.  `process_died` and `unrecorded` are deliberately absent:
+# nothing may write them, they are only ever read back by the census.
+STOP_PATH_WRITERS = ('agent_loop', 'pipeline_error', 'stall_watchdog', 'no_progress_watchdog')
+
 # Actions a retained event may still carry from the build that wrote it, after the
 # policy moved on.  Measured in `evidence/runtime/packaged-mirror-*`: `bad_saved_state`
 # recorded `reset_state` 3 times, `recompute_state` 60 times, and `escalate_ladder` 21

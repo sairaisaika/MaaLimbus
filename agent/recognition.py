@@ -1670,7 +1670,9 @@ class MirrorLoopAction(CustomAction):
             error_text=(str(failure.get('error_type'))+': '+str(failure.get('error'))
                         if failure else str(error))
             journal.record('mirror_loop_error', error=str(error),
-                           error_type=type(error).__name__, traceback=traceback.format_exc(),
+                           error_type=type(error).__name__,
+                           stop_path='agent_loop',   # D50: an error is an ending too
+                           traceback=traceback.format_exc(),
                            verified_clear=False)
             result = loop.summary() if loop is not None else result
             result.update(passed=False, reason='mirror_loop_failed', error=error_text,
@@ -1681,6 +1683,7 @@ class MirrorLoopAction(CustomAction):
         write_loop_result(directory, result)
         write_run_log(directory, result)
         journal.record('mirror_loop_stopped', reason=result.get('reason'),
+                       stop_path='agent_loop',   # D50: the ending names its writer
                        steps=len(result.get('steps') or []),
                        clicks_sent=result.get('clicks_sent', 0),
                        passed=result.get('passed'), directory=str(directory))

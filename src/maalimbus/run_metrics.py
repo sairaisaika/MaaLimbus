@@ -89,6 +89,42 @@ def recovery_advanced(rows, *, window=5):
             'rate': (advanced / seen) if seen else None}
 
 
+ENDING_KINDS = ('stop', 'error', 'died', 'no_events')
+
+
+def ending(rows):
+    """Which of the four ways this run ended; the four are exhaustive by construction.
+
+    `tools/audit_runs.py` used to classify a run as "stopped" or "died" and nothing else,
+    so the ten retained runs that ended on `mirror_loop_error` alone appeared in neither
+    column (81 + 51 = 132 of 142 on 2026-10-23).  A census whose buckets do not partition
+    the corpus is not a denominator, it is a sample that looks like one.
+
+    `path` names the writer, and defaults to `unrecorded` for an ending written before
+    the path existed -- which is a dated fact about the archive, not a silent default.
+    """
+    if not rows:
+        return {'kind': 'no_events', 'path': None, 'reason': None}
+    for row in rows:
+        if row.get('event') == 'mirror_loop_stopped':
+            return {'kind': 'stop', 'path': str(row.get('stop_path') or 'unrecorded'),
+                    'reason': row.get('reason')}
+    for row in rows:
+        if row.get('event') == 'mirror_loop_error':
+            return {'kind': 'error', 'path': str(row.get('stop_path') or 'unrecorded'),
+                    'reason': row.get('reason') or row.get('error_type')
+                    or 'an_error_was_recorded_without_a_reason'}
+    return {'kind': 'died', 'path': 'process_died', 'reason': None}
+
+
+def unknown_stop_paths(rows):
+    """Paths in this record that no writer is allowed to name, or none."""
+    from maalimbus.pages import STOP_PATHS
+    seen = {str(row.get('stop_path')) for row in rows
+            if row.get('event') in STOP_EVENTS and row.get('stop_path')}
+    return sorted(seen - set(STOP_PATHS))
+
+
 def summarise(rows):
     """One dict of counts for one run.  Pure: same rows in, same dict out."""
     events = [row.get('event') for row in rows]
@@ -129,6 +165,7 @@ def summarise(rows):
         # made 10 runs look like silent deaths (33 vs 23 on the same corpus) because
         # they ended on `mirror_loop_error`.
         'ended_without_a_stop': bool(rows) and not stopped_in_events(rows),
+        'ending': ending(rows),
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
     }

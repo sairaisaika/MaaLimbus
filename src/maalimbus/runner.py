@@ -4289,6 +4289,7 @@ class MirrorRunner:
             if self.state.get('session_ended'):
                 self.note('mirror_loop_stopped',
                           reason='the_pipeline_node_failed_before_the_next_input',
+                          stop_path='pipeline_error',   # D50: the ending names its writer
                           steps=self.state['step'], clicks=self.artifacts['clicks_sent'])
                 break
             # A heartbeat before each step: the process can die natively inside a step

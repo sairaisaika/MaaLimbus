@@ -1,11 +1,15 @@
-"""Where do the runs that end without a stop actually stop?
+"""Where do the runs that end with no ending record at all actually stop?
 
-`tools/audit_runs.py` counts them (32 of 107).  This names them.  A run is "silent"
-when it has no `mirror_loop_stopped` / `mirror_loop_error`: the process died
-natively, so the last thing written is whatever it was doing -- which is the only
-evidence of the cause.  Runs from before 2026-10-23 have no `loop_heartbeat`, so the
-last business event and the last heartbeat are reported separately rather than
-being conflated.
+`tools/audit_runs.py` counts them; this names them.  A run is silent when
+`run_metrics.ending` says `died` -- events were written and then stopped, with neither
+`mirror_loop_stopped` nor `mirror_loop_error` -- so the last thing written is whatever it
+was doing, which is the only evidence of the cause.  Before D50 this tool used its own
+rule ("no stop event") and reported 61 where the census reported 51: the ten runs that
+ended on `mirror_loop_error` were silent here and invisible there.  One definition now
+decides for both.
+
+Runs from before 2026-10-23 have no `loop_heartbeat`, so the last business event and the
+last heartbeat are reported separately rather than being conflated.
 """
 from __future__ import annotations
 
@@ -14,8 +18,11 @@ import collections
 import glob
 import json
 import os
+import sys
 
-from maalimbus.run_metrics import stopped_in_events as _stopped
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+
+from maalimbus.run_metrics import ending as _ending
 
 STOPS = {'mirror_loop_stopped', 'mirror_loop_error'}
 
@@ -43,8 +50,9 @@ def summarise(root):
         if not records:
             runs['empty'] += 1
             continue
-        if _stopped(records):
-            runs['stopped'] += 1
+        end = _ending(records)
+        if end['kind'] != 'died':
+            runs[end['kind']] += 1
             continue
         runs['silent'] += 1
         business = [r for r in records if r.get('event') != 'loop_heartbeat']
