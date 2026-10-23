@@ -82,6 +82,17 @@ def main():
     result = dict(app=str(app), address=args.address, observe_only=bool(args.observe_only),
                   agent=str(app / 'agent/MaaLimbusAgent.exe'), directory=str(directory),
                   entry=args.entry, steps_requested=args.steps, clicks_sent=0, passed=False)
+    import sys as _sys
+    from check_freeze import runnable as _runnable, verdict as _verdict
+    _freeze = _verdict()
+    _gate = _runnable(_freeze, allow_stale=('--allow-stale' in _sys.argv))
+    result['freeze'] = _freeze
+    result['freeze_gate'] = _gate
+    if not _gate['run']:
+        result.update(passed=False, refused=_gate['reason'],
+                      hint=f"frozen {str(_freeze.get('frozen'))[:8]} head {str(_freeze.get('head'))[:8]};"
+                           " refreeze (build/refreeze_agent.py) or pass --allow-stale")
+        print(json.dumps(result, ensure_ascii=False)); return 1
     gui_overrides=None
     if args.gui_log:
         if args.entry!='MirrorTask':raise ValueError('GUI choices require the actual MirrorTask entry')

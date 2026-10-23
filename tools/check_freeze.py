@@ -77,3 +77,16 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
+def runnable(state, *, allow_stale=False):
+    """Whether a live run may start against ``state``.
+
+    A stale bundle is not a style problem: the run would exercise old code and the
+    corpus it produces is evidence about that old code.  So the default is to refuse,
+    and the escape hatch has to be asked for explicitly.
+    """
+    if state.get('state') == 'current':
+        return {'run': True, 'reason': None}
+    if allow_stale:
+        return {'run': True, 'reason': 'stale_build_allowed_explicitly'}
+    return {'run': False, 'reason': 'the_frozen_app_predates_the_source_being_tested'}
