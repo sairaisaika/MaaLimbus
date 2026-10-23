@@ -3753,3 +3753,54 @@ runner 的 149 处分派是剩下真正会增长的总体；`tools/` 里其余"�
 
 **未做（不声称）**：没有实机输入、没有领奖、没有消费；那局 `Floor 2 2/6 [HARD]` 原样保留。
 agentmemory 工具在本会话不可用（`ops_discover_tools` 无匹配），结论落在本文件与两份决策文档。
+
+## DSH continuation: a hook nobody can satisfy is a proof that never runs (2026-10-23)
+
+本轮只改动一处，但它是前几轮"规则写在代码旁边就没人比对"的第三个变种：
+
+**问题模式。** `plan['reason']` 是给人读的散文，同时是循环的键：`runner.py` 里有 42 处比较、
+覆盖 22 个词，用来决定这一次输入欠哪一份证据。没有任何东西检查"读方所问的词是否真有写方"，
+所以一个死钩子既不会红、也不会报——它只是永远不触发，而"永不触发"和"本来不需要"看起来完全一样。
+
+**第二个更严重的发现。** 同一个词还决定失败类别。窗口层的链与表从字面表回答（130 个词），
+而 runner 唯一那个手工拼出来的计划（`UNKNOWN_DIALOG`，清掉一次"己方已拥有礼物"的拒绝）没有字面类别，
+`pages.kind_of` 于是退到散文模型，模型从 `confirm_proven_owned_gift_refusal` 里读出 "refusal"，
+答了 `refused_by_policy`——动作是 `stop`。也就是说：一个只是与存档状态不一致的画面，本来可以终止整局。
+
+**改动。**
+- 新增 `src/maalimbus/plan_reasons.py`：用 `ast` 从源码两侧派生——写方（窗口层 `_plan(reason=…)`、
+  `_refuse(page,'…')`、`STEP_ROWS` 行、以及 runner 里 `plan = …` 赋值）与读方
+  （`plan.get('reason')`/`plan['reason']` 的 `==`/`!=`/`in`/`not in`，四种写法，含条件表达式两侧）。
+  `unmatched()` 给出 `consumers_without_producer`（死钩子）与 `producers_without_consumer`（只报告）。
+- 新增 `tools/audit_plan_reasons.py`：打印关系，死钩子退出 1。
+- `pages.PLANNED_REASONS = {'confirm_proven_owned_gift_refusal': 'bad_saved_state'}`，并让 `kind_of`
+  先读字面表（`REFUSALS` → `STOP_KINDS` → `PLANNED_REASONS`）、之后才用散文模型。
+  理由写进注释：点击目标是账本给的（`floor_gift_transaction.refusal_confirm_target`），
+  点了画面不动，说明账本与画面不一致 = `bad_saved_state`，恢复动作 `escalate_ladder` 而非 `stop`。
+- 新增 `tests/test_plan_reasons.py`（14 项）：关系本身、四种比较写法、两个反例（死钩子必须被报出；
+  `entry.get('reason')` 不算计划钩子）、手工计划必须登记、每个值都是已知类别、散文模型仍会答 `stop`
+  这件事被固定为"被字面表覆盖的那件事"、以及四条棘轮（钩子 ≤ 42、词 ≤ 22、窗口词 ≥ 130、手工计划 ≤ 1）。
+
+**测量与验证。**
+- `python tools/audit_plan_reasons.py` → `plans the window can write: 130`、`plans the runner writes by hand: 1`、
+  `reason hooks in the runner: 42 over 22 words`、`hooks that name a word nobody writes: none`、
+  `words nobody reads: 109`，退出 0。
+- 定向套件（`test_plan_reasons`/`test_stop_kinds`/`test_recovery_event_fields`/`test_evidence_audit`/
+  `test_refuse_vocabulary`/`test_pages`/`test_page_contracts`/`test_runner`）→ **152 passed in 38.58 s**。
+- 全量套件 → **2138 passed in 176.81 s**（pytest 自身退出码 0）。
+- `python tools/verify_pipeline_spec.py` → `ok — 0 problem(s)`，805 节点 / 16 agent 名 / 6 个入口可达。
+- 只读实机核对（MuMu `127.0.0.1:16416`，`input_sent: false`）→ `evidence/runtime/map-live-20261023-184333`：
+  `scene: RESUME_DIALOG`、`reason: read_only_frame_is_not_an_identified_map`，那局进行中的
+  Mirror of Sisyphus 08 / F2 `Floor 2 2/6 [HARD]` 原样保留，没有点任何东西、没有消费。
+
+**局限（写进 D48，不装作已解决）。**
+- 关系只单向设闸：130 个窗口词里 109 个不欠额外证据，把它当债务会逼循环去发明检查。
+- 这个词表只关于**计划**；回合结论（`entry['reason']`）与名为 `observe_only` 的设置属于
+  `pages.kind_of`，已有自己的表与测试。
+- provenance 走的是字典**字面量**，`dict(...)` 拼出来的计划对它不可见——这正是这条关系必须单独派生、
+  不能从角色模型推断的原因。也正因为如此，`confirm_proven_owned_gift_refusal` 从未出现在
+  "unmapped failure names" 的棘轮名单里：那个名单一直在测一个看不见它的模型。
+
+**下一单元。** `MirrorRunner.step` 仍是最大未缩减面（2069 行、306 个 `If`、112 个顶层分支，
+其中只有 18 个是顶层 `page == 'X'`）。30 个"输入之后按 `plan['reason']` 分流"的块是同一种形状、
+合计约 450 行，是下一个可度量、可做差分等价证明的切片。
