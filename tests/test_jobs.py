@@ -181,12 +181,18 @@ def test_a_click_that_outlives_its_deadline_is_soft_when_the_screen_still_answer
 
 
 def test_a_click_with_no_live_screen_is_still_fatal():
-    from maalimbus.jobs import InputNeverReturned, dispatch
+    """No live screen after a dead click now means the controller is gone.
+
+    It used to be ``InputNeverReturned`` (a slow click); the empty-id click that
+    hangs the agent side is the same state, so it is named as a lost controller and
+    the run stops instead of retrying.
+    """
+    from maalimbus.jobs import InputLost, dispatch
     ctl = _ClickController(False)
     try:
         dispatch(ctl, _Shot(False), timeout=0.0, clock=lambda: 0.0, probe=lambda: False)
-    except InputNeverReturned as error:
-        assert error.drained is True
+    except InputLost as error:
+        assert error.reason == 'the_controller_was_lost_before_the_next_input'
     else:  # pragma: no cover
         raise AssertionError('a dead screen must stay fatal')
 
@@ -227,7 +233,7 @@ def test_a_spent_budget_still_gives_a_positive_window():
 def test_a_drain_that_leaves_the_screen_dead_says_the_controller_is_lost():
     """The empty-id click comes from here: a drain without a live screen."""
     import pytest
-    from maalimbus.jobs import InputNeverReturned, dispatch
+    from maalimbus.jobs import InputLost, dispatch
 
     class Wedged:
         def post_click(self, *a):
@@ -242,10 +248,9 @@ def test_a_drain_that_leaves_the_screen_dead_says_the_controller_is_lost():
     original = jobs_module.wait_job
     jobs_module.wait_job = never
     try:
-        with pytest.raises(InputNeverReturned) as caught:
+        with pytest.raises(InputLost) as caught:
             dispatch(Wedged(), 'job', timeout=1, probe=lambda: None)
     finally:
         jobs_module.wait_job = original
-    # With no wait succeeding at all the drain also fails, so ``drained`` stays
-    # False; what matters is that the state is named as a lost controller.
-    assert caught.value.lost is True
+    # A lost controller is a stop, not a slow click: it must not be retried.
+    assert caught.value.reason == 'the_controller_was_lost_before_the_next_input'

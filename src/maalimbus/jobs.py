@@ -109,6 +109,16 @@ class InputNeverReturned(TimeoutError):
 SOFT_INPUT_REASON = 'the_click_outlived_its_deadline_but_the_screen_still_answers'
 
 
+class InputLost(RuntimeError):
+    """The controller went away under a click, so the run must stop, not retry.
+
+    Sent as a ``RuntimeError`` because that is the shape the loop already ends on;
+    ``reason`` carries the name the journal should record.
+    """
+
+    reason = 'the_controller_was_lost_before_the_next_input'
+
+
 def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on_soft=None,
              clock=time.monotonic, sleep=time.sleep):
     """Wait for one device action; never leave it pending on timeout.
@@ -141,6 +151,8 @@ def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on
                 if on_soft is not None:
                     on_soft(SOFT_INPUT_REASON)
                 return job
+        if lost:
+            raise InputLost(str(error) or 'the input never returned') from error
         raise InputNeverReturned(str(error) or 'the input never returned',
                                  drained=drained, lost=lost) from error
 

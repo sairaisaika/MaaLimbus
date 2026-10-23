@@ -4080,8 +4080,9 @@ class MirrorRunner:
                 # One end, one reason: the deadline the caller set outranks a failure that
                 # is only its symptom, and the loop must stop rather than end twice.
                 overdue = self.deadline is not None and time.monotonic() >= self.deadline
-                self._end_session('loop_deadline_exceeded' if overdue
-                                  else 'the_task_raised_before_the_next_input',
+                named = getattr(error, 'reason', None)
+                self._end_session(named or ('loop_deadline_exceeded' if overdue
+                                            else 'the_task_raised_before_the_next_input'),
                                   error=str(error)[:300])
                 break
             # A step that only waits is a real iteration and must be counted: a live
