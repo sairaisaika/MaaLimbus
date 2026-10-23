@@ -55,8 +55,28 @@ def summarise(events):
     return out
 
 
+def map_verdicts(events):
+    """Yield (recovery, verdict_or_None) for recoveries spent on the map.
+
+    A page-name test cannot score a map recovery: panning the view keeps the page name
+    and changes only what is reachable.  The game's own verdict on the next click is the
+    only honest signal there.
+    """
+    for i, event in enumerate(events):
+        if event.get('event') not in EVENTS or (event.get('page') or '') != 'MAP':
+            continue
+        for later in events[i + 1:]:
+            if later.get('event') == 'map_click_result':
+                yield event, later
+                break
+            if later.get('event') in ('window_recovery', 'mirror_session_ended'):
+                break
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--map-verdicts', action='store_true',
+                        help='score map recoveries by the next click verdict')
     parser.add_argument('--root', default=str(ROOT / 'evidence' / 'runtime'))
     args = parser.parse_args(argv)
     totals = {}
@@ -69,6 +89,19 @@ def main(argv=None):
             slot['total'] += entry['total']
             slot['changed'] += entry['changed']
     print(f'runs: {runs}')
+    if args.map_verdicts:
+        verdicts = {}
+        for path in sorted(pathlib.Path(args.root).glob('*/events.jsonl')):
+            events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            for recovery, verdict in map_verdicts(events):
+                action = recovery.get('recovery_action') or 'unknown'
+                outcome = (verdict or {}).get('outcome') or 'no_verdict'
+                reason = (verdict or {}).get('reason') or '-'
+                slot = verdicts.setdefault((action, outcome, reason), 0)
+                verdicts[(action, outcome, reason)] = slot + 1
+        for (action, outcome, reason), count in sorted(verdicts.items(), key=lambda kv: -kv[1])[:10]:
+            print(f'  {action:<16} {outcome:<10} {count:>3}  {reason[:52]}')
+        return 0
     for (action, kind), entry in sorted(totals.items(), key=lambda kv: -kv[1]['total']):
         rate = entry['changed'] / entry['total'] if entry['total'] else 0.0
         print(f'  {action:<12} {kind:<28} {entry["changed"]:>3}/{entry["total"]:<3} changed  {rate:.0%}')

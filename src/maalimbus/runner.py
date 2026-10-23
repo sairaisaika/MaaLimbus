@@ -444,6 +444,7 @@ def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WI
 
 
 DEEP_STEP_SECONDS = 60.0
+MIN_SETTLE = 1.5
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
@@ -3397,16 +3398,22 @@ class MirrorRunner:
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
                 if superseded_click(state.get('map_pending'), plan['target']):
-                    # Two clicks planned before one page settled would leave the first one
-                    # unjudged, and an unjudged click cannot reach the refusal streak that
-                    # decides a suspended exploration (3 intents produced 1 verdict live).
-                    self._map_verdict( target=state['map_pending'], page=page,
-                              outcome='rejected', frame=state.pop('map_click_frame', None),
-                              reason='a_new_target_replaced_this_one_before_the_page_settled')
-                    # A replaced click is still a click the game did not take, and the refusal
-                    # streak is what decides an exploration was never resumed (live: a run that
-                    # opened with `a_run_is_still_in_progress` made three node clicks and moved nothing).
-                    state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
+                    # Measured: 19 of 19 rejections recorded beside a map recovery were this
+                    # branch -- the loop replaced its own click before the page had time to
+                    # settle.  Counting that as the game's refusal lets our own re-planning
+                    # drive the refusal streak (which decides a suspended exploration), so a
+                    # click replaced inside MIN_SETTLE is recorded as superseded and the
+                    # streak is left alone.
+                    waited = time.monotonic() - float(state.get('_clicked_at') or 0.0)
+                    early = waited < MIN_SETTLE
+                    self._map_verdict(target=state['map_pending'], page=page,
+                              outcome='superseded' if early else 'rejected',
+                              frame=state.pop('map_click_frame', None),
+                              reason=('the_loop_replaced_this_click_before_it_could_settle'
+                                      if early else
+                                      'a_new_target_replaced_this_one_before_the_page_settled'))
+                    if not early:
+                        state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
                 state['map_pending'] = list(plan['target'])
                 # The verdict below is only diagnosable if it names the frame it judged;
                 # `getattr(self, 'frames', None)` read nothing because that attribute lives
