@@ -1494,3 +1494,43 @@ def test_three_refused_map_clicks_name_the_un_resumed_exploration():
     assert len(seen) == 1, 'the name is recorded once per streak, not every click'
     state['map_refused_streak'] = 0
     assert map_refusal_streak(state, emit) == 1
+
+
+def test_a_click_records_what_the_controller_handle_looked_like():
+    """The empty-id click needs the handle state recorded *before* the click."""
+    from maalimbus.runner import MirrorRunner
+
+    class Handle:
+        info = {'type': 'adb', 'controller_id': ''}
+
+    class Recorder:
+        def __init__(self):
+            self.events = []
+
+        def note(self, name, **fields):
+            self.events.append((name, fields))
+
+    recorder = Recorder()
+    MirrorRunner._note_controller_state(recorder, Handle())
+    name, fields = recorder.events[-1]
+    assert name == 'controller_probe'
+    assert 'controller_id' in fields['keys']
+    assert fields['empty_id_fields'] == ['controller_id']
+
+
+def test_a_handle_that_answers_without_an_id_records_nothing_invented():
+    from maalimbus.runner import MirrorRunner
+
+    class Handle:
+        info = {'type': 'adb', 'controller_id': 'C0FFEE'}
+
+    class Recorder:
+        def __init__(self):
+            self.events = []
+
+        def note(self, name, **fields):
+            self.events.append((name, fields))
+
+    recorder = Recorder()
+    MirrorRunner._note_controller_state(recorder, Handle())
+    assert recorder.events[-1][1]['empty_id_fields'] == []

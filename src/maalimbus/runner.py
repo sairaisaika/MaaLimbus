@@ -1615,6 +1615,10 @@ def run_flow(tasker, controller, journal, directory, deadline, steps, *, observe
             journal.record('flow_intent', step=step.id, note=step.note,
                            pattern=step.pattern, target=list(token['box']),
                            point=list(point), delay_ms=delay)
+            # The framework rejects a click whose controller_id is empty while
+            # screenshots keep working, so record what the handle says about itself
+            # right before the click. One line per click; nothing here changes input.
+            self._note_controller_state(controller)
             # A click that never returns must not stay pending: the next capture
             # would talk to a request that is still in flight (the 0xC0000409 crash).
             dispatch(controller, controller.post_click(*point), timeout=10, deadline=deadline,
@@ -1862,6 +1866,24 @@ class MirrorRunner:
         if fields.get('outcome') == 'rejected':
             self.state['map_refused_since_progress'] = True
         self.note('map_click_result', **fields)
+
+    def _note_controller_state(self, controller):
+        """Write what the controller handle looks like just before a click.
+
+        A live run posted clicks with ``controller_id=""`` while screenshots kept
+        working; knowing whether the handle already looked unbound *before* the
+        click (rather than in the request) is what separates a binding-lifetime
+        defect from a request-construction one.
+        """
+        try:
+            info = dict(getattr(controller, 'info', None) or {})
+        except (RuntimeError, OSError, AttributeError, TypeError):
+            info = {}
+        empty = [key for key in info if str(key).lower().endswith('id')
+                 and not info.get(key)]
+        self.note('controller_probe', keys=sorted(str(key) for key in info),
+                  empty_id_fields=empty,
+                  reason='what the handle said before the click')
 
     def note(self, name, **fields):
         """Journal one event, when a journal is attached."""
