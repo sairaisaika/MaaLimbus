@@ -4202,12 +4202,30 @@ class MirrorRunner:
         entry['handled_retry'] = True
         entry['stopped'] = 'the_map_view_is_pinched_out_before_another_candidate'
         self.note('window_recovery', page=page, gesture='pinch_out', rung=0,
-                  before_another_candidate=True, stopped_reason=entry.get('reason'),
-                  plan_reason=plan.get('reason'),
-                  input_helpers=self.input_helper_line())
+                  before_another_candidate=True, input_helpers=self.input_helper_line(),
+                  **self._recovery_fields(entry, plan))
         self._recovery_gesture('pinch_out')
         time.sleep(self.settings.interval)
         return self._result(page, plan.get('target'), True, None, waiting=True)
+
+    def _recovery_fields(self, entry, plan):
+        """Every field a `window_recovery` event carries, computed in one place.
+
+        There are two producers of that event (the pinch-the-map-first path and the
+        ladder path).  Each one used to assemble its own kwargs, so a field added to
+        one was silently absent from the other -- measured on
+        `evidence/runtime/packaged-mirror-20261023-085334`, where the pinch path wrote
+        a recovery with no `refused_kind` at all.  Recording and deciding stay
+        separate on purpose: the recorded kind may be read from any of the three
+        names, the deciding kind stays on the strictest one.
+        """
+        recorded = kind_of(reason=entry.get('reason'),
+                           stopped_reason=entry.get('stopped_reason') or entry.get('reason'),
+                           plan_reason=plan.get('reason'))
+        deciding = REFUSALS.get(entry.get('reason'))
+        return dict(refused_kind=recorded, recovery_action=recovery_for(recorded),
+                    deciding_kind=deciding, stopped_reason=entry.get('stopped_reason') or entry.get('reason'),
+                    plan_reason=plan.get('reason'))
 
     def _recovery_gesture(self, name):
         """Send one gesture that moves the view and presses no game control."""
@@ -4275,9 +4293,7 @@ class MirrorRunner:
         # kind that *narrows the ladder* stays on the strictest source (`reason`) until a
         # narrowing is proven offline -- otherwise a recording fix silently changes which
         # gestures run.
-        recorded_kind = kind_of(reason=entry.get('reason'),
-                                stopped_reason=entry.get('stopped_reason'),
-                                plan_reason=plan.get('reason'))
+        recorded_kind = self._recovery_fields(entry, plan)['refused_kind']
         deciding_kind = REFUSALS.get(entry.get('reason'))
         ladder = ladder_for(recovery_for(deciding_kind), ladder)
         rung = state['recovery_rung']
@@ -4294,10 +4310,7 @@ class MirrorRunner:
         # makes the decision inspectable while the gesture set is still the shared
         # ladder.  `recovery_for` is the single table that will drive the choice.
         self.note('window_recovery', page=page, gesture=name, rung=rung,
-                  refused_kind=recorded_kind,
-                  recovery_action=recovery_for(recorded_kind),
-                  deciding_kind=deciding_kind,
-                  stopped_reason=refused_reason, plan_reason=plan.get('reason'),
+                  **self._recovery_fields(entry, plan),
                   input_helpers=self.input_helper_line())
         self._recovery_gesture(name)
         time.sleep(self.settings.interval)
