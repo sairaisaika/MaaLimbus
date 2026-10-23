@@ -94,3 +94,27 @@ def decide(waited):
 ''')
     assert roles_of['a_waiting_step_is_still_a_step'] == {'evidence'}
     assert provenance.DECIDED_KEYS == ('kind', 'verdict')
+
+
+def test_a_plan_table_is_a_plan_wherever_it_is_written():
+    # D47 moved 27 single-shape branches out of `_plan_step` into the module-level
+    # `window.STEP_ROWS`.  The reasons did not change meaning, but the old rule keyed on
+    # the enclosing function's name, so every one of them started reading as a failure.
+    # A mapping that names the control it uses and the pages it expects *is* a plan.
+    roles_of = _role_in('''
+STEP_ROWS = {
+    'HOME': {'control': 'home.drive_button', 'expect': ('DRIVE',),
+             'reason': 'drive_nav_is_the_proven_way_back', 'refusal': 'not_anchored'},
+}
+''')
+    assert roles_of['drive_nav_is_the_proven_way_back'] == {'intent'}
+
+
+def test_a_record_that_only_mentions_a_reason_is_still_a_failure_in_a_table():
+    # The plan exemption must not swallow a diagnostic that happens to sit in a mapping
+    # next to other data: none of PLAN_KEYS is present, so nothing decided this one.
+    roles_of = _role_in('''
+NOTES = {'HOME': {'reason': 'the_header_never_came_back', 'page': 'HOME'}}
+''')
+    assert roles_of['the_header_never_came_back'] == {'failure'}
+    assert provenance.PLAN_KEYS == ('control', 'expect', 'refusal')

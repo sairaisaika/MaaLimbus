@@ -246,7 +246,343 @@ def dispatch_facts(source=None):
             facts[right.value] = {'actions': sorted(actions),
                                   'expects': sorted(expects),
                                   'refusals': sorted(refusals)}
+
+    #: The table is the other half of the chain (D47): a page whose branch had one
+    #: shape is one row, and its facts are read from the row.  A refactor that moved
+    #: a page between the two without keeping its facts is exactly what the drift
+    #: gate is for, so this must read everywhere a page can be answered.
+    for node in tree.body:
+        if not (isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id == 'STEP_ROWS'
+                and isinstance(node.value, ast.Dict)):
+            continue
+        for key, value in zip(node.value.keys, node.value.values):
+            if not (isinstance(key, ast.Constant) and isinstance(key.value, str)
+                    and isinstance(value, ast.Dict)):
+                continue
+            row = {}
+            for field, item in zip(value.keys, value.values):
+                if isinstance(field, ast.Constant) and isinstance(field.value, str):
+                    row[field.value] = item
+            verb = row.get('action')
+            actions = {getattr(verb, 'id', '<expr>')} if verb is not None else {'CLICK'}
+            expects = set()
+            expect = row.get('expect')
+            if isinstance(expect, ast.Tuple):
+                for element in expect.elts:
+                    expects.update(names_of(element, {}))
+            refusals = set()
+            refusal = row.get('refusal')
+            if refusal is not None:
+                refusals.update(names_of(refusal, {}))
+            facts[key.value] = {'actions': sorted(actions),
+                                'expects': sorted(expects),
+                                'refusals': sorted(refusals)}
     return facts
+
+
+def _row_step(page, row, *, controls, nodes):
+    """Answer a page whose branch was one row of :data:`STEP_ROWS`.
+
+    Every page in the table asks the same question -- is the one control it needs
+    bound on this frame? -- and answers it the same way: refuse by name when it is
+    not, otherwise send that input and declare which pages are a legal successor.
+    The 27 branches this replaced were that shape, transcribed 27 times; the 24
+    branches still written out below are genuinely conditional (they ask a second
+    question about ``team``/``reward``/``check``/``shop`` state or fall through to
+    a second control), and they stay code.
+    """
+    source = nodes if row.get('source') == 'nodes' else controls
+    box = source.get(row['control'])
+    for name in row.get('also', ()):
+        if box is None:
+            box = controls.get(name)
+    if box is None:
+        return _refuse(page, row['refusal'])
+    advance = bool(row.get('advance'))
+    if row.get('action') == NODE:
+        return _plan(page, NODE, node=box, expect=row['expect'], reason=row['reason'],
+                     advance=advance)
+    return _plan(page, row.get('action', CLICK), target=box, expect=row['expect'],
+                 reason=row['reason'], advance=advance)
+
+
+STEP_ROWS = {
+    'HOME': {'control': 'home.drive_button',
+        'expect': ('DRIVE', 'MIRROR_ENTRY', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+        'reason': 'drive_nav_is_the_proven_way_back_to_the_mirror_menu',
+        'refusal': 'drive_button_not_anchored',
+        },
+    'DRIVE': {'control': 'DRIVE', 'source': 'nodes',
+        'expect': ('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP', 'EXPIRED_SESSION', 'UNKNOWN'),
+        'reason': 'mirror_menu_recognition_owns_the_click_box',
+        'refusal': 'mirror_menu_node_not_registered',
+        'action': NODE,
+        },
+    # The weekly reset can end a run in progress: entering the mirror dungeon then
+    # answers with "The previous session has expired. / Please claim your rewards."
+    # (live evidence/runtime/window-20261007-170653/frame-0009.json, the page the
+    # run-continue-9 window landed on at step 2). Its Confirm is the only control
+    # that pays the run out; Cancel would leave those rewards unclaimed, so Cancel is
+    # registered as an anchor and forbidden as a target.
+    'EXPIRED_SESSION': {'control': 'expired_session.confirm_button',
+        'expect': (ANY,),
+        'reason': 'the_expired_session_is_confirmed_so_its_rewards_are_claimed',
+        'refusal': 'expired_session_confirm_not_anchored',
+        'advance': True,
+        },
+    # 'Claim the rewards?' with Cancel and Confirm: the modal's Claim only opens this,
+    # and Confirm is what actually grants the rewards. Cancel is registered as an anchor
+    # purely so it can be forbidden -- it would dismiss the question without claiming.
+    'RUN_REWARD_CONFIRM': {'control': 'run_reward_confirm.confirm_button',
+        'expect': (ANY,),
+        'reason': 'the_reward_claim_is_confirmed_and_never_cancelled',
+        'refusal': 'run_reward_confirm_not_anchored',
+        'advance': True,
+        },
+    # The modal the summary's claim opens: 'Exploration Reward' with Give Up Rewards,
+    # To Window and Claim. Its Claim is the only control sent -- giving the rewards up
+    # would throw the run away, and To Window leaves without them -- and it is exempt
+    # from the loop guard because the reward split animates before the modal closes.
+    'RUN_REWARD_DIALOG': {'control': 'run_reward.claim_button',
+        'expect': (ANY,),
+        'reason': 'the_reward_modal_is_claimed_and_never_given_up',
+        'refusal': 'run_reward_claim_not_anchored',
+        'advance': True,
+        },
+    # The run summary -- five floors cleared, Total Progress 100% -- is claimed here
+    # and nowhere else: live evidence/runtime/window-20261007-020715/frame-0006.json
+    # reads 'Claim' [1682,865,82,30] and 'Rewards' [1662,901,124,28] beside a dim
+    # 'Next' [1382,895,80,36] and a live 'Previous' [1096,895,148,36]. Only the claim
+    # is sent; paging the summary back and forth proves nothing and is not done.
+    'RUN_CLAIM': {'control': 'run.claim_button',
+        'expect': (ANY,),
+        'reason': 'claiming_is_the_only_forward_input_on_the_run_summary',
+        'refusal': 'run_claim_button_not_anchored',
+        'advance': True,
+        },
+    # The victory screen with a Confirm button is the one battle result page that
+    # does not clear itself: live evidence/runtime/window-20261007-015542/frame-0130.json
+    # reads 'Victory' 1.0, 'EX-CLEAR' 0.96 and 'Confirm' [1638,831,164,48] 1.0, and the
+    # run stopped thirty rounds on it (build/window-run100.json) because it was being
+    # waited out as an animation.
+    'BATTLE_VICTORY': {'control': 'battle_victory.confirm_button',
+        'expect': (ANY,),
+        'reason': 'victory_confirm_clears_the_result_and_carries_the_rewards',
+        'refusal': 'battle_victory_confirm_not_anchored',
+        'advance': True,
+        },
+    # Spending a weekly bonus levels the battle pass and the notice it raises sits on
+    # top of Before Entry (live evidence/runtime/window-20261007-171928/frame-0007.json):
+    # run-continue-12 pressed the menu's Enter under it and nothing moved. Its own
+    # Confirm is the way out, and it is the only control on the notice.
+    'PASS_LEVEL_UP': {'control': 'pass_level_up.confirm_button',
+        'expect': (ANY,),
+        'reason': 'the_pass_level_up_notice_is_acknowledged_to_clear_the_menu',
+        'refusal': 'pass_level_up_confirm_not_anchored',
+        'advance': True,
+        },
+    # The entry page's Enter only raises the confirmation; the control that
+    # really starts the run is the dialog's own Enter, and the X Cancel beside it
+    # cancels instead (live: evidence/runtime/window-20261006-192917/frame-0001.json
+    # carries the dialog Enter [1124,704,90,42] and the page's Enter
+    # [1606,718,112,44] at once, so the two must never be confused).
+    # The confirmation can also be the press that raises the held-run prompt, so
+    # RESUME_DIALOG is an accepted successor here for the same reason as above.
+    'ENTRY_CONFIRM': {'control': 'entry_confirm.confirm_button',
+        'expect': ('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'LEVEL_WARNING', 'MAP', 'DUNGEON_TEAM', 'RESUME_DIALOG', 'UNKNOWN'),
+        'reason': 'the_entry_confirmation_starts_the_run',
+        'refusal': 'entry_confirm_button_not_anchored',
+        },
+    'RESUME_DIALOG': {'control': 'resume.resume_button',
+        'expect': ('MAP', 'THEME_PACKS', 'STAR_GRACES', 'INITIAL_GIFTS', 'UNKNOWN'),
+        'reason': 'resume_rejoins_the_run_that_is_already_in_progress',
+        'refusal': 'resume_button_not_anchored',
+        },
+    # The notice's only two controls are Cancel (stay in the dungeon) and Confirm
+    # (leave for the Window). The run in progress is what this window was sent to
+    # drive, so the notice is declined and Confirm is a forbidden control -- an
+    # unknown notice is never cleared by taking its irreversible branch (the user's
+    # rule, m10140). Declining is a click, and the page must hand back something
+    # other than itself, so a Cancel that did nothing is not recorded as progress.
+    'WINDOW_RESET': {'control': 'window_reset.cancel_button',
+        'expect': (ANY,),
+        'reason': 'the_weekly_reset_notice_is_declined_and_the_run_stays',
+        'refusal': 'weekly_reset_cancel_not_anchored',
+        'advance': True,
+        },
+    'EVENT_RESULT_READY': {'control': 'event_result.continue_button',
+        'expect': ('EVENT_RESULT_READY', ANY),
+        'reason': 'the_event_result_is_cleared_with_its_own_continue',
+        'refusal': 'event_result_continue_not_anchored',
+        'advance': True,
+        },
+    # The abnormality/event intro covers the screen with a REC badge and one SKIP
+    # button, and it does not advance on its own: live window-20261006-044556 sat
+    # there with the text already complete for over a minute of observations.
+    # Skipping is the page's own forward control, so it is a click, not a refusal.
+    'CUTSCENE': {'control': 'cutscene.skip_button',
+        'expect': ('CUTSCENE', ANY),
+        'reason': 'the_cutscene_is_skipped_to_resume_the_run',
+        'refusal': 'cutscene_skip_not_anchored',
+        'advance': True,
+        },
+    # The roll resolves on the same page: the question and the odds row stay, the
+    # outcome panel prints 'Check Passed'/'Check Failed' with the Outcome number, and
+    # the story it hands back plays inside the left panel while the bottom-right
+    # control is still dark. Live window-20261006-205922 kept that page for 43 frames
+    # with the text already complete ('E.G.O Gift Crown of Roses obtained!'), and only
+    # frame-0001's OCR reached the SKIP at all. The user's rule (m10140) is to keep
+    # tapping the small screen until the bottom-right lights up, so the panel is the
+    # target here; the lit form is named CUTSCENE and its SKIP forwards the run.
+    'EVENT_CHECK_RESULT': {'control': 'event_check_result.story_panel',
+        'expect': ('EVENT_CHECK_RESULT', ANY),
+        'reason': 'the_check_outcome_is_tapped_through_until_its_control_lights_up',
+        'refusal': 'event_check_result_panel_not_anchored',
+        'advance': True,
+        },
+    # The same page once the story has been tapped through: the bottom-right slot
+    # lights up as its own Continue (live window-20261006-210803/frame-0001.json reads
+    # 'Check Passed' with nothing in that slot, and frame-0002.json onward reads
+    # 'Continue' [1588,941,220,59]). The roll is already resolved here, so this is not
+    # the SKIP that forfeits a check - it is the page's forward control.
+    'EVENT_CHECK_READY': {'control': 'event_check_ready.continue_button',
+        'expect': (ANY,),
+        'reason': 'the_check_outcome_is_left_with_its_lit_continue',
+        'refusal': 'event_check_ready_continue_not_anchored',
+        'advance': True,
+        },
+    # A run the game ended short of 100% is a run that was lost, and a lost run
+    # gives its rewards up -- it does not claim them. The summary's own button is
+    # what opens the reward modal; the give-up itself happens there.
+    'EXPLORATION_COMPLETE': {'control': 'run.claim_button',
+        'expect': (ANY,),
+        'reason': 'a_lost_run_opens_its_rewards_only_to_give_them_up',
+        'refusal': 'the_lost_summary_has_no_button_to_open_its_rewards',
+        'advance': True,
+        },
+    # Enter hands the node over to the game: it fades back through MAP
+    # (evidence/runtime/window-20261006-042056/frame-0002.json) before the node
+    # itself shows up. What a node hands back depends on the node: the shop
+    # (window-20261006-042123), the pre-battle team, an abnormality cutscene
+    # (build/window-run30.json step 15), an event's choices, a floor-gift pick or a
+    # reward card, so every one of them is a legitimate successor here. The weekly
+    # reset notice landed here too (run-continue-8 step 64, frame-0252): it is a
+    # notice about the run, not a failed click, and its own plan declines it.
+    'NODE_PANEL': {'control': 'node_panel.enter_button',
+        'expect': ('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'CUTSCENE', 'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY', 'GIFT_PICK', 'REWARD_CARD', 'WINDOW_RESET', 'UNKNOWN'),
+        'reason': 'panel_enter_is_the_only_forward_input',
+        'refusal': 'enter_button_not_anchored',
+        },
+    # The revive is paid for and the modal says who came back; its own bottom-right
+    # button is now Leave (live evidence/runtime/window-20261012-214803/frame-0001.json
+    # reads 'Hong Lu, revived, returns to battle.' over 'Leave' [1622,943,150,53]).  The
+    # row above it, 'Heal again.', would spend another 100 on healing and is never a
+    # target: this plan only hands the panel back to the shop.
+    'REVIVE_DONE': {'control': 'revive_done.leave',
+        'expect': ('SHOP', 'UNKNOWN'),
+        'reason': 'the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop',
+        'refusal': 'the_revived_sinners_notice_has_no_bound_leave',
+        'advance': True,
+        },
+    # Leaving the shop asks first. Confirm is the forward input; the Cancel
+    # next to it only stays in the shop, so it is never a target.
+    'SHOP_LEAVE': {'control': 'shop.leave_confirm_button',
+        'expect': ('MAP', 'UNKNOWN'),
+        'reason': 'confirming_the_shop_exit_is_the_only_forward_input',
+        'refusal': 'shop_leave_confirm_not_anchored',
+        },
+    # The gift-get notice sits on top of the reward-card page and carries one
+    # Confirm. The gift was already granted by the reward card's own Confirm,
+    # so this only clears the notice (live: window-20261006-042956).
+    # The starting gift's notice leads straight into the optional gift search,
+    # and which of the two the settle window catches is a race: build/window-run-continue-2.json
+    # step 71 clicked Confirm and observed GIFT_SEARCH (late_observation), which
+    # used to be read as an unexpected successor and stopped a live run.
+    # A notice that covers a shop shelf returns to that shelf, so SHOP and
+    # SHOP_PURCHASE are successors of this input exactly like the reward-card
+    # successors above; anything else is still a stopped run.
+    'GIFT_GET': {'control': 'gift_get.confirm_button',
+        'expect': ('GIFT_GET', 'GIFT_SEARCH', 'GIFT_PICK', 'REWARD_CARD', 'SHOP', 'SHOP_PURCHASE', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
+        'reason': 'the_gift_get_notice_is_cleared_with_its_own_confirm',
+        'refusal': 'gift_get_confirm_not_anchored',
+        },
+    # Select pressed with choices still outstanding: the game offers to trade the
+    # rest for random Trials. Taking that trade is the "refuse a reward" the user
+    # forbade, so the warning is always cancelled and the pick resumes there.
+    'GIFT_WARNING': {'control': 'gift_warning.cancel_button',
+        'expect': ('GIFT_PICK', 'UNKNOWN'),
+        'reason': 'the_warning_is_cancelled_to_keep_the_remaining_gift_choices',
+        'refusal': 'gift_warning_cancel_not_anchored',
+        },
+    # A gift the run just picked up opens its own modal over the map; its Confirm
+    # acknowledges the pickup and returns to the floor. Live:
+    # evidence/runtime/window-20261006-201621/frame-0001.json reads 'E.G.O Gifts'
+    # [832,170,256,58] and Confirm [916,825,126,40] over 'Exploring Floor 1'.
+    'EGO_GIFT_POPUP': {'control': 'ego_gift_popup.confirm_button',
+        'expect': ('MAP', 'NODE_PANEL', 'UNKNOWN'),
+        'reason': 'the_ego_gift_popup_is_acknowledged_with_its_confirm',
+        'refusal': 'ego_gift_popup_confirm_not_anchored',
+        },
+    # Refusing the search raises its own confirmation. Live:
+    # evidence/runtime/window-20261006-200357/frame-0001.json reads "Forgo E.G.O
+    # Gift Search?", Confirm [1116,722,112,38] and X Cancel [700,720,142,40].
+    'GIFT_SEARCH_FORGO': {'control': 'gift_search_forgo.confirm_button',
+        'expect': ('MAP', 'THEME_PACKS', 'GIFT_SEARCH', 'UNKNOWN'),
+        'reason': 'the_forgone_gift_search_is_confirmed',
+        'refusal': 'gift_search_forgo_confirm_not_anchored',
+        },
+    # A rotation team whose average level sits below the recommendation raises
+    # this prompt; the rotation is the instruction, so the run proceeds and Cancel
+    # is refused (live: evidence/runtime/window-20261006-193730/frame-0003.json
+    # carries the dialog Confirm [1116,720,112,40], its X Cancel [744,728,96,30]
+    # and the loadout page's own Confirm [1634,855,168,48] underneath).
+    'LEVEL_WARNING': {'control': 'level_warning.confirm_button',
+        'expect': ('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
+        'reason': 'the_level_warning_proceeds_with_the_rotation_team',
+        'refusal': 'level_warning_confirm_not_anchored',
+        },
+    # Submitting the team can land on the deployment view instead of the battle:
+    # live run build/window-run29.json had To Battle! hand back DEPLOYMENT, whose
+    # own bottom-right control is the same "To Battle!" (live frame
+    # evidence/runtime/window-20261006-050402/frame-0006.json reads it at
+    # [1614,857,206,48], inside the anchored battle button). The fight then
+    # starts by itself, so one click here is enough.
+    'DEPLOYMENT': {'control': 'deployment.battle_button',
+        'expect': ('BATTLE_HUD', 'UNKNOWN'),
+        'reason': 'deployment_view_starts_the_fight',
+        'refusal': 'deployment_battle_button_not_anchored',
+        'also': ('pre_battle.battle_button',),
+        },
+    # A tap on a skill card opens that skill's detail over the board, and the panel
+    # has no close control of its own (live window-20261007-014613/frame-0094.json:
+    # 'Skill Effects' over the keyword list, the WAVE/TURN captions covered). The
+    # dark board area under the auto-assign buttons is empty in that frame --
+    # (1700,950) reads mean (0,3,14) with std 6.6 -- so a tap there dismisses the
+    # panel, which is the same unbounded-by-design, step-budgeted shape as the other
+    # dismiss taps.
+    'BATTLE_TIP': {'control': 'battle_tip.dismiss_point',
+        'expect': (ANY,),
+        'reason': 'the_skill_detail_popup_is_dismissed_off_the_board',
+        'refusal': 'battle_tip_dismiss_not_anchored',
+        'advance': True,
+        },
+    # The shop's Heal Sinners modal lists three numbered ways to spend 100, and only
+    # the third -- "3. Revive a single Sinner." -- brings a dead Sinner back (operator,
+    # 2026-10-12; live frame window-20261012-211311/frame-0015.json). Its box is that
+    # row's own title token, bound from this frame by the window
+    # (`plan_controls['heal_sinners.revive']`). The modal's other two options heal and
+    # are never aimed at, and the Sinner list the third opens is the page the
+    # classifier names `REVIVE_PICK` (live: evidence/runtime/window-20261012-213008/
+    # frame-0002.json reads 'Select the Sinner to revive.'), so that page is a named
+    # successor here. `HEAL_SINNERS` itself stays in the set because a swallowed click
+    # re-reads the same modal.
+    'HEAL_SINNERS': {'control': 'heal_sinners.revive',
+        'expect': ('REVIVE_PICK', 'HEAL_SINNERS', 'SHOP', 'PRE_BATTLE_TEAM', 'UNKNOWN'),
+        'reason': 'the_shop_s_own_third_option_is_the_way_back_for_a_dead_key_slot',
+        'refusal': 'heal_sinners_option_not_anchored',
+        },
+}
 
 
 def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
@@ -269,39 +605,15 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
     """
     controls = controls or {}
     nodes = dict(PAGE_NODES, **(nodes or {}))
+    row = STEP_ROWS.get(page)
+    if row is not None:
+        return _row_step(page, row, controls=controls, nodes=nodes)
     if page=='DEPLOYMENT_RESET':
         box=controls.get('deployment_reset.confirm')
         if box is None or not (team or {}).get('reset_pending'):
             return _refuse(page,'deployment_reset_pending_intent_not_proven')
         return _plan(page,CLICK,target=box,expect=('PRE_BATTLE_TEAM',),
                      reason='confirm_pending_deployment_reset_once')
-    if page == 'HOME':
-        box = controls.get('home.drive_button')
-        if box is None:
-            return _refuse(page, 'drive_button_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('DRIVE', 'MIRROR_ENTRY', 'THEME_PACKS', 'MAP', 'UNKNOWN'),
-                     reason='drive_nav_is_the_proven_way_back_to_the_mirror_menu')
-    if page == 'DRIVE':
-        node = nodes.get('DRIVE')
-        if node is None:
-            return _refuse(page, 'mirror_menu_node_not_registered')
-        return _plan(page, NODE, node=node,
-                     expect=('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP',
-                             'EXPIRED_SESSION', 'UNKNOWN'),
-                     reason='mirror_menu_recognition_owns_the_click_box')
-    if page == 'EXPIRED_SESSION':
-        # The weekly reset can end a run in progress: entering the mirror dungeon then
-        # answers with "The previous session has expired. / Please claim your rewards."
-        # (live evidence/runtime/window-20261007-170653/frame-0009.json, the page the
-        # run-continue-9 window landed on at step 2). Its Confirm is the only control
-        # that pays the run out; Cancel would leave those rewards unclaimed, so Cancel is
-        # registered as an anchor and forbidden as a target.
-        box = controls.get('expired_session.confirm_button')
-        if box is None:
-            return _refuse(page, 'expired_session_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_expired_session_is_confirmed_so_its_rewards_are_claimed')
     if page == 'TUTORIAL':
         # ``arrows`` comes from the live frame (maalimbus.overlay_vision): the two
         # page-turn triangles move, and the book's last page shows only ``previous``
@@ -357,47 +669,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'run_reward_bonus_cancel_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='a_run_that_was_not_completed_keeps_the_weekly_bonus')
-    if page == 'RUN_REWARD_CONFIRM':
-        # 'Claim the rewards?' with Cancel and Confirm: the modal's Claim only opens this,
-        # and Confirm is what actually grants the rewards. Cancel is registered as an anchor
-        # purely so it can be forbidden -- it would dismiss the question without claiming.
-        box = controls.get('run_reward_confirm.confirm_button')
-        if box is None:
-            return _refuse(page, 'run_reward_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_reward_claim_is_confirmed_and_never_cancelled')
-    if page == 'RUN_REWARD_DIALOG':
-        # The modal the summary's claim opens: 'Exploration Reward' with Give Up Rewards,
-        # To Window and Claim. Its Claim is the only control sent -- giving the rewards up
-        # would throw the run away, and To Window leaves without them -- and it is exempt
-        # from the loop guard because the reward split animates before the modal closes.
-        box = controls.get('run_reward.claim_button')
-        if box is None:
-            return _refuse(page, 'run_reward_claim_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_reward_modal_is_claimed_and_never_given_up')
-    if page == 'RUN_CLAIM':
-        # The run summary -- five floors cleared, Total Progress 100% -- is claimed here
-        # and nowhere else: live evidence/runtime/window-20261007-020715/frame-0006.json
-        # reads 'Claim' [1682,865,82,30] and 'Rewards' [1662,901,124,28] beside a dim
-        # 'Next' [1382,895,80,36] and a live 'Previous' [1096,895,148,36]. Only the claim
-        # is sent; paging the summary back and forth proves nothing and is not done.
-        box = controls.get('run.claim_button')
-        if box is None:
-            return _refuse(page, 'run_claim_button_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='claiming_is_the_only_forward_input_on_the_run_summary')
-    if page == 'BATTLE_VICTORY':
-        # The victory screen with a Confirm button is the one battle result page that
-        # does not clear itself: live evidence/runtime/window-20261007-015542/frame-0130.json
-        # reads 'Victory' 1.0, 'EX-CLEAR' 0.96 and 'Confirm' [1638,831,164,48] 1.0, and the
-        # run stopped thirty rounds on it (build/window-run100.json) because it was being
-        # waited out as an animation.
-        box = controls.get('battle_victory.confirm_button')
-        if box is None:
-            return _refuse(page, 'battle_victory_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='victory_confirm_clears_the_result_and_carries_the_rewards')
     if page == 'BATTLE_DEFEAT':
         # A wiped stage asks what happens to the run: live
         # evidence/runtime/window-20261007-044408/frame-0001.json reads the three rows
@@ -439,16 +710,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # real frame yet. Refuse by name rather than falling through to the
         # generic observe-only answer, so the driver says what is missing.
         return _refuse(page, 'battle_result_control_not_anchored')
-    if page == 'PASS_LEVEL_UP':
-        # Spending a weekly bonus levels the battle pass and the notice it raises sits on
-        # top of Before Entry (live evidence/runtime/window-20261007-171928/frame-0007.json):
-        # run-continue-12 pressed the menu's Enter under it and nothing moved. Its own
-        # Confirm is the way out, and it is the only control on the notice.
-        box = controls.get('pass_level_up.confirm_button')
-        if box is None:
-            return _refuse(page, 'pass_level_up_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_pass_level_up_notice_is_acknowledged_to_clear_the_menu')
     if page in ('MIRROR_ENTRY', 'BEFORE_ENTRY'):
         box = controls.get('entry.enter_button')
         if box is None:
@@ -463,40 +724,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                              'LEVEL_WARNING', 'ENTRY_CONFIRM', 'PASS_LEVEL_UP', 'RESUME_DIALOG',
                              'UNKNOWN'),
                      reason='before_entry_enter_starts_the_free_run')
-    if page == 'ENTRY_CONFIRM':
-        # The entry page's Enter only raises the confirmation; the control that
-        # really starts the run is the dialog's own Enter, and the X Cancel beside it
-        # cancels instead (live: evidence/runtime/window-20261006-192917/frame-0001.json
-        # carries the dialog Enter [1124,704,90,42] and the page's Enter
-        # [1606,718,112,44] at once, so the two must never be confused).
-        box = controls.get('entry_confirm.confirm_button')
-        if box is None:
-            return _refuse(page, 'entry_confirm_button_not_anchored')
-        # The confirmation can also be the press that raises the held-run prompt, so
-        # RESUME_DIALOG is an accepted successor here for the same reason as above.
-        return _plan(page, CLICK, target=box,
-                     expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'LEVEL_WARNING',
-                             'MAP', 'DUNGEON_TEAM', 'RESUME_DIALOG', 'UNKNOWN'),
-                     reason='the_entry_confirmation_starts_the_run')
-    if page == 'RESUME_DIALOG':
-        box = controls.get('resume.resume_button')
-        if box is None:
-            return _refuse(page, 'resume_button_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'THEME_PACKS', 'STAR_GRACES', 'INITIAL_GIFTS', 'UNKNOWN'),
-                     reason='resume_rejoins_the_run_that_is_already_in_progress')
-    if page == 'WINDOW_RESET':
-        # The notice's only two controls are Cancel (stay in the dungeon) and Confirm
-        # (leave for the Window). The run in progress is what this window was sent to
-        # drive, so the notice is declined and Confirm is a forbidden control -- an
-        # unknown notice is never cleared by taking its irreversible branch (the user's
-        # rule, m10140). Declining is a click, and the page must hand back something
-        # other than itself, so a Cancel that did nothing is not recorded as progress.
-        box = controls.get('window_reset.cancel_button')
-        if box is None:
-            return _refuse(page, 'weekly_reset_cancel_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_weekly_reset_notice_is_declined_and_the_run_stays')
     if page == 'THEME_PACKS':
         if difficulty=='normal' and controls.get('theme_packs.enable_hard'):
             return _plan(page,CLICK,target=controls['theme_packs.enable_hard'],expect=(ANY,),advance=True,
@@ -536,23 +763,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'event_result_story_panel_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='the_event_result_story_is_tapped_to_reveal_its_continue')
-    if page == 'EVENT_RESULT_READY':
-        box = controls.get('event_result.continue_button')
-        if box is None:
-            return _refuse(page, 'event_result_continue_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('EVENT_RESULT_READY', ANY),
-                     advance=True,
-                     reason='the_event_result_is_cleared_with_its_own_continue')
-    if page == 'CUTSCENE':
-        # The abnormality/event intro covers the screen with a REC badge and one SKIP
-        # button, and it does not advance on its own: live window-20261006-044556 sat
-        # there with the text already complete for over a minute of observations.
-        # Skipping is the page's own forward control, so it is a click, not a refusal.
-        box = controls.get('cutscene.skip_button')
-        if box is None:
-            return _refuse(page, 'cutscene_skip_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('CUTSCENE', ANY), advance=True,
-                     reason='the_cutscene_is_skipped_to_resume_the_run')
     if page == 'EVENT_CHECK':
         # The event's skill check asks which identity attempts the roll and prints each
         # one's odds caption over its card. The driver reads those captions off the live
@@ -590,32 +800,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=('EVENT_CHECK', ANY), advance=True,
                      reason='the_skill_check_is_rolled_by_the_best_odds',
                      detail={'slot': state.get('slot'), 'tier': state.get('tier')})
-    if page == 'EVENT_CHECK_RESULT':
-        # The roll resolves on the same page: the question and the odds row stay, the
-        # outcome panel prints 'Check Passed'/'Check Failed' with the Outcome number, and
-        # the story it hands back plays inside the left panel while the bottom-right
-        # control is still dark. Live window-20261006-205922 kept that page for 43 frames
-        # with the text already complete ('E.G.O Gift Crown of Roses obtained!'), and only
-        # frame-0001's OCR reached the SKIP at all. The user's rule (m10140) is to keep
-        # tapping the small screen until the bottom-right lights up, so the panel is the
-        # target here; the lit form is named CUTSCENE and its SKIP forwards the run.
-        box = controls.get('event_check_result.story_panel')
-        if box is None:
-            return _refuse(page, 'event_check_result_panel_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('EVENT_CHECK_RESULT', ANY),
-                     advance=True,
-                     reason='the_check_outcome_is_tapped_through_until_its_control_lights_up')
-    if page == 'EVENT_CHECK_READY':
-        # The same page once the story has been tapped through: the bottom-right slot
-        # lights up as its own Continue (live window-20261006-210803/frame-0001.json reads
-        # 'Check Passed' with nothing in that slot, and frame-0002.json onward reads
-        # 'Continue' [1588,941,220,59]). The roll is already resolved here, so this is not
-        # the SKIP that forfeits a check - it is the page's forward control.
-        box = controls.get('event_check_ready.continue_button')
-        if box is None:
-            return _refuse(page, 'event_check_ready_continue_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_check_outcome_is_left_with_its_lit_continue')
     if page == 'EVENT_CHOICE':
         # The event's "Choices" page lists two to four rows of spoken text; any row
         # advances the run, and the rows are read live because their count moves them.
@@ -630,15 +814,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='the_event_choice_that_names_its_reward_is_taken',
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})
-    if page == 'EXPLORATION_COMPLETE':
-        # A run the game ended short of 100% is a run that was lost, and a lost run
-        # gives its rewards up -- it does not claim them. The summary's own button is
-        # what opens the reward modal; the give-up itself happens there.
-        box = controls.get('run.claim_button')
-        if box is None:
-            return _refuse(page, 'the_lost_summary_has_no_button_to_open_its_rewards')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='a_lost_run_opens_its_rewards_only_to_give_them_up')
     if page == 'DUNGEON_PROGRESS':
         # The dungeon's pause panel parks the game and states its progress. It is
         # never a step: the only input that belongs here is its own Continue, and
@@ -693,34 +868,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='map_node_click_is_the_only_proven_forward_input',
                      detail={'candidate_count': len(candidates),
                              'candidate_index': candidate_index})
-    if page == 'NODE_PANEL':
-        box = controls.get('node_panel.enter_button')
-        if box is None:
-            return _refuse(page, 'enter_button_not_anchored')
-        # Enter hands the node over to the game: it fades back through MAP
-        # (evidence/runtime/window-20261006-042056/frame-0002.json) before the node
-        # itself shows up. What a node hands back depends on the node: the shop
-        # (window-20261006-042123), the pre-battle team, an abnormality cutscene
-        # (build/window-run30.json step 15), an event's choices, a floor-gift pick or a
-        # reward card, so every one of them is a legitimate successor here. The weekly
-        # reset notice landed here too (run-continue-8 step 64, frame-0252): it is a
-        # notice about the run, not a failed click, and its own plan declines it.
-        return _plan(page, CLICK, target=box,
-                     expect=('PRE_BATTLE_TEAM', 'SHOP', 'MAP', 'CUTSCENE',
-                             'EVENT_CHOICE', 'EVENT_RESULT', 'EVENT_RESULT_READY',
-                             'GIFT_PICK', 'REWARD_CARD', 'WINDOW_RESET', 'UNKNOWN'),
-                     reason='panel_enter_is_the_only_forward_input')
-    if page == 'REVIVE_DONE':
-        # The revive is paid for and the modal says who came back; its own bottom-right
-        # button is now Leave (live evidence/runtime/window-20261012-214803/frame-0001.json
-        # reads 'Hong Lu, revived, returns to battle.' over 'Leave' [1622,943,150,53]).  The
-        # row above it, 'Heal again.', would spend another 100 on healing and is never a
-        # target: this plan only hands the panel back to the shop.
-        box = controls.get('revive_done.leave')
-        if box is None:
-            return _refuse(page, 'the_revived_sinners_notice_has_no_bound_leave')
-        return _plan(page, CLICK, target=box, expect=('SHOP', 'UNKNOWN'), advance=True,
-                     reason='the_revive_is_paid_for_and_the_modal_leaves_back_to_the_shop')
     if page == 'REVIVE_PICK':
         # The shop's Heal Sinner service opens the modal's second step: it asks which
         # Sinner to bring back (live
@@ -814,41 +961,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'shop_leave_button_not_anchored')
         return _plan(page, CLICK, target=box, expect=('SHOP_LEAVE', 'MAP', 'UNKNOWN'),
                      reason='leaving_the_shop_is_the_only_budget_safe_input')
-    if page == 'SHOP_LEAVE':
-        # Leaving the shop asks first. Confirm is the forward input; the Cancel
-        # next to it only stays in the shop, so it is never a target.
-        box = controls.get('shop.leave_confirm_button')
-        if box is None:
-            return _refuse(page, 'shop_leave_confirm_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('MAP', 'UNKNOWN'),
-                     reason='confirming_the_shop_exit_is_the_only_forward_input')
-    if page == 'GIFT_GET':
-        # The gift-get notice sits on top of the reward-card page and carries one
-        # Confirm. The gift was already granted by the reward card's own Confirm,
-        # so this only clears the notice (live: window-20261006-042956).
-        # The starting gift's notice leads straight into the optional gift search,
-        # and which of the two the settle window catches is a race: build/window-run-continue-2.json
-        # step 71 clicked Confirm and observed GIFT_SEARCH (late_observation), which
-        # used to be read as an unexpected successor and stopped a live run.
-        box = controls.get('gift_get.confirm_button')
-        if box is None:
-            return _refuse(page, 'gift_get_confirm_not_anchored')
-        # A notice that covers a shop shelf returns to that shelf, so SHOP and
-        # SHOP_PURCHASE are successors of this input exactly like the reward-card
-        # successors above; anything else is still a stopped run.
-        return _plan(page, CLICK, target=box,
-                     expect=('GIFT_GET', 'GIFT_SEARCH', 'GIFT_PICK', 'REWARD_CARD', 'SHOP',
-                             'SHOP_PURCHASE', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
-                     reason='the_gift_get_notice_is_cleared_with_its_own_confirm')
-    if page == 'GIFT_WARNING':
-        # Select pressed with choices still outstanding: the game offers to trade the
-        # rest for random Trials. Taking that trade is the "refuse a reward" the user
-        # forbade, so the warning is always cancelled and the pick resumes there.
-        box = controls.get('gift_warning.cancel_button')
-        if box is None:
-            return _refuse(page, 'gift_warning_cancel_not_anchored')
-        return _plan(page, CLICK, target=box, expect=('GIFT_PICK', 'UNKNOWN'),
-                     reason='the_warning_is_cancelled_to_keep_the_remaining_gift_choices')
     if page == 'GIFT_PICK':
         if (gift or {}).get('refuse_owned'):
             box=(gift or {}).get('refuse_target')
@@ -947,27 +1059,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('GIFT_SEARCH_FORGO', 'MAP', 'THEME_PACKS', 'UNKNOWN'),
                      reason=reason)
-    if page == 'EGO_GIFT_POPUP':
-        # A gift the run just picked up opens its own modal over the map; its Confirm
-        # acknowledges the pickup and returns to the floor. Live:
-        # evidence/runtime/window-20261006-201621/frame-0001.json reads 'E.G.O Gifts'
-        # [832,170,256,58] and Confirm [916,825,126,40] over 'Exploring Floor 1'.
-        box = controls.get('ego_gift_popup.confirm_button')
-        if box is None:
-            return _refuse(page, 'ego_gift_popup_confirm_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'NODE_PANEL', 'UNKNOWN'),
-                     reason='the_ego_gift_popup_is_acknowledged_with_its_confirm')
-    if page == 'GIFT_SEARCH_FORGO':
-        # Refusing the search raises its own confirmation. Live:
-        # evidence/runtime/window-20261006-200357/frame-0001.json reads "Forgo E.G.O
-        # Gift Search?", Confirm [1116,722,112,38] and X Cancel [700,720,142,40].
-        box = controls.get('gift_search_forgo.confirm_button')
-        if box is None:
-            return _refuse(page, 'gift_search_forgo_confirm_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('MAP', 'THEME_PACKS', 'GIFT_SEARCH', 'UNKNOWN'),
-                     reason='the_forgone_gift_search_is_confirmed')
     if page == 'INITIAL_GIFTS':
         # The run opens on the starting E.G.O Gift picker: eight keyword columns, a
         # "Selected E.G.O Gift" tray, and a Select button that stays inert until the
@@ -1010,19 +1101,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page,CLICK,target=box,
                      expect=('INITIAL_GIFTS','THEME_PACKS','MAP','STAR_GRACES','UNKNOWN'),
                      reason='the_grace_selection_is_confirmed_before_the_run_starts')
-    if page == 'LEVEL_WARNING':
-        # A rotation team whose average level sits below the recommendation raises
-        # this prompt; the rotation is the instruction, so the run proceeds and Cancel
-        # is refused (live: evidence/runtime/window-20261006-193730/frame-0003.json
-        # carries the dialog Confirm [1116,720,112,40], its X Cancel [744,728,96,30]
-        # and the loadout page's own Confirm [1634,855,168,48] underneath).
-        box = controls.get('level_warning.confirm_button')
-        if box is None:
-            return _refuse(page, 'level_warning_confirm_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('STAR_GRACES', 'INITIAL_GIFTS', 'THEME_PACKS', 'MAP',
-                             'UNKNOWN'),
-                     reason='the_level_warning_proceeds_with_the_rotation_team')
     if page == 'DUNGEON_TEAM':
         # A Mirror Dungeon run opens on the loadout picker: seven TEAMS slots down the
         # left edge and one Confirm on the bottom right. The rotation decides which
@@ -1091,19 +1169,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box,
                      expect=('BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'UNKNOWN'),
                      reason='battle_button_submits_the_team')
-    if page == 'DEPLOYMENT':
-        # Submitting the team can land on the deployment view instead of the battle:
-        # live run build/window-run29.json had To Battle! hand back DEPLOYMENT, whose
-        # own bottom-right control is the same "To Battle!" (live frame
-        # evidence/runtime/window-20261006-050402/frame-0006.json reads it at
-        # [1614,857,206,48], inside the anchored battle button). The fight then
-        # starts by itself, so one click here is enough.
-        box = controls.get('deployment.battle_button') or controls.get('pre_battle.battle_button')
-        if box is None:
-            return _refuse(page, 'deployment_battle_button_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('BATTLE_HUD', 'UNKNOWN'),
-                     reason='deployment_view_starts_the_fight')
     if page == 'REWARD_CARD':
         # A cleared node hands back a pick-one reward screen ("Selectable 0/1").
         # Confirm does nothing until a card is picked, so the planner reads the
@@ -1125,19 +1190,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'reward_card_confirm_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='confirm_grants_the_picked_encounter_reward')
-    if page == 'BATTLE_TIP':
-        # A tap on a skill card opens that skill's detail over the board, and the panel
-        # has no close control of its own (live window-20261007-014613/frame-0094.json:
-        # 'Skill Effects' over the keyword list, the WAVE/TURN captions covered). The
-        # dark board area under the auto-assign buttons is empty in that frame --
-        # (1700,950) reads mean (0,3,14) with std 6.6 -- so a tap there dismisses the
-        # panel, which is the same unbounded-by-design, step-budgeted shape as the other
-        # dismiss taps.
-        box = controls.get('battle_tip.dismiss_point')
-        if box is None:
-            return _refuse(page, 'battle_tip_dismiss_not_anchored')
-        return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='the_skill_detail_popup_is_dismissed_off_the_board')
     if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
         if battle_assignment not in ('win_rate','damage','observe'):
             return _refuse(page,'unknown_battle_assignment_mode')
@@ -1171,23 +1223,6 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason=battle_assignment+'_is_the_proven_auto_assign_control')
         return _refuse(page, 'battle_has_no_proven_control')
-    if page == 'HEAL_SINNERS':
-        # The shop's Heal Sinners modal lists three numbered ways to spend 100, and only
-        # the third -- "3. Revive a single Sinner." -- brings a dead Sinner back (operator,
-        # 2026-10-12; live frame window-20261012-211311/frame-0015.json). Its box is that
-        # row's own title token, bound from this frame by the window
-        # (`plan_controls['heal_sinners.revive']`). The modal's other two options heal and
-        # are never aimed at, and the Sinner list the third opens is the page the
-        # classifier names `REVIVE_PICK` (live: evidence/runtime/window-20261012-213008/
-        # frame-0002.json reads 'Select the Sinner to revive.'), so that page is a named
-        # successor here. `HEAL_SINNERS` itself stays in the set because a swallowed click
-        # re-reads the same modal.
-        box = controls.get('heal_sinners.revive')
-        if box is None:
-            return _refuse(page, 'heal_sinners_option_not_anchored')
-        return _plan(page, CLICK, target=box,
-                     expect=('REVIVE_PICK', 'HEAL_SINNERS', 'SHOP', 'PRE_BATTLE_TEAM', 'UNKNOWN'),
-                     reason='the_shop_s_own_third_option_is_the_way_back_for_a_dead_key_slot')
     if page == 'UNKNOWN_DIALOG':
         # A modal that named no page still shows its own close control, and taking it
         # is the only safe input: the modal's other control is a Confirm that spends a

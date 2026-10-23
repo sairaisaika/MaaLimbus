@@ -275,12 +275,13 @@ INLINE_RUNNER = {
     'UNKNOWN_DIALOG': 4,
 }
 
-#: The same count for ``window.py``: **61 rows across 58 sites**, the chain
-#: ``window.plan_step`` walks before the runner sees a page.  It is ratcheted
-#: too, because a page moved out of the runner's chain and into this one is the
-#: same page-by-page growth one module later -- the move is allowed, it just has
-#: to show up in a diff instead of in a stop.
-INLINE_WINDOW = 61
+#: The same count for ``window.py``: **34 sites**, the chain ``window.plan_step``
+#: walks before the runner sees a page.  It is ratcheted too, because a page moved
+#: out of the runner's chain and into this one is the same page-by-page growth one
+#: module later -- the move is allowed, it just has to show up in a diff instead of
+#: in a stop.  The baseline was 61 until D47 moved the 27 single-shape branches into
+#: ``window.STEP_ROWS``; a ratchet that may only be raised is a counter, not a bound.
+INLINE_WINDOW = 34
 
 
 

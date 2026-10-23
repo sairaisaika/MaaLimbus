@@ -34,6 +34,8 @@ def report(derived=None):
                          if name.startswith('<')})
     return {
         'pages': len(derived),
+        'rows': sorted(window.STEP_ROWS),
+        'branches': _branch_pages(),
         'drift': sorted(drift),
         'silent': sorted(page for page, row in unchanged.items() if not row['actions']),
         'unreadable': unreadable,
@@ -42,6 +44,26 @@ def report(derived=None):
                          reverse=True)[:5],
         'facts': unchanged,
     }
+
+
+def _branch_pages():
+    """Pages still written out as their own branch of ``_plan_step``."""
+    import ast
+
+    tree = ast.parse((ROOT / 'src' / 'maalimbus' / 'window.py').read_text(encoding='utf-8'))
+    function = next(node for node in ast.walk(tree)
+                    if isinstance(node, ast.FunctionDef) and node.name == '_plan_step')
+    found = set()
+    for node in ast.walk(function):
+        if not (isinstance(node, ast.If) and isinstance(node.test, ast.Compare)):
+            continue
+        test = node.test
+        if getattr(test.left, 'id', None) != 'page' or len(test.comparators) != 1:
+            continue
+        value = test.comparators[0]
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            found.add(value.value)
+    return sorted(found)
 
 
 def main(argv=None):
@@ -62,7 +84,8 @@ def main(argv=None):
         print(json.dumps(found, indent=1))
         return 0 if not found['drift'] else 1
 
-    print('pages the chain plans: %d' % found['pages'])
+    print('pages the chain plans: %d (rows %d, branches %d)'
+          % (found['pages'], len(found['rows']), len(found['branches'])))
     print('pages that never act: %s' % (', '.join(found['silent']) or 'none'))
     print('names chosen at runtime: %s' % (', '.join(found['unreadable']) or 'none'))
     print('wait pages whose refusal would stop the run: %s'

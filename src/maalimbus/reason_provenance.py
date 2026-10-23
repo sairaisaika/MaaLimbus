@@ -28,6 +28,14 @@ EVIDENCE_KEYS = ()            # default: anything else
 DECIDED_KEYS = ('kind', 'verdict')                 # a class, as a string constant
 DECIDED_BOOLS = ('ready', 'passed', 'ok', 'succeeded', 'stop')   # a verdict, as a bool
 
+# A mapping that names the control it uses, the pages it may reach or the name it
+# refuses under is a *plan*, and its `reason` says which intent the plan carries.  The
+# `_plan`-named function used to be the only place such a reason could be written; D47
+# moved 27 of them into `window.STEP_ROWS`, a module-level table, and the old rule read
+# every one of them as a failure.  A diagnostic record (`{'reason': ..., 'step': 3}`)
+# names none of these and its `reason` is still a failure to be classified.
+PLAN_KEYS = ('control', 'expect', 'refusal')
+
 
 def _call_name(node):
     func = getattr(node, 'func', None)
@@ -65,6 +73,8 @@ class _Walk(ast.NodeVisitor):
                  or (key.value in DECIDED_BOOLS and isinstance(value, ast.Constant)
                      and isinstance(value.value, bool)))
             for key, value in zip(node.keys, node.values))
+        plan = any(isinstance(key, ast.Constant) and key.value in PLAN_KEYS
+                   for key in node.keys)
         for key, value in zip(node.keys, node.values):
             if isinstance(key, ast.Constant) and isinstance(key.value, str):
                 key_name = key.value
@@ -76,6 +86,8 @@ class _Walk(ast.NodeVisitor):
                     owner = self.scope[-1] if self.scope else ''
                     if decided:
                         role, site = 'evidence', f'decided@{owner}'
+                    elif plan:
+                        role, site = 'intent', f'plan@{owner or "module"}'
                     else:
                         role = ('intent' if owner.startswith('_plan') or owner.endswith('_plan')
                                 else 'failure')
