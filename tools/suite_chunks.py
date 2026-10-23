@@ -33,7 +33,7 @@ def chunks(files, size):
 def run_chunk(paths, python=sys.executable):
     proc = subprocess.run([python, '-m', 'pytest', *paths, '-q', '-p', 'no:cacheprovider'],
                           cwd=str(ROOT), capture_output=True, text=True)
-    return parse(proc.stdout + proc.stderr)
+    return parse(proc.stdout + proc.stderr), (proc.stdout or '') + (proc.stderr or '')
 
 
 def main(argv=None):
@@ -45,10 +45,14 @@ def main(argv=None):
     files = args.files or [str(p.relative_to(ROOT)) for p in sorted(TESTS.glob('test_*.py'))]
     total = {'passed': 0, 'failed': 0, 'no_summary': 0, 'chunks': 0}
     for chunk in chunks(files, max(1, args.size)):
-        seen = run_chunk(chunk)
+        seen, output = run_chunk(chunk)
         total['chunks'] += 1
         total['passed'] += seen['passed']
         total['failed'] += seen['failed']
+        if seen['failed']:
+            for line in output.splitlines():
+                if line.startswith('FAILED '):
+                    print('   ', line[:160])
         if not seen['reported']:
             total['no_summary'] += 1
             print(f'  NO SUMMARY  {len(chunk)} files: {chunk[0]} ...')
