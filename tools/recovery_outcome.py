@@ -11,18 +11,34 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 EVENTS = ('window_recovery', 'window_reread')
 
 
+INPUTS = ('window_intent', 'map_click_result')
+
+
 def pairs(events):
-    """Yield (recovery_event, next_page_or_None) in journal order."""
-    current = None
-    for event in events:
-        name = event.get('event')
-        if name in EVENTS:
-            current = event
+    """Yield (recovery_event, page_seen_after_its_input).
+
+    A recovery is written when the action is decided; the click or swipe it asks for
+    lands afterwards.  Pairing it with the next page event therefore measures the frame
+    that was already on screen, which biases every action towards "no change".  Skip
+    ahead to the first page observed *after* the input the recovery asked for.
+    """
+    for i, event in enumerate(events):
+        if event.get('event') not in EVENTS:
             continue
-        page = event.get('page') or event.get('scene')
-        if current is not None and page:
-            yield current, page
-            current = None
+        boundary = None
+        for j in range(i + 1, len(events)):
+            if events[j].get('event') in INPUTS:
+                boundary = j
+                break
+        if boundary is None:      # the recovery never asked for an input: no evidence
+            yield event, None
+            continue
+        page = None
+        for k in range(boundary + 1, len(events)):
+            page = events[k].get('page') or events[k].get('scene')
+            if page:
+                break
+        yield event, page
 
 
 def summarise(events):
