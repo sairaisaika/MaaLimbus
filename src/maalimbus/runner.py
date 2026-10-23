@@ -3262,6 +3262,10 @@ class MirrorRunner:
                     self.note('map_click_result', target=state['map_pending'], page=page,
                               outcome='rejected', frame=state.pop('map_click_frame', None),
                               reason='a_new_target_replaced_this_one_before_the_page_settled')
+                    # A replaced click is still a click the game did not take, and the refusal
+                    # streak is what decides an exploration was never resumed (live: a run that
+                    # opened with `a_run_is_still_in_progress` made three node clicks and moved nothing).
+                    state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
                 state['map_pending'] = list(plan['target'])
                 # The verdict below is only diagnosable if it names the frame it judged;
                 # `getattr(self, 'frames', None)` read nothing because that attribute lives
@@ -3324,6 +3328,10 @@ class MirrorRunner:
                 self.note('map_click_result', target=state['map_pending'], page=page,
                           outcome='rejected', frame=state.pop('map_click_frame', None),
                           reason='a_new_target_replaced_this_one_before_the_page_settled')
+                # A replaced click is still a click the game did not take, and the refusal
+                # streak is what decides an exploration was never resumed (live: a run that
+                # opened with `a_run_is_still_in_progress` made three node clicks and moved nothing).
+                state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
             state['map_pending'] = list(plan['target'])
             state['map_click_frame'] = (record.get('frame')
                                         or Path(frame_file(directory)).name)
