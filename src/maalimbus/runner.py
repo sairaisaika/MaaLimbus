@@ -4271,10 +4271,16 @@ class MirrorRunner:
                   'last_event': self.last_event,
                   'steps_recorded': len(self.artifacts.get('steps', []))}
         try:
+            # The event carried only the heartbeat age, so every diagnosis of this stop
+            # had to re-read the whole journal to learn which page and which intent it
+            # died on (`packaged-mirror-20261023-060803`: the answer was RESUME_DIALOG and
+            # `resume_rejoins_the_run_that_is_already_in_progress`).  The record already
+            # knew both; the event did not say.
             self.note('window_stall', reason=record['reason'],
                       limit_seconds=record['limit_seconds'],
                       heartbeat_age=record['heartbeat_age_seconds'],
-                      step=record['step'])
+                      step=record['step'], page=record['page'],
+                      last_event=record['last_event'])
         except Exception:  # pragma: no cover - a journal may be closing
             pass
         try:
