@@ -48,6 +48,43 @@ def recovery_effect(rows, *, window=3):
             'rate': (effective / seen) if seen else None}
 
 
+def recovery_advanced(rows, *, window=5):
+    """Did a recovery move the run *forward*, not merely change the screen?
+
+    A first version counted any page change as progress and measured 17/17 -- but the
+    recovery it was measuring opens and closes the pause panel, which changes pages and
+    advances the dungeon by nothing.  So progress is now only one of two things a panel
+    round-trip cannot fake: a verdict that names a party movement, or a floor the run
+    had not reached before.
+    """
+    seen = 0
+    advanced = 0
+    frames_left = None
+    reached = set()
+    for row in rows:
+        if row.get('event') == 'map_observed' and row.get('floor'):
+            reached.add(row['floor'])
+        if row.get('event') == 'window_recovery':
+            seen += 1
+            frames_left = window
+            before = set(reached)
+            continue
+        if frames_left is None:
+            continue
+        if row.get('event') == 'map_observed' and row.get('floor'):
+            frames_left -= 1
+            if frames_left < 0:
+                frames_left = None
+            continue
+        moved = (row.get('event') == 'map_click_result'
+                 and row.get('reason') in ACCEPTED_MOVEMENT)
+        if moved or reached != before:
+            advanced += 1
+            frames_left = None
+    return {'recoveries': seen, 'advanced': advanced,
+            'rate': (advanced / seen) if seen else None}
+
+
 def summarise(rows):
     """One dict of counts for one run.  Pure: same rows in, same dict out."""
     events = [row.get('event') for row in rows]
@@ -73,6 +110,7 @@ def summarise(rows):
         'refusals': refusals,
         'recoveries': recoveries,
         'recovery_effect': recovery_effect(rows),
+        'recovery_advanced': recovery_advanced(rows),
         'recovery_rate': (recoveries / refusals) if refusals else None,
         'stops': len(stops),
         'stop_reasons': sorted({str(row.get('reason')) for row in stops}),

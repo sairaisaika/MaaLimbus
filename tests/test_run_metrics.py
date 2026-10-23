@@ -30,3 +30,19 @@ def test_a_recovery_counts_only_if_the_engine_acts_again_soon():
     assert recovery_effect(acted)['rate'] == 1.0
     assert recovery_effect(silent)['rate'] == 0.0, 'a recovery that never acts again is not a recovery'
     assert recovery_effect([])['rate'] is None
+
+
+def test_a_recovery_that_keeps_the_same_page_advanced_nothing():
+    from maalimbus.run_metrics import recovery_advanced
+    busy = [{'event': 'map_observed', 'page': 'MAP'},
+            {'event': 'window_recovery'},
+            {'event': 'map_observed', 'page': 'MAP'},
+            {'event': 'map_click_result', 'outcome': 'rejected'}]
+    moved = [{'event': 'map_observed', 'page': 'MAP'},
+             {'event': 'window_recovery'},
+             {'event': 'map_observed', 'page': 'MAP'},
+             {'event': 'map_click_result', 'outcome': 'accepted',
+              'reason': 'the_party_moved_after_the_click'}]
+    assert recovery_advanced(busy)['rate'] == 0.0, 'busy is not advanced'
+    assert recovery_advanced(moved)['rate'] == 1.0
+    assert recovery_advanced([])['rate'] is None
