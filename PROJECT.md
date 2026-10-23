@@ -3588,3 +3588,77 @@ Resume / Halt Exploration / Cancel。**这是一局没打完的进度，本轮�
 **已知局限（写进 D44）。** 计数器量站点不量决策（`page in ('A','B')` 一站点两行）；解析不了常量，`page in WAIT_PAGES` 只在总量可见；只读 `runner.py` 与 `window.py`。
 
 **下一单元（按影响面排序）。** ① `MAP` 的 29 个内联判断是唯一最大的收敛点，且它与 `map_dispatch`/`map_vision` 已有抽象重叠，适合作为「把分派搬进表」的第一个完整案例；② `window.plan_step` 的 61 行链（现已被棘轮冻住，可以安全地逐页搬进 `PAGES`/`CONTRACTS`）；③ `MirrorRunner.step` 的动作仍只受 run 预算约束。
+## DSH continuation: a contract that nothing compares is not a contract (2026-10-23)
+
+**这一轮的三个根因（只读审计，按影响排序）**
+
+1. **契约写成了散文。** `pages.CONTRACTS` 是设计好的回答（进入证明 / 合法操作 / 后继 /
+   失败处理 / 可逆性），但 `grep` 显示只有 `pages.py` 的定义和 `tests/test_pages.py`
+   一个形状测试读它，运行时代码从不读；三页里两页已和链路不一致（`MAP` 写了三种输入但
+   链路只有一个动词、19 个后继；`SHOP` 写成计划页但窗口从不计划它，输入在
+   `INLINE_RUNNER['SHOP']`）。**没有任何东西因此失败，因为没有任何东西拿它跟代码比。**
+   这与 D35（棘轮只数一种写法）、D44（D35 的修复）是同一类：描述决定的文档成为决定的
+   第二个事实源。
+2. **页面能力散在两个层。** 48 页由 `window.plan_step` 计划、5 页在 runner 里行内处理
+   （`INLINE_RUNNER`），而"这一页接下来能去哪"只有 `plan['expect']` 一个真实来源
+   （`src/maalimbus/runner.py:3918` 的 `ANY in (plan.get('expect') or [])`、
+   `:3877` 的 `unexpected_successor`）——证据在，但没有记录，于是每加一页都要先去读
+   2000 行的 `step`。
+3. **"失败即停止"的通道没有守卫。** `wait` 页（`window.WAIT_PAGES`：`UNKNOWN`、
+   `BATTLE_RESULT`、`DEFEAT`）本应自愈，但同一页可以有具名拒绝分支；只要那个拒绝映射到
+   会停运行的动作（`stop` / `escalate_ladder`），"这一页没有控件"就变成"这一轮结束"。
+   今天没发生（`battle_result_control_not_anchored → missing_control → bind_control`，
+   只等待），但没有任何测试守着它。
+
+**这一轮落地的改进（D45，最小、可离线验证、影响面 = 全部计划页）**
+
+* `window.dispatch_facts(source=None)`：从 `_plan_step` 派生每一页的 `actions`（可返回的
+  `_plan` 动词）、`expects`（后继并集）、`refusals`（能拒绝的理由）。49 页；运行期名字
+  记为 `'<expr>'`。
+* `pages.DISPATCH_FACTS`：记录下来的派生结果；`pages.fact_drift(derived)` 逐页比较记录
+  与链路（增删都算）；`pages.facts(page)`；`pages.unsafe_wait_branches()` 守
+  「wait 页可拒绝、但拒绝不得映射到停止动作」。
+* `tests/test_page_contracts.py`（10 个）：漂移门禁两个方向、改源码文本加分支必须被抓到、
+  集合比较（每个 plan 页都有分支；唯一"有分支但未计划"的例外是 `BATTLE_RESULT` 且它只
+  拒绝不动作）、wait 不变式能失败的反例与不能误报的对照、散文契约页必须在两层之一有机器
+  归属（`SHOP` 因此在 `INLINE_RUNNER` 里）、静态读不出的名字数量棘轮（基线 1）。
+* `tools/audit_dispatch.py`：打印派生、漂移、从不动作的页面、读不出的名字、危险的 wait
+  分支；漂移时退出 1。
+* `pages.CONTRACTS` 的头注释改写：明确它是散文、机器副本是 `DISPATCH_FACTS`，并记下
+  那两条已经过期的条目。
+
+**测量（改前 / 改后）**
+
+| 指标 | 改前 | 改后 |
+| --- | --- | --- |
+| 可机器检查的页面能力 | 0 页（散文 3 页） | 49 页 |
+| 记录与链路的漂移检查 | 无 | 每页，含增删 |
+| wait 页"拒绝→停止"守卫 | 无 | 有（含反例） |
+| `tests/test_page_contracts.py` | 不存在 | 10 个通过 |
+| 全量测试 | `2092 passed`（D44 后） | `2102 passed in 175.76s`，退出码 0 |
+| `tools/verify_pipeline_spec.py` | ok | `ok — 0 problem(s)`，805 节点 / 16 agent 名 / 6 入口 |
+| 实机只读核对 | `RESUME_DIALOG`，`input_sent: false` | 同：20 帧，`map_header_not_identified`，无输入 |
+
+**实机（只读，未授权消费一律未做）**：`tools/map_live_observe.py`（Null 输入法）→
+`evidence/runtime/map-live-20261023-181103`：前景 Limbus Company、`input_sent: false`、
+`scene: RESUME_DIALOG`、`route_recheck.reason = map_header_not_identified`、`reason =
+read_only_frame_is_not_an_identified_map`。那一局 **Mirror of Sisyphus 08 / F2 /
+`Floor 2 2/6 [HARD]`** 仍未打完，本轮一个输入都没发。
+
+**这一轮学到的可迁移经验**
+
+* **"写在代码旁边的规则"必须被比较，否则它不是规则。** 散文契约、副本常量、注释里的
+  阈值都一样：只要没有东西拿它跟事实比，它就只会漂移；一旦有了比较，第一次运行往往就
+  能发现已经是错的两条。
+* **派生优于复述。** 每页后继的唯一真实来源是 `plan['expect']`；把它抄成表就是第三份
+  副本（前两份是 `CONTRACTS` 和 `_plan_step`）。正确做法是从链路派生并**记录**派生结果，
+  让 diff 承担"能力变了"的责任。
+* **例外要能被枚举，而不是被容忍。** `BATTLE_RESULT` 有分支却不在计划集合里，这不是
+  错误，但它必须是一个**具名**例外（只拒绝不动作的 wait 页），否则下一次"多一个分支"
+  就没人能判断是有意还是意外。
+* **不变式比数值更能抓 bug。** 「wait 页的拒绝不得映射到停止动作」是这一轮唯一抓住
+  "路径失败就停"这一类缺陷的规则；它比任何计数都更接近 mandate 里的问题描述。
+
+**下一单元（按证据排）**：把 `MAP` 的 29 处行内分派作为第一个"整页搬进表"的案例
+（`DISPATCH_FACTS['MAP']` 的 19 个后继已是搬过去的判据）；`window.plan_step` 52 分支链
+的分组；节点动作仍只受运行预算约束的 `run_node(self.tasker, plan['node'], self.deadline)`。
