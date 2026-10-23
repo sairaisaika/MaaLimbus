@@ -207,3 +207,18 @@ def test_a_confirmed_teardown_says_so():
 def test_an_unconfirmed_teardown_records_instead_of_raising():
     from maalimbus.jobs import stop_tasker
     assert stop_tasker(_TaskerStop(False), timeout=0.0, clock=lambda: 0.0) is False
+
+
+def test_a_watchdog_cannot_outlive_the_budget_it_protects():
+    from maalimbus.jobs import bounded_limit
+    assert bounded_limit(900.0, 100.0, clock=lambda: 40.0) == 60.0
+
+
+def test_a_watchdog_without_a_budget_is_left_alone():
+    from maalimbus.jobs import bounded_limit
+    assert bounded_limit(900.0, None) == 900.0
+
+
+def test_a_spent_budget_still_gives_a_positive_window():
+    from maalimbus.jobs import bounded_limit
+    assert bounded_limit(900.0, 100.0, clock=lambda: 500.0) == 1.0

@@ -54,7 +54,7 @@ from .event_vision import (best_check_choice, check_box, check_stage, choice_opt
 from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES
 from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
-from .jobs import dispatch, screencap, wait_job, wait_task
+from .jobs import bounded_limit, dispatch, screencap, wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
 from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, map_clicks, map_header,
@@ -4426,6 +4426,9 @@ class MirrorRunner:
         # it gets its own watch over the newest event rather than the newest frame.
         raw_progress = self.settings.get('progress_seconds')
         progress = self.PROGRESS_SECONDS if raw_progress is None else float(raw_progress)
+        # One live run was given 450 s and took 1058 s because this watch outlived the
+        # budget by 2.5x.  A watchdog may never be longer than the run it protects.
+        progress = bounded_limit(progress, getattr(self, 'deadline', None))
         if progress > 0:
             self.artifacts.setdefault('event_heartbeat', time.monotonic())
             self._progress_watch = threading.Thread(

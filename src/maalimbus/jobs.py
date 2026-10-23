@@ -144,3 +144,17 @@ def stop_tasker(tasker, *, timeout=8, clock=time.monotonic, sleep=time.sleep):
         return True
     except (TimeoutError, RuntimeError, AttributeError):
         return False
+
+
+def bounded_limit(limit, deadline, clock=time.monotonic):
+    """Clamp a watchdog window to what is left of the run's own budget.
+
+    One live run was given 450 s and took 1058 s: a single step blocked for 905 s and
+    only the 900 s no-progress watch noticed (``evidence/runtime/
+    packaged-mirror-20261023-124006``, gap ``window_intent -> window_no_progress``).
+    A watchdog may never be longer than the budget it is supposed to protect.
+    """
+    if deadline is None or limit is None:
+        return limit
+    left = deadline - clock()
+    return max(1.0, min(float(limit), float(left)))
