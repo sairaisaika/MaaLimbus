@@ -3911,7 +3911,7 @@ class MirrorRunner:
         # A refused click is a stop like any other: spend the next rung here, once,
         # for every recording site instead of at each of the four call sites.
         refused = state.pop('map_refused_since_progress', False)
-        if refused and map_dispatch.is_map(page) and settled_page == 'MAP':
+        if refused and map_dispatch.is_map(page) and map_dispatch.is_map(settled_page):
             recovered = self._recover(page, state, entry, plan)
             if recovered is not None:
                 return recovered
