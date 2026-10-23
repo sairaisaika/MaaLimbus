@@ -1860,6 +1860,9 @@ class MirrorRunner:
     def note(self, name, **fields):
         """Journal one event, when a journal is attached."""
         self.last_event = name
+        # Inert bookkeeping: how many events this run has written, so a click can
+        # ask whether anything happened after it without scanning the journal.
+        self._note_count = getattr(self, '_note_count', 0) + 1
         # Progress has its own clock. A loop can keep taking frames while writing
         # nothing -- live run packaged-mirror-20261022-033911 sat from 07:41:23 with
         # a healthy frame heartbeat and no further event -- and the frame watchdog
@@ -3356,6 +3359,11 @@ class MirrorRunner:
             point = (random.randint(x, x + max(1, w)), random.randint(y, y + max(1, h)))
             self.note('window_intent', page=page, target=list(plan['target']),
                       reason=plan['reason'], point=list(point), delay_ms=delay)
+            # Inert: when the click went out, and how many events preceded it. A later
+            # round can ask `click_trace.classify` with these two numbers; nothing here
+            # changes what gets clicked or when the run stops.
+            self._clicked_at = time.monotonic()
+            self._notes_at_click = self._note_count
             # The click a label can be earned from: this is where input actually goes
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
