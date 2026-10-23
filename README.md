@@ -83,6 +83,16 @@ MaaLimbus 自有代码当前声明为 [AGPL-3.0-or-later](LICENSE)。这是本�
 
 本项目用于图像识别与界面自动化的学习开发，按许可证原样提供，不承诺运行结果。使用者应核对目标软件的服务条款和授权。程序不注入游戏、不读取游戏内存，也不绕过权限或安全机制。
 
+## 当前状态（2026-10-23）
+
+- 真机最好成绩：**第 2 层**（五层通关 0 次），连续 5 局无原生崩溃；
+- 预算契约：420 s 预算 → 实际 435 s（外部兜底会具名 `the_budget_ended_the_run`）；
+- 未覆盖状态：框架以空 `controller_id` 拒绝点击、而截图仍可用（见 wiki 决策 D36 的"局限"）；
+- 可重复的度量入口：`python tools/run_metrics.py --runs 40`、`python tools/audit_evidence.py`、
+  `python tools/check_freeze.py`（冻结产物落后于源码时拒绝运行）。
+
+每一条结束方式、每一次预算终止、每一次控制器丢失，都在 journal 里有一个可检索的名字。
+
 ## 开发
 
 本项目使用官方 Python 对象接口和 Job 封装。Maa 管理截图、输入及 Pipeline 调度，Agent 提供识别和决策，纯 Python 策略可以离线验证。本项目的分层讲解见 [wiki 索引](docs/wiki/README.md)；下列链接是上游 MaaFramework 的参考文档。

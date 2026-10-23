@@ -3413,3 +3413,27 @@ Measured on the local harness log (61 runs): **7 carried `stop: null` with exit 
 `the_controller_crashed_inside_a_click` -- 11.5% of runs that previously vanished into the silent bucket.
 Guarded by `tests/test_crash_codes.py` (4 cases, both directions) and `tests/test_crash_codes_history.py`
 (every code in the local log must be nameable; skips when there is no log).
+
+## DSH continuation: one end, one reason — and the states that are NOT one (2026-10-23)
+
+A long series of live attempts failed in ways the journal could not name, so the endings were
+made a table (wiki `D36`, both languages). Shipped, each with its own cases:
+
+- `runner.wait_decision` + `WAIT_LIMIT = 40` (`fdc17a0`, `bf3b168`): a waiting step is counted,
+  reported every fifth as `loop_waited`, and 40 of them end the run. Before this, one run waited
+  421 s on `RESUME_DIALOG` while writing nothing; the 300 s progress watchdog was the only
+  thing that noticed.
+- `runner` deadline between steps plus `step_outlived_its_window` (`05b4f2e`), and a watchdog
+  clamped to the budget that no longer buys grace once clamped (`bb544de`, `5438a3d`).
+  1058.8 s → 608.9 s → 435 s for a 420 s budget.
+- `jobs.dispatch` soft path (`5b281f7`) and `jobs.InputLost` (`1a7fc0b`, `06e8482`): a click
+  that opens a long transition is delivered when the screen still answers; a click whose drain
+  leaves the screen dead names a lost controller and stops the run instead of clicking into an
+  empty handle.
+- `tools/selfrun_mirror.py` (`da6480a`): the harness enforces the budget from outside and
+  records `the_budget_ended_the_run`, so "who stopped it" is never ambiguous again.
+
+Measured state: 0 five-floor clears, best floor 2, no native crashes in five consecutive runs,
+budget adherence 435/420 s. One state is still uncovered and is recorded rather than hidden:
+the framework rejecting a click with an empty `controller_id` while screenshots keep working —
+live evidence aligns it with the `RESUME_DIALOG` click at `evidence/runtime/packaged-mirror-20261023-135541`.

@@ -79,6 +79,17 @@ Dependencies retain their own licenses. Future packages need license texts, sour
 
 This learning project is provided as stated in its license, without promised runtime results. Check the target software's terms and authorizations. It does not inject into the game, read game memory or bypass privilege/security controls.
 
+## Current state (2026-10-23)
+
+- Best live reach: **floor 2** (0 five-floor clears), five consecutive runs without a native crash;
+- Budget contract: a 420 s budget ends at 435 s, and an outside kill names itself `the_budget_ended_the_run`;
+- One state is still uncovered: the framework rejecting a click with an empty `controller_id` while
+  screenshots keep working (see wiki decision D36, "Limit");
+- Reproducible measurements: `python tools/run_metrics.py --runs 40`, `python tools/audit_evidence.py`,
+  `python tools/check_freeze.py` (refuses to run when the frozen artifact is behind the source).
+
+Every ending, every budget kill and every lost controller carries a searchable name in the journal.
+
 ## Development
 
 The project consumes official Python objects and Jobs. Maa owns screenshots/input/Pipeline scheduling; the Agent supplies recognition/decisions, while pure Python policies run offline. This project's own layered walk-through is the [wiki index](docs/wiki/README.md); the links below are upstream MaaFramework references.
