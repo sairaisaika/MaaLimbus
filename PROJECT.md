@@ -3298,3 +3298,21 @@ still left with a single click.
 
 Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_the_entry_not_continued`
 (85 passed in that file). Commits `83ee06b`, `050d7e0`. Live counterpart of the claim is still owed.
+
+## DSH continuation: one class for "the control is not in the frame" (2026-10-23)
+
+架构审计的三个病因里，第一个被测量钉死了：窗口层 77 条拒绝理由中有 **52 条**是同一个机制（缺控件）被逐页命名，
+外加两条用别的拼写说同一件事。这把"缺一个按钮"变成了 52 个各自为政的结局，任何调用方都无法对整类作出反应。
+
+`src/maalimbus/anchor.py` 收口这一类：`anchor_of()` 解出缺失控件，`classify_refusal()` 给出
+`stop_kind`（`anchor_missing` / `page_unreadable` / `held`）与 `anchor`、`anchor_page`；
+`window._refuse()` 是唯一出口且理由原文不变，所以账本与既有断言不受影响。守卫测试扫描 `window.py` 里
+每个 `_refuse(...)` 字面量，新增未声明的非锚定类拒绝即失败（提交 `6feb00e`，D34）。
+
+分类之后是行为：`anchor.reread_allowed()` 把"能不能再看一眼"写成一条规则——没有发出输入、不是策略性拒绝、
+不是 observe-only、且未用尽 `page_tries` 时，锚定缺失花一次有界重读而不是结束本局（`5682381`）。
+`window_page_retry` 现在带 `anchor` 字段。
+
+证据：`tests/test_anchor.py` 17 passed（正例/反例/别名/守卫/边界），与 `test_window.py`、`test_runner.py`
+合跑 164 passed in 40.02s。未验证：这一类在真机上的实际停窗率变化——本轮没有任何实机输入，未启动游戏、
+未消费资源、未领取奖励。
