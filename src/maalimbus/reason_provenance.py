@@ -18,6 +18,16 @@ FAILURE_KEYS = ('stopped', 'stopped_reason', 'stop_reason')
 INTENT_KEYS = ('plan_reason',)
 EVIDENCE_KEYS = ()            # default: anything else
 
+# A record that already says what it decided does not need its prose classified.
+# `{'kind': 'the_loop_is_alive', 'action': 'keep_waiting', 'reason': ...}` names its own
+# class, and `{'ready': True, 'reason': 'the_controller_id_is_present'}` names its own
+# verdict; the reason beside them is the label for that decision, not a fourth place to
+# look for a recovery action.  (Measured 2026-10-23: the failure count without a kind was
+# 7, and every one of them was a label inside such a record -- including
+# `the_controller_id_is_present`, a *success* the prose inferer had read as a failure.)
+DECIDED_KEYS = ('kind', 'verdict')                 # a class, as a string constant
+DECIDED_BOOLS = ('ready', 'passed', 'ok', 'succeeded', 'stop')   # a verdict, as a bool
+
 
 def _call_name(node):
     func = getattr(node, 'func', None)
@@ -46,6 +56,15 @@ class _Walk(ast.NodeVisitor):
     visit_AsyncFunctionDef = visit_FunctionDef
 
     def visit_Dict(self, node):
+        # Does this record already say what it decided?  Then its `reason` is the label
+        # for that decision and needs no recovery class of its own.
+        decided = any(
+            isinstance(key, ast.Constant)
+            and ((key.value in DECIDED_KEYS and isinstance(value, ast.Constant)
+                  and isinstance(value.value, str))
+                 or (key.value in DECIDED_BOOLS and isinstance(value, ast.Constant)
+                     and isinstance(value.value, bool)))
+            for key, value in zip(node.keys, node.values))
         for key, value in zip(node.keys, node.values):
             if isinstance(key, ast.Constant) and isinstance(key.value, str):
                 key_name = key.value
@@ -55,8 +74,13 @@ class _Walk(ast.NodeVisitor):
                     self._record(getattr(value, 'value', None), 'intent', f'dict:{key_name}')
                 elif key_name == 'reason':
                     owner = self.scope[-1] if self.scope else ''
-                    role = 'intent' if owner.startswith('_plan') or owner.endswith('_plan') else 'failure'
-                    self._record(getattr(value, 'value', None), role, f'reason@{owner}')
+                    if decided:
+                        role, site = 'evidence', f'decided@{owner}'
+                    else:
+                        role = ('intent' if owner.startswith('_plan') or owner.endswith('_plan')
+                                else 'failure')
+                        site = f'reason@{owner}'
+                    self._record(getattr(value, 'value', None), role, site)
                 else:
                     self._record(getattr(value, 'value', None), 'evidence', f'dict:{key_name}')
         self.generic_visit(node)

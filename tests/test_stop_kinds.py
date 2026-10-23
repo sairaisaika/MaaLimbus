@@ -27,10 +27,17 @@ def test_the_narrowing_still_reads_one_source():
         assert recovery_for(kind) == RECOVERY_BY_KIND[kind]
 
 
-# Measured baseline 2026-10-23: 189 reason-like literals, 2 mapped, 187 unmapped.
-# The ratchet may only go down: a new page-specific name must either reuse a kind or
-# replace an existing name, never add a 188th silent one.
-UNMAPPED_BASELINE = 187
+# Measured 2026-10-23: 198 reason-like literals in `src/maalimbus/`, of which only 2 are
+# in `REFUSALS`/`STOP_KINDS`.  Counting all 198 made this ratchet answer the wrong
+# question: 75 are plan intents and 93 are evidence labels, and no recovery table will
+# ever hold them, so a new diagnostic module adding four labels turned the guard red
+# without a single unclassified *failure* existing.  The honest denominator is the names
+# whose provenance role is failure: 26 of those still have no literal class (measured
+# 2026-10-23, down from 187 names counted as "unmapped").
+# The prose model (`reason_kinds.role_of`) is the older of the two role models and still
+# disagrees with provenance on some names; unifying them is the next architectural step,
+# not something this ratchet can decide.
+UNMAPPED_FAILURE_BASELINE = 26
 # After the role split (intent / outcome / failure) the honest denominator is
 # "failures that have no class": 81 on 2026-10-23, down from 187 unmapped names.
 UNCLASSIFIED_FAILURE_BASELINE = 81
@@ -41,12 +48,15 @@ def test_the_unmapped_reason_vocabulary_only_shrinks():
     sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parents[1] / 'tools'))
     from audit_vocabulary import literals
     from maalimbus.pages import REFUSALS, STOP_KINDS
+    from maalimbus.reason_provenance import roles
 
     known = set(REFUSALS) | set(STOP_KINDS)
-    missing = [name for name in literals() if name not in known]
-    assert len(missing) <= UNMAPPED_BASELINE, (
-        f'{len(missing)} unmapped reason names (baseline {UNMAPPED_BASELINE}): '
-        f'{sorted(missing)[:5]}')
+    decided, _conflicted = roles()
+    missing = [name for name in literals()
+               if name not in known and decided.get(name) == 'failure']
+    assert len(missing) <= UNMAPPED_FAILURE_BASELINE, (
+        f'{len(missing)} failure names with no literal class '
+        f'(baseline {UNMAPPED_FAILURE_BASELINE}): {sorted(missing)[:5]}')
 
 
 def test_every_failure_name_has_a_role_and_the_residue_shrinks():

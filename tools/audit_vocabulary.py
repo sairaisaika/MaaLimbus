@@ -47,13 +47,28 @@ def main():
     roles = {name: role_of(name) for name in names}
     failures = [name for name in names if name not in known and roles[name] == 'failure']
     unclassified = [name for name in failures if kind_for(name) is None]
+    # The recovery table can only answer for names that are failures; plan intents and
+    # evidence labels never get a class, so counting them as "unmapped" measures the size
+    # of the prose vocabulary instead of the debt the table owes.
+    from maalimbus.reason_provenance import roles as provenance_roles
+    decided, conflicted = provenance_roles()
+    owed = sorted(name for name in names
+                  if name not in known and decided.get(name) == 'failure')
+    owed_unclassified = [name for name in owed if kind_for(name) is None]
+    prose_failures = set(failures)
+    disagree = len(prose_failures ^ set(owed))
     print(f'reason-like literals: {len(names)}')
-    print(f'  intents: {sum(1 for r in roles.values() if r == "intent")}'
-          f'  outcomes: {sum(1 for r in roles.values() if r == "outcome")}'
-          f'  failures: {sum(1 for r in roles.values() if r == "failure")}')
-    print(f'mapped: {len(names) - len(missing)}  unmapped: {len(missing)}')
-    print(f'failures without a class: {len(unclassified)}')
-    missing = unclassified or missing
+    print(f'prose role model (reason_kinds): intents '
+          f'{sum(1 for r in roles.values() if r == "intent")}'
+          f'  outcomes {sum(1 for r in roles.values() if r == "outcome")}'
+          f'  failures {sum(1 for r in roles.values() if r == "failure")}')
+    print(f'mapped: {len(names) - len(missing)}  unmapped literals: {len(missing)}'
+          f'  of which provenance calls failures: {len(owed)}')
+    print(f'failures without a class: provenance {len(owed_unclassified)}'
+          f'  prose model {len(unclassified)}'
+          f'  (the two role models disagree on {disagree} unmapped names)')
+    print(f'provenance conflicts: {len(conflicted)}')
+    missing = owed_unclassified or unclassified or owed or missing
     for name in missing[:10]:
         print(f'  - {name}')
     return 0
