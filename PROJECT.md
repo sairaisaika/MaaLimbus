@@ -3923,3 +3923,43 @@ agentmemory 工具在本会话不可用（`ops_discover_tools` 无匹配），�
 (a) 28 个 `unmeasured` 词需要授权运行的证据（`input_without_a_proof` 已就位）；
 (b) `MirrorRunner.step` 里 30 个"输入后按 `plan['reason']` 分流"的块（约 450 行）是下一个可做差分
 等价证明的切片；(c) 恢复阶梯仍无法给出**页面相关**的备选路线。
+
+## DSH continuation: a reservation whose reader is only a callback (2026-10-23)
+
+**三个最关键原因（本轮层面：事务的两半从不比对）**
+
+1. **规则写在代码旁边，没有可比的另一半**——连续第六轮命中同一底层缺陷：D39（记录自决）、
+   D45（页面契约）、D48（词表）、D49（证据）、D50（结束署名），本轮是**交易意图与它的读者**。
+2. **同一决定多个来源**——"这条预留有没有被对账"有三处口径：调用点（`grep` 看不到）、
+   注入的回调（`shop_reconcile=`）、存档里的待决记录。三者互不比对。
+3. **不可恢复的流程设计**——一条预留的读者只以回调形式存在：删掉那一个关键字，全部测试仍绿，
+   只有真正被打断的一局才会暴露重复消费。
+
+**改动（提交 `01b1966`）**
+
+- `src/maalimbus/transaction_ledger.py`：从交易模块自身的方法名派生四个族（意图 / 对账 /
+  清理 / 查询），从 `MirrorRunner.step` 的 AST 取触点，裸属性引用计为**注入读者**；
+  `unpaired()` 报"有意图无读者"，`unknown_methods()` 报"族规则无法归类"，`dead_api()` 报
+  "无人引用的公开方法"（只报告）。
+- `tools/audit_transactions.py`：打印账本，意图无读者或方法无法归类时 exit 1。
+- `tests/test_transaction_ledger.py`（15 项）：无读者必报、注入读者算读者、无法归类必报、
+  前缀歧义只给一个答案、账本覆盖循环里每个交易接收者。
+
+**证据**
+
+```
+python tools/audit_transactions.py
+  transaction modules: 7  public methods: 50
+  touchpoints in the loop: 98  intents: 13  reconciles: 14
+  injected readers: reconcile_purchase, reconcile_refresh
+  intents nothing reads back: none
+  methods the loop calls that the families cannot place: none
+  public methods no module references: revived_cards, adopt_unspent_entry_settings
+  EXIT=0
+```
+- 定向（ledger + runner + pages）→ 114 passed in 38.42 s
+- 全量 → 2177 passed in 183.65 s，exit 0（上轮 2162，本轮 +15）
+- 只读 MuMu → `evidence/runtime/map-live-20261023-190719`：`input_sent: false`，`RESUME_DIALOG`，进行中的 F2 `2/6 [HARD]` 未动
+
+**下一单元**：把账本扩到 `step` 之外的交易写方（`shop_reconcile` 这类注入点的调用可达性），
+并给 28 个 `unmeasured` 计划词接上真实运行证据（仪器已于 D49 就位）。

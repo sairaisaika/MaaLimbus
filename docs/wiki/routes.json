@@ -775,6 +775,54 @@
         "python -m pytest -q tests/test_run_endings.py"
       ],
       "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。"
+    },
+    {
+      "id": "transactions",
+      "title": "交易的两半：意图在输入之前写下，读者必须在之后把它读回来",
+      "aliases": [
+        "事务",
+        "交易",
+        "预留",
+        "对账",
+        "intent",
+        "reconcile",
+        "reservation",
+        "duplicate purchase",
+        "重复消费",
+        "重复交易",
+        "transaction_ledger",
+        "unpaired",
+        "injected reader"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/transaction_ledger.py",
+          "symbol": "ledger"
+        },
+        {
+          "path": "src/maalimbus/transaction_ledger.py",
+          "symbol": "sites"
+        },
+        {
+          "path": "src/maalimbus/transaction_ledger.py",
+          "symbol": "unpaired"
+        },
+        {
+          "path": "src/maalimbus/transaction_ledger.py",
+          "symbol": "dead_api"
+        }
+      ],
+      "docs": [
+        "docs/wiki/zh_cn/2.3-decisions.md#d51-只作为回调传递的读者仍然是读者",
+        "docs/wiki/en_us/2.3-decisions.md#d51-a-reservation-whose-reader-is-only-a-callback-is-still-a-reservation"
+      ],
+      "tests": [
+        "tests/test_transaction_ledger.py"
+      ],
+      "checks": [
+        "python tools/audit_transactions.py"
+      ],
+      "boundary": "账本证明的是\"引用存在\"，不是\"辅助函数走到它\"；写在 MirrorRunner.step 之外的交易对它不可见；死方法按名跨模块匹配。"
     }
   ]
 }
