@@ -10,7 +10,7 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'tools')]
 from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
-from verify_sinner_neural_native import Offline
+from maalimbus.replay import blank_replay as Offline
 from maalimbus.jobs import wait_job
 from maalimbus.vision import Text
 from maalimbus.floor_trial_vision import repair_levels

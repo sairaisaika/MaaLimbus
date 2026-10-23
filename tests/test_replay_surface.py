@@ -124,15 +124,19 @@ def test_every_owning_tool_inherits_the_shared_layer():
 
 
 def test_the_neighbour_imports_are_reported_and_only_shrink():
-    """46 tools take a controller class from another tool instead of the layer.
+    """14 tools still take a controller from a tool that declares expectations.
 
-    Reported, not gated: `from verify_star_replay import Replay` also brings that
-    tool's click assertion, so each one has to be flattened against the input it
-    really expects. The number may fall but not grow.
+    It was 46 until D54 flattened the 32 that imported a body of "store this frame"
+    and nothing else. What is left imports a class whose own `click`/`swipe`/key
+    body *is* the expectation its loop needs, so each one has to be flattened
+    against the input it really expects, not mechanically. The number may fall but
+    not grow, and the sources are named so a new one cannot arrive unnoticed.
     """
     data = _inventory_module().report()
-    assert data['importing_a_controller_from_a_tool'] == 46
-    assert all(isinstance(edges, list) and edges for edges in data['controller_imports'].values())
+    assert data['importing_a_controller_from_a_tool'] == 12
+    sources = {edge[0] for edges in data['controller_imports'].values() for edge in edges}
+    assert sources == {'verify_star_replay', 'verify_theme_replay', 'verify_deployment_replay',
+                       'verify_native_replay', 'verify_battle_plan_replay'}, sources
 
 
 def test_the_counter_example_a_neighbour_import_is_named(tmp_path):

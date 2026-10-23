@@ -4,7 +4,8 @@ import sys as _sys
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
 from pathlib import Path
-from verify_theme_replay import ROOT,CustomController,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task
+from maa.controller import CustomController
+from verify_theme_replay import ROOT,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task
 from maalimbus.grace_vision import available_starlight
 from maalimbus.replay import ReplayController
 class Replay(ReplayController):

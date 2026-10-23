@@ -5,7 +5,7 @@ _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json
 import time
 import cv2
-from verify_grace_balance_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from verify_theme_replay import ROOT,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task
 from maalimbus.theme_vision import selection_floor,theme_page
 from maalimbus.vision import Text

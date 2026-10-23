@@ -4,7 +4,7 @@ import sys as _sys
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
 from verify_theme_replay import ROOT,Library,Resource,Tasker,wait_job,wait_task
-from verify_grace_balance_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from maa.custom_recognition import CustomRecognition
 from maa.pipeline import JOCR,JRecognitionType
 

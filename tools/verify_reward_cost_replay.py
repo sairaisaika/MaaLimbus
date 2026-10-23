@@ -3,7 +3,7 @@ import pathlib as _pathlib
 import sys as _sys
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
-from verify_grace_balance_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from verify_theme_replay import ROOT,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task
 from maalimbus.reward_cost import combine_evidence
 from maalimbus.gift_vision import GiftCatalog

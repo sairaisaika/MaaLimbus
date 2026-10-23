@@ -148,3 +148,16 @@ class ReplayController(ReplayFrames, CustomController):
     def __init__(self, frames=None, *, uuid=OFFLINE_UUID, expects=None):
         CustomController.__init__(self)
         ReplayFrames.__init__(self, frames, uuid=uuid, expects=expects)
+
+
+def blank_replay(size=(640, 640)):
+    """A controller showing one empty frame, for a scene that reads no picture.
+
+    Three tools kept their own `Offline` class for this: an `__init__` that made a
+    zero frame and nothing else. A class whose whole body is "show zeros" is a
+    factory, not a controller, so it lives here once (D54).
+    """
+    import numpy as np  # only the blank frame needs it, and only when asked for
+
+    width, height = size
+    return ReplayController(np.zeros((height, width, 3), dtype=np.uint8))

@@ -11,7 +11,7 @@ from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maalimbus.jobs import wait_job
-from verify_sinner_neural_native import Offline
+from maalimbus.replay import blank_replay as Offline
 from recognition import LimbusRecognition,Journal
 from maalimbus.shop_transaction import ShopTransaction
 from maalimbus.shop_vision import offers,shelf_tokens,wanted_offers

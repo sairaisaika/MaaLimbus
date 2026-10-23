@@ -18,7 +18,7 @@ from maa.library import Library
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.pipeline import JRecognitionType,JOCR
-from verify_sinner_neural_native import Offline
+from maalimbus.replay import blank_replay as Offline
 from maalimbus.jobs import wait_job
 from maalimbus.deployment_numbers_native import read_assignments
 from maalimbus.deployment_transaction import DeploymentTransaction

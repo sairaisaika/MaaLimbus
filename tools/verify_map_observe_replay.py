@@ -13,7 +13,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 
-from verify_map_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from verify_theme_replay import ROOT, Journal, LimbusRecognition, LimbusTerminal, wait_job, wait_task
 
 NODES = {'MapObserve': {'post_delay': 50}}

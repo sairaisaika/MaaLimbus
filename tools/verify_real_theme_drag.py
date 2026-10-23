@@ -8,7 +8,8 @@ import os
 import time
 from pathlib import Path
 import cv2
-from verify_theme_replay import ROOT, CustomController, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, ThemeObservation, TeamAction, wait_job, wait_task, ProfileStore, Team
+from maa.controller import CustomController
+from verify_theme_replay import ROOT, Library, Resource, Tasker, Journal, LimbusRecognition, LimbusTerminal, ThemeObservation, TeamAction, wait_job, wait_task, ProfileStore, Team
 from maalimbus.replay import ReplayController
 
 

@@ -20,7 +20,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 from recognition import Journal,LimbusRecognition,MapObservation
-from verify_map_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from maalimbus.jobs import wait_job,wait_task
 from maalimbus.storage import RunStore,read_json,write_json
 from maalimbus.task_preferences import TaskPreferences

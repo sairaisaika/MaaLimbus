@@ -20,7 +20,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
 from recognition import Journal,LimbusRecognition,MapObservation
-from verify_map_replay import Replay
+from maalimbus.replay import ReplayController as Replay
 from maalimbus.jobs import wait_job,wait_task
 from maalimbus.grace_vision import available_starlight
 from maalimbus.grace_transaction import GraceTransaction

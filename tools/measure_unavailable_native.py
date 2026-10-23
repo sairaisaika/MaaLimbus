@@ -11,7 +11,7 @@ from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.pipeline import JOCR,JRecognitionType
 from maalimbus.jobs import wait_job
-from verify_sinner_neural_native import Offline
+from maalimbus.replay import blank_replay as Offline
 Library.open(ROOT/'dist/MaaLimbus/maafw',agent_server=False)
 r=Resource();wait_job(r.post_bundle(ROOT/'assets/resource/base'))
 c=Offline();wait_job(c.post_connection());t=Tasker();assert t.bind(r,c)

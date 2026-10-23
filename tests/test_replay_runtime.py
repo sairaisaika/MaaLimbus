@@ -131,3 +131,20 @@ def test_the_frames_half_needs_no_maa_library():
     # the promise is testable offline: this class carries no CustomController base
     assert not any(base.__name__ == 'CustomController' for base in ReplayFrames.__mro__)
     assert any(base.__name__ == 'CustomController' for base in ReplayController.__mro__)
+
+
+def test_the_empty_frame_factory_is_the_layer_too():
+    """`blank_replay` replaces the `Offline` classes whose whole body was zeros.
+
+    Three tools defined their own controller just to show one 640x640 black frame;
+    that is a factory, not a controller, so it lives in the layer now (D54).
+    """
+    from maalimbus.replay import blank_replay
+
+    controller = blank_replay()
+    frame = controller.screencap()
+    assert frame.shape == (640, 640, 3) and frame.max() == 0
+    with pytest.raises(AssertionError):
+        controller.click(10, 20)
+    assert controller.inputs == [] and controller.attempts == [('click', 10, 20)]
+    assert blank_replay((320, 200)).screencap().shape == (200, 320, 3)
