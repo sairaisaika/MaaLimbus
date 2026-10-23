@@ -24,13 +24,55 @@ def run(pytest_args):
                           capture_output=True, text=True)
 
 
+def prove_one(guard):
+    args = argparse.Namespace(**guard)
+    path = pathlib.Path(args.file)
+    original = path.read_text(encoding='utf-8')
+    if original.count(args.find) != 1:
+        return f'anchor count {original.count(args.find)}'
+    mutated = original.replace(args.find, args.replace, 1)
+    if mutated == original:
+        return 'mutation changed nothing'
+    baseline = run([args.test])
+    if baseline.returncode != 0:
+        return 'test already red'
+    try:
+        path.write_text(mutated, encoding='utf-8')
+        result = run([args.test])
+    finally:
+        path.write_text(original, encoding='utf-8')
+    if path.read_text(encoding='utf-8') != original:
+        return 'restore not exact'
+    return None if result.returncode != 0 else 'test passed under mutation'
+
+
+def prove_manifest(path):
+    import json
+    guards = json.loads(path.read_text(encoding='utf-8'))
+    failures = 0
+    for guard in guards:
+        problem = prove_one(guard)
+        name = guard.get('name') or guard['test']
+        print(f'{"PROVEN " if problem is None else "UNPROVEN"} {name}'
+              + ('' if problem is None else f'  <- {problem}'))
+        failures += problem is not None
+    print(f'{len(guards) - failures}/{len(guards)} guards proven')
+    return 1 if failures else 0
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--file', required=True)
-    parser.add_argument('--find', required=True)
-    parser.add_argument('--replace', required=True)
-    parser.add_argument('--test', required=True)
+    parser.add_argument('--file')
+    parser.add_argument('--find')
+    parser.add_argument('--replace')
+    parser.add_argument('--test')
+    parser.add_argument('--manifest',
+                        help='a JSON list of guards to prove in one pass')
     args = parser.parse_args()
+    if args.manifest:
+        return prove_manifest(pathlib.Path(args.manifest))
+    if not all((args.file, args.find, args.replace, args.test)):
+        parser.error('either --manifest or all of --file/--find/--replace/--test')
 
     path = pathlib.Path(args.file)
     original = path.read_text(encoding='utf-8')

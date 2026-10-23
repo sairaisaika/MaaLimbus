@@ -1,0 +1,17 @@
+[
+  {"name": "a text refusal is never dragged",
+   "file": "src/maalimbus/pages.py",
+   "find": "    if action in WAIT_ONLY_ACTIONS:",
+   "replace": "    if False:",
+   "test": "tests/test_recovery_ladder.py::test_a_text_refusal_never_drags_the_page"},
+  {"name": "a new page-specific refusal string cannot slip through",
+   "file": "src/maalimbus/window.py",
+   "find": "'continue_button_not_anchored'",
+   "replace": "'a_brand_new_page_specific_reason'",
+   "test": "tests/test_refuse_vocabulary.py"},
+  {"name": "an unsettled purchase keeps its pending bytes",
+   "file": "src/maalimbus/shop_transaction.py",
+   "find": "        raise ValueError('Retained shop proof changed; preserve pending')",
+   "replace": "        pass",
+   "test": "tests/test_shop_transaction.py::test_changed_retained_proof_keeps_pending_bytes"}
+]
