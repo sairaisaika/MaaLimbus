@@ -104,3 +104,22 @@ def test_a_run_directory_is_not_expanded_again(tmp_path):
     run = tmp_path / 'packaged-mirror-a'
     run.mkdir()
     assert evidence_directories(str(run)) == [str(run)]
+
+
+def test_a_corpus_without_the_recorded_field_is_untested_not_failed():
+    """'named == 0' must not be read as 'the fix failed' on old evidence.
+
+    The recorder writes `refused_kind` on every recovery it sees, even with a null
+    value; a run that predates the recorder has no such key.  Without this signal the
+    audit reported 196 silent recoveries and called the decision table dead, when the
+    truth was that none of that evidence came from a build that records anything.
+    """
+    from maalimbus import evidence_audit
+    old = [{'event': 'window_recovery', 'reason': 'something'}]
+    report = evidence_audit.recovery_kinds(old)
+    assert report['named'] == 0
+    assert report['recorder_writes_the_field'] is False
+
+    fixed = [{'event': 'window_recovery', 'refused_kind': None, 'recovery_action': 'hold'}]
+    report = evidence_audit.recovery_kinds(fixed)
+    assert report['recorder_writes_the_field'] is True

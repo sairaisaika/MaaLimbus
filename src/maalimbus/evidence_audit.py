@@ -64,10 +64,16 @@ def recovery_kinds(events):
     kinds = Counter()
     actions = Counter()
     total = 0
+    with_field = 0
     for event in events:
         if not isinstance(event, dict) or event.get('event') not in RECOVERY_EVENTS:
             continue
         total += 1
+        if 'refused_kind' in event:
+            # The key is written by every build that records the decision, even when
+            # the value is null -- its *presence* is how this corpus says "recorded by
+            # a fixed build".  Absent key means the run predates the recorder.
+            with_field += 1
         if event.get('refused_kind') is not None:
             kinds[event['refused_kind']] += 1
         if event.get('recovery_action') is not None:
@@ -76,7 +82,10 @@ def recovery_kinds(events):
     return {'total': total, 'named': named, 'kinds': dict(kinds),
             'actions': dict(actions),
             # A recovery that ran with no kind spent the full ladder blindly.
-            'covers_the_decision_table': bool(total) and named == total}
+            'covers_the_decision_table': bool(total) and named == total,
+            # Whether ANY recovery in this corpus came from a build that writes the
+            # field at all.  Without it, "named == 0" means *untested*, not *failed*.
+            'recorder_writes_the_field': with_field > 0}
 
 
 def silent_recoveries(report):

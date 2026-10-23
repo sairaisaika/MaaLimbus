@@ -54,12 +54,17 @@ def main(argv):
     print(f"derived (analysis, not recorded): {derived['derived']} {derived['kinds']}")
     print(f"actions: {report['actions']}")
     print(f"covers_the_decision_table: {report['covers_the_decision_table']}")
+    print(f"recorder_writes_the_field: {report.get('recorder_writes_the_field')}")
     print(f'inconsistent decisions: {len(wrong)}')
     for item in wrong[:5]:
         print(f"  {item['page']}: kind={item['kind']} recorded={item['recorded']} "
               f"expected={item['expected']}")
     if not report['total']:
         print('RESULT: no recoveries at all — nothing is proven')
+        return 2
+    if not report.get('recorder_writes_the_field', True):
+        print('RESULT: untested on device — no recovery in this corpus came from a '
+              'build that writes the decision fields')
         return 2
     if not report['covers_the_decision_table'] or wrong:
         print('RESULT: the decision table did not drive every recovery')
