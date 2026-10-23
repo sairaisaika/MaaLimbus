@@ -64,3 +64,19 @@ def test_every_refusal_names_one_of_the_closed_kinds():
     assert unknown == {}, f'refusals with a kind outside the closed set: {unknown}'
     assert 'unclassified' not in set(pages.REFUSALS.values()), (
         'a refusal was left unclassified; pick one of the six kinds instead')
+
+
+def test_each_kind_maps_to_exactly_one_action():
+    """The kind is only worth classifying if it decides something.
+
+    A seventh kind, or a kind without an action, would mean the recovery engine has
+    a decision nobody wrote down -- so the table is asserted to cover the kinds
+    exactly, and an unknown kind holds instead of guessing.
+    """
+    from maalimbus import pages
+    assert set(pages.RECOVERY_BY_KIND) == set(pages.REFUSAL_KINDS)
+    actions = set(pages.RECOVERY_BY_KIND.values())
+    assert len(actions) == len(pages.REFUSAL_KINDS), (
+        'two kinds share an action, so one of them cannot decide anything new')
+    assert pages.recovery_for('not_a_kind') == 'hold'
+    assert pages.recovery_for('no_candidate') == 'pan_view'

@@ -47,6 +47,7 @@ import cv2
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
+from .pages import REFUSALS, recovery_for
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -4254,7 +4255,12 @@ class MirrorRunner:
         state['recovery_rung'] = rung + 1
         entry['handled_retry'] = True
         entry['stopped'] = why
+        # The refusal's *kind* decides what the engine may do next; recording it here
+        # makes the decision inspectable while the gesture set is still the shared
+        # ladder.  `recovery_for` is the single table that will drive the choice.
+        kind = REFUSALS.get(entry.get('reason'), None)
         self.note('window_recovery', page=page, gesture=name, rung=rung,
+                  refused_kind=kind, recovery_action=recovery_for(kind),
                   stopped_reason=entry.get('reason'), plan_reason=plan.get('reason'),
                   input_helpers=self.input_helper_line())
         self._recovery_gesture(name)

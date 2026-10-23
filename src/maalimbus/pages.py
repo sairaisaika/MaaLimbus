@@ -208,6 +208,24 @@ def undeclared(names):
 REFUSAL_KINDS = ('missing_control', 'no_candidate', 'attempts_exhausted',
                  'unreadable_text', 'bad_saved_state', 'refused_by_policy')
 
+# What the engine may do next, given the kind.  One action per kind, so the decision
+# is a table rather than a branch: a new page-specific refusal inherits its kind's
+# action automatically, and the six kinds can never disagree with each other.
+RECOVERY_BY_KIND = {
+    'missing_control': 'bind_control',
+    'no_candidate': 'pan_view',
+    'attempts_exhausted': 'escalate_ladder',
+    'unreadable_text': 'reread_text',
+    'bad_saved_state': 'recompute_state',
+    'refused_by_policy': 'stop',
+}
+
+
+def recovery_for(kind):
+    """The action for a refusal kind; an unknown kind holds instead of guessing."""
+    return RECOVERY_BY_KIND.get(kind, 'hold')
+
+
 REFUSALS = {
     'battle_assignment_observe_only': 'refused_by_policy',
     'battle_button_not_anchored': 'missing_control',
