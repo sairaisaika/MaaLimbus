@@ -3772,6 +3772,10 @@ class MirrorRunner:
                       if page == 'MAP' and settled_page in ('MAP', 'UNKNOWN') else None)
             if zoomed is not None:
                 return zoomed
+            # Count every attempt at this page, not only the ones that were allowed to
+            # retry: with `map_tries: 1` the retry arm is unreachable, so counting inside
+            # it left `map_attempts` at 0 forever and the ladder was the only consumer.
+            state['map_attempts'] += 1
             if not retryable:
                 recovered = self._recover(page, state, entry, plan)
                 if recovered is not None:
@@ -3779,7 +3783,6 @@ class MirrorRunner:
                 entry['stopped'] = entry['reason']
                 return self._result(page, plan.get('target'), True, entry['stopped'],
                                     done=True)
-            state['map_attempts'] += 1
             entry['handled_retry']=True
             state['navigation_probe_pending']=True
             if no_candidate:
