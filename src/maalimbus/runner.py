@@ -3225,7 +3225,26 @@ class MirrorRunner:
                 # on the journal, not on the Runner, so every verdict carried frame=None.
                 state['map_click_frame'] = (record.get('frame')
                                             or Path(frame_file(directory)).name)
+            # Bracket the dispatch in a side channel.  A native crash (`access violation
+            # reading 0xFFFFFFFFFFFFFFFF`, evidence/runtime/packaged-mirror-20261023-044354)
+            # says nothing about which call died, and the maafw log for that run shows the
+            # controller destroyed in the same second with no pipeline failure before it.
+            # This cannot go through `note()`: `step()` returns the last noted event and
+            # every caller reads it, so an extra event would change that contract (that is
+            # exactly what `db6c9ba` reverted).  A file the run grows line by line keeps the
+            # event stream intact and still survives a hard crash.
+            def _bracket(phase):
+                try:
+                    with (Path(directory) / 'input-bracket.jsonl').open('a', encoding='utf-8') as handle:
+                        handle.write(json.dumps(dict(phase=phase, page=page,
+                                                     target=list(point),
+                                                     reason=plan.get('reason')),
+                                                ensure_ascii=False) + '\n')
+                except OSError:
+                    pass
+            _bracket('begin')
             self.device.click(*point)
+            _bracket('end')
         self.artifacts['clicks_sent'] += 1
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
                                   'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
