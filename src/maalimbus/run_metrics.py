@@ -125,7 +125,10 @@ def summarise(rows):
         # alone silently drops it from every rate.  Measured on
         # `evidence/runtime/packaged-mirror-20261023-094914`: 183 events, floor 1,
         # `exit 3221226505`, `stop: null` -- a crash that no rate could see.
-        'ended_without_a_stop': bool(rows) and not stops,
+        # An error event is a recorded end too: counting only `mirror_loop_stopped`
+        # made 10 runs look like silent deaths (33 vs 23 on the same corpus) because
+        # they ended on `mirror_loop_error`.
+        'ended_without_a_stop': bool(rows) and not stopped_in_events(rows),
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
     }
