@@ -1882,8 +1882,20 @@ class MirrorRunner:
             info = {}
         empty = [key for key in info if str(key).lower().endswith('id')
                  and not info.get(key)]
+        # One probe is not enough: the request that MaaFW rejected carried
+        # `controller_id=""` while this very probe found no empty id field, so the
+        # handle exposes more than one place an id can live and only one of them was
+        # being read.  Record each source separately, so a live run can say which
+        # source disagrees instead of showing "no empty fields" beside a rejected click.
+        sources = {}
+        for name in ('controller_id', '_controller_id', 'handle', 'id'):
+            try:
+                sources[name] = str(getattr(controller, name, '') or '')
+            except (RuntimeError, OSError, AttributeError, TypeError):
+                sources[name] = ''
         self.note('controller_probe', keys=sorted(str(key) for key in info),
                   empty_id_fields=empty,
+                  empty_sources=[n for n, v in sources.items() if not v],
                   reason='what the handle said before the click')
 
     def note(self, name, **fields):
