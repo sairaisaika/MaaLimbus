@@ -15,20 +15,43 @@ def lease_path(path):
     return path.resolve()
 
 
+class LeaseUnavailable(RuntimeError):
+    """The lease file exists but could not be opened or locked."""
+
+
 class ControllerLease:
     def __init__(self,path):
         import msvcrt
         self.path=lease_path(path)
         self.path.parent.mkdir(parents=True,exist_ok=True)
-        self.file=self.path.open('a+b')
-        try:
-            self.file.seek(0)
-            if not self.file.read(1):
-                self.file.write(b'0');self.file.flush()
-            self.file.seek(0)
-            msvcrt.locking(self.file.fileno(),msvcrt.LK_NBLCK,1)
-        except BaseException:
-            self.file.close();raise
+        # A lease file that is briefly unreadable (deleted by a cleanup script while a
+        # handle was still open, or held for a moment) used to surface as a raw
+        # `PermissionError` traceback from the harness.  Retry once, then say what it
+        # is: the caller can report a refusal instead of a Python crash.
+        last=None
+        for attempt in range(2):
+            try:
+                self.file=self.path.open('a+b')
+                self.file.seek(0)
+                if not self.file.read(1):
+                    self.file.write(b'0');self.file.flush()
+                self.file.seek(0)
+                msvcrt.locking(self.file.fileno(),msvcrt.LK_NBLCK,1)
+                break
+            except PermissionError as error:
+                last=error
+                try:
+                    self.file.close()
+                except (AttributeError,OSError):
+                    pass
+                if attempt:
+                    raise LeaseUnavailable('the_lease_file_is_not_readable') from error
+                import time as _time
+                _time.sleep(.2)
+            except BaseException:
+                try: self.file.close()
+                except (AttributeError,OSError): pass
+                raise
 
     @classmethod
     def acquire(cls,path):

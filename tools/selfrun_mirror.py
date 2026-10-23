@@ -47,7 +47,10 @@ def attempt(index: int, seconds: int) -> dict:
     # stale freeze, missing address) and this record used to say only `exit: 1`.
     if finished.returncode != 0:
         tail = (finished.stderr or finished.stdout or '').strip().splitlines()
-        record['error_tail'] = tail[-1][:600] if tail else 'no_output'
+        # Twelve lines, not one: a traceback's last line names the exception and its
+        # first lines name the frame that raised it -- the only way to tell a click
+        # apart from a deadline without another live run.
+        record['error_tail'] = ' | '.join(tail[-12:])[:1500] if tail else 'no_output'
         # The verifier answers a refusal with a JSON object that names the reason;
         # lift it so the record says "refused: <why>" instead of a JSON prefix.
         try:
