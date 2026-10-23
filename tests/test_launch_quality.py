@@ -29,7 +29,14 @@ def test_an_unreadable_grant_returns_none(tmp_path, monkeypatch):
     assert runner.granted_nonce() is None
 
 
-def test_the_device_address_has_a_project_default():
+CONSTANT_ARGS = {'--address': "default='127.0.0.1:16416'",
+                 '--app': "default=Path('dist/MaaLimbus')"}
+
+
+def test_project_constants_are_defaults_not_requirements():
     text = (ROOT / 'tools' / 'verify_packaged_mirror_loop.py').read_text(encoding='utf-8')
-    assert "add_argument('--address', default='127.0.0.1:16416')" in text
-    assert "add_argument('--address', required=True)" not in text
+    for flag, default in CONSTANT_ARGS.items():
+        assert f"add_argument('{flag}', " in text
+        line = [l for l in text.splitlines() if f"add_argument('{flag}', " in l][0]
+        assert default in line, f"{flag} lost its project default"
+        assert 'required=True' not in line, f"{flag} became a requirement again"

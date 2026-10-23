@@ -51,7 +51,9 @@ def verdict(record, outcome, started):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--app', type=Path, required=True)
+    # The packaged app is the project constant; requiring it turned a round into an
+    # argument-parse failure for the second time in the same file.
+    parser.add_argument('--app', type=Path, default=Path('dist/MaaLimbus'))
     # The MuMu device address is a project constant; requiring it to be retyped turned
     # two rounds into argument-parse failures instead of runs.
     parser.add_argument('--address', default='127.0.0.1:16416')
