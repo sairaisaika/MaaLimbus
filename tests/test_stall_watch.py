@@ -176,3 +176,48 @@ def test_the_third_wait_still_ends_the_process():
     # The real `exit` is os._exit and terminates; this stub records every request, so
     # the assertion is about the first one and about the bound being reached at all.
     assert exits and exits[0] == 4
+
+
+def test_a_watch_whose_run_is_over_never_ends_anything():
+    """A watch outlives the run it protects; it may not outlive it *and* act.
+
+    Measured 2026-10-23: `pytest tests/test_agent_loop.py` passed 18 tests in 5.7 s,
+    returned 0, and the process was then killed by `os._exit(4)` from a progress
+    watch that had been started by a run already finished -- twice, with no summary
+    and no failed test to blame. `exit(4)` ends a *process*, and a process can hold
+    several runs in sequence, so the only honest ending a retired watch may write is
+    none.
+    """
+    acted, exits, slept = [], [], []
+    looked = stall_watchdog(lambda: 0.0, limit=1.0, every=0.0, rounds=5,
+                            on_stall=lambda **kw: acted.append('stalled'),
+                            sleep=slept.append, exit=exits.append,
+                            alive=lambda: False)
+    assert looked == 0 and slept == []      # it never even waited
+    assert acted == [] and exits == []      # and it wrote nothing
+
+
+def test_a_watch_retires_between_two_waits():
+    """The run can end while the watch sleeps; that check must exist too."""
+    acted, exits = [], []
+    alive = iter([True, False])
+    stall_watchdog(lambda: 0.0, limit=1.0, every=0.0, rounds=5,
+                   on_stall=lambda **kw: acted.append('stalled'),
+                   sleep=lambda _s: None, exit=exits.append,
+                   alive=lambda: next(alive, False))
+    assert acted == [] and exits == []
+    assert next(alive, False) is False
+
+
+def test_the_loop_retires_its_watches_when_it_returns(tmp_path):
+    """`run()` clears the token in a `finally`, so a finished run leaves no live watch."""
+    runner = _watched_runner(tmp_path, stall_seconds=0.05, progress_seconds=0)
+    runner.run(steps=1, interval=0, round_limit=0)
+    assert runner._watch_live.is_set() is False, 'a finished run leaves no armed watch'
+    # A second call re-arms it: the runner may be walked again by its caller.
+    runner2 = _watched_runner(tmp_path, stall_seconds=0.05, progress_seconds=0)
+    runner2._start_stall_watch()
+    assert runner2._watch_live.is_set() is True
+    runner2._retire_watches()
+    assert runner2._watch_live.is_set() is False
+

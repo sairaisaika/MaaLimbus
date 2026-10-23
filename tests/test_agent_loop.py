@@ -360,8 +360,14 @@ def test_each_step_leaves_a_heartbeat_behind(tmp_path):
 
 def test_the_budget_is_checked_between_steps(tmp_path, monkeypatch):
     """A step can block for minutes inside the recogniser; the loop must still honour
-    the deadline it was given (live: 420 s budget, 610 s elapsed, one 423.8 s gap)."""
+    the deadline it was given (live: 420 s budget, 610 s elapsed, one 423.8 s gap).
+
+    This used to grep `MirrorRunner.run`'s source and finish with a vacuous
+    ``or True``. It now walks the loop: the deadline branch has to be *taken* and
+    the step must never run.
+    """
     import time as _time
+    from types import SimpleNamespace
     from maalimbus.runner import MirrorRunner
     clock = {'now': 0.0}
     monkeypatch.setattr(_time, 'monotonic', lambda: clock['now'])
@@ -369,11 +375,17 @@ def test_the_budget_is_checked_between_steps(tmp_path, monkeypatch):
     runner.deadline = 10.0
     runner.state = {'step': 0}
     runner._last_page = 'MAP'
+    runner.settings = SimpleNamespace(observe_only=True, steps=5, interval=0)
+    runner._start_stall_watch = lambda: None
+    runner.summary = lambda: {'passed': False}
     ended = []
     runner._end_session = lambda reason, **kw: ended.append(reason)
     runner.step = lambda: (_ for _ in ()).throw(AssertionError('must not step'))
     clock['now'] = 11.0
+    result = runner.run(steps=5, interval=0, round_limit=2)
+    assert ended == ['loop_deadline_exceeded'], 'the overdue budget ended the run'
+    assert result == {'passed': False}
     import inspect
-    source = inspect.getsource(MirrorRunner.run)
+    source = inspect.getsource(MirrorRunner._walk)
     assert "loop_deadline_exceeded" in source
-    assert "DEEP_STEP_SECONDS" in inspect.getsource(MirrorRunner.run) or True
+    assert "DEEP_STEP_SECONDS" in source

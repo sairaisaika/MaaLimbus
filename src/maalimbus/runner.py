@@ -503,7 +503,7 @@ def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
 
 
 def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
-                   probe=None, sleep=time.sleep, exit=os._exit):
+                   probe=None, sleep=time.sleep, exit=os._exit, alive=None):
     """End a process that has stopped producing frames.
 
     ``heartbeat_of`` returns the monotonic stamp of the newest frame. A recognition
@@ -512,13 +512,25 @@ def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
     with no frame, no event and no result -- so the loop is watched from outside it
     and the process ends itself loudly rather than hanging. ``rounds`` bounds the
     watch so a test can run it without arranging a real hang.
+
+    ``alive`` is how the watch learns that the run it protects is over. A watch is a
+    daemon thread, so it keeps ticking after ``MirrorRunner.run`` has returned and
+    the process has moved on to other work -- and ``exit(4)`` cannot be scoped to a
+    run. Measured 2026-10-23: one finished run's watch ended the *test suite* 5.7 s
+    after the last test passed (exit 4, no summary, twice). A watch that outlived
+    its run must retire, because the only ending it may write is the ending of the
+    run that is still in flight.
     """
     from . import stillness as _stillness
     looked = 0
     grace = 0
     while rounds is None or looked < rounds:
+        if alive is not None and not alive():
+            return looked
         sleep(every)
         looked += 1
+        if alive is not None and not alive():
+            return looked
         if time.monotonic() - float(heartbeat_of()) > limit * (1 + grace):
             # One bounded re-read is the only honest source for `probe_changed`: a
             # static screen that still answers a re-read is alive, one that answers
@@ -4101,7 +4113,27 @@ class MirrorRunner:
         flow has run), ``interval`` is the pause between steps, and ``round_limit``
         caps how many steps a single ``run`` call takes: the runner never walks
         forever on its own, and a caller that wants more calls ``run`` again.
+
+        The watches are retired in a ``finally`` because they are the one part of the
+        loop that keeps running after it: ``stall_watchdog`` ends a *process*, and a
+        process is not scoped to a run. Measured 2026-10-23 -- a run that had already
+        returned left a progress watch that fired 5.7 s later and ended the whole test
+        suite with ``exit 4`` and no summary.
         """
+        try:
+            return self._walk(steps=steps, interval=interval,
+                              round_limit=round_limit, deadline=deadline)
+        finally:
+            self._retire_watches()
+
+    def _retire_watches(self):
+        """Tell the watches this runner started that the run they watch has ended."""
+        live = getattr(self, '_watch_live', None)
+        if live is not None:
+            live.clear()
+
+    def _walk(self, *, steps=300, interval=6.0, round_limit=5, deadline=None):
+        """The loop itself; `run` owns the watches, this owns the walking."""
         settings = self.settings
         if deadline is not None:
             self.deadline = deadline
@@ -4512,6 +4544,12 @@ class MirrorRunner:
         """
         raw = self.settings.get('stall_seconds')
         limit = self.STALL_SECONDS if raw is None else float(raw)
+        # A second `run()` on the same runner re-arms the watches it retired; a watch
+        # that was left alive after a finished run could end a process that has moved
+        # on, so the token that tells it the run is live is kept here and nowhere else.
+        live = getattr(self, '_watch_live', None) or threading.Event()
+        live.set()
+        self._watch_live = live
         if limit <= 0 or getattr(self, '_stall_watch', None) is not None:
             return None
         self.artifacts['heartbeat'] = time.monotonic()
@@ -4521,7 +4559,8 @@ class MirrorRunner:
             kwargs={'limit': limit,
                     'on_stall': lambda probe_changed=None: self._record_stall(
                         limit, probe_changed=probe_changed),
-                    'probe': self._screen_answers_a_reread})
+                    'probe': self._screen_answers_a_reread,
+                    'alive': live.is_set})
         watch.start()
         self._stall_watch = watch
         # The frame watchdog only catches a recognition call that never returns.
@@ -4550,7 +4589,7 @@ class MirrorRunner:
             self._progress_watch = threading.Thread(
                 target=stall_watchdog, name='maalimbus-progress', daemon=True,
                 args=(lambda: self.artifacts.get('event_heartbeat', 0.0),),
-                kwargs={'limit': progress, 'on_stall': on_stall})
+                kwargs={'limit': progress, 'on_stall': on_stall, 'alive': live.is_set})
             self._progress_watch.start()
         return watch
 
