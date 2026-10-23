@@ -3397,3 +3397,19 @@ Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_
 未变：`recovery_advanced` 0/17，五层未通关，本轮实机输入/消费/领奖 0/0/0；
 "字段出现且动作正确"要等一次实机才可判定，在那之前不声称任何改善。
 
+
+## DSH continuation: a native death is a named stop (2026-10-23)
+
+`evidence/runtime/packaged-mirror-20261023-110815` (468 s, floor 2) ended on a `window_intent` for
+`RESUME_DIALOG` and the process left with `0xC0000409`. `tools/selfrun_mirror.py` recorded `stop: null`, so the
+run counted as "ended without a stop" -- the same bucket as an operator kill, and the reason ten rounds of
+investigation looked in the wrong place.
+
+`src/maalimbus/crash_codes.py` maps the four NTSTATUS values the harness can observe to named reasons and
+refuses to name anything else (`0`, `None`, a non-numeric, or an unknown non-zero code returns `None`).
+`tools/selfrun_mirror.py` now records `stops[0] if stops else crash_codes.name_for(exit_code)`.
+
+Measured on the local harness log (61 runs): **7 carried `stop: null` with exit `3221226505`** and are now named
+`the_controller_crashed_inside_a_click` -- 11.5% of runs that previously vanished into the silent bucket.
+Guarded by `tests/test_crash_codes.py` (4 cases, both directions) and `tests/test_crash_codes_history.py`
+(every code in the local log must be nameable; skips when there is no log).
