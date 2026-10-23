@@ -3334,3 +3334,19 @@ Tests: `tests/test_window.py::test_a_suspended_exploration_is_reentered_through_
 测试：`tests/test_refuse_vocabulary.py` 5 passed（含类别↔动作一一对应、动作只缩窄两例），
 `tests/test_recovery_ladder.py` 7 passed，全量 `1903 passed`。
 
+## DSH continuation: 相邻性判定不再是常量，而是本帧格距（2026-10-23）
+
+`fa899fa` 把地图候选的相邻判定从"常量半径"改成"本帧自身格距"。判据不是推理，是已落盘事件复算出来的：
+`map_click_result.target` 的中心与同帧 `party_point` 的距离——一步是 219–245 px，两步是 386–396 px，而
+**所有 `accepted` 的唯一坐标恒为 (1844,60)，那是右上齿轮，不是节点**，所以 `accepted` 计数此前是被污染的。
+
+同一偏移 (381,106) 在 219 px 格距的图上是一步、在 396 px 格距的图上是两步；`far=430` 与 `STEP_CENTRES`
+都会在一半地图上判错，且 `map_vision.py` 里历史上已存在两份同名 `adjacent_to`（后一份遮蔽前一份），
+这就是同类 bug 以两种形态复发的原因。
+
+实现：`pitch_of(party, boxes)` 分轴估计格距（≥2 个框共识才算数，否则返回 `None`），`adjacent_to` 以
+`{(across,down),(across,0),(0,down)}` 的 `tolerance` 邻域判定；`None` 是"本帧不可证明"，退回旧带并记录，
+不猜。锁定行为的断言是"同一输入在不同格距下结论相反"（`tests/test_map_vision.py`）。
+
+遗留：`recovery_advanced` 仍为 6/17，须在受控实机跑里复测；本轮 0 次实机输入、0 消费。
+
