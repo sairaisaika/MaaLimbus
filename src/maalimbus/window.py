@@ -21,6 +21,8 @@ Rules encoded here:
 
 from __future__ import annotations
 
+from .anchor import classify_refusal
+
 CLICK = 'click'
 SWIPE = 'swipe'
 NODE = 'node'
@@ -104,7 +106,17 @@ def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=Non
 
 
 def _refuse(page, reason):
-    return _plan(page, RECORD, reason=reason)
+    """Refuse one input, and say what kind of refusal it is.
+
+    :func:`maalimbus.anchor.classify_refusal` adds ``stop_kind`` (and, for a
+    missing control, ``anchor`` + ``anchor_page``) so the 46
+    ``<control>_not_anchored`` strings stop being 46 unrelated outcomes.  The
+    reason text itself is unchanged, so the ledger and every existing assertion
+    keep their exact wording.
+    """
+    plan = _plan(page, RECORD, reason=reason)
+    plan.update(classify_refusal(page, reason))
+    return plan
 
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
