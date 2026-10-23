@@ -43,6 +43,21 @@ def attempt(index: int, seconds: int) -> dict:
                               cwd=str(ROOT), capture_output=True, text=True)
     record['exit'] = finished.returncode
     record['elapsed_s'] = round(time.time() - started, 1)
+    # A driver-level silent death: the verifier can refuse in under a second (gate,
+    # stale freeze, missing address) and this record used to say only `exit: 1`.
+    if finished.returncode != 0:
+        tail = (finished.stderr or finished.stdout or '').strip().splitlines()
+        record['error_tail'] = tail[-1][:600] if tail else 'no_output'
+        # The verifier answers a refusal with a JSON object that names the reason;
+        # lift it so the record says "refused: <why>" instead of a JSON prefix.
+        try:
+            body = json.loads(finished.stdout or '')
+        except ValueError:
+            body = {}
+        if isinstance(body, dict) and body.get('refused'):
+            record['refused'] = body['refused']
+        if isinstance(body, dict) and body.get('hint'):
+            record['hint'] = body['hint']
     reports = sorted((ROOT / 'evidence/runtime').glob('packaged-mirror-*'),
                      key=lambda p: p.stat().st_mtime)
     if not reports:
