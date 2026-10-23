@@ -82,6 +82,9 @@ def screencap(controller, *, timeout=5, drain=2, clock=time.monotonic, sleep=tim
 
 
 class InputNeverReturned(TimeoutError):
+    def __init__(self, message, *, drained=True):
+        super().__init__(message)
+        self.drained = drained
     """A click/swipe/launch did not come back inside its deadline.
 
     The live runs died with 0xC0000409 right after `Maa job exceeded its deadline`,
@@ -93,14 +96,35 @@ class InputNeverReturned(TimeoutError):
     """
 
 
-def dispatch(controller, job, *, timeout, deadline=None, drain=2,
+SOFT_INPUT_REASON = 'the_click_outlived_its_deadline_but_the_screen_still_answers'
+
+
+def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on_soft=None,
              clock=time.monotonic, sleep=time.sleep):
-    """Wait for one device action; never leave it pending on timeout."""
+    """Wait for one device action; never leave it pending on timeout.
+
+    A click that opens a long transition (dungeon resume, floor load) legitimately
+    outlives a 10 s job deadline: the job's completion is not the game's completion.
+    When a ``probe`` is supplied and still sees a live screen after the drain, the
+    click is treated as delivered and ``on_soft`` is told why; without a probe, or
+    with a probe that also fails, the state is ``InputNeverReturned``.
+    """
     try:
         return wait_job(job, timeout=timeout, deadline=deadline, clock=clock, sleep=sleep)
     except TimeoutError as error:
+        drained = True
         try:
             wait_job(controller.post_stop(), timeout=drain, clock=clock, sleep=sleep)
         except (TimeoutError, RuntimeError, AttributeError):
-            pass
-        raise InputNeverReturned(str(error) or 'the input never returned') from error
+            drained = False
+        if probe is not None:
+            try:
+                alive = bool(probe())
+            except Exception:
+                alive = False
+            if alive:
+                if on_soft is not None:
+                    on_soft(SOFT_INPUT_REASON)
+                return job
+        raise InputNeverReturned(str(error) or 'the input never returned',
+                                 drained=drained) from error

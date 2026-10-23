@@ -167,3 +167,25 @@ def test_a_click_that_never_returns_is_drained_and_named():
     else:  # pragma: no cover
         raise AssertionError('a pending click must be named')
     assert ctl.stops == 1, 'the pending click has to be drained'
+
+
+def test_a_click_that_outlives_its_deadline_is_soft_when_the_screen_still_answers():
+    from maalimbus.jobs import SOFT_INPUT_REASON, dispatch
+    ctl = _ClickController(False)
+    reasons = []
+    job = _Shot(False)
+    dispatch(ctl, job, timeout=0.0, clock=lambda: 0.0,
+             probe=lambda: True, on_soft=reasons.append)
+    assert reasons == [SOFT_INPUT_REASON]
+    assert ctl.stops == 1, 'the pending click is still drained'
+
+
+def test_a_click_with_no_live_screen_is_still_fatal():
+    from maalimbus.jobs import InputNeverReturned, dispatch
+    ctl = _ClickController(False)
+    try:
+        dispatch(ctl, _Shot(False), timeout=0.0, clock=lambda: 0.0, probe=lambda: False)
+    except InputNeverReturned as error:
+        assert error.drained is True
+    else:  # pragma: no cover
+        raise AssertionError('a dead screen must stay fatal')
