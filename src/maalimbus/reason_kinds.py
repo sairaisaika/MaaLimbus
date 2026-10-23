@@ -96,3 +96,39 @@ def role_of(name):
         if pattern.search(name):
             return 'intent'
     return 'failure'
+
+# Imperative action names ("close_known_overlay_with_its_own_header_arrow",
+# "win_rate_auto_assign") describe what the loop will *do*; they are intents that never
+# had a verb in the middle of the sentence, which the pattern above required.
+ACTION_VERBS = frozenset("""
+close confirm claim pick open leave enter select assign return use buy sell fuse enhance
+heal equip resume advance dismiss tap click press start submit finish take give refuse
+cancel accept acknowledge skip scan read write victory settle collect
+""".split())
+
+FAILURE_MARKERS = (
+    'not_', '_not', 'never', 'no_', 'cannot', 'missing', 'unknown', 'unread',
+    'too_', 'exhaust', 'failed', 'invalid', 'unresolved', 'absent', 'incomplete',
+    'refus', 'blocked', 'unproven', 'unavailable', 'unsupported', 'stale', 'dead',
+    'require', 'must', 'need', 'short', 'budget', 'without', 'before_', 'after_',
+)
+
+
+def _looks_like_failure(name):
+    lowered = name.lower()
+    return any(marker in lowered for marker in FAILURE_MARKERS)
+
+
+def role_of(name):
+    """'outcome', 'intent', 'failure', or None when unclassified (later definition wins)."""
+    if not isinstance(name, str) or not name:
+        return None
+    for pattern in _OUTCOME:
+        if pattern.search(name):
+            return 'outcome'
+    for pattern in _INTENT:
+        if pattern.search(name):
+            return 'intent'
+    if name.split('_', 1)[0].lower() in ACTION_VERBS and not _looks_like_failure(name):
+        return 'intent'
+    return 'failure'
