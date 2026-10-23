@@ -8,6 +8,11 @@ because the reason was read from a field the recovery path never fills.
 """
 from collections import Counter
 
+# One concept, two event names: the ladder spending a rung, and the ladder running out.
+# Counting only the first made the engine's give-up case invisible to the audit.
+RECOVERY_EVENTS = ('window_recovery', 'window_recovery_exhausted')
+
+
 def derivable_kinds(events):
     """Kinds that can be *re-derived* for recoveries that recorded none.
 
@@ -19,7 +24,7 @@ def derivable_kinds(events):
     from .pages import kind_of
     counts, total = {}, 0
     for event in events:
-        if event.get('event') != 'window_recovery':
+        if event.get('event') not in RECOVERY_EVENTS:
             continue
         if event.get('refused_kind'):
             continue
@@ -38,7 +43,7 @@ def recovery_kinds(events):
     actions = Counter()
     total = 0
     for event in events:
-        if not isinstance(event, dict) or event.get('event') != 'window_recovery':
+        if not isinstance(event, dict) or event.get('event') not in RECOVERY_EVENTS:
             continue
         total += 1
         if event.get('refused_kind') is not None:

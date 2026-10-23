@@ -72,3 +72,16 @@ def test_frozen_build_reports_unknown_rather_than_a_match():
     report = frozen_build('/nonexistent-root')
     assert report['commit'] == 'unknown'
     assert report['dirty'] is None
+
+
+def test_the_give_up_event_is_counted_too():
+    from maalimbus.evidence_audit import recovery_kinds
+
+    events = [
+        {'event': 'window_recovery', 'refused_kind': 'no_candidate', 'recovery_action': 'pan_view'},
+        {'event': 'window_recovery_exhausted', 'refused_kind': 'bad_saved_state',
+         'recovery_action': 'recompute_state'},
+    ]
+    report = recovery_kinds(events)
+    assert report['total'] == 2 and report['named'] == 2
+    assert set(report['kinds']) == {'no_candidate', 'bad_saved_state'}
