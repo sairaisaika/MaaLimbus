@@ -20,6 +20,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# Only these paths end up inside dist/MaaLimbus.  A commit that touches tests, docs or a
+# tool cannot change the agent, so it must not invalidate the artifact: the first version
+# compared HEAD wholesale and refused a live run after every test-only commit.
+ARTIFACT_PATHS = ('src', 'agent', 'assets')
 BUILD_INFO = ROOT / 'dist' / 'MaaLimbus' / 'build-info.json'
 
 
@@ -57,7 +61,15 @@ def verdict(head_sha=_UNSET, frozen_sha=_UNSET):
     behind = subprocess.run(['git', 'rev-list', '--count', f'{frozen_sha}..{head_sha}'],
                             cwd=str(ROOT), capture_output=True, text=True)
     commits = int(behind.stdout.strip() or 0) if behind.returncode == 0 else None
+    scoped = subprocess.run(['git', 'rev-list', '--count', f'{frozen_sha}..{head_sha}', '--',
+                             *ARTIFACT_PATHS], cwd=str(ROOT), capture_output=True, text=True)
+    touching = int(scoped.stdout.strip() or 0) if scoped.returncode == 0 else None
+    if touching == 0:
+        # HEAD moved, but nothing that ships did: the artifact still carries this source.
+        return {'state': 'current', 'head': head_sha, 'frozen': frozen_sha,
+                'behind': commits, 'artifact_commits': 0, 'reason': None}
     return {'state': 'stale', 'head': head_sha, 'frozen': frozen_sha, 'behind': commits,
+            'artifact_commits': touching,
             'reason': 'the frozen app predates HEAD; a live run would test old code'}
 
 
