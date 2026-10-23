@@ -46,6 +46,7 @@ import cv2
 
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
+from . import map_dispatch
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -3822,7 +3823,7 @@ class MirrorRunner:
         # The other way a click is taken: the page stays MAP and the party walks. The
         # player's own point is the evidence -- it moves when the step is spent, and a
         # click the game refused leaves it exactly where it was.
-        if page == 'MAP' and state.get('map_pending'):
+        if map_dispatch.is_map(page) and state.get('map_pending'):
             # `player_of` takes a list of markers; handing it the single value
             # `player_marker` returns makes `player_readings` fail on `marker.node`
             # (an int, not a marker).  An empty list is the supported "no markers"
@@ -3856,7 +3857,7 @@ class MirrorRunner:
                       reason='the_map_stayed_with_the_party_in_place')
             state['map_pending'] = None
         state['map_attempts'] = 0
-        if page=='MAP' and settled_page=='NODE_PANEL':state['navigation_probe_pending']=False
+        map_dispatch.after_settle(state, page, settled_page)
         state['page_attempts'] = 0
         state['swallowed_attempts'] = 0
         state['recovery_for'] = None

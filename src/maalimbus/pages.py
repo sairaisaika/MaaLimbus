@@ -153,7 +153,7 @@ INLINE_RUNNER = {
     'GIFT_PICK': 4,
     'HEAL_SINNERS': 2,
     'INITIAL_GIFTS': 3,
-    'MAP': 22,
+    'MAP': 20,
     'NODE_PANEL': 1,
     'PRE_BATTLE_TEAM': 5,
     'RESUME_DIALOG': 1,
