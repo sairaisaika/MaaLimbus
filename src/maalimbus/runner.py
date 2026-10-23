@@ -2734,7 +2734,7 @@ class MirrorRunner:
             # `a_run_is_still_in_progress` refused twice and then wedged, never
             # reaching three.  The resume chain is reversible, so paying it once
             # early costs less than a run that never gets there.
-            if int(state.get('map_refused_streak') or 0)>=1:
+            if int(state.get('map_refused_streak') or 0)>=1 or state.get('resume_requested'):
                 # Leaving for the entry asks a confirmation of its own; the generic
                 # dismissal would close it and hand back the same paused panel
                 # (live: 09:24:16 `the_unexpected_dialog_is_dismissed_with_its_own_close`
