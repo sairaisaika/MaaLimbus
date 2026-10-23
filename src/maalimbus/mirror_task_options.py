@@ -35,3 +35,21 @@ def collect(get_node):
             raise ValueError('Mirror run count must be 0..50')
         result['run_count'] = runs
     return result
+
+
+# The installed pipeline names these fields; both were read from
+# `assets/resource/base/pipeline/mirror.json` (`MirrorTaskSingleTeam.attach.slot`,
+# `MirrorInitialKeyword.attach.keyword`) rather than guessed.  A preference that names
+# a team therefore produces a pipeline override with exactly that field.
+def gui_override(prefs):
+    """Turn the player's GUI choices into a pipeline override, or `{}` if none apply."""
+    if not prefs:
+        return {}
+    patch = {}
+    team = prefs.get('mirror_single_team')
+    if prefs.get('mirror_team_mode') == 'single' and isinstance(team, int) and team > 0:
+        patch['MirrorTaskSingleTeam'] = {'attach': {'slot': team}}
+    keyword = prefs.get('mirror_initial_keyword')
+    if keyword and keyword != 'saved':
+        patch['MirrorInitialKeyword'] = {'attach': {'keyword': keyword}}
+    return patch
