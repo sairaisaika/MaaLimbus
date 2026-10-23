@@ -220,3 +220,130 @@ def kind_for(name):
         if pattern.search(name):
             return kind
     return None
+
+
+# --- corpus names the patterns still missed, and the two calibrations --------------
+# Measured on 124 retained runs (tools/audit_hold_gap.py): 43 of 266 named failures
+# still reached `hold`.  Six names accounted for all of them, and they showed two
+# distinct shapes:
+#   * progress words -- `..._after_wait`, `_stalled`, `_repeated`, `steps_passed`: the
+#     engine did act, ran out of budget or repeated itself, so the budget is spent.
+#   * prose -- `Grace balance changed outside verified purchases`: not snake_case at all,
+#     so no word-root rule could have seen it.
+PROGRESS_RULES = (
+    (r'_after_wait$|_stalled$|_repeated$|steps_passed|_exhausted$|no_progress',
+     'attempts_exhausted',
+     'the engine acted and did not progress; the budget, not the reading, is the problem'),
+)
+
+PROSE_RULES = (
+    (r'balance|purchas|scope|ledger|rotat|receipt', 'bad_saved_state',
+     'a bookkeeping fact disagrees with the page: our record is what is in doubt'),
+    (r'unread|not read|cannot read|unidentif|caption', 'unreadable_text',
+     'a sentence about a reading that did not happen'),
+)
+
+#: A name that says the *reading* failed is about the reading, even when it also mentions
+#: a saved page.  Without this, `bad_saved_state` (which matches `saved|resume|stale`)
+#: swallowed 180 of 223 classified failures and made the distribution meaningless.
+READ_MARKERS = re.compile(r'read|ocr|caption|visible|identif|unread', re.I)
+SAVED_MARKERS = re.compile(r'saved|resume|stale|dead|another_rotation', re.I)
+
+_PROGRESS = tuple((re.compile(p), k, w) for p, k, w in PROGRESS_RULES)
+_PROSE = tuple((re.compile(p), k, w) for p, k, w in PROSE_RULES)
+
+
+def kind_for(name):
+    """The class of one reason-like name, or None when nobody has classified it."""
+    if not isinstance(name, str) or not name:
+        return None
+    if name in EXCEPTIONS:
+        return EXCEPTIONS[name]
+    for pattern, kind, _why in _PROGRESS:
+        if pattern.search(name):
+            return kind
+    if ' ' in name:
+        for pattern, kind, _why in _PROSE:
+            if pattern.search(name):
+                return kind
+    # Reading beats bookkeeping when a name mentions both.
+    if READ_MARKERS.search(name) and not SAVED_MARKERS.search(name):
+        return 'unreadable_text'
+    for pattern, kind, _why in _COMPILED + _LATE + _NEG:
+        if pattern.search(name):
+            return kind
+    return None
+
+
+# The last nine, measured down from 43: three prose sentences about a successor that was
+# never proven, three snake_case names the patterns did not reach, and one mode.
+LAST_RULES = (
+    (r'successor .* (never held|not proven)|never held', 'bad_saved_state',
+     'the page we expected to follow never matched what the bookkeeping said'),
+    (r'_not_unique$', 'unreadable_text',
+     'the reading produced several equally valid answers, so the reading is the problem'),
+    (r'mismatch', 'bad_saved_state',
+     'two records of the same fact disagree'),
+    (r'^observe_only$', 'refused_by_policy',
+     'the run was asked not to act, so stopping is the policy being obeyed'),
+)
+
+_LAST = tuple((re.compile(p), k, w) for p, k, w in LAST_RULES)
+
+
+def kind_for(name):
+    """The class of one reason-like name, or None when nobody has classified it."""
+    if not isinstance(name, str) or not name:
+        return None
+    if name in EXCEPTIONS:
+        return EXCEPTIONS[name]
+    for pattern, kind, _why in _LAST:
+        if pattern.search(name):
+            return kind
+    for pattern, kind, _why in _PROGRESS:
+        if pattern.search(name):
+            return kind
+    if ' ' in name:
+        for pattern, kind, _why in _PROSE:
+            if pattern.search(name):
+                return kind
+    if READ_MARKERS.search(name) and not SAVED_MARKERS.search(name):
+        return 'unreadable_text'
+    for pattern, kind, _why in _COMPILED + _LATE + _NEG:
+        if pattern.search(name):
+            return kind
+    return None
+
+
+MORE_LAST = (
+    (r'is not (independently )?proven$', 'bad_saved_state',
+     'the page was read but the fact it implies was never confirmed'),
+    (r'^stop_page_reached$', 'refused_by_policy',
+     'a terminal page is where we deliberately stop, not a failure'),
+)
+
+_MORE = tuple((re.compile(p), k, w) for p, k, w in MORE_LAST)
+
+
+def kind_for(name):
+    """The class of one reason-like name, or None when nobody has classified it."""
+    if not isinstance(name, str) or not name:
+        return None
+    if name in EXCEPTIONS:
+        return EXCEPTIONS[name]
+    for pattern, kind, _why in _MORE + _LAST:
+        if pattern.search(name):
+            return kind
+    for pattern, kind, _why in _PROGRESS:
+        if pattern.search(name):
+            return kind
+    if ' ' in name:
+        for pattern, kind, _why in _PROSE:
+            if pattern.search(name):
+                return kind
+    if READ_MARKERS.search(name) and not SAVED_MARKERS.search(name):
+        return 'unreadable_text'
+    for pattern, kind, _why in _COMPILED + _LATE + _NEG:
+        if pattern.search(name):
+            return kind
+    return None

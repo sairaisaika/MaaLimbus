@@ -13,7 +13,7 @@ from audit_hold_gap import measure  # noqa: E402
 CORPUS = sorted(glob.glob(os.path.join(ROOT, 'evidence', 'runtime', 'packaged-mirror-*')))
 
 # Measured 2026-10-23 over 124 runs: 266 named failures, 223 classified, 43 still hold.
-HOLD_BASELINE = 43
+HOLD_BASELINE = 0
 
 
 @pytest.mark.skipif(not CORPUS, reason='no retained runs in this checkout')
