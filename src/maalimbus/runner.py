@@ -4089,13 +4089,12 @@ class MirrorRunner:
             # progress watchdog, not the loop, was the only thing that noticed.
             if result.get('waiting'):
                 self._waited = getattr(self, '_waited', 0) + 1
-                if self._waited % 5 == 0:
+                decision = wait_decision(self._waited)
+                if decision['note']:
                     self.note('loop_waited', page=result.get('page'),
-                              waited=self._waited,
-                              reason='a_waiting_step_is_still_a_step')
-                if self._waited > WAIT_LIMIT:
-                    self._end_session('the_loop_waited_without_a_new_page',
-                                      waited=self._waited)
+                              waited=self._waited, reason=decision['reason'])
+                if decision['stop']:
+                    self._end_session(decision['reason'], waited=self._waited)
                     break
             else:
                 self._waited = 0
@@ -4699,6 +4698,19 @@ def _load_registry():
 
 # How many consecutive waiting steps are tolerated before the loop ends itself.
 WAIT_LIMIT = 40
+
+
+def wait_decision(waited, *, limit=WAIT_LIMIT):
+    """What a waiting step does: report every fifth, end once the limit is passed.
+
+    Extracted so the rule can be tested without building a frame sequence that
+    never changes page: the behaviour is a decision, not a side effect.
+    """
+    if waited > limit:
+        return {'note': True, 'stop': True,
+                'reason': 'the_loop_waited_without_a_new_page'}
+    return {'note': waited % 5 == 0, 'stop': False,
+            'reason': 'a_waiting_step_is_still_a_step'}
 
 
 def _settle(observer, before, before_sha, rounds, interval, deadline):
