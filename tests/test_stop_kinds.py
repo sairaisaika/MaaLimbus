@@ -25,3 +25,22 @@ def test_the_narrowing_still_reads_one_source():
     # Recording may consult three names; the action table must stay derivable from the kind alone.
     for kind in REFUSAL_KINDS:
         assert recovery_for(kind) == RECOVERY_BY_KIND[kind]
+
+
+# Measured baseline 2026-10-23: 189 reason-like literals, 2 mapped, 187 unmapped.
+# The ratchet may only go down: a new page-specific name must either reuse a kind or
+# replace an existing name, never add a 188th silent one.
+UNMAPPED_BASELINE = 187
+
+
+def test_the_unmapped_reason_vocabulary_only_shrinks():
+    import sys
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parents[1] / 'tools'))
+    from audit_vocabulary import literals
+    from maalimbus.pages import REFUSALS, STOP_KINDS
+
+    known = set(REFUSALS) | set(STOP_KINDS)
+    missing = [name for name in literals() if name not in known]
+    assert len(missing) <= UNMAPPED_BASELINE, (
+        f'{len(missing)} unmapped reason names (baseline {UNMAPPED_BASELINE}): '
+        f'{sorted(missing)[:5]}')
