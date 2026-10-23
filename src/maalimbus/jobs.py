@@ -119,6 +119,32 @@ class InputLost(RuntimeError):
     reason = 'the_controller_was_lost_before_the_next_input'
 
 
+EMPTY_CONTROLLER_REASON = 'the_controller_id_is_empty_so_no_input_can_be_routed'
+
+
+def controller_ready(controller) -> dict:
+    """Can this controller route an input right now, and if not, why not.
+
+    Negative case (measured live 2026-10-23, run
+    `evidence/runtime/packaged-mirror-20261023-160749`): MaaFW rejected a click with
+    `controller not found [req.controller_id=]` while the loop believed it had a
+    controller -- the request went out with an empty id and nothing on the Python side
+    noticed.  An empty id is not a slow call; it is a request that cannot be routed.
+    """
+    ident = getattr(controller, 'controller_id', None)
+    if ident is None:
+        getter = getattr(controller, 'get_controller_id', None)
+        if callable(getter):
+            try:
+                ident = getter()
+            except (RuntimeError, OSError, ValueError):
+                ident = None
+    text = '' if ident is None else str(ident).strip()
+    if not text:
+        return {'ready': False, 'reason': EMPTY_CONTROLLER_REASON, 'controller_id': text}
+    return {'ready': True, 'reason': 'the_controller_id_is_present', 'controller_id': text}
+
+
 def dispatch(controller, job, *, timeout, deadline=None, drain=2, probe=None, on_soft=None,
              clock=time.monotonic, sleep=time.sleep):
     """Wait for one device action; never leave it pending on timeout.
