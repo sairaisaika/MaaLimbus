@@ -63,7 +63,7 @@ def attempt(index: int, seconds: int) -> dict:
     # left.  Without this the run counts as "ended without a stop" and its
     # cause vanishes (`src/maalimbus/crash_codes.py`).
     record['stop'] = (stops[0] if stops
-                      else crash_codes.name_for(exit_code))
+                      else crash_codes.name_for(int(record['exit'])))
     record['reached_floor_5'] = 5 in record['floors']
     return record
 
