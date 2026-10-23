@@ -1,4 +1,7 @@
 """Retained real Mounting Trials native OCR, with no device/input controller."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import hashlib,json,sys
 from pathlib import Path
 import cv2

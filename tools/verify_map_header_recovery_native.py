@@ -1,4 +1,7 @@
 """Native caption/digit replays for the actual map glow failure, zero input."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,sys,hashlib,re
 from pathlib import Path
 import cv2

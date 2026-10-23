@@ -3,6 +3,9 @@
 Frames contain only pinned public icons and drawn labels. A target click is
 verified; acquired rewards, selection quota and dungeon transitions are not.
 """
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse
 import json
 from pathlib import Path

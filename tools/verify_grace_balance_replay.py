@@ -1,4 +1,7 @@
 """Native OCR on retained frames; no device connection or input."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
 from pathlib import Path
 from verify_theme_replay import ROOT,CustomController,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task

@@ -1,4 +1,7 @@
 """Replay a trained detector against reviewed held-out images using Maa, no device."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse,json,sys,tempfile,shutil,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))

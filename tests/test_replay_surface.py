@@ -123,6 +123,29 @@ def test_every_owning_tool_inherits_the_shared_layer():
             assert controller['shared'], (row['tool'], controller)
 
 
+def test_the_neighbour_imports_are_reported_and_only_shrink():
+    """46 tools take a controller class from another tool instead of the layer.
+
+    Reported, not gated: `from verify_star_replay import Replay` also brings that
+    tool's click assertion, so each one has to be flattened against the input it
+    really expects. The number may fall but not grow.
+    """
+    data = _inventory_module().report()
+    assert data['importing_a_controller_from_a_tool'] == 46
+    assert all(isinstance(edges, list) and edges for edges in data['controller_imports'].values())
+
+
+def test_the_counter_example_a_neighbour_import_is_named(tmp_path):
+    source = tmp_path / 'verify_source_replay.py'
+    source.write_text('from maalimbus.replay import ReplayController\n'
+                      'class Replay(ReplayController):\n    pass\n', encoding='utf-8')
+    borrower = tmp_path / 'verify_borrower_replay.py'
+    borrower.write_text('from verify_source_replay import Replay\n', encoding='utf-8')
+    data = _inventory_module().report(tmp_path)
+    assert data['importing_a_controller_from_a_tool'] == 1
+    assert data['controller_imports']['verify_borrower_replay.py'] == [['verify_source_replay', 'Replay']]
+
+
 def test_the_counter_example_a_tool_with_its_own_connect_is_reported(tmp_path):
     tool = tmp_path / 'verify_own_replay.py'
     tool.write_text(

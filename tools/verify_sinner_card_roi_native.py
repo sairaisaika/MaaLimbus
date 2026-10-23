@@ -7,7 +7,6 @@ instead of intent:
   real pre-battle team-card ROIs;
 * which preprocessing path the native detection actually took, measured on a
   synthetic control image rather than assumed;
-from maalimbus.replay import ReplayController
 * whether a completely different teacher (mean-absolute-difference template
   matching against the reviewed owned-gallery crops) agrees with the neural
   class on each card, so a "correct" count is never the model approving itself.
@@ -15,6 +14,10 @@ from maalimbus.replay import ReplayController
 Nothing here is training, production, or an input path: it never opens a
 controller, never lowers the .9 threshold, and every emitted flag stays false.
 """
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
+from maalimbus.replay import ReplayController
 import argparse,json,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]

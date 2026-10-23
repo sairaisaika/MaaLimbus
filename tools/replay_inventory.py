@@ -57,6 +57,27 @@ def providers(tree):
     return sorted(found)
 
 
+CONTROLLER_NAMES = ('Replay', 'Offline', 'ReplayController', 'CustomController')
+
+
+def imported_controllers(tree, modules):
+    """(module, name) pairs where a tool takes a controller class from a *tool*.
+
+    This is the relation D52 did not flatten: `from verify_star_replay import
+    Replay` brings that tool's expectations along, so deleting the source tool or
+    changing its click assertion changes a different tool's answer. Reported, not
+    gated -- the target to aim at is `maalimbus.replay`, and each import has to be
+    checked against the input the importing tool really expects.
+    """
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module and node.module in modules:
+            for alias in node.names:
+                if alias.name in CONTROLLER_NAMES:
+                    found.append([node.module, alias.name])
+    return found
+
+
 def describe(path):
     source = path.read_text(encoding='utf-8')
     tree = ast.parse(source)
@@ -83,7 +104,11 @@ def describe(path):
 
 
 def report(directory=None):
-    rows = [describe(p) for p in _tools(directory)]
+    tools = _tools(directory)
+    modules = {path.stem for path in tools}
+    rows = [describe(p) for p in tools]
+    taken = {row['tool']: imported_controllers(ast.parse((pathlib.Path(directory or ROOT / 'tools') / row['tool']).read_text(encoding='utf-8')), modules)
+             for row in rows}
     problems = []
     for row in rows:
         for controller in row['controllers']:
@@ -93,15 +118,13 @@ def report(directory=None):
             if not controller['shared']:
                 problems.append('%s: %s does not inherit %s' % (
                     row['tool'], controller['class'], LAYER))
-    by_owner = {}
-    for row in rows:
-        for controller in row['controllers']:
-            by_owner.setdefault(controller['class'], 0)
     return {
         'tools': len(rows),
         'owning_a_controller': sum(1 for row in rows if row['controllers']),
         'inheriting_from_the_layer': sum(1 for row in rows if any(c['shared'] for c in row['controllers'])),
         'importing_a_replay_class': sum(1 for row in rows if row['imports_replay_from']),
+        'importing_a_controller_from_a_tool': sum(1 for row in rows if taken[row['tool']]),
+        'controller_imports': {name: edges for name, edges in taken.items() if edges},
         'rows': rows,
         'problems': problems,
     }
@@ -118,6 +141,8 @@ def main(argv=None):
     else:
         print('replay tools: %d  owning a controller: %d  inheriting the shared layer: %d'
               % (data['tools'], data['owning_a_controller'], data['inheriting_from_the_layer']))
+        print('tools that take a controller class from another tool: %d'
+              % data['importing_a_controller_from_a_tool'])
         for row in data['rows']:
             for controller in row['controllers']:
                 print('  %-40s %-8s bases=%s expectations=%s'

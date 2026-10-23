@@ -1,4 +1,7 @@
 """Production Maa graph, OCR and recognizer; saved frames only, never Win32 input."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse
 from datetime import datetime
 import json

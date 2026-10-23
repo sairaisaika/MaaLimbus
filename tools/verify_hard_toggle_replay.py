@@ -1,4 +1,7 @@
 """Maa one-touch Hard toggle; patched Hard glyph is a derived proof fixture."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse
 import json
 import os

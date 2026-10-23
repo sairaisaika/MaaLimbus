@@ -1,4 +1,7 @@
 """Native retained-frame OCR of wrapped names/Base Power; inputs forbidden."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
 from verify_grace_balance_replay import Replay
 from verify_theme_replay import ROOT,Library,Resource,Tasker,Journal,LimbusRecognition,wait_job,wait_task

@@ -6,6 +6,9 @@ nested crop pair lost it, so the page was read as an *incomplete* order instead 
 different one. Both crops are now framed differently (tests/test_deployment_numbers.py pins
 that rule) and the page's own order must come back complete and contradict the saved order.
 """
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,sys,hashlib,uuid
 from pathlib import Path
 import cv2

@@ -4,6 +4,9 @@ Each cropped real card is labeled from a native TemplateMatch against a seal
 whose class comes from an independently verified owned-gallery header. Whole-run
 episode mappings are explicit, never invented from frame directory timestamps.
 """
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse,json,sys,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))

@@ -1,4 +1,7 @@
 """Offline native OCR crop diagnostics; no device connection or inputs."""
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import json,time,cv2
 from maa.custom_action import CustomAction
 from maa.pipeline import JOCR,JRecognitionType

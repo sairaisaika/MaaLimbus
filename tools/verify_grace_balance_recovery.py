@@ -7,6 +7,9 @@ only when the run that sent it is no longer active in the ledger (retire it firs
 tools/verify_mirror_idle_entry.py --apply). A pending whose evidence does not prove the
 exact delta stays pending; this tool cannot invent an outcome.
 """
+import pathlib as _pathlib
+import sys as _sys
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[1] / 'src'))
 import argparse,hashlib,json,shutil,sys,time,uuid,datetime
 from pathlib import Path
 import cv2

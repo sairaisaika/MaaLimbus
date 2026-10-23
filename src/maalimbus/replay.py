@@ -65,7 +65,12 @@ class ReplayFrames:
         if self.frames and self.frame is None:
             self.frame = self.frames[0]
         self.position = 0
-        self.uuid = uuid
+        #: `uuid` is a read-only property on Maa's `Controller`, so a subclass
+        #: may not assign it: an earlier version of this layer did, and every
+        #: controller built on it raised `property 'uuid' has no setter` the
+        #: moment a tool constructed one (found 2026-10-23 by running
+        #: `tools/verify_city_gifts_replay.py`, not by the static inventory).
+        self.scenario_uuid = uuid
         self.expects = expects
         self.inputs = []
         self.attempts = []
@@ -78,7 +83,7 @@ class ReplayFrames:
         return True
 
     def request_uuid(self):
-        return self.uuid
+        return self.scenario_uuid
 
     def get_features(self):
         return 0
