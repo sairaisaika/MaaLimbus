@@ -4008,6 +4008,12 @@ class MirrorRunner:
                           reason='the_pipeline_node_failed_before_the_next_input',
                           steps=self.state['step'], clicks=self.artifacts['clicks_sent'])
                 break
+            # A heartbeat before each step: the process can die natively inside a step
+            # and write nothing, so 22 of 107 retained runs end on their last business
+            # event with no cause (`tools/audit_runs.py`).  This line makes the last
+            # thing the run started the thing the log reports.
+            self.note('loop_heartbeat', step=self.state['step'],
+                      phase='step_start', page=self.state.get('page'))
             try:
                 result = self.step()
             except (RuntimeError, OSError) as error:
