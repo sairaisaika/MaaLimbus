@@ -3255,6 +3255,13 @@ class MirrorRunner:
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
+                if state.get('map_pending') not in (None, list(plan['target'])):
+                    # Two clicks planned before one page settled would leave the first one
+                    # unjudged, and an unjudged click cannot reach the refusal streak that
+                    # decides a suspended exploration (3 intents produced 1 verdict live).
+                    self.note('map_click_result', target=state['map_pending'], page=page,
+                              outcome='rejected', frame=state.pop('map_click_frame', None),
+                              reason='a_new_target_replaced_this_one_before_the_page_settled')
                 state['map_pending'] = list(plan['target'])
                 # The verdict below is only diagnosable if it names the frame it judged;
                 # `getattr(self, 'frames', None)` read nothing because that attribute lives
@@ -3310,6 +3317,13 @@ class MirrorRunner:
             # live run build/window-run76.json opened the same gift tray eight times
             # because a click that did open something was never remembered.
             state['map_progress'].note_click(plan['target'])
+            if state.get('map_pending') not in (None, list(plan['target'])):
+                # Two clicks planned before one page settled would leave the first one
+                # unjudged, and an unjudged click cannot reach the refusal streak that
+                # decides a suspended exploration (3 intents produced 1 verdict live).
+                self.note('map_click_result', target=state['map_pending'], page=page,
+                          outcome='rejected', frame=state.pop('map_click_frame', None),
+                          reason='a_new_target_replaced_this_one_before_the_page_settled')
             state['map_pending'] = list(plan['target'])
             state['map_click_frame'] = (record.get('frame')
                                         or Path(frame_file(directory)).name)
