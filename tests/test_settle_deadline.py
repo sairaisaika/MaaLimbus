@@ -191,3 +191,110 @@ def test_a_wedged_read_ends_its_run_instead_of_eating_the_budget(tmp_path, monke
     ended = runner.events(tmp_path, "mirror_session_ended")
     assert ended and "no page for this frame" in ended[-1]["error"]
 
+
+
+# -- the bound is the door's, not the caller's ---------------------------------
+
+
+class _NeverDone:
+    done = False
+    succeeded = False
+
+
+class _Finished:
+    done = True
+    succeeded = False
+
+
+class _WedgedTasker:
+    """A tasker whose node never finishes, and which remembers what it was asked."""
+
+    def __init__(self):
+        self.posted = []
+
+    def post_task(self, name):
+        self.posted.append(name)
+        return _NeverDone()
+
+    def post_stop(self):
+        return _Finished()
+
+
+def _direct_reader(tmp_path, tasker, *, read_tries=1):
+    context = SimpleNamespace(tasker=tasker, directory=tmp_path, run=None, journal=None)
+    return MaaObserver(context, tmp_path, read_tries=read_tries)
+
+
+def test_a_read_is_bounded_with_no_runner_and_no_deadline(tmp_path, monkeypatch):
+    """The invariant may not depend on `MirrorRunner._observe` having been called.
+
+    `Tools/lux_task.py` and `tools/reward_task.py` read through `runner.observe`, and
+    the window layer reads through `MaaObserver.observe` directly: a clamp that lives
+    in the runner's private door leaves every one of those open.
+    """
+
+    monkeypatch.setattr(runner, "ONE_READ_SECONDS", 0.2)
+    tasker = _WedgedTasker()
+    started = time.monotonic()
+    with pytest.raises(RuntimeError, match="observation node recorded no page"):
+        _direct_reader(tmp_path, tasker).observe(deadline=None)
+    spent = time.monotonic() - started
+    assert spent < 3.0, f"a read with no deadline must still end (took {spent:.1f}s)"
+    assert tasker.posted == ["WindowMapObserve"]
+
+
+def test_a_retry_gets_its_own_window_and_not_the_whole_call(tmp_path, monkeypatch):
+    """Two attempts cost two windows, so a retry cannot silently double the bound."""
+
+    monkeypatch.setattr(runner, "ONE_READ_SECONDS", 0.2)
+    tasker = _WedgedTasker()
+    started = time.monotonic()
+    with pytest.raises(RuntimeError):
+        _direct_reader(tmp_path, tasker, read_tries=2).observe(deadline=None)
+    spent = time.monotonic() - started
+    assert len(tasker.posted) == 2, "the second attempt must still happen"
+    assert spent < 1.2, f"two attempts may not cost more than two windows (took {spent:.1f}s)"
+
+
+def test_a_tighter_caller_window_still_wins(tmp_path, monkeypatch):
+    """The door clamps; it never extends a caller that already asked for less."""
+
+    monkeypatch.setattr(runner, "ONE_READ_SECONDS", 30.0)
+    tasker = _WedgedTasker()
+    started = time.monotonic()
+    with pytest.raises(RuntimeError):
+        _direct_reader(tmp_path, tasker).observe(deadline=time.monotonic() + 0.2)
+    spent = time.monotonic() - started
+    assert spent < 1.5, f"the caller's 0.2 s window has to win (took {spent:.1f}s)"
+
+
+def test_bounded_read_is_a_ceiling_and_never_an_extension():
+    """The formula itself, with a clock that cannot drift in a test."""
+
+    now = 100.0
+    clock = lambda: now  # noqa: E731 - a fixed clock is the point
+    assert runner.bounded_read(None, clock=clock) == now + runner.ONE_READ_SECONDS
+    assert runner.bounded_read(now + 5, clock=clock) == now + 5
+    assert runner.bounded_read(now + 10_000, clock=clock) == now + runner.ONE_READ_SECONDS
+    assert runner.bounded_read(None, limit=1.0, clock=clock) == now + 1.0
+    assert runner.bounded_read(now + 0.5, limit=1.0, clock=clock) == now + 0.5
+
+
+def test_the_door_hands_every_observer_a_bounded_window(tmp_path):
+    """Any `Observer` implementation, not only the Maa one, receives the ceiling."""
+
+    seen = []
+
+    class Reader:
+        directory = tmp_path
+
+        def observe(self, *, deadline=None):
+            seen.append(deadline)
+            return {"scene": "MAP"}
+
+    now = time.monotonic()
+    assert runner.observe(Reader())["scene"] == "MAP"
+    assert seen[0] is not None, "an unbounded read reached the observer"
+    assert seen[0] <= now + runner.ONE_READ_SECONDS + 1
+    runner.observe(Reader(), now + 0.5)
+    assert seen[1] <= now + 0.6, "the caller's tighter window must pass through"

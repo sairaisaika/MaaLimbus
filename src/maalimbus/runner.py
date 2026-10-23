@@ -444,6 +444,37 @@ def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WI
 
 
 DEEP_STEP_SECONDS = 60.0
+ONE_READ_SECONDS = 30.0
+RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
+"""One page read may not outlive this, whoever asked for it.
+
+Measured live on MuMu (``evidence/runtime/map-live-20261023-175057``, read-only,
+``input_sent: false``): reading one 1920x1080 frame through ``WindowMapObserve`` took
+0.38-1.02 s per frame, p50 1.00 s, 20 frames in 18.4 s.  30 s is a 30x margin over
+that measured p50 and still two orders of magnitude below the 420 s budget it protects.
+"""
+
+
+def bounded_read(deadline, *, limit=None, clock=time.monotonic):
+    """The moment one read has to be over by: the caller's window or the read's own.
+
+    The bound lives here, not at each call site, because the same defect came back
+    twice from a site that had been forgotten.  ``7b91b6e`` bounded the settle helper
+    and left the inline settle read unbounded, so five runs on 2026-10-23 15:33-16:32
+    sat 380 s inside one screenshot and wrote nothing.  ``dea7028`` then bounded
+    ``MirrorRunner._observe`` -- the *runner's* door -- while ``MaaObserver.observe``,
+    the door ``tools/lux_task.py``, ``tools/reward_task.py`` and the window layer use,
+    stayed open.  A read that overruns must fail as a read inside the step that asked
+    for it, and that is only true if the clamp sits on the one door every caller
+    passes rather than on the callers that remembered.
+
+    The caller's tighter window still wins: this is a ceiling, never an extension.
+    """
+    limit = ONE_READ_SECONDS if limit is None else float(limit)
+    own = clock() + limit
+    return own if deadline is None else min(float(deadline), own)
+
+
 MIN_SETTLE = 1.5
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
@@ -976,7 +1007,10 @@ class MaaObserver:
         recorded = events(self.directory, 'map_observed')
         before = len(recorded)
         for attempt in range(max(1, self.read_tries)):
-            run_node(self.tasker, self.pipeline, deadline)
+            # One attempt is one read: the bound is taken per attempt, so a retry
+            # costs at most one more `ONE_READ_SECONDS` instead of doubling the whole
+            # call's window, and the whole call still cannot outlive two of them.
+            run_node(self.tasker, self.pipeline, bounded_read(deadline))
             recorded = events(self.directory, 'map_observed')
             if len(recorded) > before:
                 break
@@ -987,7 +1021,7 @@ class MaaObserver:
             battle = events(self.directory, 'battle_observed')
             before_battle = len(battle)
             for attempt in range(max(1, self.read_tries)):
-                run_node(self.tasker, self.battle_pipeline, deadline)
+                run_node(self.tasker, self.battle_pipeline, bounded_read(deadline))
                 battle = events(self.directory, 'battle_observed')
                 if len(battle) > before_battle:
                     break
@@ -1014,7 +1048,7 @@ def observe(observer, deadline=None):
     proof, ``unavailable: [6]``). Replayed frames keep working: a frame record
     already carries its own local reads, and only a missing list is filled in.
     """
-    record = observer.observe(deadline=deadline)
+    record = observer.observe(deadline=bounded_read(deadline))
     if not record.get('image_sha256'):
         record['image_sha256'] = frame_sha(observer.directory)
     details = frame_details(observer.directory)
@@ -2006,9 +2040,10 @@ class MirrorRunner:
         now = time.monotonic()
         self.artifacts['heartbeat'] = now
         run_deadline = self.deadline if deadline is None else deadline
-        own = now + ONE_READ_SECONDS
-        # `min`: the caller's tighter window wins, and a read may never outlive the run.
-        deadline = own if run_deadline is None else min(run_deadline, own)
+        # One formula for the ceiling: the caller's tighter window wins, and a read may
+        # never outlive the run.  `bounded_read` is the same door `MaaObserver` clamps at,
+        # so this call is the runner's *report* about the read, not its only bound.
+        deadline = bounded_read(run_deadline)
         # The watchdog thread reads this while the call is in flight; the journal
         # cannot say afterwards which call the silence belonged to.
         reading = {'phase': phase, 'since': now, 'page': self.state.get('page'),
@@ -4870,10 +4905,6 @@ def wait_decision(waited, *, limit=WAIT_LIMIT):
             'reason': 'a_waiting_step_is_still_a_step'}
 
 
-ONE_READ_SECONDS = 30.0   # one page read may not outlive this
-RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
-
-
 def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_round=None):
     """Read until the screen moves, at most ``rounds`` times: the window's own loop.
 
@@ -4889,8 +4920,7 @@ def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_roun
         # A re-read must not be able to wait forever: with no deadline the call below
         # could spend minutes inside one screenshot (the 383 s gap in
         # evidence/runtime/packaged-mirror-20261023-134753 had no bound of its own).
-        after = observe(observer, deadline if deadline is not None
-                        else time.monotonic() + RE_SETTLE_LIMIT_S)
+        after = observe(observer, bounded_read(deadline))
         # A re-read is a step the run took, so it must be visible in the journal: the
         # 383 s gap in evidence/runtime/packaged-mirror-20261023-134753 was spent here
         # and wrote nothing, which is why it read as a hang of unknown origin.
