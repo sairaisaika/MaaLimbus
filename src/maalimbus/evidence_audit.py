@@ -8,6 +8,30 @@ because the reason was read from a field the recovery path never fills.
 """
 from collections import Counter
 
+def derivable_kinds(events):
+    """Kinds that can be *re-derived* for recoveries that recorded none.
+
+    Recording is the only evidence of what the engine decided at the time.  Evidence
+    written before the recorder existed still carries the three names, so it can be
+    re-derived -- but that is analysis, not a recording, and the audit reports it
+    separately so an old run can never look like a verified new one.
+    """
+    from .pages import kind_of
+    counts, total = {}, 0
+    for event in events:
+        if event.get('event') != 'window_recovery':
+            continue
+        if event.get('refused_kind'):
+            continue
+        kind = kind_of(reason=event.get('reason'),
+                       stopped_reason=event.get('stopped_reason'),
+                       plan_reason=event.get('plan_reason'))
+        if kind:
+            total += 1
+            counts[kind] = counts.get(kind, 0) + 1
+    return {'derived': total, 'kinds': counts}
+
+
 def recovery_kinds(events):
     """Count the recovery events, and how many of them name their decision."""
     kinds = Counter()

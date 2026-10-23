@@ -15,7 +15,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus.evidence_audit import frozen_build, inconsistent_decisions, recovery_kinds, silent_recoveries
+from maalimbus.evidence_audit import derivable_kinds, frozen_build, inconsistent_decisions, recovery_kinds, silent_recoveries
 
 
 def load(directory):
@@ -51,6 +51,8 @@ def main(argv):
     print(f"window_recovery: {report['total']}  named: {report['named']}  "
           f"silent: {silent_recoveries(report)}")
     print(f"kinds: {report['kinds']}")
+    derived = derivable_kinds(events)
+    print(f"derived (analysis, not recorded): {derived['derived']} {derived['kinds']}")
     print(f"actions: {report['actions']}")
     print(f"covers_the_decision_table: {report['covers_the_decision_table']}")
     print(f'inconsistent decisions: {len(wrong)}')

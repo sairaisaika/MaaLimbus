@@ -256,6 +256,18 @@ def recovery_for(kind):
     return RECOVERY_BY_KIND.get(kind, 'hold')
 
 
+# The runner stops a run with its own vocabulary (`stopped_reason`), which is *not* the
+# refusal vocabulary `window._refuse` writes: measured on
+# `evidence/runtime/packaged-mirror-20261023-084610`, two recoveries carried
+# `page_unreadable_after_waiting` and `unexpected_successor` and neither existed in
+# `REFUSALS`, so the kind stayed null and the audit could never see them.  One table
+# per vocabulary, joined here, instead of quietly growing either one.
+STOP_KINDS = {
+    'page_unreadable_after_waiting': 'unreadable_text',
+    'unexpected_successor': 'bad_saved_state',
+}
+
+
 def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     """The kind of one refusal, from whichever of its three names it carries.
 
@@ -265,7 +277,7 @@ def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     never decided anything.  Precedence is most-specific first; unknown is None.
     """
     for name in (reason, stopped_reason, plan_reason):
-        kind = REFUSALS.get(name)
+        kind = REFUSALS.get(name, STOP_KINDS.get(name))
         if kind is not None:
             return kind
     return None
