@@ -1142,6 +1142,14 @@ class ThemeObservation(CustomAction):
         image=context.tasker.controller.cached_image
         records,scene,frame=self.recognition.observe(context,image)
         size=(image.shape[1],image.shape[0])
+        # Read where the party stands with every map frame.  Until this existed the
+        # journal never carried a position, so the click verdict could only compare
+        # against a value written *after* a click and `the_party_moved_after_the_click`
+        # could not fire in 5384 recorded observations.
+        party=None
+        if scene=='MAP':
+            from maalimbus.map_vision import party_point
+            party=party_point(image)
         header=map_header(records,size) if scene=='MAP' else None
         # The pack line must equal the pack this run planned; any other name keeps
         # the selection unproven instead of borrowing an unrelated page as proof.
@@ -1229,6 +1237,7 @@ class MapObservation(CustomAction):
             panel_clear_rewards=None if panel is None or panel.clear_rewards is None
             else panel.clear_rewards.box,
             panel_cost_texts=None if panel is None else list(panel.cost_texts),
+            map_player=None if party is None else list(party),
             battle_box=None if team is None else team.battle.box,
             clear_selection_box=None if team is None else team.clear_selection.box,
             participant_texts=None if team is None else list(team.participants),
