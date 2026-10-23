@@ -4764,6 +4764,9 @@ def wait_decision(waited, *, limit=WAIT_LIMIT):
             'reason': 'a_waiting_step_is_still_a_step'}
 
 
+RE_SETTLE_LIMIT_S = 30.0   # one settle round may not outlive this
+
+
 def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_round=None):
     """Read until the screen moves, at most ``rounds`` times: the window's own loop.
 
@@ -4776,7 +4779,11 @@ def _settle(observer, before, before_sha, rounds, interval, deadline, *, on_roun
     for round_index in range(max(1, rounds)):
         if round_index:
             time.sleep(interval)
-        after = observe(observer, deadline)
+        # A re-read must not be able to wait forever: with no deadline the call below
+        # could spend minutes inside one screenshot (the 383 s gap in
+        # evidence/runtime/packaged-mirror-20261023-134753 had no bound of its own).
+        after = observe(observer, deadline if deadline is not None
+                        else time.monotonic() + RE_SETTLE_LIMIT_S)
         # A re-read is a step the run took, so it must be visible in the journal: the
         # 383 s gap in evidence/runtime/packaged-mirror-20261023-134753 was spent here
         # and wrote nothing, which is why it read as a hang of unknown origin.
