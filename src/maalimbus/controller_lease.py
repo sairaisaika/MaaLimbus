@@ -15,8 +15,17 @@ def lease_path(path):
     return path.resolve()
 
 
-class LeaseUnavailable(RuntimeError):
-    """The lease file exists but could not be opened or locked."""
+class LeaseUnavailable(OSError):
+    """The lease file exists but could not be opened or locked.
+
+    Deliberately an `OSError`: a lease that cannot be taken is a refusal by the
+    operating system, and every caller of the installer already treats `OSError` as
+    "do not touch the files".  It was introduced as a `RuntimeError` (`2ee48ba`,
+    2026-10-23 12:00) while only its *name* was being improved, which silently broke
+    `tests/test_update_install.py::test_real_controller_lock_blocks_installation` --
+    the guard asks for `OSError` and stopped matching, and nobody saw it because the
+    suite at the time died with exit 4 before printing a summary.
+    """
 
 
 class ControllerLease:

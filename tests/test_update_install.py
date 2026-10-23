@@ -130,16 +130,28 @@ def test_linked_private_directory_is_rejected(tmp_path):
 
 
 def test_real_controller_lock_blocks_installation(tmp_path):
+    """A held controller lease must stop the installer before any swap.
+
+    Hermetic on purpose: ``controller_lease.lease_path`` maps any path *named*
+    ``controller.lock`` to the machine-wide lease (``%LOCALAPPDATA%/MaaLimbus``), so
+    the first version of this test took the production lock and went red whenever a
+    real agent or CLI owned the controller -- measured 2026-10-23, when it was the
+    only failure in a full run and the controller was simply in use.  The lock file
+    here has its own name, and the installer is handed a factory for that file; the
+    gate itself is unchanged.
+    """
     import os
     if os.name != 'nt':
         pytest.skip('Windows lock')
     from maalimbus.controller_lease import ControllerLease
     paths = setup(tmp_path)
-    lease = ControllerLease(paths[2])
+    held = tmp_path/'exclusive.lock'      # not `controller.lock`: stays inside tmp_path
+    lease = ControllerLease(held)
     try:
-        with pytest.raises(OSError):
+        with pytest.raises(OSError):      # `LeaseUnavailable` is an OSError
             install_staged(*paths, process_check=lambda app: None,
-                           validator=lambda app: {'agent_self_test': True})
+                           validator=lambda app: {'agent_self_test': True},
+                           lease_factory=lambda path: ControllerLease(held))
         assert (paths[1]/'MaaLimbus.exe').read_bytes() == b'old'
     finally:
         lease.close()
