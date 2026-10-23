@@ -121,6 +121,11 @@ def summarise(rows):
         'no_progress_stops': sum(
             1 for row in stops
             if str(row.get('reason')) not in ('loop_deadline_exceeded',)),
+        # A run whose process died mid-flight writes no stop event, so counting stops
+        # alone silently drops it from every rate.  Measured on
+        # `evidence/runtime/packaged-mirror-20261023-094914`: 183 events, floor 1,
+        # `exit 3221226505`, `stop: null` -- a crash that no rate could see.
+        'ended_without_a_stop': bool(rows) and not stops,
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
     }

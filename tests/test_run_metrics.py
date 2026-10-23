@@ -46,3 +46,19 @@ def test_a_recovery_that_keeps_the_same_page_advanced_nothing():
     assert recovery_advanced(busy)['rate'] == 0.0, 'busy is not advanced'
     assert recovery_advanced(moved)['rate'] == 1.0
     assert recovery_advanced([])['rate'] is None
+
+
+def test_a_run_that_died_without_a_stop_is_not_counted_as_success():
+    """A crashed process writes no `mirror_loop_stopped`, so it must say so.
+
+    `packaged-mirror-20261023-094914` produced 183 events and reached floor 1, then the
+    process failed natively (`exit 3221226505`) with `stop: null`.  Every rate derived
+    from stops treated that run as absent rather than as a failure.
+    """
+    from maalimbus import run_metrics
+    crashed = [{'event': 'map_observed', 'floor': 1}, {'event': 'map_observed', 'floor': 1}]
+    assert run_metrics.summarise(crashed)['ended_without_a_stop'] is True
+
+    stopped = crashed + [{'event': 'mirror_loop_stopped', 'reason': 'a_real_stop'}]
+    assert run_metrics.summarise(stopped)['ended_without_a_stop'] is False
+    assert run_metrics.summarise([])['ended_without_a_stop'] is False
