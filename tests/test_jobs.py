@@ -138,3 +138,32 @@ def test_a_timeout_drains_the_pending_capture_first():
     else:  # pragma: no cover
         raise AssertionError('a pending capture must be named, not swallowed')
     assert ctl.stops == 1, 'the pending request has to be drained before the next input'
+
+
+class _ClickController:
+    def __init__(self, click_done):
+        self.click_done = click_done
+        self.stops = 0
+
+    def post_stop(self):
+        self.stops += 1
+        return _Shot(True)
+
+
+def test_a_click_that_returns_is_not_treated_as_a_failure():
+    from maalimbus.jobs import dispatch
+    ctl = _ClickController(True)
+    dispatch(ctl, _Shot(True), timeout=1)
+    assert ctl.stops == 0
+
+
+def test_a_click_that_never_returns_is_drained_and_named():
+    from maalimbus.jobs import InputNeverReturned, dispatch
+    ctl = _ClickController(False)
+    try:
+        dispatch(ctl, _Shot(False), timeout=0.0, clock=lambda: 0.0)
+    except InputNeverReturned:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError('a pending click must be named')
+    assert ctl.stops == 1, 'the pending click has to be drained'

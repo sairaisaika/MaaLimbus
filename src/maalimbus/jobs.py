@@ -79,3 +79,28 @@ def screencap(controller, *, timeout=5, drain=2, clock=time.monotonic, sleep=tim
         except (TimeoutError, RuntimeError, AttributeError):
             pass
         raise ScreenshotNeverReturned(str(error) or 'the screenshot never returned') from error
+
+
+class InputNeverReturned(TimeoutError):
+    """A click/swipe/launch did not come back inside its deadline.
+
+    The live runs died with 0xC0000409 right after `Maa job exceeded its deadline`,
+    and the click path at `src/maalimbus/runner.py:1617` used a bare
+    ``wait_job(controller.post_click(...), timeout=10)``: a click that timed out was
+    left pending while the loop went on to the next capture.  This wrapper drains the
+    pending request and names the state, so the run can stop cleanly instead of
+    touching a request that is still in flight.
+    """
+
+
+def dispatch(controller, job, *, timeout, deadline=None, drain=2,
+             clock=time.monotonic, sleep=time.sleep):
+    """Wait for one device action; never leave it pending on timeout."""
+    try:
+        return wait_job(job, timeout=timeout, deadline=deadline, clock=clock, sleep=sleep)
+    except TimeoutError as error:
+        try:
+            wait_job(controller.post_stop(), timeout=drain, clock=clock, sleep=sleep)
+        except (TimeoutError, RuntimeError, AttributeError):
+            pass
+        raise InputNeverReturned(str(error) or 'the input never returned') from error

@@ -54,7 +54,7 @@ from .event_vision import (best_check_choice, check_box, check_stage, choice_opt
 from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES
 from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
-from .jobs import wait_job, wait_task
+from .jobs import dispatch, wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
 from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, map_clicks, map_header,
@@ -1614,7 +1614,9 @@ def run_flow(tasker, controller, journal, directory, deadline, steps, *, observe
             journal.record('flow_intent', step=step.id, note=step.note,
                            pattern=step.pattern, target=list(token['box']),
                            point=list(point), delay_ms=delay)
-            wait_job(controller.post_click(*point), timeout=10, deadline=deadline)
+            # A click that never returns must not stay pending: the next capture
+            # would talk to a request that is still in flight (the 0xC0000409 crash).
+            dispatch(controller, controller.post_click(*point), timeout=10, deadline=deadline)
             sent += 1
             time.sleep(delay / 1000)
             settled = record
