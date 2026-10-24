@@ -4916,3 +4916,40 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 **下一个单元（下一次实机运行已经指出）**：地图上的节点点击推不动页面
 （`the_page_stayed_on_the_map_after_the_click`，两次运行都一样），窗口随即判定
 `the_exploration_must_be_resumed_before_a_node_click` 并去"离开探索"——这才是那局 F2 一直不前进的原因。
+
+## DSH continuation: 点击框的种类，是这个循环一直丢掉的证据（D75）
+
+**三条根因（第 33 轮）**
+
+1. **同一个决策有两个所有者。** 识别器给出九种框（`bright_lit_icon`、`gold_badge_node`、
+   `lattice_step`…），`candidates_of` 只留矩形——于是"点哪个"由几何距离决定，而不是由
+   客户端自己画在"它肯接受的那一步"上的高亮决定。
+2. **顺序是隐式策略，没有可比的证据。** `map_clicks` 的文档说"被标记的那一步在前"，
+   实际返回的是 190×190 的格子在先：39 个可读归档帧里 37 帧第一个候选是 `gold_badge_node`，
+   而 190 格子的**中心**常常是两节点之间的空地。
+3. **写入非 JSON 安全的数据，在同一次运行里被自己的日志抓住。** 种类表最初以元组为键，
+   第一次带它的实机运行以 `callback_failed: keys must be str, int, float, bool or None, not tuple` 结束。
+
+**改动**（`src/maalimbus/runner.py`、`src/maalimbus/run_metrics.py`、
+`tools/audit_map_clicks.py`、`tests/test_map_click_kinds.py`）
+
+- 种类随框走：`box_key(box)`（`"678,353,40,40"`）为键的 `record['map_candidate_kinds']`、
+  `map_nodes_offered.kinds`、`map_click_result.kind`（被替换的点击保留发出时记住的种类）。
+- `CLICK_KIND_ORDER` + `_kind_rank`：标记的那一步在前，格子在后，未知种类排在最后而不丢弃。
+- `run_metrics.click_kinds`/`click_kind_report` + `tools/audit_map_clicks.py`：按种类给出
+  发出/接受/拒绝，旧归档诚实地报"未测量"。
+- 两处守卫都红了并被如实修正：`pages.SUCCESSORS_THE_ARCHIVE_SAW` 的计数随新语料 +1
+  （D58 的规则：归档看见的落点就是缺的那一行），以及 JSON 安全性。
+
+**实机证据（三次获授权运行，均 `input_sent: true`）**
+
+| 运行 | 结果 |
+| --- | --- |
+| `…-232612` | `gold_badge_node` 2/2 被拒；唯一 `bright_lit_icon` 排在第四、从未点到；`controller not found` 结束 |
+| `…-233056` | 改序后先点 `lit_icon` → `NODE_PANEL → PRE_BATTLE_TEAM → BATTLE_HUD`（本系列第一次进战斗）；结尾 `callback_failed`（元组键） |
+| `…-233928` | 打完那场战斗 → `MAP` → `NODE_PANEL` → `CUTSCENE` → `EVENT_CHOICE` → `EVENT_RESULT` → `CUTSCENE` → `EVENT_CHECK`；11 步 11 点击，`mirror_loop_stopped(stop_path='agent_loop')`，无 `callback_failed` |
+
+**测试**：`tests/test_map_click_kinds.py` 12 个；全量套件 **2387 passed in 228.84 s，pytest 退出码 0**（本轮开始 2373）。
+
+**下一步**：节点点击的判决在页面随后进入 `NODE_PANEL` 时仍写 `the_map_stayed_with_the_party_in_place`
+（它比较队伍像素，不比较下一次读取命名的页面）；`controller not found` 说明任务被拆后句柄仍报非空 id（D71 的已知局限）。
