@@ -112,7 +112,8 @@ def test_the_ending_names_the_transaction_and_not_a_missing_step():
     """The first live test wrote `no_step_recorded`: the reason has to come from the
     branch, and `_end_session` is the one writer of it."""
     source = (ROOT / 'src/maalimbus/runner.py').read_text(encoding='utf-8')
-    assert 'self._end_session(PENDING_TRANSACTION_UNREADABLE,' in source
+    assert 'self._end_session(ending,' in source
+    assert 'SUBMIT_TRANSITION_UNREADABLE' in source
     assert "blocked_by=list(state.get('unknown_blockers') or [])" in source
     # the helper itself must not end the session: one ending, one writer
     start = source.index('def _pending_transaction_wait')
@@ -140,7 +141,7 @@ def test_the_ending_has_a_name_of_its_own():
     assert runner.PENDING_TRANSACTION_UNREADABLE == ('the_outcome_of_a_pending_transaction'
                                                      '_is_unreadable')
     source = (ROOT / 'src/maalimbus/runner.py').read_text(encoding='utf-8')
-    assert 'PENDING_TRANSACTION_UNREADABLE,done=True' in source.replace(' ', '')
+    assert 'ending,done=True' in source.replace(' ', '')
     assert 'blocked_by=blockers' in source
 
 
@@ -157,6 +158,73 @@ def test_the_gate_does_not_grow_a_new_ending_of_its_own():
     """One ending per cause: the blocked wait ends through the same session end."""
     source = (ROOT / 'src/maalimbus/runner.py').read_text(encoding='utf-8')
     start = source.index('def _pending_transaction_wait')
-    body = source[start:start + 1600]
+    body = source[start:source.index('def _submit_transition_wait')]
     assert 'unknown_blockers' in body
     assert body.count('note(') == 1
+
+
+def test_a_submitted_turn_is_bounded_by_the_clock_and_not_by_a_count():
+    """D97: three waits would have ended a run the game was still loading.
+
+    The archive says a transition after the start click names a page in median 27 s
+    (p90 54 s, slowest 143.9 s), so a pending deployment card is bounded by the clock.
+    """
+    loop = _loop(transaction_waits=1, submit_seconds=180)
+    loop.state['unknown_blockers'] = ['Deployment_transaction.pending']
+    for _ in range(6):
+        assert loop._pending_transaction_wait() is False
+    assert loop.state.get('transaction_waits', 0) == 0   # a count that does not apply
+    assert loop.state['submit_since'] > 0
+    # the clock is what ends it
+    loop.state['submit_since'] = loop.state['submit_since'] - 181
+    assert loop._pending_transaction_wait() is True
+    name, fields = loop.notes[-1]
+    assert name == 'pending_submit_wait_exhausted'
+    assert fields['blocked_by'] == ['Deployment_transaction.pending']
+    assert fields['waited'] > 180
+    assert fields['limit'] == 180.0
+
+
+def test_the_other_pending_cards_keep_their_count():
+    loop = _loop(transaction_waits=1)
+    loop.state['unknown_blockers'] = ['theme_transaction.receipt_pending']
+    assert loop._pending_transaction_wait() is False
+    assert loop._pending_transaction_wait() is True
+    assert loop.notes[-1][0] == 'pending_transaction_wait_exhausted'
+    assert 'submit_since' not in loop.state
+
+
+def test_a_page_that_reads_clears_the_transition_clock():
+    loop = _loop(submit_seconds=180)
+    loop.state['unknown_blockers'] = ['Deployment_transaction.pending']
+    assert loop._pending_transaction_wait() is False
+    assert 'submit_since' in loop.state
+    loop.state['unknown_blockers'] = []
+    assert loop._pending_transaction_wait() is False
+    assert 'submit_since' not in loop.state
+
+
+def test_the_transition_budget_is_a_bounded_setting():
+    assert runner.settings().submit_seconds == 180
+    assert runner.settings({'submit_seconds': 30}).submit_seconds == 30
+    with pytest.raises(ValueError):
+        runner.settings({'submit_seconds': 0})
+    with pytest.raises(ValueError):
+        runner.settings({'submit_seconds': 901})
+
+
+def test_the_transition_blocker_is_recognised_in_both_spellings():
+    assert runner._is_transition_blocker('Deployment_transaction.pending')
+    assert runner._is_transition_blocker('deployment_transaction.submit_pending')
+    assert not runner._is_transition_blocker('theme_transaction.receipt_pending')
+    assert not runner._is_transition_blocker('active.victory')
+
+
+def test_the_ending_that_belongs_to_a_transition_has_its_own_name():
+    assert runner.SUBMIT_TRANSITION_UNREADABLE == 'the_submitted_turn_never_showed_a_page'
+    source = (ROOT / 'src/maalimbus/runner.py').read_text(encoding='utf-8')
+    assert 'SUBMIT_TRANSITION_UNREADABLE' in source
+    # one writer: the branch still ends through `_end_session`
+    start = source.index('def _submit_transition_wait')
+    body = source[start:source.index('def _explore_unknown')]
+    assert '_end_session' not in body

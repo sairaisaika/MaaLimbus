@@ -56,6 +56,34 @@ class DeploymentTransaction:
         d.setdefault('rejected_unavailable_inputs',[]).append(dict(intent=dict(p),proof=proof,
                                                                selected=False,recovery_input=False))
         d['pending']=None;write_json(self.path,d)
+    def retire_foreign(self,scope,reason=None,*,force=False):
+        """Drop a card another run reserved, and keep the fact that it was given up.
+
+        A pending card is only cleared by `observe`, which needs the party count of the
+        battle that run submitted.  A run that ended first leaves the card in the ledger
+        and the next run inherits a reservation it can never observe: measured on
+        `evidence/runtime/packaged-mirror-20261024-061628`, a fresh run read
+        `Deployment_transaction.pending` for 180 s, sent no click at all, and ended on
+        `the_submitted_turn_never_showed_a_page`.  Retiring it is not spending: no
+        currency, no input, and the abandonment is written where the ledger keeps its
+        other evidence.
+        """
+        d=self.data or {}
+        pending=d.get('pending')
+        if not pending:
+            return None
+        # `force` is the run-start door: a fresh run has reserved nothing yet, so any
+        # card in the ledger was written by a run that is over.  Measured on
+        # `packaged-mirror-20261024-062803`: the card was still there, its scope was a
+        # previous run's id, and the loop spent its whole window waiting on it.
+        if not force and d.get('scope')==scope:
+            return None
+        d.setdefault('abandoned',[]).append(dict(intent=dict(pending),scope=d.get('scope'),
+                                                 reason=reason))
+        d['pending']=None
+        write_json(self.path,d)
+        return dict(scope=d.get('scope'),kind=pending.get('kind'),reason=reason)
+
     def intent(self,kind,count,card=None):
         d=self.data
         if d['pending']:raise ValueError('Deployment input already pending')

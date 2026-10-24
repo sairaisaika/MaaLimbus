@@ -288,6 +288,23 @@ def auto_assign_plan(records, size):
                 reason='win_rate_auto_assign', wave=hud['wave'], turn=hud['turn'])
 
 
+def hud_controls(records, size):
+    """How many of the HUD's own corner controls this frame reads, each in its band.
+
+    Speed (`MAX`), the Win/Rate toggle and the Damage readout are drawn by no other
+    page.  They are counted, never used as victory evidence.
+    """
+    bands = ((r'^MAX$', (.80, .02, .99, .13)),
+             (r'^Win$', (.74, .70, .84, .78)),
+             (r'^Rate$', (.74, .72, .86, .80)),
+             (r'^Damage$', (.74, .77, .86, .85)))
+    seen = 0
+    for pattern, roi in bands:
+        if find(records, pattern, roi, size, .85):
+            seen += 1
+    return seen
+
+
 def battle_hud(records, size):
     """Identify the combat HUD from its own WAVE/TURN captions.
 
@@ -318,6 +335,19 @@ def battle_hud(records, size):
         # digit is allowed.
         wave = find(records, r'^\d{0,2}\s*/\s*\d{1,2}$', (.0, .02, .09, .08), size, .85)
     turn = find(records, r'^TURN$', (.0, .06, .06, .13), size, .85)
+    if len(wave) == 1 and not turn:
+        # The TURN caption is drawn in the same corner and this OCR drops it often: live
+        # evidence/runtime/packaged-mirror-20261024-063400/frame-0024 reads a clean
+        # "WAVE" (score 0.9999) beside "MAX", "Win" and "Damage" and no TURN at all, so
+        # a whole battle sat UNKNOWN (D99).  When the wave caption is readable, two of
+        # the HUD's own controls are read in their own bands, and no other page draws
+        # those together, the turn caption is allowed to be the part the OCR lost.
+        controls = hud_controls(records, size)
+        if controls >= 2:
+            return dict(wave=wave[0].text, turn=None, wave_box=wave[0].box, turn_box=None,
+                        diagnostics=controls and ['Win', 'Rate', 'Damage', 'MAX'],
+                        scope='HUD identity from the wave caption plus its own controls; '
+                              'turn caption unreadable, no turn submission or victory claim')
     if not wave and len(turn)==1 and auto_assign_buttons(records,size) is not None:
         # Regular encounters omit WAVE entirely. A local numeric turn and both
         # independent assignment controls identify this variant; wave stays None.

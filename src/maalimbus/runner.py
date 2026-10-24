@@ -190,6 +190,7 @@ def _defaults():
         # (D96).  The generic wait budget is forty loop steps, which spent a whole run
         # before it said anything on `packaged-mirror-20261024-053406`.
         'transaction_waits': 3,
+        'submit_seconds': 180,
         # A wedged recognition never returns, so the loop is watched from outside it:
         # with no new frame for this many seconds the process ends itself loudly
         # instead of sitting silent (live run pi-20261015-191205, 19:16:07).
@@ -242,6 +243,9 @@ class Settings:
             raise ValueError('Invalid bounded unknown-page interval')
         # D96: how long a page nobody can read may be waited on while a transaction is
         # open.  Bounded like every other wait, so a deadlock cannot spend the run.
+        if (type(self._values['submit_seconds']) is not int
+                or not 1 <= self._values['submit_seconds'] <= 900):
+            raise ValueError('Invalid submit transition seconds')
         if (type(self._values['transaction_waits']) is not int
                 or not 0 <= self._values['transaction_waits'] <= 40):
             raise ValueError('Invalid bounded transaction wait count')
@@ -727,6 +731,30 @@ EMPTY_BINDINGS = ('', None)
 # unreadable, so no reader can close the transaction, and the generic wait budget
 # spends the run before saying so.
 PENDING_TRANSACTION_UNREADABLE = 'the_outcome_of_a_pending_transaction_is_unreadable'
+
+SUBMIT_TRANSITION_UNREADABLE = 'the_submitted_turn_never_showed_a_page'
+# One blocker is a transition, not a stall: a deployment input the loop submitted is
+# pending exactly until the battle page shows the party count.  Measured across the
+# retained archive (2026-10-24): 190 transitions after
+# `start_button_submits_the_assigned_turn` named a page in median 27 s and p90 54 s,
+# the slowest in 143.9 s, and six never named one.  A count of three waits would have
+# ended a run the game was still loading (D96 used 3), so this class is bounded by the
+# clock instead, at a number above the measured maximum.
+TRANSITION_BLOCKERS = ('deployment_transaction',)
+TRANSITION_KEYS = ('pending', 'submit_pending')
+SUBMIT_TRANSITION_SECONDS = 180.0
+
+
+def _is_transition_blocker(name):
+    """A pending card on the *deployment* transaction is a submitted turn, not a stall.
+
+    The blocker label is built from the transaction's own name when it has one
+    (`Deployment_transaction.pending`) and from its class otherwise
+    (`deployment_transaction.submit_pending`), so the test is on the two halves.
+    """
+    text = str(name or '').lower()
+    owner, _, key = text.partition('.')
+    return owner == 'deployment_transaction' and key in TRANSITION_KEYS
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 #: D84: a task that finished -- successfully or not -- takes the controller route with it.
 #: Live `packaged-mirror-20261024-014706`: the entry task ended *successfully* on MAP at
@@ -2946,10 +2974,14 @@ class MirrorRunner:
                     # The ending must carry its own reason: `_result(done=True)` writes
                     # `no_step_recorded` when the step never produced a record, which is
                     # how the first live test of this path named the wrong thing (D96).
-                    self._end_session(PENDING_TRANSACTION_UNREADABLE,
+                    ending=(SUBMIT_TRANSITION_UNREADABLE
+                            if 'submit_since' in state else PENDING_TRANSACTION_UNREADABLE)
+                    self._end_session(ending,
                                       blocked_by=list(state.get('unknown_blockers') or []),
-                                      waited=int(state.get('transaction_waits', 0)))
-                    return self._result(page,None,False,PENDING_TRANSACTION_UNREADABLE,done=True)
+                                      waited=(round(time.monotonic()-state['submit_since'],1)
+                                              if 'submit_since' in state
+                                              else int(state.get('transaction_waits', 0))))
+                    return self._result(page,None,False,ending,done=True)
                 # An animation is not a page.  A battle's skill cutscene carries a
                 # handful of fragmentary reads and no control of any kind
                 # (evidence/runtime/packaged-mirror-20261022-043142/frame-0069 reads
@@ -4925,6 +4957,7 @@ class MirrorRunner:
         settings = self.settings
         if deadline is not None:
             self.deadline = deadline
+        self._retire_foreign_pending()
         self._start_stall_watch()
         goal = max(0, int(steps))
         if goal == 0 and not settings.observe_only:
@@ -5044,13 +5077,36 @@ class MirrorRunner:
         blockers=self.state.get('unknown_blockers') or []
         if not blockers:
             self.state['transaction_waits']=0
+            self.state.pop('submit_since',None)
             return False
+        if any(_is_transition_blocker(name) for name in blockers):
+            return self._submit_transition_wait(blockers)
+        self.state.pop('submit_since',None)
         waited=int(self.state.get('transaction_waits',0))+1
         self.state['transaction_waits']=waited
         if waited<=int(self.settings.transaction_waits):
             return False
         self.note('pending_transaction_wait_exhausted',blocked_by=blockers,waited=waited,
                   page=self.state.get('page'),limit=int(self.settings.transaction_waits))
+        return True
+
+    def _submit_transition_wait(self,blockers):
+        """A submitted turn is loading, and the clock -- not a count -- says when to give up.
+
+        The page is unreadable for as long as the batch is animating.  Counting waits
+        makes the budget a function of the pacing, which changed under D79; the measured
+        transition (see `TRANSITION_BLOCKERS`) is a duration, so the budget is one too.
+        """
+        now=time.monotonic()
+        since=self.state.get('submit_since')
+        if since is None:
+            since=now
+            self.state['submit_since']=now
+        limit=float(self.settings.submit_seconds)
+        waited=round(now-since,1)
+        if waited<=limit:return False
+        self.note('pending_submit_wait_exhausted',blocked_by=blockers,waited=waited,
+                  page=self.state.get('page'),limit=limit)
         return True
 
     def _explore_unknown(self,record,frame,candidates):
@@ -5394,6 +5450,39 @@ class MirrorRunner:
             device.end_session(reason)
         self.note('mirror_session_ended', reason=str(reason), **detail)
         return True
+
+    def _retire_foreign_pending(self):
+        """A reservation another run left open can never be observed by this one.
+
+        The deployment ledger is persistent and its pending card is only cleared by
+        `observe` with the party count of the battle that run submitted.  Measured on
+        `evidence/runtime/packaged-mirror-20261024-061628`: a fresh run inherited the
+        card from `...-055841`, read `Deployment_transaction.pending` for the whole
+        window, sent **no click at all**, and ended on
+        `the_submitted_turn_never_showed_a_page`.  Retiring it writes the abandonment
+        into the ledger and sends nothing.
+        """
+        for tx in (getattr(self, 'deployment_transaction', None),
+                   getattr(self, 'theme_transaction', None),
+                   getattr(self, 'initial_transaction', None),
+                   getattr(self, 'floor_gift_transaction', None)):
+            retire = getattr(tx, 'retire_foreign', None)
+            if retire is None:
+                continue
+            dangling = (getattr(tx, 'data', None) or {}).get('pending')
+            if dangling:
+                self.note('stale_card_check', transaction=type(tx).__name__,
+                          scope=(getattr(tx, 'data', None) or {}).get('scope'),
+                          pending=dict(dangling) if isinstance(dangling, dict) else dangling)
+            try:
+                retired = retire(self.run_id, 'a_previous_run_left_it_open', force=True)
+            except (OSError, ValueError) as error:
+                self.note('stale_card_not_retired', transaction=type(tx).__name__,
+                          error=str(error)[:200])
+                continue
+            if retired:
+                self.note('stale_card_retired', transaction=type(tx).__name__,
+                          **retired)
 
     def _start_stall_watch(self):
         """Watch the frame heartbeat so a wedged recognition ends the run loudly.

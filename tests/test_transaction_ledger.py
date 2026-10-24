@@ -143,3 +143,21 @@ def test_the_reconciliation_of_a_reservation_is_an_attribute_reference_in_the_ru
     rows = [row for row in ledger.sites() if row['receiver'] == 'shop_tx']
     assert any(row['injected'] and row['method'].startswith('reconcile_') for row in rows)
     assert any(not row['injected'] and row['family'] == 'intent' for row in rows)
+
+
+def test_a_method_reached_by_name_is_a_reference_too(tmp_path):
+    """`retire_foreign` is optional, so the loop asks for it with `getattr` (D98).
+
+    A census that only counted `x.method` attributes called the method dead while the
+    loop was using it, which would push the next reader to delete the retirement.
+    """
+    from maalimbus import transaction_ledger as ledger
+
+    source = 'def step(self):\n    fn = getattr(self.deployment_transaction, "retire_foreign", None)\n'
+    assert 'deployment_transaction.retire_foreign' not in ledger.dead_api(source)
+
+
+def test_a_method_nobody_names_is_still_reported(tmp_path):
+    from maalimbus import transaction_ledger as ledger
+
+    assert 'deployment_transaction.revived_cards' in ledger.dead_api('def step(self):\n    pass\n')

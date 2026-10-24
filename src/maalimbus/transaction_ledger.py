@@ -52,7 +52,7 @@ INTENT_PREFIXES = ('intent', 'reserve', 'book_', 'refuse_', 'confirm_clear')
 INTENT_SUFFIXES = ('_intent',)
 RECONCILE_PREFIXES = ('observe', 'reconcile', 'recover')
 RECONCILE_NAMES = ('commit',)
-CLEANUP_PREFIXES = ('prepare', 'begin', 'reset', 'seal', 'adopt', 'rebase')
+CLEANUP_PREFIXES = ('prepare', 'begin', 'reset', 'seal', 'adopt', 'rebase', 'retire')
 CLEANUP_NAMES = ('retire_pending', 'close_visit', 'retire', 'extend', 'prune')
 QUERY_PREFIXES = ('matches', 'bought', 'refreshes', 'signature', 'validate', 'retained',
                   'held', 'revived', 'cards', 'budget', 'limit', 'is_', 'frame', 'data',
@@ -212,6 +212,14 @@ def dead_api(source=None):
         for node in ast.walk(tree):
             if isinstance(node, ast.Attribute):
                 referenced.add(node.attr)
+            # A method reached by name is still referenced: `retire_foreign` is asked
+            # for with `getattr(tx, 'retire_foreign', None)` so the loop can treat a
+            # ledger that predates the method as quiet instead of crashing (D98).
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == 'getattr' and len(node.args) >= 2
+                    and isinstance(node.args[1], ast.Constant)
+                    and isinstance(node.args[1].value, str)):
+                referenced.add(node.args[1].value)
     out = []
     for module, methods in api().items():
         for method in methods:

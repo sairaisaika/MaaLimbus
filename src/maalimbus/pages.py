@@ -739,6 +739,9 @@ STOP_KINDS = {
     # A run that ended without recording a step ended without evidence (measured on
     # `packaged-mirror-20261024-055841`): nothing here can be recovered.
     'no_step_recorded': 'refused_by_policy',
+    # A submitted turn that never showed a page is a transition the run cannot
+    # complete from here: the only honest action is to stop (D97/D98).
+    'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
     'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',
     # D84: a task that finished releases the controller route, so a loop that is about to
     # send input with no task running can only stop -- it cannot rebuild the task.
