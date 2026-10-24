@@ -4,6 +4,11 @@ The packaged task had no node for RESUME_DIALOG. Two live runs clicked the mirro
 on that dialog and ended on ``LimbusUnknown``
 (``unknown_or_bounded_transition_exhausted``): the task could not resume the run it had just
 been asked to continue. The node below is anchored on the live frame's own OCR box.
+
+A third live run (``packaged-mirror-20261023-230250``) showed the same dialog is reachable from
+``MirrorEnter`` as well: after leaving a suspended exploration and entering the mirror again the
+game answers with the dialog, so every node that can land on it has to lead back to the resume
+node -- a reachability the gate below checks per node, not once for the whole task.
 """
 import json
 import pathlib
@@ -43,8 +48,9 @@ def _problems(pipeline, locales):
     if node.get('action') != 'Click' or node.get('target') is not True:
         found.append('the node does not click the box its recognition found')
     roi = node['custom_recognition_param'].get('roi') or [0, 0, 0, 0]
-    if 'MirrorResume' not in pipeline['MirrorHard']['next']:
-        found.append('the entry task cannot reach the node')
+    for from_node in ('MirrorHard', 'MirrorDrive', 'MirrorEnter'):
+        if 'MirrorResume' not in (pipeline.get(from_node) or {}).get('next', []):
+            found.append(f'{from_node} lands on the dialog but cannot reach the node')
     if not _inside(LIVE_RESUME, roi):
         found.append('the live resume button is outside the roi the node reads')
     if _inside(LIVE_HALT, roi):
@@ -83,9 +89,9 @@ def test_the_node_falls_to_the_named_unknown_terminal():
     assert PIPELINE['MirrorResume']['on_error'] == ['LimbusUnknown']
 
 
-def test_the_entry_task_and_the_card_click_both_lead_here():
-    assert 'MirrorResume' in PIPELINE['MirrorHard']['next']
-    assert 'MirrorResume' in PIPELINE['MirrorDrive']['next']
+def test_every_node_that_lands_on_the_dialog_leads_back_here():
+    for name in ('MirrorHard', 'MirrorDrive', 'MirrorEnter'):
+        assert 'MirrorResume' in PIPELINE[name]['next'], name
 
 
 def test_the_counter_example_a_node_without_a_token_is_caught():
@@ -104,3 +110,11 @@ def test_the_counter_example_a_missing_locale_word_is_caught():
     locales = _locales()
     locales['en'] = {k: v for k, v in locales['en'].items() if k != 'resume'}
     assert 'the en locale has no resume word' in _problems(PIPELINE, locales)
+
+
+def test_the_counter_example_a_node_that_cannot_reach_the_resume_node_is_caught():
+    """The third live run's shape: enter the mirror again and the dialog is all there is."""
+    broken = json.loads(json.dumps(PIPELINE))
+    broken['MirrorEnter']['next'] = [n for n in broken['MirrorEnter']['next'] if n != 'MirrorResume']
+    assert ('MirrorEnter lands on the dialog but cannot reach the node'
+            in _problems(broken, _locales()))
