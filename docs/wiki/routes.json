@@ -1257,7 +1257,12 @@
         "停留时长",
         "dwell",
         "一层多久",
-        "ended inside a floor"
+        "ended inside a floor",
+        "floor_time",
+        "一层时间",
+        "floor split",
+        "battle vs map",
+        "audit_floor_time"
       ],
       "sources": [
         {
@@ -1459,10 +1464,15 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "def floor_dwell("
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "def floor_time("
         }
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d121-a-run-that-ends-inside-a-floor-has-a-dwell-not-a-pace",
+        "docs/wiki/en_us/2.3-decisions.md#d122-a-floors-time-has-parts-and-they-are-not-what-the-name-suggests",
         "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator",
         "docs/wiki/en_us/2.3-decisions.md#d59-a-read-that-does-not-come-back-is-not-a-verdict",
         "docs/wiki/en_us/2.3-decisions.md#d60-one-budget-cannot-count-two-different-events",
@@ -1489,6 +1499,7 @@
         "docs/wiki/en_us/2.3-decisions.md#d95-the-requirement-has-units-so-the-report-needs-them-too",
         "docs/wiki/en_us/2.3-decisions.md#d96-a-wait-that-can-spend-the-whole-run-has-no-budget",
         "docs/wiki/zh_cn/2.3-decisions.md#d121-停在同一层里的运行有停留时长没有速度",
+        "docs/wiki/zh_cn/2.3-decisions.md#d122-一层的时间是分块的而且和名字给人的印象不一样",
         "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
         "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定",
         "docs/wiki/zh_cn/2.3-decisions.md#d60-一个预算不能同时数两件事",

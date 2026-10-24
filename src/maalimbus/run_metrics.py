@@ -276,6 +276,77 @@ def floor_pace(rows):
 
 
 
+FLOOR_TIME_GROUPS = (
+    ('battle', ('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'BATTLE_DEFEAT',
+                'BATTLE_TIP', 'DEFEAT', 'REVIVE_PICK', 'HEAL_SINNERS')),
+    ('shop', ('SHOP', 'SHOP_PURCHASE')),
+    ('gift', ('GIFT_PICK', 'GIFT_GET', 'GIFT_SEARCH')),
+    ('map', ('MAP', 'NODE_PANEL', 'DUNGEON_PROGRESS', 'DUNGEON_TEAM', 'RESUME_DIALOG',
+             'PRE_BATTLE_TEAM', 'DEPLOYMENT', 'LOADING', 'UNKNOWN', 'REWARD_CARD',
+             'THEME_PACKS', 'INITIAL_GIFTS', 'STAR_GRACES', 'EXPIRED_SESSION')),
+)
+
+
+def floor_time_group(page):
+    """Which part of a floor a page belongs to (D122).
+
+    The dwell of a floor says how long it was on screen; this says what was happening
+    while it was.  The groups are coarse on purpose: the question an operator asks is
+    "how much of the ten minutes is fighting, walking or shopping", and a finer split
+    would be an opinion about where a boundary is.
+    """
+    name = str(page or '')
+    for group, pages in FLOOR_TIME_GROUPS:
+        if name in pages:
+            return group
+    return 'other'
+
+
+def floor_time(rows):
+    """Seconds spent inside each named floor, split by what the loop was doing (D122).
+
+    A gap is attributed to the page the journal named while it ran -- the last
+    `loop_heartbeat`/`map_observed`/`battle_observed` scene -- and only inside a floor the
+    reader could name.  The nested `events` map is what turns "70% on the map page" into a
+    next question: which events cost that time.
+    """
+    stamps = [(row, _stamp(row)) for row in rows]
+    stamps = [(row, when) for row, when in stamps if when is not None]
+    stamps.sort(key=lambda pair: pair[1])
+    page, floor = None, None
+    floors = {}
+    for index, (row, when) in enumerate(stamps):
+        if row.get('event') in ('loop_heartbeat', 'map_observed', 'battle_observed'):
+            page = row.get('page') or row.get('scene') or page
+            if row.get('floor') is not None:
+                floor = _floor_of(row.get('floor'))
+        if index + 1 >= len(stamps):
+            continue
+        following = stamps[index + 1][1]
+        seconds = (following - when).total_seconds()
+        if seconds < 0 or seconds > MAX_GAP_SECONDS:
+            continue
+        if floor is None:
+            continue
+        entry = floors.setdefault(floor, {'seconds': 0.0, 'groups': {}, 'events': {}})
+        group = floor_time_group(page)
+        entry['seconds'] = round(entry['seconds'] + seconds, 1)
+        bucket = entry['groups'].setdefault(group, {'seconds': 0.0, 'n': 0})
+        bucket['seconds'] = round(bucket['seconds'] + seconds, 1)
+        bucket['n'] += 1
+        spent = entry['events'].setdefault(row.get('event') or '?', {'seconds': 0.0, 'n': 0})
+        spent['seconds'] = round(spent['seconds'] + seconds, 1)
+        spent['n'] += 1
+    for entry in floors.values():
+        for bucket in entry['groups'].values():
+            bucket['seconds'] = round(bucket['seconds'], 1)
+        for group, bucket in entry['groups'].items():
+            bucket['share'] = round(bucket['seconds'] / entry['seconds'], 3) if entry['seconds'] else 0.0
+        entry['events'] = dict(sorted(entry['events'].items(),
+                                      key=lambda pair: -pair[1]['seconds'])[:8])
+    return dict(sorted(floors.items()))
+
+
 def floor_dwell(rows):
     """How long the run stayed inside each floor it could name, and what ended it.
 
