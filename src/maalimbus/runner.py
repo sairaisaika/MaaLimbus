@@ -842,13 +842,32 @@ class MaaDevice:
         is the framework's own way to bind one again; it sends no game input.
         """
         self.rebinds += 1
+        self.route_suspect = False
         post = getattr(self.controller, 'post_connection', None)
         if post is None:
             raise RuntimeError(ROUTE_LOST)
         self._wait(post(), timeout=15)
 
+    route_suspect = False
+
+    def mark_action_ended(self):
+        """Say that a task this loop started has finished and may have taken the route.
+
+        Live ``evidence/runtime/packaged-mirror-20261024-022543`` (900 s budget, killed
+        at 945.4 s): the entry task ended on ``DRIVE``, the loop's next click went out at
+        06:28:21, MaaFW answered ``unexpected msg [_ControllerPostClickReverseRequest
+        controller_id=""]`` and then nothing happened for 781 s -- no journal row, no
+        watchdog (the native call does not give the interpreter back), until the harness
+        killed the wrapper.  A read started by the loop does not do this: only the tasks
+        it *starts itself* end by handing the route back.  So the loop marks that moment
+        and pays one ``post_connection`` before its next input.
+        """
+        self.route_suspect = True
+
     def _send(self, what, post, timeout=10):
         """Post one input, and give a rejected route exactly one repair (D85)."""
+        if getattr(self, 'route_suspect', False):
+            self.rebind()
         try:
             return self._wait(post(), timeout=timeout)
         except RuntimeError as error:
@@ -2447,6 +2466,13 @@ class MirrorRunner:
             verdict = run_node(self.tasker, node, deadline)
         finally:
             acting['lasted_seconds'] = round(time.monotonic() - now, 1)
+        # A task the loop started itself hands the controller route back when it ends,
+        # whether it succeeded or not (D86, live `packaged-mirror-20261024-022543`: the
+        # entry task ended and the next click wedged the framework for 781 s).  Reads
+        # started by the loop do not do this, so the moment is known here and nowhere else.
+        mark = getattr(self.device, 'mark_action_ended', None)
+        if mark is not None:
+            mark()
         if verdict.get('error') or verdict.get('timed_out'):
             raise ActionNeverReturned(
                 'the action node %s did not come back inside %.1f s (%s)'
