@@ -275,8 +275,15 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
             descriptions.update(r.box for r in find(records,'^'+re.escape(clause)+'$',region,size,.9))
     select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
     refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
-    if len(select)!=1 or len(refuse)!=1 or select_box is None:
+    if len(select)!=1 or len(refuse)!=1:
         raise ValueError('three_free_gift_controls_missing')
+    # The button is read here, from this frame's own text.  The caller's box is an
+    # optimisation and a cross-check, never a precondition: in
+    # packaged-mirror-20261024-153418 the page was this layout with `Select` at
+    # [1654,847,108,42] and `Refuse Gift` at [1350,851,150,34], and the run stopped
+    # with controls_missing only because the caller had not named the button (D131).
+    if select_box is None:
+        select_box = tuple(select[0].box)
     cx=select_box[0]+select_box[2]/2;cy=select_box[1]+select_box[3]/2
     if not select[0].box[0]<=cx<=select[0].box[0]+select[0].box[2] or not select[0].box[1]<=cy<=select[0].box[1]+select[0].box[3]:
         raise ValueError('three_free_gift_select_geometry_unknown')
