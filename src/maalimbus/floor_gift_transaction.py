@@ -322,6 +322,10 @@ class FloorGiftTransaction:
                        proof=proof, reason=reason)
         d.setdefault('abandoned', []).append(dict(intent='retire', **retired))
         d['pending'] = None
+        # The commit was sent, so its receipt is owed; retiring it says the proof of
+        # what was owed is outside this run (D143).  Drawing a receipt here would book
+        # a delivery nobody saw, so only the fact is recorded.
+        d['retired_commit'] = dict(title=retired.get('title'), proof=proof, reason=reason)
         write_json(self.path, d)
         return retired
 
@@ -353,6 +357,10 @@ class FloorGiftTransaction:
             # name. The next unclaimed pick is the one that press answered; its own
             # printed name is kept beside it as the labelled, auditable observation.
             expected=[n for n in d['selected'] if n not in seen][:1]
+        if d.get('retired_commit') and not p:
+            # A commit whose receipt belongs to another run was retired at load (D143):
+            # this run owes nothing it could observe, so the stage is a no-op, not a stop.
+            return
         if not d['commit_sent'] or not p or p['kind']!='commit' or len(expected)!=1 or expected[0] in seen:
             raise ValueError('floor_gift_receipt_unknown_repeated_or_pending')
         d['pending']=dict(kind='receipt',title=expected[0],proof=str(proof))

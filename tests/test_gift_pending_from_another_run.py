@@ -69,3 +69,34 @@ def test_a_receipt_pending_is_retired_too(tmp_path):
     mine.mkdir()
     path = _ledger(tmp_path / "t.json", {"kind": "receipt", "title": "X", "proof": str(other)})
     assert FloorGiftTransaction(path).retire_from_another_run(mine)["kind"] == "receipt"
+
+
+def test_a_retired_commit_owes_no_receipt(tmp_path):
+    """D143: the commit was sent but its receipt belongs to another process.
+
+    Measured on `evidence/runtime/packaged-mirror-20261024-163638`: the retirement fired
+    (`stale_card_retired FloorGiftTransaction {kind: commit, title: 'Melted Eyeball'}`)
+    and the run still stopped on `floor_gift_receipt_unknown_repeated_or_pending` with
+    zero clicks, because a ledger that had sent a commit and held no pending looked
+    inconsistent.  It is not: it is a commit whose proof is outside this run.
+    """
+    other = tmp_path / "run-a" / "frame-0001.json"
+    other.parent.mkdir()
+    other.write_text("{}", encoding="utf-8")
+    mine = tmp_path / "run-b"
+    mine.mkdir()
+    path = _ledger(tmp_path / "t.json", {"kind": "commit", "title": "Melted Eyeball",
+                                         "adopted": True, "proof": str(other)})
+    tx = FloorGiftTransaction(path)
+    assert tx.retire_from_another_run(mine) is not None
+    reloaded = FloorGiftTransaction(path)
+    assert reloaded.data["retired_commit"]["title"] == "Melted Eyeball"
+    # no receipt to book, and no reason to stop
+    assert reloaded.receipt_intent("Some Gift", mine / "frame-0009.json") is None
+
+
+def test_a_commit_that_was_never_retired_still_refuses(tmp_path):
+    path = _ledger(tmp_path / "t.json", None)
+    tx = FloorGiftTransaction(path)
+    with pytest.raises(ValueError):
+        tx.receipt_intent("Some Gift", tmp_path / "frame-0009.json")
