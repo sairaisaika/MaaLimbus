@@ -738,7 +738,13 @@
         "missing successor",
         "落点",
         "landing",
-        "UNKNOWN 落点"
+        "UNKNOWN 落点",
+        "索引盲区",
+        "index blind spot",
+        "win_rate_is_the_proven_auto_assign_control",
+        "the_starting_gift_row_is_taken_from_the_tray",
+        "invisible word",
+        "看不见的词"
       ],
       "sources": [
         {
@@ -808,6 +814,10 @@
         {
           "path": "src/maalimbus/plan_outcomes.py",
           "needle": "def unreadable_landings("
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "PLANS_THE_INDEX_CANNOT_NAME = {}"
         }
       ],
       "docs": [
@@ -820,19 +830,22 @@
         "docs/wiki/en_us/2.3-decisions.md#d57-a-successor-set-is-names-and-an-index-has-a-reach",
         "docs/wiki/zh_cn/2.3-decisions.md#d57-后继集合是名字而索引有它的视野边界",
         "docs/wiki/en_us/2.3-decisions.md#d58-a-landing-the-archive-saw-every-time-is-a-missing-line-not-a-surprise",
-        "docs/wiki/zh_cn/2.3-decisions.md#d58-归档每次都看到的落点是计划里漏掉的一行不是意外"
+        "docs/wiki/zh_cn/2.3-decisions.md#d58-归档每次都看到的落点是计划里漏掉的一行不是意外",
+        "docs/wiki/en_us/2.3-decisions.md#d64-an-invisible-word-is-a-plan-nobody-can-gate",
+        "docs/wiki/zh_cn/2.3-decisions.md#d64-谁都看不见的理由就是一个没人能守的计划"
       ],
       "tests": [
         "tests/test_plan_reasons.py",
         "tests/test_plan_proof.py",
         "tests/test_plan_outcomes.py",
-        "tests/test_plan_successors.py"
+        "tests/test_plan_successors.py",
+        "tests/test_plan_index.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_plan_reasons.py tests/test_plan_proof.py",
         "python tools/audit_plan_evidence.py"
       ],
-      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。 D56: the archive can only see pages and only from runs older than the change; a state proof can be demanded, never derived from it. D57: the archive can compare an observed page with the successor set a plan declared; it cannot see a frame, so an advance plan's pixel proof stays invisible to it. D58: the archive compares a landing with the pages a plan named; a landing at UNKNOWN is reported apart as a reading question, and a plan proved by a dismissal has nothing to forget."
+      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。 D56: the archive can only see pages and only from runs older than the change; a state proof can be demanded, never derived from it. D57: the archive can compare an observed page with the successor set a plan declared; it cannot see a frame, so an advance plan's pixel proof stays invisible to it. D58: the archive compares a landing with the pages a plan named; a landing at UNKNOWN is reported apart as a reading question, and a plan proved by a dismissal has nothing to forget. D64: 两个曾对静态读者不可见的词改为在 window 层写字面量，PLANS_THE_INDEX_CANNOT_NAME 清空但仍被门读取；运行时拼出的计划与\"归档有、源码无\"的词依旧是声明并计数的义务。"
     },
     {
       "id": "endings",
