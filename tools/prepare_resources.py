@@ -38,10 +38,10 @@ def main():
         write(ROOT / f'assets/resource/{locale}/locale.json', words)
         write(ROOT / f'assets/resource/{locale}/pipeline/locale.json', {})
     nodes = {
-        'MirrorHard': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action':'limbus_preflight', 'next': ['LimbusSafety', 'MirrorDrive', 'MirrorEnter', 'MirrorResume', 'MirrorTeamEvidence'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        'MirrorHard': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action':'limbus_preflight', 'next': ['LimbusSafety', 'MirrorInside', 'MirrorDrive', 'MirrorEnter', 'MirrorResume', 'MirrorTeamEvidence'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
         'LimbusSafety': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'RESOURCE_DIALOG'}, 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unconfigured_resource_dialog'}, 'next': [], 'on_error': []},
-        'MirrorDrive': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'DRIVE', 'token': 'mirror_menu', 'roi': [.23, .25, .46, .55]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 3, 'next': ['LimbusSafety', 'MirrorEnter', 'MirrorResume', 'MirrorDrive'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
-        'MirrorEnter': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'MIRROR_ENTRY', 'token': 'enter', 'roi': [.76, .55, .97, .85]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 2, 'next': ['LimbusSafety', 'MirrorTeamEvidence', 'MirrorResume', 'MirrorEntryConfirm'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        'MirrorDrive': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'DRIVE', 'token': 'mirror_menu', 'roi': [.23, .25, .46, .55]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 3, 'next': ['LimbusSafety', 'MirrorInside', 'MirrorEnter', 'MirrorResume', 'MirrorDrive'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        'MirrorEnter': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'MIRROR_ENTRY', 'token': 'enter', 'roi': [.76, .55, .97, .85]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 2, 'next': ['LimbusSafety', 'MirrorInside', 'MirrorTeamEvidence', 'MirrorResume', 'MirrorEntryConfirm'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
         # An unfinished run answers the mirror menu with its own dialog (Resume / Halt
         # Exploration / Cancel), and the packaged task had no node for it: two live runs
         # (packaged-mirror-20261023-221109, -223237) clicked the mirror card, landed on
@@ -54,8 +54,17 @@ def main():
             'custom_recognition_param': {'scene': 'RESUME_DIALOG', 'token': 'resume',
                                         'roi': [.38, .505, .62, .585]},
             'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 2,
-            'next': ['LimbusSafety', 'MirrorDrive', 'MirrorEnter', 'MirrorResume'],
+            'next': ['LimbusSafety', 'MirrorInside', 'MirrorDrive', 'MirrorEnter', 'MirrorResume'],
             'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        # The card click can come back *inside* the run: live
+        # `packaged-mirror-20261024-010918` clicked the mirror card on DRIVE at 05:12:41 and
+        # every later frame in that task was MAP -- the entry had already happened.  The
+        # task had no node for that page either, so it span three reads and ended on
+        # LimbusUnknown; the node ends it as a success instead, because "you are already
+        # in" is the answer the caller wanted.
+        'MirrorInside': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene',
+            'custom_recognition_param': {'scene': 'MAP'},
+            'action': 'DoNothing', 'next': [], 'on_error': []},
         'MirrorTeamEvidence': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'TEAM_LIBRARY'}, 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unexpected_team_library_not_dungeon_deployment'}, 'next': [], 'on_error': []},
         'LimbusUnknown': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unknown_or_bounded_transition_exhausted'}, 'next': [], 'on_error': []},
     }
