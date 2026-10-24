@@ -1404,11 +1404,11 @@
         },
         {
           "path": "src/maalimbus/runner.py",
-          "symbol": "_pending_transaction_wait"
+          "needle": "    def _pending_transaction_wait(self):"
         },
         {
           "path": "src/maalimbus/runner.py",
-          "symbol": "PENDING_TRANSACTION_UNREADABLE"
+          "needle": "PENDING_TRANSACTION_UNREADABLE = 'the_outcome"
         }
       ],
       "docs": [
