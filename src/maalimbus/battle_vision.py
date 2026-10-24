@@ -456,6 +456,25 @@ def submit_dial(image):
     return None if best is None else best[1]
 
 
+def speed_toggle(records, size):
+    """The battle's own speed/auto caption, `MAX`, at the top-right of the board.
+
+    Measured over 2,025 archived battle frames: the caption is present in every one,
+    its centre within x 1661-1667 and y 55-59 on 1920x1080 -- a genuinely fixed
+    control, unlike the Win Rate toggle whose x follows the party (D114).  The loop
+    never pressed it, so every fight ran at the game's default speed.
+    """
+    import types
+    rows = [r if hasattr(r, 'box')
+            else types.SimpleNamespace(text=(r or {}).get('text', ''),
+                                       box=list((r or {}).get('box') or []),
+                                       score=(r or {}).get('score', 0.0))
+            for r in (records or [])]
+    for record in find(rows, r'^MAX$', (.84, .03, .95, .08), size, .85):
+        return record.box
+    return None
+
+
 def hud_controls(records, size):
     """How many of the HUD's own corner controls this frame reads, each in its band.
 

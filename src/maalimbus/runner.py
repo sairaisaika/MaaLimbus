@@ -2909,6 +2909,10 @@ class MirrorRunner:
             # absence of one, and asking which page it is belongs to the page vocabulary.
             state['last_named_page'] = page
             state.pop('transition_since', None)
+            if not page_vocabulary.is_battle(page):
+                # The battle's speed toggle is pressed once per fight; leaving the battle
+                # pages starts a new fight, and only then may it be pressed again.
+                state.pop('battle_speed', None)
         self._turn_signal(page, record)
         self._resolve_map_click(page)
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
@@ -4305,6 +4309,11 @@ class MirrorRunner:
             self.note('map_candidates_empty',scene=record.get('scene'),
                       size=record.get('size'),ocr=len(record.get('ocr') or []),
                       reason='the_map_reader_offered_no_destination')
+        if page_vocabulary.is_battle_hud(page) and state.get('battle_speed') != 'on':
+            from .battle_vision import speed_toggle
+            box = speed_toggle(record.get('ocr') or [], record.get('size') or (1920, 1080))
+            if box is not None:
+                plan_controls['battle.speed'] = box
         plan = plan_step(page, controls=plan_controls, arrows=arrows,
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
@@ -4626,6 +4635,11 @@ class MirrorRunner:
         # Remember which of the two battle intents went out, so a page that comes back
         # with the same turn can be answered with the other one instead of a repeat.
         if page in ('BATTLE_HUD','BATTLE_PLANNING'):
+            if plan.get('speed'):
+                # Measured 2026-10-24: the loop had never pressed the board's MAX caption,
+                # so every fight ran at the default speed.  Once per battle, and the page
+                # is unchanged, so nothing else in the battle bookkeeping moves.
+                state['battle_speed']='on'
             if plan.get('reason')=='start_button_submits_the_assigned_turn':
                 state['battle_previous']='submit'
                 state['battle_assigns']=0

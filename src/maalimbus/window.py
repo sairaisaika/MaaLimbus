@@ -1261,6 +1261,21 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page,'unknown_battle_assignment_mode')
         if battle_assignment=='observe':
             return _refuse(page,'battle_assignment_observe_only')
+        # The board's speed caption is a fixed control (measured x 1661-1667, y 55-59 over
+        # 2,025 battle frames) that the loop had never pressed, so every fight ran at the
+        # game's default speed.  One press per battle, before the first assignment: it is a
+        # mode switch, so one read confirms it (D108's `settle_rounds`), and the runner
+        # keeps the per-battle flag that makes it once.
+        speed = controls.get('battle.speed')
+        if speed is not None:
+            plan = _plan(page, CLICK, target=speed,
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'UNKNOWN'),
+                         reason='the_battles_speed_toggle_is_enabled_once_per_battle',
+                         settle_rounds=1)
+            # A flag on the plan, not a word the runner has to compare: the reason is
+            # what the journal says, and D48's census counts every comparison of it.
+            plan['speed'] = True
+            return plan
         # BATTLE_PLANNING is the same battle screen in its skill-planning sub-state
         # (agent/recognition.py:198 names it when the WAVE/TURN captions are not read
         # on that frame), so the forward input is unchanged: assign, then submit.

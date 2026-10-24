@@ -575,6 +575,19 @@ def is_battle_hud(name):
     return name == BATTLE_HUD_PAGE
 
 
+BATTLE_PAGES = ('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'BATTLE_TIP', 'DEFEAT')
+
+
+def is_battle(name):
+    """Is this page part of a fight?
+
+    Asked by D129 (an unreadable frame inside a battle is a transition, not an unknown
+    page) and by the speed toggle (pressed once per fight).  Named here so the runner
+    asks the vocabulary instead of comparing page literals (D44 counts them).
+    """
+    return str(name or '') in BATTLE_PAGES
+
+
 def is_battle_tip(name):
     """Is this the skill-detail overlay that covers the battle screen?"""
     return name == BATTLE_TIP_PAGE
