@@ -894,6 +894,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                              'EVENT_RESULT_READY', 'GIFT_PICK', 'GIFT_GET', 'REWARD_CARD',
                              'EGO_GIFT_POPUP', 'WINDOW_RESET', 'UNKNOWN'),
                      reason='map_node_click_is_the_only_proven_forward_input',
+                     # Two reads, not six.  Measured on the 610 s run of 2026-10-24
+                     # (`packaged-mirror-20261024-124531`): after a map click the settle
+                     # loop read `MAP` four times in a row -- 4.8 s per click that changed
+                     # nothing -- while the click that did land showed its page on the
+                     # first read (D76's late verdict settles the ones that arrive after
+                     # the window).  D110 already hands the pause back to the loop, so the
+                     # rounds are polls, and two polls are enough to call a page stuck.
+                     settle_rounds=2,
                      detail={'candidate_count': len(candidates),
                              'candidate_index': candidate_index})
     if page == 'REVIVE_PICK':

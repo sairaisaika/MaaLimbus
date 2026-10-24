@@ -722,7 +722,11 @@
         "进度面板",
         "逃生口",
         "阶梯效用",
-        "阶梯顺序"
+        "阶梯顺序",
+        "settle_rounds",
+        "轮询次数",
+        "map poll",
+        "two polls"
       ],
       "sources": [
         {
@@ -804,6 +808,7 @@
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d106-a-drag-on-the-battle-board-is-a-game-action-not-a-view-move",
+        "docs/wiki/en_us/2.3-decisions.md#d123-a-click-on-the-map-is-a-poll-and-two-polls-are-enough",
         "docs/wiki/en_us/2.3-decisions.md#d62-a-rung-that-cannot-be-measured-cannot-be-ordered",
         "docs/wiki/en_us/2.3-decisions.md#d65-an-effect-the-journal-cannot-see-is-not-a-verdict",
         "docs/wiki/en_us/2.3-decisions.md#d75-the-click-boxs-kind-is-a-fact-the-reader-already-had",
@@ -811,6 +816,7 @@
         "docs/wiki/en_us/2.3-decisions.md#d91-the-progress-panel-is-the-last-answer-not-the-first",
         "docs/wiki/en_us/9-execution-plan.md#feature-9-3-8",
         "docs/wiki/zh_cn/2.3-decisions.md#d106-战斗板上的拖动是游戏动作不是视野移动",
+        "docs/wiki/zh_cn/2.3-decisions.md#d123-地图上的一次点击是轮询两次就够",
         "docs/wiki/zh_cn/2.3-decisions.md#d62-改不了视野的恢复手段就没法排序",
         "docs/wiki/zh_cn/2.3-decisions.md#d65-日志看不见的效果不能当成判决",
         "docs/wiki/zh_cn/2.3-decisions.md#d75-点击框的种类识别器早就知道",
