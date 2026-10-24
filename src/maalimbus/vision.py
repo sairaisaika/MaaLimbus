@@ -379,7 +379,14 @@ def classify(records, locale, size):
     # The Shop node hands back a shop instead of a battle.  Leave is the only input
     # this project sends there: the module budget is 0, so nothing is bought.
     # Live evidence evidence/runtime/window-20261006-042123/frame-0001.json.
-    if (find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
+    # The shop node has two titles: the plain `Shop` the first rule was written from,
+    # and `Super Shop`, which the floor-2 node opened on the 2026-10-23 23:55 run
+    # (evidence/runtime/packaged-mirror-20261023-235553/frame-0022.json reads
+    # 'Super Shop' [282,154,202,54] 0.96 over 'Leave' [1622,945,150,53] 1.0 with the
+    # Enhance/Fuse/Gifts tabs).  `^Shop$` never matched that title, so the page fell to
+    # UNKNOWN and the run spent its remaining budget reading it eleven times.
+    if ((find(records, locale.get('shop', r'(?!)'), (.10, .10, .30, .24), size, .85)
+         or find(records, locale.get('super_shop', r'(?!x)x'), (.10, .10, .30, .24), size, .85))
         and find(records, locale.get('leave', r'(?!)'), (.78, .82, .97, .96), size, .85)):
         return 'SHOP'
     # Pressing Select with choices left over raises this warning on top of the pick
