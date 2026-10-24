@@ -689,8 +689,8 @@
         {
           "path": "src/maalimbus/floor_gifts.py",
           "symbol": "rank",
-          "line": 303,
-          "sha256": "dee758174e04edb1f5bd892b3c17598e56c5cb25a4c4a6c99a03239898d71df7"
+          "line": 329,
+          "sha256": "dcd382014fac089d175b6d29bd3041cdf741706288f87260f8f9dc9aeb6cea6e"
         },
         {
           "path": "src/maalimbus/theme_vision.py",
