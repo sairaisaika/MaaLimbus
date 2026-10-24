@@ -4179,6 +4179,10 @@ class MirrorRunner:
             self.device.click(*point)
             _bracket('end')
         self.artifacts['clicks_sent'] += 1
+        # When the input left, for the pause that follows a step: `interval` is the
+        # spacing between the loop's own actions, and the settle reads after the
+        # click are part of that spacing already (D93).
+        self.artifacts['input_at'] = time.monotonic()
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
                                   'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
             # The price is booked as spent the moment the click goes out: a purchase
@@ -4879,6 +4883,22 @@ class MirrorRunner:
         if live is not None:
             live.clear()
 
+    def _pause_between_steps(self, interval):
+        """The pause before the next step, measured from the last input the loop sent.
+
+        ``interval`` is a spacing between the loop's own actions, not a sleep owed to
+        the clock: a settle loop that already spent 2.5 s watching an unchanged page
+        has paid part of it. Measured on a live battle turn (evidence/runtime/
+        packaged-mirror-20261024-044536) the step is 12.6 s of which ~2.5 s is the
+        settle read after the click, and the loop then slept the whole interval again.
+        A run that never sends an input pays the full pause, because it has nothing to
+        space out.
+        """
+        at = self.artifacts.get('input_at')
+        if at is None:
+            return float(interval)
+        return max(0.0, float(interval) - max(0.0, time.monotonic() - float(at)))
+
     def _walk(self, *, steps=300, interval=6.0, round_limit=5, deadline=None):
         """The loop itself; `run` owns the watches, this owns the walking."""
         settings = self.settings
@@ -4985,7 +5005,9 @@ class MirrorRunner:
                 walked += 1
             if result.get('done'):
                 break
-            time.sleep(interval)
+            pause = self._pause_between_steps(interval)
+            if pause:
+                time.sleep(pause)
         return self.summary()
 
     # -- records -----------------------------------------------------------
