@@ -1405,6 +1405,7 @@ class MaaObserver:
         if len(recorded) <= before:
             raise ReadNeverReturned('the observation node recorded no page for this frame')
         record = recorded[-1]
+        named = record
         if record.get('scene') in BATTLE_PAGES:
             battle = events(self.directory, 'battle_observed')
             before_battle = len(battle)
@@ -1416,6 +1417,17 @@ class MaaObserver:
             if len(battle) <= before_battle:
                 raise ReadNeverReturned('the battle observation node recorded no page for this frame')
             record = battle[-1]
+            if (record.get('scene') == 'UNKNOWN'
+                    and named.get('scene') in BATTLE_PAGES):
+                # A caption this reader dropped is not a different page (D99), and the
+                # battle node runs *after* the map node: letting an unreadable battle
+                # frame demote a named board to UNKNOWN is what put a live run into 19
+                # `window_transition_wait` rounds at `loop step 0` with 0 clicks
+                # (evidence/runtime/packaged-mirror-20261024-084701). The board keeps
+                # its name; whatever the battle reader did see travels beside it.
+                record = dict(record, scene=named['scene'],
+                              battle_scene=record.get('scene'),
+                              battle_read='unreadable')
         return record
 
 
