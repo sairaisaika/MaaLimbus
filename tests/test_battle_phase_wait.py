@@ -54,13 +54,23 @@ def _waits(tmp_path, monkeypatch, *, before, **settings):
 
 
 def test_a_battle_phase_wait_uses_its_own_interval(tmp_path, monkeypatch):
+    """D129 superseded the mechanism, not the rule.
+
+    D126 gave an unreadable battle frame its own *unknown* wait.  D129 measured that the
+    unknown budget was still polling the same animation 10-14 times because one frame
+    carried a control word, so a battle frame now goes to the transition clock -- one
+    poller, with the measured backoff.  The rule D126 wrote ("not at the page's pace")
+    still has to hold: no unknown wait is spent, and the pause is the transition's.
+    """
     waits, sleeps = _waits(tmp_path, monkeypatch, before='BATTLE_HUD',
                            battle_phase_interval=2.5, unknown_interval=1.5)
-    assert waits, 'the wait was not journalled'
-    assert waits[0]['interval_s'] == 2.5
-    assert waits[0]['battle_phase'] is True
-    assert waits[0]['after'] == 'BATTLE_HUD'
-    assert 2.5 in sleeps, sleeps[:3]
+    assert not waits, 'a battle frame may not spend the unknown budget any more'
+    rows = [json.loads(line) for line in (tmp_path / 'events.jsonl').read_text(
+        encoding='utf-8').splitlines()]
+    transitions = [row for row in rows if row['event'] == 'window_transition_wait']
+    assert transitions, 'the frame was not waited on at all'
+    assert transitions[0]['after'] == 'BATTLE_HUD'
+    assert transitions[0]['interval_s'] <= runner.settings().interval
 
 
 def test_an_unreadable_non_battle_page_keeps_the_page_interval(tmp_path, monkeypatch):

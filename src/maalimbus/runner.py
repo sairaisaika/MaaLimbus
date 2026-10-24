@@ -3148,7 +3148,20 @@ class MirrorRunner:
                 # frame that changes every time, carrying no control, is a transition.
                 moved = sha != state.get('unknown_sha')
                 state['unknown_sha'] = sha
-                if looks_like_transition(record) and moved:
+                # D129: inside a battle there is no third kind of frame.  An
+                # unreadable read between two turns is the turn's own animation:
+                # the camera moves, the controls are the battle's controls, and
+                # `looks_like_transition` is a guess about *other* pages.  Measured
+                # 2026-10-24 (`packaged-mirror-20261024-142611`): after a submit a
+                # turn held 10-14 `window_unknown_wait` rounds at the unknown
+                # interval while the transition path retired after 1-9 polls, so
+                # the same animation was being paid for twice.
+                in_battle = str(state.get('last_named_page') or '').startswith('BATTLE')
+                if in_battle and not state.get('battle_unreadable_noted'):
+                    state['battle_unreadable_noted'] = True
+                    self.note('battle_frame_unreadable', page=page,
+                              after=state.get('last_named_page'))
+                if (looks_like_transition(record) and moved) or in_battle:
                     # D110: a transition is a duration, and its poll is not a page wait.
                     state['transition_seen'] = int(state.get('transition_seen', 0)) + 1
                     state.setdefault('transition_since', time.monotonic())
@@ -3157,6 +3170,8 @@ class MirrorRunner:
                         self.note('window_transition_wait', page=page,
                                   round=state['transition_seen'],
                                   interval_s=settings.transition_interval,
+                                  after=state.get('last_named_page'),
+                                  battle=in_battle,
                                   waited=round(waited, 1), input_sent=False)
                         # The loop pauses after a waiting step; handing it this pace is
                         # what stops a 1 s poll from being added to the 4 s page pause

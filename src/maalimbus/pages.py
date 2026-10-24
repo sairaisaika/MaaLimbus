@@ -802,6 +802,11 @@ STOP_KINDS = {
     # D82: the task was torn down but the page moved, so the loop kept reading; the
     # binding it would need to send input was released with the task.
     'the_controller_binding_was_released_when_the_task_was_torn_down': 'refused_by_policy',
+    # Measured 2026-10-24 (`packaged-mirror-20261024-144625`): the first free gift
+    # showed three outlines that could not be told apart, so the loop refused to guess.
+    # A re-read is the honest recovery: the outline is a picture, not a text it can
+    # re-parse, and a second look is cheaper than a wrong pick.
+    'three_free_gift_outline_ambiguous': 'unreadable_text',
 }
 
 # Words a plan the *runner* assembles carries.  These plans do not pass through
@@ -917,14 +922,10 @@ SUCCESSORS_THE_ARCHIVE_SAW = {
     # Counts moved on 2026-10-24 after the authorised runs; D58's rule is that a landing
     # the archive saw is a missing line, so the counts follow the corpus and the rule does
     # not change.
-    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 15, 'EVENT_CHECK': 10,
-                                                  'EVENT_CHECK_RESULT': 7,
-                                                  'EVENT_CHECK_READY': 5},
-    'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8,
-                                                        'EVENT_RESULT_READY': 7},
-    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 9, 'GIFT_GET': 3},
-    'the_check_outcome_is_tapped_through_until_its_control_lights_up':
-        {'EVENT_CHECK_READY': 6, 'CUTSCENE': 3},
+    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHECK': 11, 'EVENT_CHECK_READY': 5, 'EVENT_CHECK_RESULT': 8, 'EVENT_CHOICE': 16},
+    'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8, 'EVENT_RESULT_READY': 8},
+    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 10, 'GIFT_GET': 3},
+    'the_check_outcome_is_tapped_through_until_its_control_lights_up': {'CUTSCENE': 3, 'EVENT_CHECK_READY': 7},
     'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},
 }
 
@@ -945,6 +946,9 @@ LADDER_VIEW_EVIDENCE = {
     ('pan_left', 'MAP'): 'moves_the_view',
     ('pan_right', 'MAP'): 'moves_the_view',
     ('wait', 'MAP'): 'moves_the_view',
+    # Measured 2026-10-24: three of three waits on the pre-battle page moved the
+    # board (the page re-renders its cards after a pause), so this rung is declared.
+    ('wait', 'PRE_BATTLE_TEAM'): 'moves_the_view',
     ('drag_down', 'MAP'): 'rarely',
     ('pinch_out', 'UNKNOWN'): 'rarely',
     ('drag_down', 'UNKNOWN'): 'rarely',
