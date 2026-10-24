@@ -175,6 +175,7 @@ def _defaults():
         # patience.  A fifth of a second under one read keeps the cadence below the cost
         # of the sample it precedes.
         'unknown_interval': 1.5,
+        'battle_phase_interval': 3.0,
         # D110: a transition is a duration, not a number of rounds.  Measured over 190
         # transitions after a submitted turn: median 27 s, p90 54 s.  The page interval
         # (4 s) spends that window asleep, while one read costs ~1.2 s.
@@ -256,6 +257,10 @@ class Settings:
             raise ValueError('Invalid still frame count')
         # D79: a page the reader cannot name gets its own pacing, and it has to be a real
         # wait (zero would busy-loop the recogniser) inside one step's worth of time.
+        if (not isinstance(self._values['battle_phase_interval'], (int, float))
+                or isinstance(self._values['battle_phase_interval'], bool)
+                or not 0.0 < self._values['battle_phase_interval'] <= 30.0):
+            raise ValueError('Invalid battle phase interval')
         if (not isinstance(self._values['unknown_interval'], (int, float))
                 or isinstance(self._values['unknown_interval'], bool)
                 or not 0.0 < self._values['unknown_interval'] <= 30.0):
@@ -3143,11 +3148,20 @@ class MirrorRunner:
             # nothing in common, and the group's cost cannot be judged until the journal
             # says which one it was.  `last_named_page` is the last page the reader could
             # name -- the unknown page itself is not a name.
+            # D126: a battle animation is not an unknown page.  When the last nameable
+            # page was a battle, this frame is the fight playing itself: the measured
+            # archive shows 9-17 consecutive unreadable reads after `BATTLE_HUD`, each
+            # costing a read plus a wait, and nothing to click until the board returns.
+            # Poll it slower, and say in the row which of the two waits it was.
+            after = state.get('last_named_page')
+            battle_phase = str(after or '').startswith('BATTLE')
+            interval = (settings.battle_phase_interval if battle_phase
+                        else settings.unknown_interval)
             self.note('window_unknown_wait', page=page, round=state['unknown_seen'],
-                      interval_s=settings.unknown_interval,
-                      after=state.get('last_named_page'),
+                      interval_s=interval,
+                      after=after, battle_phase=battle_phase,
                       submitted_turn_wait=turn_waiting)
-            time.sleep(settings.unknown_interval)
+            time.sleep(interval)
             return self._result(page, None, False, None, waiting=True)
         state['unknown_seen'] = 0
         if page_vocabulary.is_loading(page):
@@ -6267,6 +6281,10 @@ def build_parser(defaults=None):
                         help='how many turns a battle may repeat one readout')
     parser.add_argument('--interval', type=float, default=defaults['interval'],
                         help='seconds between observations')
+    parser.add_argument('--battle-phase-interval', type=float,
+                        default=defaults['battle_phase_interval'],
+                        help='seconds between reads while a battle plays itself '
+                             '(default: 3.0)')
     parser.add_argument('--unknown-interval', type=float,
                         default=defaults['unknown_interval'],
                         help='seconds to hold still on a page the reader could not name')
