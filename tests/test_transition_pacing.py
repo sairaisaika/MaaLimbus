@@ -6,6 +6,7 @@ the *page* interval (4 s) between reads and bound itself by a count of rounds, s
 window was spent asleep: live `evidence/runtime/packaged-mirror-20261024-085751` put
 100.0 s of its 248.6 s into 23 transition waits (mean 4.35 s) and reached no floor.
 """
+import itertools
 import json
 
 import pytest
@@ -75,10 +76,20 @@ def test_the_wait_it_notes_says_which_interval_it_used(tmp_path, monkeypatch):
 
 
 def test_the_transition_ends_by_its_clock_not_by_its_rounds(tmp_path, monkeypatch):
+    # The sleeps are monkeypatched out, so wall time barely moves and a wall-clock bound
+    # can never be observed in this harness (41 rounds of 0.8 s real time). A fake clock
+    # makes the assertion about the rule instead of about the machine: every monotonic
+    # read costs 0.5 s, so a 5 s window is fifteen rounds, not a fixed count of 120.
+    ticks = itertools.count()
+
+    def clock():
+        return next(ticks) * 0.5
+
+    monkeypatch.setattr(runner.time, 'monotonic', clock)
     loop, sleeps, result = _run(tmp_path, monkeypatch, transition_seconds=5.0)
     waited = [row['waited'] for row in _waits(tmp_path)]
-    assert waited and max(waited) < 5.0
-    # The last waiting step is followed by the ending, not by another pause.
+    assert waited and max(waited) < 5.0 + 1.0
+    assert len(waited) <= 16
     assert len(sleeps) >= len(waited) - 1
     assert result.get('reason') != runner.PENDING_TRANSACTION_UNREADABLE
 

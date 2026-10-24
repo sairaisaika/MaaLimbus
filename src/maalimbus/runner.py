@@ -4318,14 +4318,18 @@ class MirrorRunner:
                     # streak is left alone.
                     waited = time.monotonic() - float(state.get('_clicked_at') or 0.0)
                     early = waited < MIN_SETTLE
+                    # Both branches are superseded: the loop replaced its own target, so
+                    # the page staying on the map says nothing about whether the game took
+                    # the click (live `packaged-mirror-20261024-102349` re-read the board
+                    # after each node click and offered a different set). Only a set that
+                    # has not changed at all can speak for the game, so neither branch may
+                    # feed the refusal streak that decides a suspended exploration.
                     self._map_verdict(target=state['map_pending'], page=page,
-                              outcome='superseded' if early else 'rejected',
+                              outcome='superseded',
                               frame=state.pop('map_click_frame', None),
                               reason=('the_loop_replaced_this_click_before_it_could_settle'
                                       if early else
                                       'a_new_target_replaced_this_one_before_the_page_settled'))
-                    if not early:
-                        state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
                 state['map_pending'] = list(plan['target'])
                 state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                     box_key(plan['target']))
@@ -4397,13 +4401,14 @@ class MirrorRunner:
                 # Two clicks planned before one page settled would leave the first one
                 # unjudged, and an unjudged click cannot reach the refusal streak that
                 # decides a suspended exploration (3 intents produced 1 verdict live).
+                # Superseded, not rejected (D115): the board was re-read and offered a
+                # different target, so the page staying on the map is not evidence about
+                # this click. Counting it drove `map_refused_streak` to three off the
+                # loop's own re-planning and sent a live run out of its exploration
+                # (`packaged-mirror-20261024-102349`).
                 self._map_verdict( target=state['map_pending'], page=page,
-                          outcome='rejected', frame=state.pop('map_click_frame', None),
+                          outcome='superseded', frame=state.pop('map_click_frame', None),
                           reason='a_new_target_replaced_this_one_before_the_page_settled')
-                # A replaced click is still a click the game did not take, and the refusal
-                # streak is what decides an exploration was never resumed (live: a run that
-                # opened with `a_run_is_still_in_progress` made three node clicks and moved nothing).
-                state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
             state['map_pending'] = list(plan['target'])
             state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                 box_key(plan['target']))
