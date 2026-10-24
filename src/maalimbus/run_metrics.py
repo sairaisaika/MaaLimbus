@@ -304,6 +304,9 @@ def ladder_effect(directories=None):
 # run that spent its whole window on an unreadable page look like it read nothing
 # (`evidence/runtime/map-live-20261023-203103`: 19 frames, 19 `scene_mismatch`).
 READ_EVENTS = ('map_observed', 'battle_observed', 'scene_mismatch')
+# Only the two writers that run on a page can time themselves (D68): a `scene_mismatch` is
+# the pipeline's own refusal record, with no action body to measure.
+TIMED_READ_EVENTS = ('map_observed', 'battle_observed')
 
 # Five verified floors is the dungeon's own definition of a finished exploration.  A
 # complete *run* also claims the payout -- and until D63 no journal event recorded it, so
@@ -492,6 +495,7 @@ def portfolio(directories=None):
     """Every run plus the six figures, so a report is one command, not a recount."""
     runs = []
     budgets = []
+    costs = []
     for directory in _archives(directories):
         rows = _rows_of(directory)
         if not rows:
@@ -499,8 +503,13 @@ def portfolio(directories=None):
         entry = {'run': directory.name}
         entry.update(efficiency(rows))
         runs.append(entry)
-        budgets.append(time_budget(rows))
-    return {'runs': runs, 'measures': metrics(runs), 'time': time_portfolio(budgets)}
+        budget = time_budget(rows)
+        budgets.append(budget)
+        cost = read_cost(rows)
+        cost['reads_group'] = (budget['groups'].get('reads') or {}).get('seconds')
+        costs.append(cost)
+    return {'runs': runs, 'measures': metrics(runs), 'time': time_portfolio(budgets),
+            'reads': read_portfolio(costs), 'split': read_split(costs)}
 
 
 # ------------------------------------------------------------------------ time (D66)
@@ -597,7 +606,105 @@ def time_budget(rows, *, cap=MAX_GAP_SECONDS):
     }
 
 
-def time_portfolio(budgets):
+def read_cost(rows):
+    """How long the observation node itself took, when it said so.
+
+    D66 attributed 2.45 s to every `map_observed` row from the gaps between journal
+    lines, and a gap cannot say whether that is the node's screencap+OCR or the wrapper
+    around it: the gap after a read starts where the read's line was written and lasts
+    until the *next* line, which includes the next read.  Since D68 every observation
+    writer records its own `seconds`, so the two halves can be subtracted instead of
+    guessed.  Rows written before D68 carry no number, and a corpus of those reports
+    "not measured" rather than zero.
+    """
+    rows = list(rows)
+    total = [row for row in rows if row.get('event') in TIMED_READ_EVENTS]
+    measured = []
+    for row in total:
+        seconds = row.get('seconds')
+        if isinstance(seconds, (int, float)) and not isinstance(seconds, bool):
+            measured.append((row.get('event'), float(seconds)))
+    if not measured:
+        return {'rows': len(total), 'measured': 0, 'seconds': None, 'mean': None,
+                'median': None, 'by_event': {}}
+    by_event = {}
+    for event, seconds in measured:
+        entry = by_event.setdefault(event, {'seconds': 0.0, 'n': 0})
+        entry['seconds'] += seconds
+        entry['n'] += 1
+    for entry in by_event.values():
+        entry['seconds'] = round(entry['seconds'], 1)
+        entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
+    values = sorted(seconds for _, seconds in measured)
+    middle = len(values) // 2
+    median = (values[middle] if len(values) % 2 else
+              round((values[middle - 1] + values[middle]) / 2, 2))
+    return {'rows': len(total), 'measured': len(values),
+            'seconds': round(sum(values), 1),
+            'mean': round(sum(values) / len(values), 2),
+            'median': median,
+            'by_event': dict(sorted(by_event.items(),
+                                    key=lambda pair: -pair[1]['seconds']))}
+
+
+def read_portfolio(costs):
+    """Many runs' read costs folded into one, with the coverage it was read from."""
+    costs = [cost for cost in costs if cost is not None]
+    measured = sum(cost['measured'] for cost in costs)
+    rows = sum(cost['rows'] for cost in costs)
+    if not measured:
+        return {'value': None,
+                'basis': f'0 of {rows} read(s) carry their own duration',
+                'note': ('no observation row records how long it took, so the cost of a '
+                         'read can only be inferred from the gaps (D66) and not split '
+                         'into node time and wrapper time (D68)')}
+    seconds = round(sum(cost['seconds'] for cost in costs), 1)
+    by_event = {}
+    for cost in costs:
+        for event, entry in cost['by_event'].items():
+            merged = by_event.setdefault(event, {'seconds': 0.0, 'n': 0})
+            merged['seconds'] += entry['seconds']
+            merged['n'] += entry['n']
+    for entry in by_event.values():
+        entry['seconds'] = round(entry['seconds'], 1)
+        entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
+    return {'value': {'measured': measured, 'rows': rows, 'seconds': seconds,
+                      'mean': round(seconds / measured, 2),
+                      'by_event': dict(sorted(by_event.items(),
+                                              key=lambda pair: -pair[1]['seconds']))},
+            'basis': f'{measured} of {rows} read(s) carry their own duration',
+            'note': None}
+
+
+def read_split(costs):
+    """What the reads group cost, and how much of it the node itself accounts for.
+
+    Both halves are summed over the runs that measured both (a run needs gap timestamps
+    *and* read durations), so the subtraction compares one sample with itself.  A
+    negative overhead is reported as-is rather than clamped: it would mean the gaps were
+    capped inside the reads, which is a fact about the corpus and not a number to fix.
+    """
+    pairs = [cost for cost in costs
+             if cost.get('seconds') is not None and cost.get('reads_group') is not None]
+    if not pairs:
+        return {'value': None,
+                'basis': 'no run measured both its read durations and its gaps',
+                'note': ('the split needs a run that carries read durations and two '
+                         'parseable timestamps; the retained corpus predates D68')}
+    node = round(sum(cost['seconds'] for cost in pairs), 1)
+    group = round(sum(cost['reads_group'] for cost in pairs), 1)
+    measured = sum(cost['measured'] for cost in pairs)
+    return {'value': {'node_seconds': node, 'reads_group_seconds': group,
+                      'overhead_seconds': round(group - node, 1),
+                      'measured_reads': measured,
+                      'node_mean': round(node / measured, 2) if measured else None},
+            'basis': f'{len(pairs)} run(s) measured both, over {measured} read(s)',
+            'note': ('the node half is the observation action\'s own `seconds`; the '
+                     'remainder is everything the loop does around it, including the '
+                     'next read\'s wait')}
+
+
+def time_portfolio(budgets, reads=None):
     """Many runs' budgets folded into one, with the share each group owns.
 
     `None` when no run carried two parseable timestamps: a mean duration over an empty

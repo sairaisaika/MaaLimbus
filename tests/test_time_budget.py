@@ -172,6 +172,6 @@ def test_the_tool_says_so_when_there_is_nothing_to_read(tmp_path, capsys):
 
 def test_the_portfolio_carries_a_time_budget_next_to_the_measures():
     portfolio = run_metrics.portfolio([])
-    assert set(portfolio) == {'runs', 'measures', 'time'}
+    assert set(portfolio) == {'runs', 'measures', 'time', 'reads', 'split'}
     assert portfolio['time']['value'] is None
     assert 'no time was attributed' in portfolio['time']['note']

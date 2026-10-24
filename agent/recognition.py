@@ -1137,6 +1137,12 @@ class ThemeObservation(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
+        # A read that does not say how long it took cannot be decomposed.  D66 measured
+        # 2.45 s per read from the journal's gaps, which cannot say whether that is the
+        # node's screencap+OCR or the wrapper around it, so every observation writer now
+        # carries its own elapsed seconds (D68; the fields are compared by
+        # tests/test_read_cost.py::test_every_observation_writer_times_itself).
+        started=time.monotonic()
         try:
             screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
@@ -1176,6 +1182,7 @@ class ThemeObservation(CustomAction):
                 # same frames read (702,316) and then (828,440) offline -- i.e. the party had
                 # moved and the field said nothing. Read it here instead of assuming.
                 map_player=(party_point(image) if scene == 'MAP' else None),
+                seconds=round(time.monotonic()-started,2),
                 scope='header identity and bounded route refusal; no node identity or input')
         return True
 
@@ -1225,6 +1232,7 @@ class MapObservation(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
+        started=time.monotonic()
         try:
             screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
@@ -1235,6 +1243,7 @@ class MapObservation(CustomAction):
         panel=node_panel(records,size) if scene=='NODE_PANEL' else None
         team=pre_battle_team_page(records,size) if scene=='PRE_BATTLE_TEAM' else None
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
+            seconds=round(time.monotonic()-started,2),
             floor=None if header is None else header.floor,
             pack=None if header is None else header.pack,
             header_box=None if header is None else header.exploring_text.box,
@@ -1266,6 +1275,7 @@ class BattleObservation(CustomAction):
 
     @guarded_callback(False)
     def run(self,context,argv):
+        started=time.monotonic()
         try:
             screencap(context.tasker.controller,timeout=5)
         except (TimeoutError,RuntimeError):return False
@@ -1279,6 +1289,7 @@ class BattleObservation(CustomAction):
         buttons=auto_assign_buttons(records,size)
         begin=start_button(records,size,image)
         self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
+            seconds=round(time.monotonic()-started,2),
             frame_changed=changed,wave=None if hud is None else hud['wave'],
             turn=None if hud is None else hud['turn'],
             diagnostics=[] if hud is None else hud['diagnostics'],
