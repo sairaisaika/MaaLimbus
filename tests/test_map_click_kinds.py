@@ -49,8 +49,10 @@ def test_every_verdict_is_counted_under_the_kind_it_names(tmp_path):
     _click(tmp_path, *_states())
     kinds = run_metrics.click_kinds([tmp_path])
     assert kinds['sent'] == 4 and kinds['declared'] == 4
+    # D76 made "the page stayed" provisional, so the table learned a fifth verdict:
+    # a click settled by the next read is `unjudged` here and accepted/rejected later.
     assert kinds['by_kind']['gold_badge_node'] == {'sent': 3, 'accepted': 1, 'rejected': 2,
-                                                   'superseded': 0}
+                                                   'superseded': 0, 'unjudged': 0}
     assert kinds['by_kind']['lit_icon']['accepted'] == 1
 
 

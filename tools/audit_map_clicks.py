@@ -37,12 +37,13 @@ def main(argv=None):
         print('nothing to read: no map_click_result row in this corpus')
         return 2
     print('click verdicts: %d' % kinds['sent'])
-    print('%-22s %5s %8s %8s %11s %6s' % ('kind', 'sent', 'accepted', 'rejected',
-                                          'superseded', 'rate'))
+    print('%-22s %5s %8s %8s %11s %8s %6s' % ('kind', 'sent', 'accepted', 'rejected',
+                                            'superseded', 'unjudged', 'rate'))
     for row in report['rows']:
-        print('%-22s %5d %8d %8d %11d %6s' % (
+        print('%-22s %5d %8d %8d %11d %8d %6s' % (
             row['kind'], row['sent'], row['accepted'], row['rejected'],
-            row['superseded'], 'n/a' if row['rate'] is None else '%.2f' % row['rate']))
+            row['superseded'], row.get('unjudged', 0),
+            'n/a' if row['rate'] is None else '%.2f' % row['rate']))
     print('basis: %s' % report['basis'])
     if report['note']:
         print('note: %s' % report['note'])

@@ -500,11 +500,14 @@ def metrics(runs):
 # marks the step it will accept with -- so "which kind lands" is the question a run has
 # to answer before the map can be trusted, and the journal now carries it.
 
-CLICK_VERDICTS = ('accepted', 'rejected', 'superseded')
+# A click whose panel opens one read late is recorded as `unjudged` and settled by the
+# next read (D76).  It is not a refusal and must not be counted as one: a refusal
+# feeds `map_refused_streak`, and a streak of one leaves the exploration.
+CLICK_VERDICTS = ('accepted', 'rejected', 'superseded', 'unjudged')
 
 
 def click_kinds(directories=None):
-    """Clicks by candidate kind: sent, accepted, rejected, superseded."""
+    """Clicks by candidate kind: sent, accepted, rejected, superseded, unjudged."""
     by_kind = {}
     declared = 0
     sent = 0

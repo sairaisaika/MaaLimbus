@@ -2125,6 +2125,41 @@ class MirrorRunner:
             self.state['map_refused_since_progress'] = True
         self.note('map_click_result', **fields)
 
+    def _resolve_map_click(self, page):
+        """Settle the click the last step could not judge.
+
+        The 2026-10-23 23:39 run clicked the marked node at (1028,480), the settle
+        window still read MAP, the loop recorded "the page stayed on the map" -- and
+        the very next read named NODE_PANEL.  The panel had opened one read late, but
+        the verdict was already spent: it fed ``map_refused_streak``, and a streak of
+        one hands the window the progress-panel escape hatch that leaves the
+        exploration (``the_exploration_must_be_resumed_before_a_node_click``).
+
+        So the click is recorded as ``unjudged`` when it happens and settled here,
+        against the page the next read actually names.  "Did not move the page" is a
+        statement about what the loop saw, and only the next observation can make it.
+        """
+        pending = self.state.get('map_unjudged')
+        if not pending:
+            return None
+        self.state['map_unjudged'] = None
+        target = pending.get('target')
+        # The question is "is this still the map", which `map_dispatch.is_map` already
+        # answers -- asking it as a page literal would add a 150th page comparison to
+        # the loop and D44's ratchet would (rightly) count it as new dispatch.
+        if not map_dispatch.is_map(page):
+            self._map_verdict(target=target, page=page, outcome='accepted',
+                              frame=pending.get('frame'), kind=pending.get('kind'),
+                              reason='the_click_was_taken_after_the_verdict')
+            self.state['map_refused_streak'] = 0
+            return 'accepted'
+        self._map_verdict(target=target, page=page, outcome='rejected',
+                          frame=pending.get('frame'), kind=pending.get('kind'),
+                          reason='the_click_was_not_taken_and_the_page_stayed')
+        map_refusal_streak(self.state,
+                           lambda event, **fields: self.note(event, page=page, **fields))
+        return 'rejected'
+
     def _note_controller_state(self, controller):
         """Write what the controller handle looks like just before a click.
 
@@ -2377,6 +2412,7 @@ class MirrorRunner:
         directory = self.directory
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
+        self._resolve_map_click(page)
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
             outcome=self.exploration.finish(frame_file(directory),page)
             self.note('unknown_exploration_reconciled',**outcome,input_sent=False)
@@ -4339,11 +4375,19 @@ class MirrorRunner:
             # it as a labelled negative while the judgement is still local -- the 91 map
             # clicks in the archived runs left 79 of them with no verdict at all, and an
             # unlabelled click cannot teach a reader anything.
+            settled_frame = state.pop('map_click_frame', None)
+            settled_kind = dict(plan.get('detail') or {}).get('kind')
             self._map_verdict( target=list(plan['target']), page=page,
-                      outcome='rejected',
-                      frame=state.pop('map_click_frame', None),
-                      kind=dict(plan.get('detail') or {}).get('kind'),
+                      outcome='unjudged',
+                      frame=settled_frame,
+                      kind=settled_kind,
                       reason='the_page_stayed_on_the_map_after_the_click')
+            # The verdict is settled by the next read (D76): a panel that opens one
+            # read late must not be recorded as a refusal, because a refusal feeds the
+            # streak that abandons the exploration.
+            state['map_unjudged'] = {'target': list(plan['target']),
+                                     'kind': settled_kind,
+                                     'frame': settled_frame}
             # A refused click can mean two very different things, and the difference is
             # not visible in the frame: the candidate was wrong, or the exploration is
             # not resumed yet.  A controlled experiment on one device settled it --
@@ -4352,7 +4396,6 @@ class MirrorRunner:
             # resume opened the node panel (107860 px).  So name the second case once a
             # streak of refusals has accumulated, instead of letting the run look like a
             # reader defect.
-            map_refusal_streak(state, lambda event, **fields: self.note(event, page=page, **fields))
             # A refused click that will not be retried is a *stop* like any other, so it
             # spends the recovery ladder instead of handing control back to candidate
             # selection.  Measured on the recovery fixture without this: the rung sat at
@@ -4434,10 +4477,21 @@ class MirrorRunner:
             # state).  The click was made, the page settled, and neither "the party
             # moved" nor "a new control appeared" was true: record that, do not stay
             # silent.
+            #
+            # Provisional, for the same reason as the refused-click site (D76): the
+            # party's pixels do not move when the click opens a panel, so the live run
+            # `packaged-mirror-20261023-235553` recorded `the_map_stayed_with_the_party
+            # _in_place` for the marked node at (1036,457) and named NODE_PANEL on the
+            # very next read.  The next read settles it.
+            settled_frame = state.pop('map_click_frame', None)
             self._map_verdict( target=state['map_pending'], page=page,
-                      outcome='rejected',
-                      frame=state.pop('map_click_frame', None),
+                      outcome='unjudged',
+                      frame=settled_frame,
                       reason='the_map_stayed_with_the_party_in_place')
+            state['map_unjudged'] = {'target': list(state['map_pending']),
+                                     'kind': (state.get('map_candidate_kinds') or {}).get(
+                                         box_key(state['map_pending'])),
+                                     'frame': settled_frame}
             state['map_pending'] = None
         state['map_attempts'] = 0
         map_dispatch.after_settle(state, page, settled_page)
