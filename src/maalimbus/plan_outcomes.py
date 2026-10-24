@@ -59,6 +59,11 @@ UNANIMOUS_FLOOR = 3
 PAGE_EVENTS = ('map_observed', 'battle_observed')
 STOP_EVENTS = ('mirror_loop_stopped', 'mirror_loop_error', 'window_no_progress', 'window_stall')
 
+# A page that could not be read is not a successor.  Naming UNKNOWN in a plan's `expect`
+# would hide a perception failure behind a legitimate landing, so the relation reports
+# those landings apart and they never count as "the plan forgot a page" (D58).
+UNREADABLE = ('UNKNOWN',)
+
 
 def _archives(directory=None):
     """The ``events.jsonl`` files of the retained runs, oldest name first."""
@@ -178,6 +183,51 @@ def _declared():
             for word, facts in plan_reasons.acting_plans().items()}
 
 
+def unnamed_landings(found=None, declared=None, floor=None):
+    """Landings the archive saw on a page the plan never named, worth acting on.
+
+    A landing is *evidence about the plan*, not about the click: `expect` says which
+    pages do not disprove this input, so a page the archive reaches every single time is
+    one the plan is missing, and its absence shows up as ``unexpected_successor`` and a
+    recovery ladder (D58: 55 of 55 resume clicks).  A landing at an unreadable page is
+    reported separately by :func:`unreadable_landings`, because that is a perception
+    question and naming the page would hide it.
+    """
+    found = outcomes(directory=None) if found is None else found
+    declared = _declared() if declared is None else declared
+    floor = UNANIMOUS_FLOOR if floor is None else int(floor)
+    rows = []
+    for word, entry in sorted(found.items()):
+        names = declared.get(word, set())
+        if not names:
+            # The plan proves this input by a dismissal or a hook, so it never named a
+            # page and has nothing to forget: reporting these would repeat D56's mistake
+            # of judging a plan by a criterion it did not use (found by the first draft
+            # of this function, which offered 17 "missing successors" to plans that
+            # already carried expect=(ANY,)).
+            continue
+        for page, count in sorted(entry['successors'].items()):
+            if page in names or page in UNREADABLE or count < floor:
+                continue
+            rows.append({'word': word, 'page': page, 'count': count,
+                         'intents': entry['intents']})
+    return sorted(rows, key=lambda row: (-row['count'], row['word'], row['page']))
+
+
+def unreadable_landings(found=None, floor=None):
+    """Landings at a page that could not be read: a perception question, not a successor."""
+    found = outcomes() if found is None else found
+    floor = UNANIMOUS_FLOOR if floor is None else int(floor)
+    rows = []
+    for word, entry in sorted(found.items()):
+        for page in UNREADABLE:
+            count = entry['successors'].get(page, 0)
+            if count >= floor:
+                rows.append({'word': word, 'page': page, 'count': count,
+                             'intents': entry['intents']})
+    return sorted(rows, key=lambda row: (-row['count'], row['word']))
+
+
 def needs_state_proof(found=None, directory=None):
     """Every word the archive says never moved the page, with its stay count.
 
@@ -265,4 +315,42 @@ def main(argv=None):
     for word in sorted(set(declared) - set(unnamed)):
         print('  %-58s declared but the archive never shows it' % word)
     stale = sorted(set(unnamed) - set(declared))
-    return 1 if stale or set(declared) - set(unnamed) else 0
+
+    # A landing on a page the plan never named is evidence about the plan (D58).  The
+    # ones worth acting on are declared in pages.SUCCESSORS_THE_ARCHIVE_SAW until the
+    # plan learns the page; a landing at UNKNOWN is a reading question and is reported
+    # apart so it can never be "fixed" by naming the unreadable page.
+    seen = pages.SUCCESSORS_THE_ARCHIVE_SAW
+    forgotten = unnamed_landings(found)
+    print('landings on a page no plan names: %d  (floor %d)'
+          % (len(forgotten), UNANIMOUS_FLOOR))
+    undeclared, agreed = [], 0
+    for row in forgotten:
+        known = seen.get(row['word'], {}).get(row['page'])
+        if known is None:
+            undeclared.append(row)
+        elif known != row['count']:
+            undeclared.append(row)
+            print('  %-52s -> %-18s count changed: declared %d, archive %d'
+                  % (row['word'][:52], row['page'], known, row['count']))
+            continue
+        else:
+            agreed += 1
+        print('  %-52s -> %-18s %3d of %3d  %s'
+              % (row['word'][:52], row['page'], row['count'], row['intents'],
+                 'declared' if known is not None else 'NOT DECLARED'))
+    gone = sorted((word, page) for word, pages_seen in seen.items()
+                  for page in pages_seen
+                  if page not in (found.get(word) or {'successors': {}})['successors'])
+    for word, page in gone:
+        print('  %-52s -> %-18s declared but the archive no longer shows it'
+              % (word[:52], page))
+    unreadable = unreadable_landings(found)
+    print('landings on a page that could not be read: %d' % len(unreadable))
+    for row in unreadable:
+        print('  %-52s -> %-18s %3d of %3d  (a reading, not a successor)'
+              % (row['word'][:52], row['page'], row['count'], row['intents']))
+    print('declared landings that still agree with the archive: %d of %d'
+          % (agreed, sum(len(pages_seen) for pages_seen in seen.values())))
+    failed = bool(stale or set(declared) - set(unnamed) or undeclared or gone)
+    return 1 if failed else 0

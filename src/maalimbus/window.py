@@ -313,8 +313,14 @@ STEP_ROWS = {
         'reason': 'drive_nav_is_the_proven_way_back_to_the_mirror_menu',
         'refusal': 'drive_button_not_anchored',
         },
+    # The mirror menu click opens the run: with no run in progress that is the loadout
+    # picker, and with one suspended the game answers with the resume dialog.  The
+    # archive saw that dialog 35 times out of 35 and the plan named it zero times (D58),
+    # so the loop reported `unexpected_successor` on the very page the failing runs of
+    # 2026-10-23 15:33-16:32 were sitting on.
     'DRIVE': {'control': 'DRIVE', 'source': 'nodes',
-        'expect': ('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP', 'EXPIRED_SESSION', 'UNKNOWN'),
+        'expect': ('MIRROR_ENTRY', 'DRIVE', 'THEME_PACKS', 'MAP', 'RESUME_DIALOG',
+                   'EXPIRED_SESSION', 'UNKNOWN'),
         'reason': 'mirror_menu_recognition_owns_the_click_box',
         'refusal': 'mirror_menu_node_not_registered',
         'action': NODE,
@@ -847,8 +853,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # and the resume behind it is what makes the next node click land.
         resume = controls.get('map.progress_button')
         if resume is not None:
+            # The resume behind that control opens the progress panel first and only then
+            # returns to the map (the plan directly above leaves it with its own
+            # Continue), so the panel is a page this input is allowed to reach.  The
+            # archive says so 55 times out of 55 (D58): every one of those landings used
+            # to be an `unexpected_successor`, which the loop answered with a recovery
+            # ladder instead of a Continue.
             return _plan(page, CLICK, target=resume,
-                         expect=('MAP', 'UNKNOWN'),
+                         expect=('MAP', 'DUNGEON_PROGRESS', 'UNKNOWN'),
                          reason='the_exploration_must_be_resumed_before_a_node_click',
                          detail={'candidate_count': len(candidates)})
         if not 0 <= candidate_index < len(candidates):

@@ -356,7 +356,8 @@ DISPATCH_FACTS = {
                          'expects': ('PRE_BATTLE_TEAM',),
                          'refusals': ('deployment_reset_pending_intent_not_proven',)},
     'DRIVE': {'actions': ('NODE',),
-              'expects': ('DRIVE', 'EXPIRED_SESSION', 'MAP', 'MIRROR_ENTRY', 'THEME_PACKS', 'UNKNOWN'),
+              'expects': ('DRIVE', 'EXPIRED_SESSION', 'MAP', 'MIRROR_ENTRY', 'RESUME_DIALOG',
+                          'THEME_PACKS', 'UNKNOWN'),
               'refusals': ('mirror_menu_node_not_registered',)},
     'DUNGEON_PROGRESS': {'actions': ('CLICK',), 'expects': ('*', 'MAP'), 'refusals': ('continue_button_not_anchored',)},
     'DUNGEON_TEAM': {'actions': ('CLICK', 'SWIPE'),
@@ -452,6 +453,7 @@ DISPATCH_FACTS = {
     'MAP': {'actions': ('CLICK',),
             'expects': ('CUTSCENE',
                         'DEPLOYMENT',
+                        'DUNGEON_PROGRESS',
                         'EGO_GIFT_POPUP',
                         'EVENT_CHECK',
                         'EVENT_CHECK_READY',
@@ -799,6 +801,32 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
 PLANS_THE_INDEX_CANNOT_NAME = {
     'win_rate_is_the_proven_auto_assign_control': 152,
     'the_starting_gift_row_is_taken_from_the_tray': 8,
+}
+
+# Landings the retained archive saw on a page the plan never named, while the plan *did*
+# name other pages.  `expect` means "a page that does not disprove this input", so a page
+# reached every time is one the plan is missing, and its absence is reported as
+# `unexpected_successor` and answered with a recovery ladder instead of the next step
+# (D58).  The two worst cases were fixed in the plans that own them:
+#   the_exploration_must_be_resumed_before_a_node_click  MAP -> DUNGEON_PROGRESS   55 of 55
+#   mirror_menu_recognition_owns_the_click_box          DRIVE -> RESUME_DIALOG    35 of 58
+# -- both on the way into a run, where a false escalation fires before any gameplay, and
+# the second is the page the five failing runs of 2026-10-23 15:33-16:32 were sitting on.
+# What remains is inside the event/cutscene flow, where the page is transient and the next
+# read usually resolves it; each row is declared with the count the archive shows, so the
+# size of the gap travels with it, and the gate fails on a landing that appears here
+# without being named.  Naming a page is the fix, and it needs its own evidence: adding a
+# page to `expect` says only that landing there does not disprove the input.
+SUCCESSORS_THE_ARCHIVE_SAW = {
+    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 14, 'EVENT_CHECK': 7,
+                                                  'EVENT_CHECK_RESULT': 6,
+                                                  'EVENT_CHECK_READY': 3},
+    'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8,
+                                                        'EVENT_RESULT_READY': 6},
+    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 8, 'GIFT_GET': 3},
+    'the_check_outcome_is_tapped_through_until_its_control_lights_up':
+        {'EVENT_CHECK_READY': 5},
+    'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},
 }
 
 
