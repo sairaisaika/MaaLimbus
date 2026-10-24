@@ -70,7 +70,8 @@ from .shop_vision import currency as shop_currency, offers as shop_offers
 from .shop_vision import (SHELF_PRICE_FAINT_FLOOR, SHELF_PRICE_FLOOR, shelf_tokens,
                           wanted_offers)
 from .shop_settings import CARRY_CAP_COINS
-from .team_vision import CARD_COUNT, assignment_numbers, card_states, participants
+from .team_vision import (CARD_COUNT, assignment_numbers, card_states, participants,
+                            selected_saved_team)
 from .vision import Text, inset_box
 from . import click_trace
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
@@ -1666,7 +1667,39 @@ def team_state(record, controls):
     return {'availability':availability,'unavailable':list((availability or {}).get('unavailable',[])),
             'states': card_states(records, boxes, size),
             'participants': participants(records, size),
-            'numbers': assignment_numbers(records, boxes, size)}
+            'numbers': assignment_numbers(records, boxes, size),
+            # The header says which saved team the game put on this page. Without it
+            # the plan's keywords come from the rotation's slot alone, and a run that
+            # resumed someone else's exploration would shop for the wrong team
+            # (2026-10-24: gifts planned for slot 2's Charge/Tremor while the game had
+            # slot 1's Bleed in play).
+            'saved_team': selected_saved_team(records, size)}
+
+
+def team_verdict(seen, wanted):
+    """Does the saved team the screen shows match the slot this run planned for?
+
+    ``seen`` is the page's own ``TEAMS # N`` header; ``wanted`` is the slot the
+    rotation (or ``--team``) picked. Unknown on either side is not a verdict: a
+    page that could not be read must not be turned into a mismatch.
+    """
+    if seen is None or wanted is None:
+        return {'kind': None, 'seen': seen, 'wanted': wanted}
+    kind = 'verified' if int(seen) == int(wanted) else 'mismatch'
+    return {'kind': kind, 'seen': int(seen), 'wanted': int(wanted)}
+
+
+def gift_slot(seen, wanted):
+    """The saved team whose keywords a gift plan should follow.
+
+    The game deploys a team, and that team is the one the gifts will serve. When
+    the pre-battle page told us which slot the game deployed, the plan follows it;
+    otherwise it follows the rotation's slot, which is the only slot a fresh run
+    could have picked.
+    """
+    if seen is not None:
+        return int(seen)
+    return None if wanted is None else int(wanted)
 
 
 def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges=()):
@@ -2109,6 +2142,27 @@ def map_refusal_streak(state, emit):
     return streak
 
 
+#: How many refused map clicks the ladder may answer before the run considers the
+#: exploration un-resumed.  The old rule was one, and live run
+#: packaged-mirror-20261024-040640 shows what that costs: one refused click opened
+#: the progress panel, the panel left the exploration, the entry dialog resumed it,
+#: and the next click was refused exactly as before -- a 70 s round trip that never
+#: spent a single ladder rung.  `map_refusal_streak` already names the third refusal
+#: as the un-resumed case, so the panel waits that long too.
+MAP_ESCAPE_REFUSALS = 3
+
+
+def map_escape_wanted(state):
+    """Whether the map's progress control should be offered instead of a node.
+
+    The panel is a real answer for a map that refuses every node -- the 2026-10-23
+    05:38 run needed it after nine refusals -- but it is the *last* answer, not the
+    first: it costs a page change, an entry dialog and a fresh resume, while one
+    ladder rung costs a gesture on the same screen.
+    """
+    return int(state.get('map_refused_streak') or 0) >= MAP_ESCAPE_REFUSALS
+
+
 def battle_progress(state, signature, *, rounds):
     """Whether this battle round shows progress, and if not, what that justifies.
 
@@ -2439,6 +2493,26 @@ class MirrorRunner:
         """This installation's input-helper posture, for a swallowed-click note."""
         from . import input_helpers
         return input_helpers.line(input_helpers.report(ROOT))
+
+    def _check_team(self, team, *, page='PRE_BATTLE_TEAM'):
+        """Say which saved team the game deployed, and whether it is the one planned for.
+
+        The rotation picks a saved team to *enter* with; the game may have another
+        one in play (a resumed exploration keeps the team it was started with). The
+        header is the only place that says which, so it is read once per pre-battle
+        page and carried on the step's state: a planned keyword set that follows a
+        slot the game is not using is a plan for a team that is not playing.
+        """
+        verdict = team_verdict((team or {}).get('saved_team'),
+                              self.store.team_slot if self.store is not None
+                              else getattr(self.settings, 'team', None))
+        if verdict['kind'] is not None:
+            self.state['team_seen'] = verdict['seen']
+            if verdict['kind'] == 'mismatch':
+                self.state['team_mismatch'] = dict(verdict)
+            self.note(verdict['kind'] == 'verified' and 'team_verified' or 'team_mismatch',
+                      page=page, **verdict)
+        return verdict
 
     def _observe(self, deadline=None, *, phase='observe'):
         """One page, from the injected observer, with the journal details attached.
@@ -2964,6 +3038,11 @@ class MirrorRunner:
             team={'reset_pending':bool(d and d['scope']==self.run_id and pending
                   and pending['kind']=='clear' and not pending.get('confirm_sent'))}
         if team is not None:
+            # Any page that produced a team reading is asked which saved team it
+            # shows; only the pre-battle page and the deployment-reset stand-in ever
+            # do, and the stand-in carries no header, so it writes nothing (D90).
+            self._check_team(team, page=page)
+        if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team
             from .runtime_paths import data_directory
@@ -3099,8 +3178,9 @@ class MirrorRunner:
                 from .storage import ProfileStore
                 from .gift_plan import shop_wanted
                 from .gift_vision import GiftCatalog
+                slot=gift_slot(state.get('team_seen'),self.store.team_slot)
                 profile=next((p for p in ProfileStore(self.store.path.parent/'user-team-profiles.json').load()
-                              if p.slot==self.store.team_slot),None)
+                              if p.slot==slot),None)
                 if profile is None:raise ValueError('Current saved shop team absent')
                 catalog=GiftCatalog(ROOT/'assets/resource/base')
                 gift_vocabulary=tuple(catalog.entries)
@@ -3108,7 +3188,9 @@ class MirrorRunner:
                 explicit_priorities=load_shop_priorities(ROOT/'assets/resource/base/shop-priorities.json',catalog)
                 names=shop_wanted(profile,catalog,explicit_priorities)
                 keywords=sorted(profile.keywords)
-                self.note('shop_saved_team_plan',team=profile.slot,keywords=keywords,
+                self.note('shop_saved_team_plan',team=profile.slot,
+                          slot_source='screen' if state.get('team_seen') is not None else 'rotation',
+                          keywords=keywords,
                           wanted=names,blocked=sorted(profile.block),input_sent=False,
                           manual_priorities=explicit_priorities,manual_weights_are_learned=False)
             try:
@@ -3394,11 +3476,12 @@ class MirrorRunner:
         plan_controls=dict(self.controls)
         # One refused click is enough: the streak counts every click the game did not
         # take, and a map that refuses one node is the map that refuses them all.
-        if page=='MAP' and int(state.get('map_refused_streak') or 0)>=1:
+        if page=='MAP' and map_escape_wanted(state):
             # Nine refusals before `entry -> Enter -> Dungeon Progress -> Resume` and one
             # click after it (see `window.plan_map`): a map that is read but refuses every
             # node is a run that was never resumed, and the resume lives behind the map's
-            # own progress control at the top right of the page.
+            # own progress control at the top right of the page.  The ladder answers the
+            # first two refusals (D91): see `MAP_ESCAPE_REFUSALS`.
             plan_controls['map.progress_button']=list(MAP_PROGRESS_CONTROL)
             # Carry the intent across the page change: the streak is reset when the
             # progress panel takes over, so the panel below cannot read it.  Live run
