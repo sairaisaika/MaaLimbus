@@ -1081,10 +1081,18 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         state = initial or {}
         point = state.get('point')
         if point is not None:
+            # The reason names which of the two legal picks this click is, and it is
+            # written here as literals rather than carried in `initial['reason']`: a
+            # word travelling through a state dict is invisible to every static reader,
+            # which is why `the_starting_gift_row_is_taken_from_the_tray` had 8 recorded
+            # sends and no plan the index could name (D57's declaration, closed by D64).
+            # `state.get('gift')` is the same distinction the runner made: a named row
+            # from the tray, or the rotation keyword's first icon.
             return _plan(page, CLICK, target=[point[0] - 30, point[1] - 30, 60, 60],
                          expect=(ANY,), advance=True,
-                         reason=state.get('reason')
-                         or 'the_starting_gift_is_picked_from_the_rotation_keyword',
+                         reason=('the_starting_gift_row_is_taken_from_the_tray'
+                                 if state.get('gift') else
+                                 'the_starting_gift_is_picked_from_the_rotation_keyword'),
                          detail={'keyword': state.get('keyword'),
                                  'gift': state.get('gift')})
         if state.get('chosen') is None or state.get('chosen')!=state.get('required'):
@@ -1220,10 +1228,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # run last sent on this battle page; without it the two intents cannot alternate
         # and the page would sit on one of them forever.
         if battle_previous == 'submit' and auto_assign and auto_assign.get(battle_assignment):
+            # Literal words, not `battle_assignment + '_is_the_proven_auto_assign_control'`:
+            # the concatenation produced 152 recorded sends under a name no static reader
+            # could see, so the plan could never be gated against its own successors
+            # (D57's declaration, closed by D64). `observe` returned above, so the mode is
+            # one of these two.
             return _plan(page, CLICK, target=auto_assign[battle_assignment],
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
                                  'UNKNOWN'),
-                         reason=battle_assignment+'_is_the_proven_auto_assign_control')
+                         reason=('win_rate_is_the_proven_auto_assign_control'
+                                 if battle_assignment == 'win_rate' else
+                                 'damage_is_the_proven_auto_assign_control'))
         if start_box:
             return _plan(page, CLICK, target=start_box,
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
@@ -1233,7 +1248,9 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _plan(page, CLICK, target=auto_assign[battle_assignment],
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
                                  'UNKNOWN'),
-                         reason=battle_assignment+'_is_the_proven_auto_assign_control')
+                         reason=('win_rate_is_the_proven_auto_assign_control'
+                                 if battle_assignment == 'win_rate' else
+                                 'damage_is_the_proven_auto_assign_control'))
         return _refuse(page, 'battle_has_no_proven_control')
     if page == 'UNKNOWN_DIALOG':
         # A modal that named no page still shows its own close control, and taking it

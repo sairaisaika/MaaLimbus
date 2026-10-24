@@ -764,6 +764,9 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
     # `or` fallback (D57) is what made it visible here, and the same plan is an `advance`
     # plan, so its click is also judged by the frame.
     'the_starting_gift_is_picked_from_the_rotation_keyword': 'page_must_change',
+    # D64: visible now, always was in the code -- the row pick names its word as a
+    # literal in the window layer instead of handing it over in `initial['reason']`.
+    'the_starting_gift_row_is_taken_from_the_tray': 'page_must_change',
     'the_way_back_to_the_entry_is_confirmed': 'page_must_change',
     'the_weekly_reset_notice_is_declined_and_the_run_stays': 'page_must_change',
     'the_wiped_run_is_accepted_and_the_stage_select_comes_back': 'page_must_change',
@@ -798,10 +801,14 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
 # row carries `expect=(ANY,), advance=True`, i.e. a pixel proof.  So this table declares
 # the index's reach, not the plan's proof, and the value is the number of sends the
 # archive retained, so the size of the blind spot travels with it.
-PLANS_THE_INDEX_CANNOT_NAME = {
-    'win_rate_is_the_proven_auto_assign_control': 152,
-    'the_starting_gift_row_is_taken_from_the_tray': 8,
-}
+# Empty since D64: the two entries this table carried were not a limit of the *index* but
+# two writers that hid their own word -- a reason built by concatenating a parameter
+# (`battle_assignment + '_is_the_proven_auto_assign_control'`, 152 recorded sends) and one
+# handed over through `initial['reason']` (8 sends).  Both now name their two legal words
+# as literals in the window layer, so every acting plan in the repository is visible to the
+# reader that gates successors.  The table stays because the gate reads it: a new
+# unnameable writer must be declared here with the number of sends the archive saw.
+PLANS_THE_INDEX_CANNOT_NAME = {}
 
 # Landings the retained archive saw on a page the plan never named, while the plan *did*
 # name other pages.  `expect` means "a page that does not disprove this input", so a page

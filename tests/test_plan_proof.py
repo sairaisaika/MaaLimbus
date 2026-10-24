@@ -32,8 +32,10 @@ import maalimbus.runner as runner
 
 # 28 until D57 taught the index to read the `or` fallback a plan uses to pick its word
 # at runtime ("state.get('reason') or '<word>'"); the twenty-ninth was always there, the
-# reader could not see it.  The ratchet still only shrinks from here.
-DISMISSAL_ONLY_BASELINE = 29
+# reader could not see it.  The thirtieth is D64: the starting-gift *row* pick used to be
+# handed over through `initial['reason']`, so the reader saw the fallback word only.  The
+# ratchet still only shrinks from here.
+DISMISSAL_ONLY_BASELINE = 30
 
 
 def test_no_acting_word_is_unjudgeable():

@@ -3184,8 +3184,11 @@ class MirrorRunner:
             elif initial_gifts.selected_rows(image)!=sorted(x['row'] for x in d['selected']):
                 stopped=self._record(page,record,frame,candidates,None,'initial_gift_selected_rows_not_proven')
                 return self._result(page,None,False,stopped,done=True)
+            # `reason` is not part of this hand-off any more: the window layer writes the
+            # two legal words itself, because a reason carried through a state dict was
+            # invisible to the index that gates plan successors (D64).
             initial=dict(chosen=chosen,required=required,point=point,
-                         keyword=settings.gift_keyword if gift is None else None,reason=reason,gift=gift)
+                         keyword=settings.gift_keyword if gift is None else None,gift=gift)
         if page=='GIFT_GET' and self.initial_transaction is not None:
             d=self.initial_transaction.data
             if d and d['scope']==self.run_id and len(d.get('acknowledged',[]))<len(d['selected']):
