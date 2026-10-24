@@ -1189,7 +1189,16 @@
         "_pause_between_steps",
         "input_at",
         "间隔付两遍",
-        "pause"
+        "pause",
+        "harness reap",
+        "孤儿 agent",
+        "orphan agent",
+        "stale_agents",
+        "reap_stale_agents",
+        "run_bounded",
+        "taskkill",
+        "selfrun_mirror",
+        "外壳清理"
       ],
       "sources": [
         {
@@ -1363,6 +1372,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "self.artifacts['input_at'] = time.monotonic()"
+        },
+        {
+          "path": "tools/selfrun_mirror.py",
+          "symbol": "reap_stale_agents"
+        },
+        {
+          "path": "tools/selfrun_mirror.py",
+          "symbol": "run_bounded"
         }
       ],
       "docs": [
@@ -1409,7 +1426,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d89-a-watchdog-that-cannot-fire-inside-the-budget-is-not-a-watchdog",
         "docs/wiki/zh_cn/2.3-decisions.md#d89-在预算内开不了火的看门狗不算看门狗",
         "docs/wiki/en_us/2.3-decisions.md#d93-a-spacer-between-inputs-is-not-a-sleep-the-clock-is-owed",
-        "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠"
+        "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠",
+        "docs/wiki/en_us/2.3-decisions.md#d94-a-killer-that-leaves-the-child-alive-has-not-ended-the-run",
+        "docs/wiki/zh_cn/2.3-decisions.md#d94-只杀了父进程却没杀掉子进程的杀手并没有让这一轮结束"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1424,7 +1443,8 @@
         "tests/test_input_route_after_action.py",
         "tests/test_input_call_deadline.py",
         "tests/test_progress_window.py",
-        "tests/test_step_pacing.py"
+        "tests/test_step_pacing.py",
+        "tests/test_harness_reap.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",

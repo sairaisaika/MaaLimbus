@@ -5512,3 +5512,23 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 
 下一步：清点 `window_transition_wait` 与未知页等待里同样的"付两遍"，以及战斗回合里
 `win_rate` 与 `start` 两次点击能否合并。
+
+## DSH continuation: 只杀父进程的杀手没有结束这一轮（2026-10-24）
+
+上一轮结尾留了个尾巴：一次被强杀的运行留下了孤儿 `MaaLimbusAgent.exe`，它握着控制器
+租约，于是下一次运行 481 秒一个事件都没写。本轮把它当成可靠性缺陷正面对待。
+
+| 之前 | 之后 |
+| --- | --- |
+| 超时只杀直接子进程（Windows 没有信号下传） | `taskkill /F /T /PID` 杀整棵子树 |
+| 新运行不知道上一次留下了什么 | 启动前 `reap_stale_agents()` 清掉并写进记录 |
+| 被杀与死亡在记录里长得一样 | `killed` / `reaped` / `stale_agents` 三个字段分开 |
+
+证据：`tests/test_harness_reap.py` 11 项（含"杀不掉要报告不要抛""正常返回不是被杀"
+两个反例，以及一条 AST 守卫：`attempt` 里不许再出现 `subprocess.run(timeout=…)`）；
+全量 2516 passed in 375.92 s，退出码 0。
+
+局限：按镜像名收进程；换名或换二进制的 agent 收不到，长久的答案是租约本身。
+
+下一步：上一次运行里 `unknown_exploration_waits_for_existing_transaction` 在 39 步里
+出现 17 次——有待结事务时循环几乎原地等，这是同一类"看起来在工作、其实没在推进"的问题。
