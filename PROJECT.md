@@ -4798,3 +4798,42 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 - 实机上 (755,238) 的节点点击落地但没开面板（`the_page_stayed_on_the_map_after_the_click`）。
 - `the_suspended_exploration_is_left_for_the_entry` 在一局仍然有效的探索上被触发，把那局 F2 放弃了。
 - `MirrorRunner.step` 的 30 个输入后分支、语料口径放宽，均未动。
+
+## DSH continuation: 回答"不"的节点，已经把任务结束了 (2026-10-23)
+
+本阶段（第 31 轮末）落地：**动作节点失败即结束运行**。这是两次获授权实机运行里丢掉同一次点击的直接原因。
+
+### 三个最关键的原因（本轮证据）
+
+1. **失败节点之后循环还在继续。** 两份实机日志里，`node_action_unconfirmed` 之后三秒就发出一次点击，
+   框架回 `controller not found [controller_id=]`：任务已被 Maa 拆掉，输入无处可去。
+2. **守卫问错了证人。** D71 从句柄读 id，而句柄的 id 不是空的；空 id 只出现在框架构造的请求里。
+3. **失败被记成"可能只是慢一帧"。** `_act` 的注释当时就是这么写的——两次实机证明这句安慰是错的。
+
+### 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/maalimbus/runner.py` | 新增 `ActionNodeFailed`（原因 `an_action_node_failed_and_the_task_was_torn_down`）；`_act` 失败时 `device.end_session(...)` 后抛出；`FakeDevice` 增加 `end_session`/`ended` 并让三道输入门拒绝 |
+| `tests/test_native_action.py` | `..._is_journalled_not_fatal` 改写为 `..._ends_the_run`：记一行 + 抛出 + 之后点击被 `the session ended` 拒绝；成功路径改用 `_Succeeded` |
+
+### 实机证据（两次，均 `input_sent: true`）
+
+| 运行 | 结尾 | 关键行 |
+| --- | --- | --- |
+| `packaged-mirror-20261023-221109` | 看门狗按 240 s 预算杀掉（退出码 124，226 事件） | `terminal unknown_or_bounded_transition_exhausted` → `node_action_unconfirmed` → 点击 (966,591) 被框架拒绝 |
+| `packaged-mirror-20261023-223237` | 同上（165 s，222 事件） | 同型：`node_action_unconfirmed` → 点击 (958,595) 被拒 |
+
+### 前后对比
+
+| 指标 | 改动前 | 改动后 |
+| --- | --- | --- |
+| 动作节点失败后的行为 | 继续读、继续点，点到死控制器 | 结束会话，之后任何输入都被拒绝 |
+| 实机一局的结尾 | 预算杀（无自身原因） | 循环自己停（`an_action_node_failed_and_the_task_was_torn_down`） |
+| 全套测试 | 2351 passed | **2362 passed in 355.38 s，pytest 退出码 0** |
+
+### 未做（明确留给下一阶段）
+
+- `MirrorDrive` 为什么两次都以 `unknown_or_bounded_transition_exhausted` 失败——现在它是每局最后一行，好查了。
+- 绑定句柄为什么在任务被拆后仍报非空 id（D71 的局限）。
+- `the_suspended_exploration_is_left_for_the_entry` 在有效探索上被触发、把 F2 那局放弃的问题。
