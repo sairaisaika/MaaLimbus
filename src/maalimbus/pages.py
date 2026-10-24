@@ -756,6 +756,9 @@ STOP_KINDS = {
     # A submitted turn that never showed a page is a transition the run cannot
     # complete from here: the only honest action is to stop (D97/D98).
     'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
+    # A deployment input went out and the page never confirmed it: the transaction is
+    # unfinished, so the loop stops rather than guess (D116).
+    'Unverified deployment input remains pending': 'refused_by_policy',
     'the_screen_never_changed_and_no_input_was_sent': 'unreadable_text',
     'the_exempt_input_repeated_without_progress': 'attempts_exhausted',
     'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',

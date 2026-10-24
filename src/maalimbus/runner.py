@@ -3265,7 +3265,23 @@ class MirrorRunner:
                     stopped=self._record(page,record,frame,candidates,None,'deployment_order_digits_incomplete_after_retries')
                     return self._result(page,None,False,stopped,done=True)
             except ValueError as error:
-                stopped=self._record(page,record,frame,candidates,None,str(error))
+                text=str(error)
+                if text=='Unverified deployment input remains pending':
+                    # The input went out and the page still looks like it did: what is
+                    # pending is the *verification*, not a decision. Ending the run here
+                    # costs everything after the deployment (`packaged-mirror-20261024-
+                    # 105501` stopped at 35 s on the first deployment it clicked), so the
+                    # loop waits a bounded number of reads for the page to answer and only
+                    # then names the pending input (D116).
+                    waited=int(state.get('deployment_pending_waits') or 0)+1
+                    state['deployment_pending_waits']=waited
+                    if waited<=DEPLOYMENT_PENDING_WAITS:
+                        self.note('deployment_input_awaiting_verification', page=page,
+                                  waits=waited, limit=DEPLOYMENT_PENDING_WAITS)
+                        return self._result(page,None,False,None,waiting=True,
+                                            pause=self.settings.transition_interval)
+                    state['deployment_pending_waits']=0
+                stopped=self._record(page,record,frame,candidates,None,text)
                 return self._result(page,None,False,stopped,done=True)
         if page == 'DUNGEON_TEAM':
             from .team_vision import selected_saved_team
@@ -6023,6 +6039,9 @@ def _load_registry():
 
 # How many consecutive waiting steps are tolerated before the loop ends itself.
 WAIT_LIMIT = 40
+# How many reads a sent deployment input may stay unverified before the run names it
+# instead of ending on the first one (D116: live `packaged-mirror-20261024-105501`).
+DEPLOYMENT_PENDING_WAITS = 4
 
 
 def wait_decision(waited, *, limit=WAIT_LIMIT):

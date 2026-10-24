@@ -5822,3 +5822,17 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 
 **下一步。** 把“一场战斗里循环为什么退出”量清楚：这次 3 次节点点击之后又走了 `the_exploration_must_be_resumed…`
 的绕行，说明战斗结束后回到地图的路径仍会误触发探索重置。
+
+## DSH continuation: 发出去的输入在等验证 (2026-10-24)
+
+**本轮（D116）。** 实机 `packaged-mirror-20261024-105501` 只活了 35 秒：在 PRE_BATTLE_TEAM 点了一次
+“清除继承的队伍顺序”，随即以 `Unverified deployment input remains pending` 结束。原因是 `prepare` 的这条
+`ValueError` 被 step 的兜底 except 当成了“决策失败”。
+
+**改法。** 只对这条消息做有界等待（4 次读取），期间不发输入；到界才带着未结事务停下，并把计数清零。
+未结事务按 `refused_by_policy` 归类（动作 `stop`），因为“发出去但验证不了”正是必须保护数据的情形。
+
+**测试。** 全量 `2634 passed in 338.91 s`，退出码 0；新增 `tests/test_deployment_pending_wait.py` 3 个用例；
+`pages.STOP_KINDS` 按规则补上这条结束原因（守卫 `test_hold_gap` 先红后绿，说明规则在起作用）。
+
+**下一步。** 在实机上确认这条路径：布阵点击之后应看到 `deployment_input_awaiting_verification`，而不是立刻结束。
