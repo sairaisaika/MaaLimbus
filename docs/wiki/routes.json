@@ -1106,7 +1106,14 @@
         "rebind before the next input",
         "路由交回",
         "action task ended",
-        "781 s"
+        "781 s",
+        "send_through_a_task",
+        "point_override",
+        "PIPELINE_INPUT_NODES",
+        "pipeline_inputs",
+        "任务承载输入",
+        "carried by a task",
+        "DirectHit"
       ],
       "sources": [
         {
@@ -1234,10 +1241,6 @@
           "needle": "class RouteLost(RuntimeError):"
         },
         {
-          "path": "src/maalimbus/runner.py",
-          "needle": "    def _send(self, what, post, timeout=10):"
-        },
-        {
           "path": "tools/probe_route.py",
           "symbol": "main"
         },
@@ -1250,8 +1253,20 @@
           "needle": "    def mark_action_ended(self):"
         },
         {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def point_override(entry, payload, *, post_delay=150):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def send_through_a_task(self, what, payload):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "PIPELINE_INPUT_NODES = "
+        },
+        {
           "path": "tests/test_input_route_after_action.py",
-          "symbol": "test_an_input_after_a_finished_task_rebinds_first"
+          "symbol": "test_an_input_after_a_finished_task_goes_through_a_task"
         }
       ],
       "docs": [
@@ -1290,7 +1305,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d85-no-local-predicate-can-predict-a-rejected-click-so-the-door-is-one-repair",
         "docs/wiki/zh_cn/2.3-decisions.md#d85-没有本地谓词能预测被拒的点击门就只是一次修复",
         "docs/wiki/en_us/2.3-decisions.md#d86-a-task-that-ends-hands-the-route-back-so-the-next-input-asks-for-it",
-        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要"
+        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要",
+        "docs/wiki/en_us/2.3-decisions.md#d87-a-refused-input-is-carried-by-a-task-not-repaired-by-asking-for-the-route",
+        "docs/wiki/zh_cn/2.3-decisions.md#d87-被拒的输入改由任务承载而不是去要回路由"
       ],
       "tests": [
         "tests/test_run_endings.py",

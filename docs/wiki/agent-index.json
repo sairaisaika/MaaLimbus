@@ -109,14 +109,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 764,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 800,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1870,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 1927,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "agent/recognition.py",
@@ -139,8 +139,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def _page_after_a_failed_node(self, page):",
-          "line": 2416,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 2473,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "tests/test_entry_task_inside.py",
@@ -721,7 +721,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 209,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         }
       ]
     },
@@ -1003,19 +1003,19 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
           "line": 631,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 5061,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 5119,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
           "line": 658,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1056,8 +1056,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "self.note('map_nodes_offered',",
-          "line": 2587,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 2644,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1068,20 +1068,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def box_key(box):",
-          "line": 1410,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 1467,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _kind_rank(kind):",
-          "line": 1415,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 1472,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _resolve_map_click(self, page):",
-          "line": 2238,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 2295,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1617,7 +1617,14 @@
         "rebind before the next input",
         "路由交回",
         "action task ended",
-        "781 s"
+        "781 s",
+        "send_through_a_task",
+        "point_override",
+        "PIPELINE_INPUT_NODES",
+        "pipeline_inputs",
+        "任务承载输入",
+        "carried by a task",
+        "DirectHit"
       ],
       "sources": [
         {
@@ -1745,10 +1752,6 @@
           "needle": "class RouteLost(RuntimeError):"
         },
         {
-          "path": "src/maalimbus/runner.py",
-          "needle": "    def _send(self, what, post, timeout=10):"
-        },
-        {
           "path": "tools/probe_route.py",
           "symbol": "main"
         },
@@ -1761,8 +1764,20 @@
           "needle": "    def mark_action_ended(self):"
         },
         {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def point_override(entry, payload, *, post_delay=150):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def send_through_a_task(self, what, payload):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "PIPELINE_INPUT_NODES = "
+        },
+        {
           "path": "tests/test_input_route_after_action.py",
-          "symbol": "test_an_input_after_a_finished_task_rebinds_first"
+          "symbol": "test_an_input_after_a_finished_task_goes_through_a_task"
         }
       ],
       "docs": [
@@ -1801,7 +1816,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d85-no-local-predicate-can-predict-a-rejected-click-so-the-door-is-one-repair",
         "docs/wiki/zh_cn/2.3-decisions.md#d85-没有本地谓词能预测被拒的点击门就只是一次修复",
         "docs/wiki/en_us/2.3-decisions.md#d86-a-task-that-ends-hands-the-route-back-so-the-next-input-asks-for-it",
-        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要"
+        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要",
+        "docs/wiki/en_us/2.3-decisions.md#d87-a-refused-input-is-carried-by-a-task-not-repaired-by-asking-for-the-route",
+        "docs/wiki/zh_cn/2.3-decisions.md#d87-被拒的输入改由任务承载而不是去要回路由"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1849,19 +1866,19 @@
           "path": "src/maalimbus/runner.py",
           "needle": "class ReadNeverReturned(",
           "line": 562,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _unreadable_frame(",
-          "line": 2404,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 2461,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unreadable_rounds': 2,",
           "line": 187,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1951,7 +1968,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "ActionNodeFailed",
           "line": 535,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "tools/selfrun_mirror.py",
@@ -1969,7 +1986,7 @@
           "path": "src/maalimbus/runner.py",
           "needle": "'unknown_interval': 1.5,",
           "line": 176,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1986,32 +2003,26 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def note_binding_lost(self, reason):",
-          "line": 813,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 850,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "BINDING_GONE_AFTER_A_TORN_TASK = '",
           "line": 716,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "INPUT_NEEDS_A_TASK = ",
           "line": 722,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "class RouteLost(RuntimeError):",
-          "line": 726,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
-        },
-        {
-          "path": "src/maalimbus/runner.py",
-          "needle": "    def _send(self, what, post, timeout=10):",
-          "line": 867,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 742,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "tools/probe_route.py",
@@ -2022,20 +2033,38 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    route_suspect = False",
-          "line": 851,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 902,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def mark_action_ended(self):",
-          "line": 853,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 904,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def point_override(entry, payload, *, post_delay=150):",
+          "line": 754,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def send_through_a_task(self, what, payload):",
+          "line": 872,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "PIPELINE_INPUT_NODES = ",
+          "line": 725,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "tests/test_input_route_after_action.py",
-          "symbol": "test_an_input_after_a_finished_task_rebinds_first",
-          "line": 64,
-          "sha256": "b45e93a279a8ce17679ca5f4ce2fc1b31fb76962b0b796bde338cd6f65b7e839"
+          "symbol": "test_an_input_after_a_finished_task_goes_through_a_task",
+          "line": 84,
+          "sha256": "280ce85f860e3ddc85370356b55de0c98190f49ed4d02a349fcd58f6667166f1"
         }
       ]
     },
@@ -2322,8 +2351,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "binding_is_empty",
-          "line": 738,
-          "sha256": "d7929b03f844eab489258dea1b22a728acb30edb8364044ef30a442cf2517b7a"
+          "line": 774,
+          "sha256": "aef61080d8b3b4f6e210afaf1b4ae73d2fd432a031614d8d9a0ae1d1bec2d8e7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",

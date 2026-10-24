@@ -5340,3 +5340,30 @@ click/swipe、`_walk` 捕获 `RouteLost` 写 `input_withheld` 并以该理由结
 
 本轮 Efficiency：本轮回合计 2 次实机（150 s 与 900 s）与 1 次全量；900 秒运行因这次卡死没有产生有效推进
 （`floors: [3]`，无新楼层），定位成本 = 1 次运行。
+
+## DSH continuation: 被拒的输入改由任务承载（D87）
+
+D86 的 `post_connection` 在 900 秒实机 `evidence/runtime/packaged-mirror-20261024-025135`
+里被同一个空 id 拒绝（`handle_controller_post_connection controller not found [req.controller_id=""]`），
+job 一去不返，修复本身也卡住；而两秒前的两次读取经由同一 tasker 正常完成。
+
+| 项目 | 改前（D86） | 改后（D87） |
+| --- | --- | --- |
+| 修复方式 | `post_connection` 要回路由（空 id 时必然失败） | `post_task` + `pipeline_override` 定义单节点任务承载输入 |
+| 超时信任 | 框架自带 job 超时（实测不返回） | `jobs.wait_task` 自己轮询 `job.done`，10 秒上限 |
+| 动作之后的首个输入 | 先 `post_connection` 再发 | 直接由任务承载 |
+| 反例覆盖 | 重绑失败 → RouteLost | 无 tasker / 承载任务失败 / 非控制器错误 / 滑动，四条各自钉住 |
+
+改动：`src/maalimbus/runner.py`（`PIPELINE_INPUT_NODES`、`PIPELINE_INPUT_WINDOW`、`point_override()`、
+`MaaDevice.send_through_a_task()`、`_send(what, post, payload)`，`input_withheld` 增记 `pipeline_inputs`）、
+`tests/test_input_route.py` 与 `tests/test_input_route_after_action.py` 重写，
+`tests/test_click_binding.py` 与 `tests/test_runner.py` 中 D71/D85/D86 的断言按新契约重写。
+
+| 项目 | 结果 |
+| --- | --- |
+| 全量测试 | **`2453 passed in 309.12 s`，pytest 退出码 0**（改前 2448） |
+| 相邻套件 | 89 passed（runner/click_binding/input_route/after_action 合计） |
+| wiki | 23 routes、`snapshot_stale: false`、12 个 route 用例、`check_wiki` 0 problems |
+
+局限：每个输入只承载一次、十秒上限；承载失败仍以 `RouteLost` 命名结束，因为「起一个新任务」属于调用方。
+这次是**类别修复**：它把「预测/要回路由」这一整类尝试换成「走已知可用的那条路（任务）」。
