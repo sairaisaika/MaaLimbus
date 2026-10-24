@@ -545,7 +545,19 @@
         "pinch",
         "stall",
         "watchdog",
-        "hang"
+        "hang",
+        "回放阶梯",
+        "阶梯效用",
+        "rung",
+        "ladder_effect",
+        "rung_effect",
+        "LADDER_VIEW_EVIDENCE",
+        "moves_the_view",
+        "视野变化",
+        "view change",
+        "audit_ladder",
+        "ladder order",
+        "阶梯顺序"
       ],
       "sources": [
         {
@@ -559,19 +571,43 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "rung_effect"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "ladder_effect"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "needle": "LADDER_VIEW_EVIDENCE = {"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "ladder_order_problems"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "ladder_view_class"
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/9-execution-plan.md#feature-9-3-8",
-        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-8"
+        "docs/wiki/en_us/9-execution-plan.md#feature-9-3-8",
+        "docs/wiki/en_us/2.3-decisions.md#d62-a-rung-that-cannot-be-measured-cannot-be-ordered",
+        "docs/wiki/zh_cn/2.3-decisions.md#d62-改不了视野的恢复手段就没法排序"
       ],
       "tests": [
-        "tests/test_recovery_ladder.py"
+        "tests/test_recovery_ladder.py",
+        "tests/test_ladder_evidence.py"
       ],
       "checks": [
-        "python -m pytest -q tests/test_recovery_ladder.py"
+        "python -m pytest -q tests/test_recovery_ladder.py tests/test_ladder_evidence.py",
+        "python tools/audit_ladder.py"
       ],
-      "boundary": "阶梯只移动视角、不按游戏控件，也不修判据错误（见 9.3.5/9.3.7）；停滞看门狗只在没有新帧时结束进程。"
+      "boundary": "阶梯只移动视角、不按游戏控件，也不修判据错误（见 9.3.5/9.3.7）；停滞看门狗只在没有新帧时结束进程。 D62: 一级的效用按\"观察面是否变化\"测（map_observed 的框），框不等于节点，所以 rarely 是下界；顺序只按 MAP 的证据改，wait 恒为最后一级。"
     },
     {
       "id": "plan",

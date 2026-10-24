@@ -4062,7 +4062,7 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
 | 机械故障门 | 层内出现 `self.uuid =` 即红；任何 import `maalimbus.replay` 的工具若没先把 `src` 放路径即红（抓到 `verify_sinner_card_roi_native.py` 的 docstring 污染） |
 | 邻居 import 清点 | `tools/replay_inventory.py` → `tools that take a controller class from another tool: 46`（40 `Replay` + 8 `Offline`，8 个源工具），比 D52 文字里的 29 多——那次只数了 `Replay` |
 | 全套测试 | **2197 passed in 188.27 s，pytest exit 0**（上一轮 2189，+8） |
-| 实机（只读） | `tools/map_live_observe.py` 只读一帧，`input_sent: false`；F2 `2/6 [HARD]` 那局仍未动 |
+| 实机（只读） | `tools/map_live_observe.py` 只读一帧（`map-live-20261023-204846`），`input_sent: false`；F2 `2/6 [HARD]` 那局仍未动 |
 
 **这一类故障的形状（第 5 次出现）。** D44 的 ratchet 只数一种写法；D45 的 `CONTRACTS`
 没人读；D50 的清单丢了十局；D51 的读回只以回调形式存在；这一轮 D52 的清点只证明"源码
@@ -4332,7 +4332,7 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 | 相关套件（10 个） | — | **205 passed in 60.91 s** |
 | 全套 | 2236 passed, 2 skipped | 2245 passed in 202.11 s, exit 0 |
 | pipeline 规格 | ok | `ok — 0 problem(s)`（805 节点 / 16 agent 名 / 6 入口） |
-| 实机 | — | 只读一帧，`input_sent: false`，第 2 层进度未动 |
+| 实机 | — | 只读一帧（`map-live-20261023-204846`），`input_sent: false`，第 2 层进度未动 |
 
 ### 提交
 
@@ -4376,3 +4376,40 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 1. `1/274` 指出的问题：恢复阶梯的第一步是 `bind_control`（重绑控件），它几乎必然"成功"却几乎必然不推进；需要按 `pages.ladder_for` 的每一级分别统计，找出真正会推进的那一级。
 2. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
 3. `clear_rate` 只有探索一半：`reward_claim_transaction` 的领奖结果没有进 journal，`reward_task.writer` 是补上它的位置。
+
+## DSH continuation: 看不见效果的手段，排不出顺序 (2026-10-23)
+
+**三个最关键原因（本轮层次：恢复阶梯的效用判定）**
+
+1. **恢复效用按"页面是否变化"来判**，而梯度手段移动的是取景窗：274 次恢复 0 次换页
+   （D58），于是"恢复无用"这个结论被建立在一个与被测对象无关的判据上。
+2. **证据早就在日志里，却从来没人拿它判阶梯**：`map_observed` 的框就是观察面，142 局
+   档案已经能回答，不需要新的实机消耗。
+3. **阶梯的顺序是口味，不是证据**：第 1 级 `drag_down` 在 MAP 上 72 次里只改过 18 次
+   视野，而 `drag_up` 14/14、`pan_left` 7/8 排在其后；而大多数停摆根本走不到第 3 级
+   （第 0 级 157 次、第 1 级 77 次、第 2–5 级 3–16 次）。
+
+**改了什么**
+
+- `run_metrics.view` / `rung_effect` / `ladder_effect`：按 (手势, 页面) 判定一次恢复
+  有没有改变观察面，`measured`/`changed`/`same`/`change_rate` 齐全，无前后帧不计入。
+- `pages.LADDER_VIEW_EVIDENCE`（按手势+页面声明）、`LADDER_STATIC_BY_DESIGN`
+  （`('wait','DRIVE')`：固定布局只许等待）、`ladder_view_class`（≥50% 且 ≥3 次）、
+  `ladder_order_problems`（`rarely` 不得排在 `moves_the_view` 之前，`wait` 豁免且必须最后）。
+- `runner.RECOVERY_LADDER` 重排：`pinch_out, drag_up, pan_left, pan_right, drag_down, wait`。
+- `tools/audit_ladder.py`（退出码 1 仅当声明与档案不一致），`tests/test_ladder_evidence.py`
+  17 例；`tests/test_recovery_ladder.py` 改为从阶梯推导期望。
+
+**测量的现状（142 局留存档案，只读）**
+
+| 项 | 数值 |
+|---|---|
+| 测得恢复次数 | 270（274 次里 4 次缺前后帧） |
+| `drag_down` on MAP | 18 / 72 改视野（0.25） |
+| `drag_up` / `pan_left` / `pan_right` on MAP | 14/14、7/8、6/7 |
+| `wait` on MAP vs on DRIVE | 7/9 与 0/38（后者为设计） |
+| 全套测试 | 2279 passed in 200.16 s, exit 0 |
+| 实机 | 只读一帧（`map-live-20261023-204846`），`input_sent: false`，未点任何东西，F2 2/6 未动 |
+
+**下一单位**：框不等于节点——把节点几何纳入 `map_observed`（或在 MAP 恢复后记录候选集），
+才能把 `rarely` 从"下界"变成"判决"；以及 30 个 post-input `plan['reason']` 块。
