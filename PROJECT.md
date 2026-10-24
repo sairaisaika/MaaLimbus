@@ -5603,3 +5603,13 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 
 **下一步**：`battle_progress_stalled`（回合提交后多久算"没进展"、`battle_rounds` 与 `TURN` 计数器怎么对齐）
 是下一个实机单元；它决定 10 分钟一层能不能达成。
+
+## DSH continuation: 字幕不是数值（2026-10-24）
+
+D100：D99 把 `WAVE` 字幕当成波次数值，导致 `battle_progress` 的签名恒为 `('WAVE', None)`，
+一次实机在提交一个回合后就以 `battle_progress_stalled` 结束。现在 HUD 报 `wave=None/turn=None`（字幕进
+diagnostics），失明时以**画面变化**判定进展：画面在动就继续，只有冻结才会交给恢复阶梯。
+
+实机 `packaged-mirror-20261024-064826` 暴露了下一个阻塞点：HUD 已认出（`scene: BATTLE_HUD`），但窗口层
+返回 `battle_has_no_proven_control`——`start_button` 与 `auto_assign_buttons` 都没读到，说明这套 UI 里
+提交控件得靠别的锚点（右上红色 `DONE` 横幅或拨盘本身）来定位。

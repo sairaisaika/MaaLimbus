@@ -344,7 +344,13 @@ def battle_hud(records, size):
         # those together, the turn caption is allowed to be the part the OCR lost.
         controls = hud_controls(records, size)
         if controls >= 2:
-            return dict(wave=wave[0].text, turn=None, wave_box=wave[0].box, turn_box=None,
+            # The caption is not the value: `WAVE` says this is the battle, `1/1` would
+            # say which wave.  Reporting the caption as the wave would hand the loop a
+            # signature that can never move, and the stall guard would then end a healthy
+            # fight (live `063942`, `battle_progress_stalled` after one turn).  Both
+            # values stay None, which `battle_progress` already knows is blindness and
+            # not staleness (D100).
+            return dict(wave=None, turn=None, wave_box=wave[0].box, turn_box=None,
                         diagnostics=controls and ['Win', 'Rate', 'Damage', 'MAX'],
                         scope='HUD identity from the wave caption plus its own controls; '
                               'turn caption unreadable, no turn submission or victory claim')

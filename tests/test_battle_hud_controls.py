@@ -31,8 +31,7 @@ LIVE = [Text('WAVE', (22, 43, 44, 22), 0.999876),
 def test_the_live_battle_frame_is_the_battle_hud():
     hud = battle_vision.battle_hud(LIVE, SIZE)
     assert hud is not None
-    assert hud['wave'] == 'WAVE'
-    assert hud['turn'] is None
+    assert hud['wave'] is None and hud['turn'] is None
     assert hud['turn_box'] is None
     assert 'no turn submission or victory claim' in hud['scope']
     assert vision.classify(LIVE, LOCALE, SIZE) == 'BATTLE_HUD'
@@ -61,3 +60,36 @@ def test_a_complete_hud_keeps_its_turn_caption():
     records = LIVE + [Text('TURN', (20, 97, 42, 22), 1.0), Text('5', (78, 97, 20, 22), .99)]
     hud = battle_vision.battle_hud(records, SIZE)
     assert hud is not None and hud['turn'] == '5'
+
+
+def test_the_unreadable_signature_is_not_the_caption():
+    """D100: the promoted HUD reports no values, so the progress guard sees blindness."""
+    hud = battle_vision.battle_hud(LIVE, SIZE)
+    assert hud['wave'] is None and hud['turn'] is None
+
+
+def test_a_blind_fight_that_keeps_moving_is_not_a_stall():
+    from maalimbus.runner import battle_progress
+
+    state = {}
+    verdicts = [battle_progress(state, (None, None), rounds=3, frame=f'frame-{n}')
+                for n in range(40)]
+    assert set(verdicts) == {'progress'}
+
+
+def test_a_blind_fight_on_a_frozen_frame_still_ends():
+    from maalimbus.runner import battle_progress
+
+    state = {}
+    verdicts = [battle_progress(state, (None, None), rounds=3, frame='same')
+                for _ in range(20)]
+    assert verdicts[0] == 'progress' and verdicts[-1] == 'blind_long'
+
+
+def test_a_read_signature_still_decides_on_its_numbers():
+    from maalimbus.runner import battle_progress
+
+    state = {}
+    assert [battle_progress(state, ('1/1', '4'), rounds=3, frame='a') for _ in range(3)] == ['progress'] * 3
+    assert battle_progress(state, ('1/1', '4'), rounds=3, frame='b') == 'stalled'
+    assert battle_progress(state, ('1/1', '5'), rounds=3, frame='c') == 'progress'

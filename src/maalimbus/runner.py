@@ -2205,7 +2205,7 @@ def map_escape_wanted(state):
     return int(state.get('map_refused_streak') or 0) >= MAP_ESCAPE_REFUSALS
 
 
-def battle_progress(state, signature, *, rounds):
+def battle_progress(state, signature, *, rounds, frame=None):
     """Whether this battle round shows progress, and if not, what that justifies.
 
     A guard that cannot see progress must not claim its absence.  Live run
@@ -2220,6 +2220,15 @@ def battle_progress(state, signature, *, rounds):
     Returns ``'progress'``, ``'stalled'`` or ``'blind_long'``.
     """
     if signature == (None, None):
+        # D100: an unread signature is not evidence either way, so the frame stands in
+        # for it.  The live HUD after D99 (packaged-mirror-20261024-063942) reads the
+        # WAVE caption and no values at all, and a fight where the numbers are
+        # unreadable but the screen keeps moving is a fight that is going somewhere.
+        if frame is not None and frame != state.get('battle_frame_sig'):
+            state['battle_frame_sig'] = frame
+            state['battle_blind'] = 0
+            state['battle_sig'], state['battle_rounds'] = signature, 1
+            return 'progress'
         state['battle_blind'] = state.get('battle_blind', 0) + 1
         state['battle_sig'], state['battle_rounds'] = signature, 1
         if state['battle_blind'] > max(rounds * 4, 12):
@@ -3043,7 +3052,8 @@ class MirrorRunner:
             # submitting legitimately repeat the same two controls for many turns, but
             # it is not exempt from progress: the wave and turn readouts have to move.
             signature = (record.get('wave'), record.get('turn'))
-            verdict = battle_progress(state, signature, rounds=settings.battle_rounds)
+            verdict = battle_progress(state, signature, rounds=settings.battle_rounds,
+                                      frame=frame)
             if verdict == 'stalled':
                 stopped = self._record(page, record, frame, candidates, None,
                                        'battle_progress_stalled')
