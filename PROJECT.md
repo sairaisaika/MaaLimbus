@@ -5980,3 +5980,18 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 **证据。** 相邻 7 套 **217 passed**；全量 **2673 passed in 368.21 s**，退出码 0；wiki 24 routes、`snapshot_stale: false`、`check_wiki` 0 problems。
 
 **下一处。** 同一份数据里还剩一个可量化的点：`loop_heartbeat` 145 次共 136.6 秒（每步约 0.94 秒的账外开销），下一步看它到底花在哪。
+
+## DSH continuation: 420 秒实机验证 D123（2026-10-24）
+
+`packaged-mirror-20261024-132342`（420 秒预算，`build/refreeze_agent.py` 之后）：
+
+| 项 | 结果 |
+| --- | --- |
+| 用时 / 结局 | 292.7 秒，比预算早停：`Selected theme successor map floor/name is not proven` |
+| 事件 / 点击 | 390 / 25 |
+| 层数 | **floors [3, 4]**（历史最好成绩，此前最好 3） |
+| 每次输入的读 | 25 次输入里 **22 次是 2 次读**（D123 之前地图点击固定 4 次） |
+
+分布：`2 次读 × 22`，剩下三次是 `29 / 19 / 12` 次读的极端情形（战斗与过渡）。所以 D123 把普通点击的读从 4 降到 2，而**长尾**仍在战斗/过渡上。
+
+**新的提前停止**：打完第 3 层、在 `THEME_PACKS` 选第 4 层主题时，主题事务的后继证明失败（`Selected theme successor map floor/name is not proven`），运行在 292 秒结束而不是跑到 420 秒。这是下一轮的单位。
