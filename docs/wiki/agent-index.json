@@ -1223,7 +1223,7 @@
           "path": "src/maalimbus/battle_vision.py",
           "needle": "SKILL_ROW_POINT = (",
           "line": 276,
-          "sha256": "a3110a918c5001add447ea6500b1edb44da45867be63f9ca171ab70ccbae635f"
+          "sha256": "d0589158010675162a2481a63814784d2bd270ac4aede05420563a745051e5b4"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -2726,26 +2726,26 @@
         {
           "path": "src/maalimbus/battle_vision.py",
           "needle": "TOGGLE_POINTS = {",
-          "line": 296,
-          "sha256": "a3110a918c5001add447ea6500b1edb44da45867be63f9ca171ab70ccbae635f"
+          "line": 298,
+          "sha256": "d0589158010675162a2481a63814784d2bd270ac4aede05420563a745051e5b4"
         },
         {
           "path": "src/maalimbus/battle_vision.py",
           "symbol": "auto_assign_buttons",
-          "line": 329,
-          "sha256": "a3110a918c5001add447ea6500b1edb44da45867be63f9ca171ab70ccbae635f"
+          "line": 357,
+          "sha256": "d0589158010675162a2481a63814784d2bd270ac4aede05420563a745051e5b4"
         },
         {
           "path": "src/maalimbus/battle_vision.py",
           "symbol": "submit_dial",
-          "line": 377,
-          "sha256": "a3110a918c5001add447ea6500b1edb44da45867be63f9ca171ab70ccbae635f"
+          "line": 405,
+          "sha256": "d0589158010675162a2481a63814784d2bd270ac4aede05420563a745051e5b4"
         },
         {
           "path": "src/maalimbus/battle_vision.py",
           "needle": "SKILL_ROW_POINT = (",
           "line": 276,
-          "sha256": "a3110a918c5001add447ea6500b1edb44da45867be63f9ca171ab70ccbae635f"
+          "sha256": "d0589158010675162a2481a63814784d2bd270ac4aede05420563a745051e5b4"
         }
       ]
     }

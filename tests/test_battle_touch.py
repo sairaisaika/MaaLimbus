@@ -78,7 +78,7 @@ def test_auto_assign_refuses_without_the_battle_page():
     turn = Text('TURN', (18, 95, 44, 24), .99)
     fixed = auto_assign_plan([wave, turn], size)
     assert fixed['target'] is not None
-    assert 'fixed point' in battle_vision.auto_assign_buttons([wave, turn], size)['scope']
+    assert 'measured median' in battle_vision.auto_assign_buttons([wave, turn], size)['scope']
 
 
 def test_turn_start_appears_only_after_auto_assign():

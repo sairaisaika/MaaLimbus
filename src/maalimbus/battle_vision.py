@@ -287,17 +287,21 @@ def begin_turn_plan(records, size, image=None):
     return dict(target=box, reason='submit_turn', wave=hud['wave'], turn=hud['turn'])
 
 
-#: The two auto-assignment toggles, measured on every archived `BATTLE_HUD` frame
-#: (2026-10-24): the `Win`/`Rate` caption union centred on (1622, 816) in 544 frames with
-#: its y band 790-839, and `Damage` centred on (1623, 876) in 541 frames with its y band
-#: 861-889, both on a 1920x1080 screen.  The spread is the arrow glyph beside each label,
-#: not a moving control, so the point is fixed and the operator is right that it can be
-#: pressed instead of rediscovered (D107).
-TOGGLE_POINTS = {'win_rate': (1622, 816), 'damage': (1623, 876)}
+#: The two auto-assignment toggles (D107, corrected by D114): D107 measured the caption
+#: union on 544 frames and read its spread as an arrow glyph; re-measuring 1,655 frames
+#: showed the spread is the *row* moving, so only the vertical place is a constant.
+# The toggles' *vertical* place is fixed; their horizontal place is not. Over 1,655
+# archived battle frames the `Win` caption sits at x 1,508-1,797 (median 1,510) and at
+# y 803-807, and `Damage` is exactly 70 px below it. The row ends where the last living
+# sinner's card ends, so the pair slides left as the party shrinks; D107's single point
+# (1,622) was the average of that spread and missed both ends by up to 100 px.
+TOGGLE_POINTS = {'win_rate': (1510, 806), 'damage': (1510, 876)}
+TOGGLE_X_RANGE = (1450, 1830)   # every archived `Win` caption, plus the button's own width
+TOGGLE_Y = {'win_rate': 806, 'damage': 876}
 TOGGLE_HALF = (60, 22)
 
 
-def toggle_boxes(size):
+def toggle_boxes(size, *, records=None):
     """The measured toggle boxes, scaled to this frame.
 
     A click target is a box, so the measured centre is given a half-size large enough to
@@ -306,8 +310,13 @@ def toggle_boxes(size):
     """
     width, height = float(size[0]), float(size[1])   # `find` reads size as (width, height)
     half_width, half_height = TOGGLE_HALF
+    points = dict(TOGGLE_POINTS)
+    if records:
+        anchor = _caption_x(records, size)
+        if anchor is not None:
+            points = {name: (anchor, TOGGLE_Y[name]) for name in TOGGLE_POINTS}
     boxes = {}
-    for name, (x, y) in TOGGLE_POINTS.items():
+    for name, (x, y) in points.items():
         boxes[name] = (int(round(x * width / 1920.0 - half_width)),
                        int(round(y * height / 1080.0 - half_height)),
                        2 * half_width, 2 * half_height)
@@ -324,6 +333,25 @@ def _battle_chrome(records, size):
         if find(records, pattern, (.0, .0, 1.0, .25), size, .85):
             return True
     return False
+
+
+def _caption_x(records, size):
+    """The x the toggles are at, read from whichever of their captions this frame shows.
+
+    The two labels are drawn one above the other at the row's right end, so a single
+    readable word locates both. Returns None when no caption is readable at all, and then
+    the measured median stands in.
+    """
+    for pattern, band in ((r'^Win$', (.60, .70, .98, .80)),
+                          (r'^Rate$', (.60, .70, .98, .80)),
+                          (r'^Damage$', (.60, .77, .98, .88))):
+        found = find(records, pattern, band, size, .85)
+        if len(found) == 1:
+            box = found[0].box
+            centre = int(round(box[0] + box[2] / 2.0))
+            if TOGGLE_X_RANGE[0] <= centre <= TOGGLE_X_RANGE[1]:
+                return centre
+    return None
 
 
 def auto_assign_buttons(records, size, *, positional=True):
@@ -348,11 +376,11 @@ def auto_assign_buttons(records, size, *, positional=True):
         # (live `tests/test_theme_vision.py::test_regular_battle_requires_numeric_turn_and_both_controls`).
         if not positional or not _battle_chrome(records, size):
             return None
-        fixed = toggle_boxes(size)
+        fixed = toggle_boxes(size, records=records)
         return {'win_rate': fixed['win_rate'], 'damage': fixed['damage'],
                 'positional': True,
-                'scope': 'auto-assignment toggles at their measured fixed points; '
-                         'the captions were not readable on this frame (D107)'}
+                'scope': 'auto-assignment toggles anchored on whichever caption this '
+                         'frame shows, else their measured median (D114)'}
     union = (min(win[0].box[0], rate[0].box[0]), min(win[0].box[1], rate[0].box[1]),
              max(win[0].box[0] + win[0].box[2], rate[0].box[0] + rate[0].box[2])
              - min(win[0].box[0], rate[0].box[0]),
