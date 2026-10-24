@@ -5392,3 +5392,51 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 
 局限：被放弃的线程会留到进程结束；它发出的请求可能仍在框架内飞行，所以循环把此类路由当作已失去直接结束，
 而不是往同一个洞里重试。
+
+## DSH continuation: 队伍是谁在场上的，和逃生口该等多久 (2026-10-24)
+
+本轮由用户的现场反馈开场：「怎么我看你 mumu 又一直没动」和「你用的还是 1 队结果一个流血不拿，
+你没有检测队伍的能力吗」。
+
+### 三个根因
+
+1. **计划与场上编队可以不一致，而日志不说。** 轮换用 slot 的 `keywords` 建礼物流计划，续跑的
+   局面却是另一套编队；`PRE_BATTLE_TEAM` 只看部署计数，从不读页面自己的 `TEAMS # N` 标题。
+   实机 `packaged-mirror-20261024-001120` 按 slot 2 的 `Charge`/`Tremor` 买礼，而局面是
+   slot 1 的 `Bleed`/`Poise`。
+2. **一次被拒就交出逃生口，把恢复阶梯整个跳过。** 实机
+   `packaged-mirror-20261024-040640`：点 `[1222,450,40,40]` 被拒 → 进度面板 → 面板把这一局
+   留在入口 → 入口对话框再续跑 → 同样的点击再被拒，70 秒两次换页、0 级阶梯。
+3. **静默停轮的机制已修好、但代价仍被付掉两次。** 同一次运行里，90 秒无事件由
+   `no_progress_watchdog` 当场点名并写下 `mirror_loop_stopped`（D88/D89 的现场验证），
+   这次是守卫在起作用，不是进程被第三方杀掉。
+
+### 本轮改动
+
+- `team_state()` 增加 `saved_team`；新增 `team_verdict()` / `gift_slot()`；`_check_team()`
+  在 `PRE_BATTLE_TEAM` 写 `team_verified` / `team_mismatch` 并保留 `state['team_seen']`；
+  `shop_saved_team_plan` 增加 `slot_source: screen | rotation`，礼物流计划跟随场上编队。
+- `MAP_ESCAPE_REFUSALS = 3` / `map_escape_wanted()`：地图形进度面板在第三次被拒后才交出，
+  前两次交给恢复阶梯；`step` 改为询问这个函数（D44 的分派棘轮要求，字面量会被计数）。
+- 新测试 `tests/test_team_verification.py`（11）与 `tests/test_map_escape.py`（6）。
+
+### 实机证据（本轮一次 300 s 授权运行）
+
+`evidence/runtime/packaged-mirror-20261024-040640`：`elapsed_s 345.2`、146 个事件、
+`floors: [3]`、`stop: the_budget_ended_the_run`；`window_no_progress`
+（`limit_seconds 90`）+ `mirror_loop_stopped`（`stop_path: no_progress_watchdog`）由循环自己写下。
+路径是一轮「MAP → DUNGEON_PROGRESS → UNKNOWN_DIALOG → HOME → DRIVE → MAP」的自毁循环，
+本轮的 D91 正是针对它的第一步。
+
+### 反例
+
+- 标题只有 `TEAMS` 没有数字时不算不一致；`gift_slot(None, None)` 是 `None`；
+- `map_refused_streak` 为 `None`/`'2'` 不算连拒（状态过 JSON 往返）；
+- 一次被判拒的点击若随后由 D76 改判为 `accepted`，计数清零，到不了阈值。
+
+### 已知局限
+
+- 续跑一局里，第一次进商店可能早于第一个战斗前页面，那段窗口仍按轮换的 slot 买礼；
+- `MAP_ESCAPE_REFUSALS = 3` 是策略数字（档案里逃生口前的阶梯样本很少），不是拟合结果；
+- 队伍检测读的是页面标题与部署徽章，**不**读每个罪人的关键词/协同：关键词来自用户在
+  `config/user-team-profiles.json` 里写的 slot 档案。
