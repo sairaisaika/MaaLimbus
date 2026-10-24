@@ -686,7 +686,8 @@ def read_portfolio(costs):
                 'note': ('no observation row records how long it took, so the cost of a '
                          'read can only be inferred from the gaps (D66) and not split '
                          'into node time and wrapper time (D68)')}
-    seconds = round(sum(cost['seconds'] for cost in costs), 1)
+    seconds = round(sum(cost['seconds'] for cost in costs
+                        if cost['seconds'] is not None), 1)
     by_event = {}
     for cost in costs:
         for event, entry in cost['by_event'].items():
@@ -696,12 +697,36 @@ def read_portfolio(costs):
     for entry in by_event.values():
         entry['seconds'] = round(entry['seconds'], 1)
         entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
+    phases = read_phases_of([cost.get('phases') for cost in costs])
     return {'value': {'measured': measured, 'rows': rows, 'seconds': seconds,
                       'mean': round(seconds / measured, 2),
+                      'phases': phases,
                       'by_event': dict(sorted(by_event.items(),
                                               key=lambda pair: -pair[1]['seconds']))},
             'basis': f'{measured} of {rows} read(s) carry their own duration',
             'note': None}
+
+
+def read_phases_of(phases):
+    """Add up the per-run phase splits that were actually measured.
+
+    The split is measured per read (D70) and per run (read_phases); this is the corpus
+    total.  A run that did not split counts as absent, never as zero seconds, so a corpus
+    of one splitting run beside 142 older ones reports that one run's split.
+    """
+    usable = [entry for entry in phases
+              if isinstance(entry, dict) and entry.get('measured')]
+    if not usable:
+        return {'measured': 0, 'mean': {key: None for key in PHASE_KEYS}}
+    measured = sum(entry['measured'] for entry in usable)
+    mean = {}
+    for key in PHASE_KEYS:
+        # weight each run's mean by how many reads it measured, or a run of 1 read would
+        # count as much as a run of 26
+        total = sum(((entry.get('mean') or {}).get(key) or 0.0) * entry['measured']
+                    for entry in usable)
+        mean[key] = round(total / measured, 2) if measured else None
+    return {'measured': measured, 'mean': mean}
 
 
 def read_split(costs):

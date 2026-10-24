@@ -677,6 +677,25 @@ def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
     return looked
 
 
+EMPTY_BINDINGS = ('', None)
+
+
+def binding_is_empty(controller):
+    """Whether this binding cannot route input at all.
+
+    MaaFW answers `controller not found [controller_id=]` and the tap never reaches the
+    game while screenshots keep working -- measured live on 2026-10-23 in
+    packaged-mirror-20261023-153338 (x=963 y=593) and again in
+    packaged-mirror-20261023-221109 (x=966 y=591), where the guard let the click through
+    because the id was `None` and only `''` was checked (D71).
+
+    A controller *without* the attribute is a stand-in that cannot answer the question, so
+    it is let through rather than accused (`tests/test_runner.py`'s device stub has no
+    `id`). One predicate, because every input door has to give the same answer.
+    """
+    return getattr(controller, 'id', 'present') in EMPTY_BINDINGS
+
+
 class MaaDevice:
     """A :class:`Device` over a MaaFramework controller.
 
@@ -731,25 +750,27 @@ class MaaDevice:
             raise RuntimeError('the session ended (%s); refusing to post a %s'
                                % (self.ended, what))
 
+    def binding_is_empty(self):
+        return binding_is_empty(self.controller)
+
+    def _refuse_empty_binding(self, what):
+        if self.binding_is_empty():
+            raise RuntimeError('the_controller_binding_is_empty')
+
     def click(self, x, y):
         self._refuse_if_ended('click')
-        # A click posted while the binding is empty is undeliverable: MaaFW answers
-        # `controller not found [controller_id=]` and the tap never reaches the game
-        # (measured live 2026-10-23 in packaged-mirror-20261023-153338, x=963 y=593).
-        # Refuse here, where the binding is still ours to check, instead of posting it.
-        # Only an *empty* id is provably undeliverable; a controller without the
-        # attribute is a stand-in that cannot answer the question, so it is let through
-        # rather than accused (`tests/test_runner.py`'s device stub has no `id`).
-        if getattr(self.controller, 'id', None) == '':
-            raise RuntimeError('the_controller_binding_is_empty')
+        self._refuse_empty_binding('click')
         self._wait(self.controller.post_click(int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
         self._refuse_if_ended('swipe')
+        self._refuse_empty_binding('swipe')
         self._wait(self.controller.post_swipe(int(x1), int(y1), int(x2), int(y2),
                                               int(duration_ms)), timeout=15)
 
     def key(self, code):
+        self._refuse_if_ended('key')
+        self._refuse_empty_binding('key')
         post = getattr(self.controller, 'post_key', None)
         if post is None:
             raise NotImplementedError('this controller has no key input')
@@ -1768,6 +1789,10 @@ def run_flow(tasker, controller, journal, directory, deadline, steps, *, observe
             # screenshots keep working, so record what the handle says about itself
             # right before the click. One line per click; nothing here changes input.
             self._note_controller_state(controller)
+            # The flow path posts through the raw controller, so it needs the same answer
+            # the device door gives: an empty binding cannot route a click (D71).
+            if binding_is_empty(controller):
+                raise RuntimeError('the_controller_binding_is_empty')
             # A click that never returns must not stay pending: the next capture
             # would talk to a request that is still in flight (the 0xC0000409 crash).
             dispatch(controller, controller.post_click(*point), timeout=10, deadline=deadline,

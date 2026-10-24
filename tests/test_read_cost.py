@@ -218,3 +218,62 @@ def test_every_observation_writer_hands_over_its_phases():
             rendered = [ast.get_source_segment(source, value) or '' for value in unpacked]
             assert any('timing_fields' in text for text in rendered), (
                 f'{event} writer at line {call.lineno} records {rendered} instead of timing_fields()')
+
+
+def test_a_corpus_with_one_timed_run_totals_only_the_timed_one():
+    """The first timed run in a corpus of untimed ones must not add `None` to a number.
+
+    Measured live on 2026-10-23: the initialised corpus held 142 untimed runs and the first
+    authorised run, which is the first to record its own read durations. read_portfolio summed
+    every cost's seconds, so one timed run beside one untimed run raised
+    `TypeError: unsupported operand type(s) for +: 'int' and 'NoneType'` -- "all measured" and
+    "none measured" were the only shapes the tests held (D71).
+    """
+    timed = {'rows': 2, 'measured': 2, 'seconds': 3.0,
+             'by_event': {'map_observed': {'seconds': 3.0, 'n': 2}}}
+    untimed = {'rows': 2, 'measured': 0, 'seconds': None, 'by_event': {}}
+    portfolio = run_metrics.read_portfolio([timed, untimed])
+    assert portfolio['value']['seconds'] == 3.0
+    assert portfolio['value']['measured'] == 2
+    assert portfolio['value']['rows'] == 4
+    assert portfolio['value']['mean'] == 1.5
+    assert '2 of 4' in portfolio['basis']
+
+
+def test_the_portfolio_adds_up_the_phase_splits_it_was_given():
+    """A per-run split that the corpus never totals is an instrument nobody reads (D70/D71)."""
+    one = {'rows': 1, 'measured': 1, 'seconds': 1.0,
+           'by_event': {'map_observed': {'seconds': 1.0, 'n': 1}},
+           'phases': {'measured': 1, 'mean': {'ocr_seconds': 0.8, 'roi_seconds': 0.0,
+                                             'classify_seconds': 0.2}}}
+    two = {'rows': 1, 'measured': 1, 'seconds': 2.0,
+           'by_event': {'map_observed': {'seconds': 2.0, 'n': 1}},
+           'phases': {'measured': 1, 'mean': {'ocr_seconds': 1.6, 'roi_seconds': 0.0,
+                                             'classify_seconds': 0.4}}}
+    old = {'rows': 1, 'measured': 0, 'seconds': None, 'by_event': {}}
+    phases = run_metrics.read_portfolio([one, two, old])['value']['phases']
+    assert phases['measured'] == 2
+    assert phases['mean']['ocr_seconds'] == 1.2
+    assert phases['mean']['classify_seconds'] == 0.3
+    assert phases['mean']['roi_seconds'] == 0.0
+
+
+def test_a_corpus_with_no_split_says_so_rather_than_zero():
+    phase = run_metrics.read_phases_of([None, {'measured': 0, 'mean': {}}])
+    assert phase['measured'] == 0
+    assert all(value is None for value in phase['mean'].values())
+
+
+def test_a_run_of_one_read_does_not_weigh_as_much_as_a_run_of_many():
+    """The corpus mean is weighted by reads measured, not by runs."""
+    wide = {'rows': 4, 'measured': 4, 'seconds': 4.0,
+            'by_event': {'map_observed': {'seconds': 4.0, 'n': 4}},
+            'phases': {'measured': 4, 'mean': {'ocr_seconds': 2.0, 'roi_seconds': 0.0,
+                                               'classify_seconds': 0.2}}}
+    narrow = {'rows': 1, 'measured': 1, 'seconds': 3.0,
+              'by_event': {'map_observed': {'seconds': 3.0, 'n': 1}},
+              'phases': {'measured': 1, 'mean': {'ocr_seconds': 3.0, 'roi_seconds': 0.0,
+                                                 'classify_seconds': 0.0}}}
+    phases = run_metrics.read_portfolio([wide, narrow])['value']['phases']
+    assert phases['measured'] == 5
+    assert phases['mean']['ocr_seconds'] == 2.2   # (2.0*4 + 3.0*1) / 5
