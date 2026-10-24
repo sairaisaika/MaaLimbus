@@ -184,3 +184,166 @@ def stopped_in_events(records):
     """
     return any(record.get('event') in STOP_EVENTS for record in records)
 
+
+
+# --- the six figures phase 6 asks for, from one definition --------------------
+# A frame the observer actually read.  `scene_mismatch` is the map node's own record of a
+# frame it read and could not identify -- still a recognition call.  Leaving it out made a
+# run that spent its whole window on an unreadable page look like it read nothing
+# (`evidence/runtime/map-live-20261023-203103`: 19 frames, 19 `scene_mismatch`).
+READ_EVENTS = ('map_observed', 'battle_observed', 'scene_mismatch')
+
+# Five verified floors is the dungeon's own definition of a finished exploration.  A
+# complete *run* also claims the payout, which no journal event records, so this counts
+# the exploration half and the report says so rather than calling it "clear rate".
+CLEAR_FLOORS = 5
+
+MEASURES = (
+    'clear_rate',
+    'mean_seconds',
+    'reads_per_step',
+    'recovery_advanced_rate',
+    'no_progress_stop_rate',
+    'unconfirmed_purchases',
+)
+
+
+def _stamps(rows):
+    """The journal's own clock, sorted.  `utc` is ISO-8601 with an offset."""
+    from datetime import datetime
+    stamps = []
+    for row in rows:
+        value = row.get('utc')
+        if not isinstance(value, str):
+            continue
+        try:
+            stamps.append(datetime.fromisoformat(value))
+        except ValueError:
+            continue
+    return sorted(stamps)
+
+
+def efficiency(rows):
+    """One run's efficiency numbers; `None` where the journal cannot supply one.
+
+    Kept apart from `summarise`, which counts *events*: these are what phase 6 asks for,
+    and a figure that was not measured must be `None` rather than zero -- a zero is a
+    claim, and this session has already published two wrong numbers by letting a default
+    stand in for a measurement (D50's denominator, D56's dismissal).
+    """
+    base = summarise(rows)
+    stamps = _stamps(rows)
+    seconds = (stamps[-1] - stamps[0]).total_seconds() if len(stamps) >= 2 else None
+    reads = sum(1 for row in rows if row.get('event') in READ_EVENTS)
+    steps = sum(1 for row in rows if row.get('event') == 'loop_heartbeat')
+    floors = [row.get('floor') for row in rows
+              if row.get('event') == 'map_observed' and isinstance(row.get('floor'), int)]
+    sent = sum(1 for row in rows if row.get('event') == 'shop_purchase_sent')
+    confirmed = sum(1 for row in rows if row.get('event') == 'shop_purchase_confirmed')
+    return {
+        'seconds': None if seconds is None else round(seconds, 1),
+        'reads': reads,
+        'steps': steps,
+        'reads_per_step': round(reads / steps, 2) if steps else None,
+        'reached_floor': max(floors) if floors else None,
+        'explored': bool(floors) and max(floors) >= CLEAR_FLOORS,
+        'ending': base['ending'],
+        'recoveries': base['recoveries'],
+        'advanced': base['recovery_advanced']['advanced'],
+        'recovery_advanced_rate': base['recovery_advanced']['rate'],
+        'unconfirmed_purchases': (max(0, sent - confirmed)
+                                  if (sent or confirmed) else None),
+        'events': base['events'],
+    }
+
+
+def _archives(directories=None):
+    import pathlib
+    if directories is None:
+        root = pathlib.Path(__file__).resolve().parents[2] / 'evidence' / 'runtime'
+        # The corpus is "directories that wrote a journal", the same definition
+        # `tools/audit_runs.py` uses: a directory with no journal is not a run that
+        # measured zero, it is a run there is nothing to measure.
+        directories = sorted(path.parent
+                             for path in root.glob('packaged-mirror-*/events.jsonl'))
+    return [pathlib.Path(directory) for directory in directories]
+
+
+def _rows_of(directory):
+    import json
+    import pathlib
+    path = pathlib.Path(directory) / 'events.jsonl'
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()
+            if line.strip()]
+
+
+def metrics(runs):
+    """The six figures across many runs, each with its basis and its honest note."""
+    total = len(runs)
+    timed = [run['seconds'] for run in runs if run['seconds'] is not None]
+    stepped = sum(run['steps'] or 0 for run in runs)
+    reads = sum(run['reads'] or 0 for run in runs)
+    recoveries = sum(run['recoveries'] or 0 for run in runs)
+    advanced = sum(run['advanced'] or 0 for run in runs)
+    purchases = [run['unconfirmed_purchases'] for run in runs
+                 if run['unconfirmed_purchases'] is not None]
+    died = sum(1 for run in runs if run['ending']['kind'] == 'died')
+    errored = sum(1 for run in runs if run['ending']['kind'] == 'error')
+    explored = sum(1 for run in runs if run['explored'])
+    return {
+        'clear_rate': {
+            'value': round(explored / total, 3) if total else None,
+            'basis': f'{explored} of {total} runs reached floor {CLEAR_FLOORS}',
+            'note': 'exploration half only: a complete run also claims the payout, '
+                    'which no journal event records'},
+        'mean_seconds': {
+            'value': round(sum(timed) / len(timed), 1) if timed else None,
+            'basis': f'{len(timed)} of {total} runs carry two or more timestamps',
+            'note': None if timed else 'no run carries two timestamps, so there is no duration to average'},
+        'reads_per_step': {
+            'value': round(reads / stepped, 2) if stepped else None,
+            'basis': f'{reads} reads over {stepped} heartbeats',
+            'note': ('one read is one observer call, retries included' if stepped else
+                     'no run wrote a heartbeat, so there is no per-step rate')},
+        'recovery_advanced_rate': {
+            'value': round(advanced / recoveries, 3) if recoveries else None,
+            'basis': f'{advanced} of {recoveries} recoveries advanced the run',
+            'note': None if recoveries else 'no recovery was recorded, so there is no rate'},
+        'no_progress_stop_rate': {
+            'value': round((died + errored) / total, 3) if total else None,
+            'basis': f'{died} died + {errored} errored of {total}',
+            'note': 'a run that ended without a stop record counts here'},
+        # Two different facts look alike here: a corpus where every purchase was confirmed
+        # and a corpus where nothing was ever bought.  The first is a measurement of the
+        # risk; the second is the absence of one, and saying "0 unconfirmed" for both would
+        # publish a zero that was never observed.
+        'unconfirmed_purchases': (
+            {'value': sum(purchases) if purchases else 0,
+             'basis': f'{sum(purchases) if purchases else 0} purchases sent without a '
+                      'confirmed read-back',
+             'note': 'the risk figure: an unconfirmed spend is what the reservation '
+                     'layer protects'} if any(purchases) else
+            {'value': 0,
+             'basis': (f'{len(purchases)} run(s) wrote purchase events and every one was '
+                       'confirmed' if purchases else
+                       f'no run of {total} wrote a purchase event'),
+             'note': ('every spend in these runs was confirmed; a different corpus '
+                      'would be needed to show the failure the reservation protects'
+                      if purchases else
+                      'the risk is absent, not measured: nothing was bought')}),
+    }
+
+
+def portfolio(directories=None):
+    """Every run plus the six figures, so a report is one command, not a recount."""
+    runs = []
+    for directory in _archives(directories):
+        rows = _rows_of(directory)
+        if not rows:
+            continue
+        entry = {'run': directory.name}
+        entry.update(efficiency(rows))
+        runs.append(entry)
+    return {'runs': runs, 'measures': metrics(runs)}
