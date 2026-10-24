@@ -4753,3 +4753,48 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 - 归档 142 局没有分段字段，语料继续报"未测量"。
 - `MirrorRunner.step` 的 30 个输入后分支、语料口径、以及实机输入验证（用户已授权可随时 halt，
   通关则领奖）尚未动。
+
+## DSH continuation: 落不下去的输入，不该被发出去 (2026-10-23)
+
+本阶段（第 31 轮后半）落地：**把"发不出去的输入"从静默挂起变成有名字的结束**，并修掉它暴露出的两处度量缺陷。
+本轮第一次获授权的实机运行，因此也有了真实数据。
+
+### 三个最关键的原因（本轮证据）
+
+1. **守卫只认一种"空"。** 既有守卫拿 `controller.id == ''` 判断，而这次绑定的 id 是 `None`；
+   于是点击被发出、框架回 `controller not found [controller_id=]`，随后 240 s 内一片空白。
+2. **洞在每一个输入门上，不只点击。** `swipe`、`key`、以及 flow 路径（直接用原始控制器投递）都没有同一句判断。
+3. **语料第一次"混合"时度量崩了。** 旧 142 局没有读取自述时长，本轮运行带了；`read_portfolio` 把 `None` 当数字相加，
+   第一处崩出 `TypeError`，第二处把已经装好的分段耗时（D70）从未汇总。
+
+### 改动
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/maalimbus/runner.py` | 模块级 `EMPTY_BINDINGS = ('', None)` 与 `binding_is_empty(controller)`；`click`/`swipe`/`key`/flow 点击投递前统一询问 |
+| `src/maalimbus/run_metrics.py` | `read_portfolio` 跳过未测量运行；新增 `read_phases_of` 汇总分段耗时（按读取次数加权） |
+| `tests/test_click_binding.py` | 新增 7 例：`''`/`None` 拒绝、正常绑定照发、无 id 桩不被指控、swipe/key 同答、flow 在构造前询问 |
+| `tests/test_read_cost.py` | 新增 4 例：混合语料只汇总已测量、分段耗时汇总、无分段时如实为零、按次数加权 |
+
+### 实机证据（获授权，`input_sent: true` 8 次点击）
+
+`evidence/runtime/packaged-mirror-20261023-221109`：226 事件、`floors: [2]`、`stop: the_budget_ended_the_run`。
+前八次点击落地（RESUME_DIALOG → MAP → MAP → MAP → DUNGEON_PROGRESS → UNKNOWN_DIALOG → HOME → DRIVE），
+第九次 (966,591) 被框架拒绝后整局挂到预算。27 条 `map_observed` 全部带自述时长（1.73 s 首读、0.56 s 后续）。
+
+### 前后对比
+
+| 指标 | 改动前 | 改动后 |
+| --- | --- | --- |
+| `None` 绑定上的点击 | 发出→框架拒绝→挂到预算 | 发出前拒绝→有名字的结束 |
+| 覆盖的输入门 | 只有 `click`，只认 `''` | `click`/`swipe`/`key`/flow |
+| 混合语料上的效率工具 | `TypeError` 直接崩 | 正常输出，未测量如实标注 |
+| 分段耗时 | 每局有、汇总无 | 汇总并加权（OCR 0.21 s / 分类 0.15 s） |
+| 全套测试 | 2351 passed | **2362 passed in 333.54 s，pytest 退出码 0** |
+
+### 未做（明确留给下一阶段）
+
+- **绑定为什么会在第八与第九次点击之间变空**，截图却仍然工作——这是下一轮的头号问题。
+- 实机上 (755,238) 的节点点击落地但没开面板（`the_page_stayed_on_the_map_after_the_click`）。
+- `the_suspended_exploration_is_left_for_the_entry` 在一局仍然有效的探索上被触发，把那局 F2 放弃了。
+- `MirrorRunner.step` 的 30 个输入后分支、语料口径放宽，均未动。

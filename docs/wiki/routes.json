@@ -1205,7 +1205,15 @@
         "截图耗时",
         "measure_screencap",
         "input policy",
-        "输入策略"
+        "输入策略",
+        "EMPTY_BINDINGS",
+        "binding_is_empty",
+        "the_controller_binding_is_empty",
+        "空绑定",
+        "empty binding",
+        "controller not found",
+        "发不出去的输入",
+        "input door"
       ],
       "sources": [
         {
@@ -1223,20 +1231,31 @@
         {
           "path": "tools/measure_screencap.py",
           "symbol": "main"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "binding_is_empty"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "read_phases_of"
         }
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d69-the-capture-half-was-named-not-priced",
-        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价"
+        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价",
+        "docs/wiki/en_us/2.3-decisions.md#d71-an-input-that-cannot-land-must-not-be-posted",
+        "docs/wiki/zh_cn/2.3-decisions.md#d71-落不下去的输入不该被发出去"
       ],
       "tests": [
-        "tests/test_screencap_pricing.py"
+        "tests/test_screencap_pricing.py",
+        "tests/test_click_binding.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_screencap_pricing.py",
         "python tools/measure_screencap.py --binary build/mxu-probe-271/maafw --count 3"
       ],
-      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。"
+      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。 D71: 空绑定（`\"\"` 或 `None`）在任何输入门前都会被拒绝；这不解释绑定为什么会在运行中变空。"
     }
   ]
 }

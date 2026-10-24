@@ -63,14 +63,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 690,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "line": 709,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1663,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "line": 1684,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "agent/recognition.py",
@@ -626,7 +626,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 200,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         }
       ]
     },
@@ -865,31 +865,31 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
           "line": 602,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4699,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "line": 4724,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
           "line": 629,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
           "line": 240,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
           "line": 281,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -913,13 +913,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "node_view",
           "line": 214,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "self.note('map_nodes_offered',",
-          "line": 2264,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "line": 2289,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         }
       ]
     },
@@ -1520,13 +1520,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 95,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 120,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "tools/audit_runs.py",
@@ -1538,31 +1538,31 @@
           "path": "src/maalimbus/runner.py",
           "needle": "class ReadNeverReturned(",
           "line": 533,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _unreadable_frame(",
-          "line": 2150,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "line": 2175,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unreadable_rounds': 2,",
           "line": 178,
-          "sha256": "a44626280ed7c9d78c61969b674ffeba0b70432e74caea6f42f01e65b0da4430"
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
           "line": 345,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
           "line": 494,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "tools/audit_efficiency.py",
@@ -1580,19 +1580,19 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = (",
           "line": 317,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_budget",
           "line": 560,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_portfolio",
-          "line": 735,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "line": 760,
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "tools/audit_time.py",
@@ -1604,19 +1604,19 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "        'heartbeats': heartbeats,",
           "line": 385,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_cost",
           "line": 609,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_split",
-          "line": 707,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "line": 732,
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "agent/recognition.py",
@@ -1628,7 +1628,7 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_phases",
           "line": 654,
-          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         },
         {
           "path": "agent/recognition.py",
@@ -1842,7 +1842,15 @@
         "截图耗时",
         "measure_screencap",
         "input policy",
-        "输入策略"
+        "输入策略",
+        "EMPTY_BINDINGS",
+        "binding_is_empty",
+        "the_controller_binding_is_empty",
+        "空绑定",
+        "empty binding",
+        "controller not found",
+        "发不出去的输入",
+        "input door"
       ],
       "sources": [
         {
@@ -1860,20 +1868,31 @@
         {
           "path": "tools/measure_screencap.py",
           "symbol": "main"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "binding_is_empty"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "read_phases_of"
         }
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d69-the-capture-half-was-named-not-priced",
-        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价"
+        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价",
+        "docs/wiki/en_us/2.3-decisions.md#d71-an-input-that-cannot-land-must-not-be-posted",
+        "docs/wiki/zh_cn/2.3-decisions.md#d71-落不下去的输入不该被发出去"
       ],
       "tests": [
-        "tests/test_screencap_pricing.py"
+        "tests/test_screencap_pricing.py",
+        "tests/test_click_binding.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_screencap_pricing.py",
         "python tools/measure_screencap.py --binary build/mxu-probe-271/maafw --count 3"
       ],
-      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。",
+      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。 D71: 空绑定（`\"\"` 或 `None`）在任何输入门前都会被拒绝；这不解释绑定为什么会在运行中变空。",
       "locations": [
         {
           "path": "src/maalimbus/adb_device.py",
@@ -1898,6 +1917,18 @@
           "symbol": "main",
           "line": 82,
           "sha256": "b1bb5d78941d37b84783b75575831585aa4286051e9b447b5090fd48e0744c83"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "binding_is_empty",
+          "line": 683,
+          "sha256": "fafeb717569fc3e498bee6cc87ed989535cc98d6f4ffe9bf2474cad6e1dd47d3"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "read_phases_of",
+          "line": 710,
+          "sha256": "0771e53dcd787a91e1bc4f1f23a59d45aac44349c57dad8760408e2f413b4567"
         }
       ]
     }
