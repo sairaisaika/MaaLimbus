@@ -249,3 +249,51 @@ def test_the_two_measurement_tools_count_the_same_archive_the_same_way():
     measure = report['measures']['no_progress_stop_rate']
     expected = f'{counts["died"]} died + {counts["error"]} errored of {len(corpus)}'
     assert measure['basis'] == expected, (measure['basis'], expected)
+
+
+# --- D80: a rate over runs nobody gave time to clear is a statement about the budget -----
+
+
+def _floor_run(floor, *, stop_reason='loop_deadline_exceeded'):
+    return [
+        _row('map_observed', '2026-10-24T00:00:00Z', scene='MAP'),
+        _row('map_observed', '2026-10-24T00:00:10Z', scene='MAP', floor=floor),
+        _row('mirror_loop_stopped', '2026-10-24T00:00:20Z', reason=stop_reason,
+             stop_path='agent_loop', steps=2),
+    ]
+
+
+def test_a_run_that_ended_on_its_callers_clock_says_so():
+    run = run_metrics.efficiency(_floor_run(2))
+    assert run['budget_ended'] is True
+    other = run_metrics.efficiency(_floor_run(2, stop_reason='page_unreadable_after_waiting'))
+    assert other['budget_ended'] is False
+
+
+def test_the_clear_rate_says_how_much_of_it_was_a_cap():
+    report = run_metrics.metrics([run_metrics.efficiency(_floor_run(2))])
+    note = report['clear_rate']['note']
+    assert '1 of 1 runs were ended by their callers budget' in note
+    assert 'D80' in note
+
+
+def test_the_floor_the_loop_reached_is_its_own_figure():
+    runs = [run_metrics.efficiency(_floor_run(2)), run_metrics.efficiency(_floor_run(3))]
+    report = run_metrics.metrics(runs)
+    assert report['floor_progress']['value'] == 2.5
+    assert 'best floor 3' in report['floor_progress']['basis']
+    assert '2 of 2 runs reached a floor' in report['floor_progress']['basis']
+
+
+def test_a_corpus_that_never_walked_a_floor_is_not_a_progress_of_zero():
+    rows = [_row('map_observed', '2026-10-24T00:00:00Z', scene='MAP'),
+            _row('mirror_loop_stopped', '2026-10-24T00:00:10Z', reason='loop_deadline_exceeded',
+                 stop_path='agent_loop', steps=1)]
+    report = run_metrics.metrics([run_metrics.efficiency(rows)])
+    assert report['floor_progress']['value'] is None
+    assert 'none of 1 runs reached a floor' in report['floor_progress']['basis']
+
+
+def test_the_progress_figure_sits_next_to_the_clear_rate():
+    assert run_metrics.MEASURES.index('floor_progress') == (
+        run_metrics.MEASURES.index('clear_rate') + 1)

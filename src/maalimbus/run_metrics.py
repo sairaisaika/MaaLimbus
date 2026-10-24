@@ -351,6 +351,7 @@ PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_ski
 
 MEASURES = (
     'clear_rate',
+    'floor_progress',
     'payout_rate',
     'mean_seconds',
     'reads_per_step',
@@ -419,6 +420,11 @@ def efficiency(rows, directory=None):
         'reads_per_step': round(reads / steps, 2) if steps else None,
         'reached_floor': max(floors) if floors else None,
         'explored': bool(floors) and max(floors) >= CLEAR_FLOORS,
+        # D80: a run that ended on `loop_deadline_exceeded` was stopped by its caller's
+        # wall clock, not by anything the loop learned.  Every rate that divides by the
+        # corpus has to say how much of it was capped, because a corpus of 150 s runs
+        # cannot measure a five-floor clear no matter how many runs it holds.
+        'budget_ended': (base.get('ending') or {}).get('reason') == 'loop_deadline_exceeded',
         'ending': base['ending'],
         'recoveries': base['recoveries'],
         'advanced': base['recovery_advanced']['advanced'],
@@ -468,14 +474,30 @@ def metrics(runs):
     died = sum(1 for run in runs if run['ending']['kind'] == 'died')
     errored = sum(1 for run in runs if run['ending']['kind'] == 'error')
     explored = sum(1 for run in runs if run['explored'])
+    capped = sum(1 for run in runs if run.get('budget_ended'))
+    walked = [run['reached_floor'] for run in runs if run.get('reached_floor')]
     paid = [run['payout'] for run in runs if run['payout'] is not None]
     claimed = sum(1 for payout in paid if payout['claimed'])
     return {
         'clear_rate': {
             'value': round(explored / total, 3) if total else None,
             'basis': f'{explored} of {total} runs reached floor {CLEAR_FLOORS}',
-            'note': 'exploration half only: a complete run also claims the payout, which '
-                    '`payout_rate` reports; before D63 no journal event recorded the claim'},
+            'note': ('exploration half only: a complete run also claims the payout, which '
+                     '`payout_rate` reports; before D63 no journal event recorded the claim. '
+                     f'{capped} of {total} runs were ended by their callers budget '
+                     '(`loop_deadline_exceeded`), so this rate is a statement about the '
+                     'budget as much as about the loop (D80)')},
+        # A clear rate over runs nobody gave enough time to clear says nothing about the
+        # loop; the floor the loop actually reached per run is the figure that moves.  It
+        # is measured over the runs that walked at least one floor, because a run capped
+        # before its first floor is not evidence about progress.
+        'floor_progress': {
+            'value': round(sum(walked) / len(walked), 2) if walked else None,
+            'basis': (f'best floor {max(walked)}; {len(walked)} of {total} runs reached a '
+                      'floor (mean over those runs)' if walked else
+                      f'none of {total} runs reached a floor'),
+            'note': (None if walked else
+                     'no run walked a floor, so there is no progress to average')},
         'payout_rate': {
             'value': round(claimed / len(paid), 3) if paid else None,
             'basis': f'{claimed} of {len(paid)} runs that recorded a payout outcome claimed it',
