@@ -186,6 +186,10 @@ def _defaults():
         # is nine hundred seconds of a four hundred second budget.  A frame that is
         # merely loading recovers within a round or two, which is what this covers.
         'unreadable_rounds': 2,
+        # How long a page nobody can read may be waited on while a transaction is open
+        # (D96).  The generic wait budget is forty loop steps, which spent a whole run
+        # before it said anything on `packaged-mirror-20261024-053406`.
+        'transaction_waits': 3,
         # A wedged recognition never returns, so the loop is watched from outside it:
         # with no new frame for this many seconds the process ends itself loudly
         # instead of sitting silent (live run pi-20261015-191205, 19:16:07).
@@ -236,6 +240,11 @@ class Settings:
                 or isinstance(self._values['unknown_interval'], bool)
                 or not 0.0 < self._values['unknown_interval'] <= 30.0):
             raise ValueError('Invalid bounded unknown-page interval')
+        # D96: how long a page nobody can read may be waited on while a transaction is
+        # open.  Bounded like every other wait, so a deadlock cannot spend the run.
+        if (type(self._values['transaction_waits']) is not int
+                or not 0 <= self._values['transaction_waits'] <= 40):
+            raise ValueError('Invalid bounded transaction wait count')
 
     def __getattr__(self, name):
         try:
@@ -714,6 +723,10 @@ EMPTY_BINDINGS = ('', None)
 # there for six minutes, with no journal line and no watchdog.  ``controller.id`` still
 # read non-empty, so the door is closed from the inside (D82) rather than guessed from
 # the outside.
+# A pending receipt/submit nobody can read is its own ending (D96): the page is
+# unreadable, so no reader can close the transaction, and the generic wait budget
+# spends the run before saying so.
+PENDING_TRANSACTION_UNREADABLE = 'the_outcome_of_a_pending_transaction_is_unreadable'
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 #: D84: a task that finished -- successfully or not -- takes the controller route with it.
 #: Live `packaged-mirror-20261024-014706`: the entry task ended *successfully* on MAP at
@@ -2929,6 +2942,8 @@ class MirrorRunner:
             if page=='UNKNOWN':
                 recovered=self._explore_unknown(record,frame,candidates)
                 if recovered is not None:return recovered
+                if self._pending_transaction_wait():
+                    return self._result(page,None,False,PENDING_TRANSACTION_UNREADABLE,done=True)
                 # An animation is not a page.  A battle's skill cutscene carries a
                 # handful of fragmentary reads and no control of any kind
                 # (evidence/runtime/packaged-mirror-20261022-043142/frame-0069 reads
@@ -5011,6 +5026,27 @@ class MirrorRunner:
         return self.summary()
 
     # -- records -----------------------------------------------------------
+    def _pending_transaction_wait(self):
+        """A page nobody can read while a transaction is open is a deadlock candidate.
+
+        The generic wait budget is forty steps of the loop's own interval, so a pending
+        transaction on an unreadable page can spend a whole run before anything is said
+        (measured: 260 of 346 attributed seconds on 2026-10-24).  This wait gets its own
+        budget, and when that is spent the run ends with a reason that names what was
+        open -- the start of a diagnosis instead of the end of a budget.
+        """
+        blockers=self.state.get('unknown_blockers') or []
+        if not blockers:
+            self.state['transaction_waits']=0
+            return False
+        waited=int(self.state.get('transaction_waits',0))+1
+        self.state['transaction_waits']=waited
+        if waited<=int(self.settings.transaction_waits):
+            return False
+        self.note('pending_transaction_wait_exhausted',blocked_by=blockers,waited=waited,
+                  page=self.state.get('page'),limit=int(self.settings.transaction_waits))
+        return True
+
     def _explore_unknown(self,record,frame,candidates):
         """Try independently read navigation controls, never unresolved payments."""
         explorer=self.exploration
@@ -5019,11 +5055,24 @@ class MirrorRunner:
         transactions=(self.grace_transaction,self.initial_transaction,
                       self.deployment_transaction,self.theme_transaction,
                       self.floor_gift_transaction,self.shop_transaction)
-        if active.get('victory') or active.get('phase')=='entry_pending' or any(
-                tx and any((tx.data or {}).get(k) for k in ('pending','receipt_pending','submit_pending'))
-                for tx in transactions):
-            self.note('unknown_exploration_waits_for_existing_transaction',input_sent=False)
+        # The gate below is not silent any more (D96): measured on
+        # `packaged-mirror-20261024-053406`, 51 of these waits plus 42 transition waits
+        # made 260 of the run's 346 attributed seconds, and the run ended on the generic
+        # `the_loop_waited_without_a_new_page` -- with no way to say what was open.
+        blockers=[]
+        if active.get('victory'): blockers.append('active.victory')
+        if active.get('phase')=='entry_pending': blockers.append('active.entry_pending')
+        for tx in transactions:
+            name=getattr(tx,'name',None) or type(tx).__name__.replace('Transaction','_transaction')
+            for key in ('pending','receipt_pending','submit_pending'):
+                if tx is not None and (tx.data or {}).get(key):
+                    blockers.append('%s.%s' % (str(name).strip('_'), key))
+        self.state['unknown_blockers']=blockers
+        if blockers:
+            self.note('unknown_exploration_waits_for_existing_transaction',
+                      blocked_by=blockers,input_sent=False)
             return None
+        self.state['unknown_blockers']=[]
         candidate=explorer.choose(record)
         if candidate is None:return None
         box=candidate['box'];x,y,w,h=box

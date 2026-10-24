@@ -733,6 +733,9 @@ STOP_KINDS = {
     # run -- a fresh task is a new run, not a recovery of this one, and the viewport
     # ladder cannot reach a session that no longer exists.
     'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
+    # D96: the page never became readable, so the only honest recovery is another read
+    # -- which the blocked-wait budget has already refused to spend.
+    'the_loop_waited_without_a_new_page': 'unreadable_text',
     'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',
     # D84: a task that finished releases the controller route, so a loop that is about to
     # send input with no task running can only stop -- it cannot rebuild the task.
@@ -852,9 +855,9 @@ PLANS_THE_INDEX_CANNOT_NAME = {}
 # without being named.  Naming a page is the fix, and it needs its own evidence: adding a
 # page to `expect` says only that landing there does not disprove the input.
 SUCCESSORS_THE_ARCHIVE_SAW = {
-    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 15, 'EVENT_CHECK': 8,
+    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 15, 'EVENT_CHECK': 9,
                                                   'EVENT_CHECK_RESULT': 7,
-                                                  'EVENT_CHECK_READY': 3},
+                                                  'EVENT_CHECK_READY': 4},
     'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8,
                                                         'EVENT_RESULT_READY': 7},
     'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 9, 'GIFT_GET': 3},
