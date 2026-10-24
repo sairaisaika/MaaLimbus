@@ -4841,3 +4841,43 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 **改动后实测（第三次获授权实机运行，`evidence/runtime/packaged-mirror-20261023-224524`）**：
 `exit: 1`、`elapsed_s: 129.0`、217 事件、7 次点击，`stop: an_action_node_failed_and_the_task_was_torn_down`。
 同一处 `MirrorDrive` 失败再次出现，但这一次**循环自己停下并说明原因**，不再挂到看门狗预算（前两次为 `exit: 124`）。
+
+## DSH continuation: 一个无法继续"它被要求继续的那一局"的任务 (2026-10-23)
+
+**三条根因（这一轮重新落到"任务"这一层）**
+
+1. **打包任务没有它最常遇到的那一页。** 实机跑到 DRIVE 点卡片 → `MIRROR_ENTRY` → 之后每一帧都是
+   `RESUME_DIALOG`（未完成一局的对话框）。任务节点表里没有这个状态的节点，于是 `MirrorEnter` 不匹配、
+   `on_error` 触发、`LimbusUnknown` 以 `unknown_or_bounded_transition_exhausted` 终止：134 个事件
+   （108 次 `scene_mismatch` + 23 次 `semantic_frame_proposal`）花在一个死胡同里。
+2. **"已经在一局里"这条路径只存在于窗口层。** Python 侧认得 RESUME_DIALOG 并知道该点 Resume，
+   打包任务不认得——同一个知识有两个所有者，其中一个从来没被写进流水线。
+3. **失败被当成"要停止"，而不是"要换一条路"。** D72 让循环在被拆任务时诚实地停下；但那之后
+   没有任何东西能把这个任务重新接回那一局。
+
+**改动**（真流水线 + 三帧回放证明）
+
+| 版本 | 点击 | 识别 | 结局 |
+| --- | --- | --- | --- |
+| 改前 | `[[647, 485]]` | `DRIVE` | 在 `RESUME_DIALOG` 上 `unknown_or_bounded_transition_exhausted` |
+| 改后 | `[[690, 500], [963, 602], [1644, 740]]` | `DRIVE`、`RESUME_DIALOG`、`MIRROR_ENTRY` | 走到入场页 |
+
+- `assets/resource/base/pipeline/mirror.json`：新增 `MirrorResume`（`limbus_scene` 识别 `RESUME_DIALOG` +
+  `resume` token，ROI `[.38,.505,.62,.585]`，`target: True`），挂进 `MirrorHard` 与 `MirrorDrive` 的 `next`；
+  节点数 794 → 795，`verify_pipeline_spec` 报 806 个可达节点（含 `Window*`）。
+- `assets/resource/{en,jp}/locale.json`：新增 `resume` 词表（`^Resume$` / `Resume|再開|続きから`）。
+- `tests/test_entry_task_resume.py`：9 例，其中三例是拿实机数据构造的反例（去掉 token / 把 ROI 拉到盖住
+  `Halt Exploration` / 抽掉 `en` 的 `resume` 词）。
+- `tests/test_pipeline_scenes.py` 的冻结场景表补 `RESUME_DIALOG`；`src/maalimbus/pages.py` 的 `STOP_KINDS`
+  为 D72 的结束原因补了类（`refused_by_policy` → `stop`：任务已被拆，唯一诚实的恢复动作是停这一次运行）。
+
+**教训：`tools/prepare_resources.py` 会重写成熟资源树。** 直接跑它会把 `interface.json` 从 14.5 万行
+砍到 400 行、`mirror.json` 从 9.4k 砍到 33 个节点。这一轮踩了一次，用 `git checkout -- assets/` 恢复后
+改为直接编辑 JSON 再补 `dist/` 副本（`tools/verify_latest_local_install.py` 要求仓库与安装树逐字节一致）。
+
+**证据**：`build/verify_resume_replay.py`（真 `Tasker` + 真 `limbus_scene`，回放两次运行自己的帧，
+零游戏输入）；全量套件 **2371 passed in 229.10 s，pytest 退出码 0**（上轮 2362，+9）；
+`audit_hold_gap` → `still unclassified (hold) 0`，`stop` 3；`verify_pipeline_spec` → `ok — 0 problem(s)`。
+
+**下一个单元**：一次有授权的实机入场运行（预算内），看那一局 F2 是否真的往前走；
+窗口层 `the_suspended_exploration_is_left_for_the_entry` 仍会在"没过期的一局"上丢弃进度。
