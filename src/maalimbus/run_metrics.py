@@ -491,6 +491,56 @@ def metrics(runs):
     }
 
 
+# ------------------------------------------------------------------ map clicks (D75)
+
+# The map's candidate list is nine kinds of detected box (`map_clicks`), and a click's
+# verdict used to say which box was refused but not what the reader thought it was.
+# `gold_badge_node` and `lattice_step` arrive as 190x190 tiles whose centre is often
+# empty space, while `lit_icon`/`bright_lit_icon` arrive as the 40x40 glyph the game
+# marks the step it will accept with -- so "which kind lands" is the question a run has
+# to answer before the map can be trusted, and the journal now carries it.
+
+CLICK_VERDICTS = ('accepted', 'rejected', 'superseded')
+
+
+def click_kinds(directories=None):
+    """Clicks by candidate kind: sent, accepted, rejected, superseded."""
+    by_kind = {}
+    declared = 0
+    sent = 0
+    for directory in _archives(directories):
+        for row in _rows_of(directory):
+            if row.get('event') != 'map_click_result':
+                continue
+            sent += 1
+            kind = row.get('kind')
+            if kind:
+                declared += 1
+            entry = by_kind.setdefault(kind or 'unrecorded',
+                                       {name: 0 for name in CLICK_VERDICTS})
+            entry['sent'] = entry.get('sent', 0) + 1
+            verdict = row.get('outcome')
+            if verdict in CLICK_VERDICTS:
+                entry[verdict] += 1
+    return {'sent': sent, 'declared': declared, 'by_kind': by_kind}
+
+
+def click_kind_report(kinds):
+    """A table plus the line that says whether it is measured at all."""
+    rows = []
+    for kind in sorted(kinds['by_kind'], key=lambda name: -kinds['by_kind'][name]['sent']):
+        entry = kinds['by_kind'][kind]
+        taken = entry['accepted'] + entry['rejected']
+        rows.append({**entry, 'kind': kind,
+                     'rate': round(entry['accepted'] / taken, 2) if taken else None})
+    measured = kinds['declared'] > 0
+    return {'rows': rows, 'measured': measured,
+            'basis': '%d of %d click verdicts name a candidate kind' % (kinds['declared'],
+                                                                       kinds['sent']),
+            'note': None if measured else
+                    'no verdict names a kind, because the writer that records it is newer (D75)'}
+
+
 def portfolio(directories=None):
     """Every run plus the six figures, so a report is one command, not a recount."""
     runs = []

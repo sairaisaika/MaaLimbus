@@ -1286,6 +1286,30 @@ def overlaps(box, other):
     return x < ox + ow and ox < x + w and y < oy + oh and oy < y + h
 
 
+# The reader's kinds, ordered by how much the game's own marking says about them (D75).
+# `bright_lit_icon`/`lit_icon`/`lit_node`/`bright_lit_icon` are the glyph the client
+# draws on the step it will accept; the badge tiles are destinations whose click box is
+# the tile centre, which is empty space when the node sits on a corner.  Everything
+# unranked keeps its place after them rather than being dropped -- a frame that offers
+# only tiles must still offer something to try.
+CLICK_KIND_ORDER = ('bright_lit_icon', 'lit_icon', 'lit_node', 'lit_ring',
+                    'badge_mark', 'neutral_outline_candidate', 'gold_badge_node',
+                    'node_away_from_player', 'lattice_step')
+
+
+def box_key(box):
+    """A click box as a JSON-safe key: ``"678,353,40,40"``."""
+    return ','.join(str(int(v)) for v in list(box)[:4])
+
+
+def _kind_rank(kind):
+    """0 for the marked step, then the tiles; an unknown kind sorts with the tiles."""
+    try:
+        return CLICK_KIND_ORDER.index(kind)
+    except ValueError:
+        return len(CLICK_KIND_ORDER)
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -1323,6 +1347,19 @@ def candidates_of(directory, record):
     # were filtered against; nothing else records it (see `_map_verdict`).
     record['map_party'] = list(party) if party else None
     boxes = [list(item['box']) for item in clicks]
+    # The kind the reader gave a box never reached the journal, so a verdict could say
+    # which box was refused but not what the reader thought it was -- and `map_clicks`
+    # returns nine kinds across the archive (`gold_badge_node`, `lattice_step`,
+    # `lit_icon`, `bright_lit_icon`, `lit_ring`, ...).  A click that lands and a click
+    # that does nothing differ by kind, and that is the question the next run has to
+    # answer (D75).  The kind travels on the record the same way the party does.
+    # Keyed by the box as text, not as a tuple: this dict travels into the loop's state
+    # and the final result, and a tuple key makes `json.dumps` raise
+    # `TypeError: keys must be str, int, float, bool or None, not tuple` -- live run
+    # `packaged-mirror-20261023-233056` ended with `callback_failed` for exactly that.
+    record['map_candidate_kinds'] = {box_key(box): item.get('kind')
+                                     for box, item in zip(boxes, clicks)
+                                     if item.get('kind')}
     if party is None:
         # No party, no adjacency, no click.  Every frame of
         # `evidence/runtime/packaged-mirror-20261022-090550` read None while the board
@@ -1330,7 +1367,18 @@ def candidates_of(directory, record):
         # nothing" fallback then let the loop spend six clicks on nodes two steps away.
         # A frame that cannot say where the party is must say so, not guess.
         return name, []
-    return name, adjacent_to(party, boxes)
+    # Which box the loop tries first is a policy, and the reader has already said what
+    # each box is.  `map_clicks` claims in its own docstring that the marked step comes
+    # first, but it returns the 190x190 badge tiles before the bright glyph, and a tile's
+    # centre is often the empty floor between two nodes: live run
+    # `packaged-mirror-20261023-232612` clicked `gold_badge_node` twice and the map
+    # refused both (`the_page_stayed_on_the_map_after_the_click`), while the one
+    # `bright_lit_icon` box was never reached because it sat fourth in the list.  The
+    # bright glyph is the game's own "this is the step it will accept" mark, so it goes
+    # first; the tie inside a rank keeps the reader's order.
+    adjacent = adjacent_to(party, boxes)
+    adjacent.sort(key=lambda box: _kind_rank(record['map_candidate_kinds'].get(box_key(box))))
+    return name, adjacent
 
 
 def check_of(directory, record, *, page=None):
@@ -2061,6 +2109,14 @@ class MirrorRunner:
         The party the candidate list was filtered against travels with the verdict.
         """
         fields.setdefault('party', self.state.get('map_party'))
+        # Which kind of thing the reader thought this box was (D75).  Only the offered
+        # list knows it, and only the movement verdict needs it.
+        if fields.get('target') is not None and not fields.get('kind'):
+            kinds = self.state.get('map_candidate_kinds') or {}
+            fields['kind'] = (kinds.get(box_key(fields['target']))
+                              or (self.state.get('map_pending_kind')
+                                  if list(fields['target']) == list(self.state.get('map_pending')
+                                                                    or ()) else None))
         # One place for "this click did not move us".  Four sites record a rejection in
         # the 2026-10-23 tree; wiring the recovery ladder into each of them separately
         # is how one mechanism ends up implemented four times.  Set the flag here,
@@ -2342,6 +2398,7 @@ class MirrorRunner:
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
         self.state['map_party'] = record.get('map_party')
+        self.state['map_candidate_kinds'] = record.get('map_candidate_kinds')
         if candidates is not None:
             # `candidates_of` answers None for every page that offers no destinations, so
             # this is the map case without spending another page comparison on it (D44
@@ -2352,9 +2409,12 @@ class MirrorRunner:
             # all, which is why `rarely` was a lower bound and not a verdict (D62).
             # Record the offer as the loop saw it -- adjacency filter included, because
             # that is what the loop was really allowed to choose from.
+            kinds = self.state.get('map_candidate_kinds') or {}
+            boxes = [[int(v) for v in (item['box'] if isinstance(item, dict)
+                                       else item)] for item in (candidates or ())]
             self.note('map_nodes_offered', offered=len(candidates or ()),
-                      boxes=[[int(v) for v in (item['box'] if isinstance(item, dict)
-                                               else item)] for item in (candidates or ())],
+                      boxes=boxes,
+                      kinds=[kinds.get(box_key(box)) for box in boxes],
                       party=self.state.get('map_party'),
                       reason='the_destinations_this_map_frame_offered_to_the_loop')
         # When a MAP page yields no candidate the reason is one of two very different
@@ -3758,6 +3818,8 @@ class MirrorRunner:
                     if not early:
                         state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
                 state['map_pending'] = list(plan['target'])
+                state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
+                    box_key(plan['target']))
                 # The verdict below is only diagnosable if it names the frame it judged;
                 # `getattr(self, 'frames', None)` read nothing because that attribute lives
                 # on the journal, not on the Runner, so every verdict carried frame=None.
@@ -3824,6 +3886,8 @@ class MirrorRunner:
                 # opened with `a_run_is_still_in_progress` made three node clicks and moved nothing).
                 state['map_refused_streak'] = int(state.get('map_refused_streak') or 0) + 1
             state['map_pending'] = list(plan['target'])
+            state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
+                box_key(plan['target']))
             state['map_click_frame'] = (record.get('frame')
                                         or Path(frame_file(directory)).name)
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)

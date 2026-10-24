@@ -830,12 +830,12 @@ PLANS_THE_INDEX_CANNOT_NAME = {}
 # without being named.  Naming a page is the fix, and it needs its own evidence: adding a
 # page to `expect` says only that landing there does not disprove the input.
 SUCCESSORS_THE_ARCHIVE_SAW = {
-    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 14, 'EVENT_CHECK': 7,
+    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHOICE': 15, 'EVENT_CHECK': 8,
                                                   'EVENT_CHECK_RESULT': 6,
                                                   'EVENT_CHECK_READY': 3},
     'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8,
-                                                        'EVENT_RESULT_READY': 6},
-    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 8, 'GIFT_GET': 3},
+                                                        'EVENT_RESULT_READY': 7},
+    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 9, 'GIFT_GET': 3},
     'the_check_outcome_is_tapped_through_until_its_control_lights_up':
         {'EVENT_CHECK_READY': 5},
     'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},
