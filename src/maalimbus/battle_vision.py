@@ -226,18 +226,29 @@ def start_button(records, size, image=None):
         fixed=dial_control(image)
         if fixed is not None:return fixed
         buttons=auto_assign_buttons(records,size)
-        if buttons is None or battle_hud(records,size) is None:return None
-        # The rightmost dial moves when the number of active sinners changes.
-        # Derive its search band from the two native assignment captions; keep
-        # the exact same lit-disc area/shape/fill gate and reject dim controls.
-        width,height=size;x,y,w,h=buttons['win_rate'];sx,sy=width/1920,height/1080
-        moving=dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
-                                       (x-10*sx)/width,(y+145*sy)/height))
-        if moving is not None:return moving
-        # Still fragmented after both bands -- read it from the `Win Rate` caption it
-        # sits left of; that is what the board of live run packaged-mirror-20261022-015843
-        # needs (see dial_beside_caption for that frame's two warm pieces).
-        return dial_beside_caption(records,size,image)
+        hud = battle_hud(records,size)
+        if hud is None:return None
+        if buttons is not None:
+            # The rightmost dial moves when the number of active sinners changes.
+            # Derive its search band from the two native assignment captions; keep
+            # the exact same lit-disc area/shape/fill gate and reject dim controls.
+            width,height=size;x,y,w,h=buttons['win_rate'];sx,sy=width/1920,height/1080
+            moving=dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
+                                           (x-10*sx)/width,(y+145*sy)/height))
+            if moving is not None:return moving
+            # Still fragmented after both bands -- read it from the `Win Rate` caption it
+            # sits left of; that is what the board of live run
+            # packaged-mirror-20261022-015843 needs (see dial_beside_caption).
+            captured=dial_beside_caption(records,size,image)
+            if captured is not None:return captured
+        # D101: on a board whose turn caption this OCR cannot read -- the D99/D100 case,
+        # where `battle_hud` says `turn is None` -- every caption-anchored reading above
+        # is unavailable by construction, and the dial is the gold ring itself (two live
+        # frames, identical box).  A board that does read its turn keeps the caption
+        # gates: a missing `Damage` there still means the reading is not trusted.
+        if hud.get('turn') is None:
+            return submit_dial(image)
+        return None
     label = matches[0].box
     if image is None:
         return label
@@ -286,6 +297,44 @@ def auto_assign_plan(records, size):
         return dict(target=None, reason='auto_assign_buttons_not_present')
     return dict(target=buttons['win_rate'], damage=buttons['damage'],
                 reason='win_rate_auto_assign', wave=hud['wave'], turn=hud['turn'])
+
+
+def submit_dial(image):
+    """The turn-submission dial, found by the gold ring it is drawn with.
+
+    Live evidence `evidence/runtime/packaged-mirror-20261024-064826/frame-0009.png` and
+    `...-063942/frame-0001.png` both read the WAVE caption, `MAX`, `Win` and `Damage`
+    and **no** `START` word, and `dial_control`'s lit-disc gate rejected this dial: the
+    frame is a battle whose turn can be submitted and whose control the reader could not
+    name, so the window refused with `battle_has_no_proven_control` and sent no input.
+
+    The dial is the largest warm-gold near-square ring right of the skill bar; both
+    frames put it at exactly (1323, 768, 123, 133).  Returns a box or None.
+    """
+    height, width = image.shape[:2]
+    if width < 200 or height < 200:
+        return None
+    import cv2
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # A dim dial (the board before the turn is assigned) must not qualify: live
+    # `tests/test_battle_dynamic_dial.py::test_unassigned_dim_dial_stays_unavailable`.
+    mask = cv2.inRange(hsv, (12, 120, 160), (34, 255, 255))
+    mask[:, :int(width * 0.57)] = 0
+    mask[:int(height * 0.60), :] = 0
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    best = None
+    for contour in contours:
+        x, y, bw, bh = cv2.boundingRect(contour)
+        if bw < 60 or bh < 60 or bw * bh < 6000:
+            continue
+        # The dial is a disc (123x133 on both live frames, ratio 0.92).  A wide blob is
+        # the skill row: live `packaged-mirror-20261024-065736` offered (1099,790,190,149)
+        # for one frame, ratio 1.28, and clicking a card is not submitting a turn.
+        if not 0.7 <= bw / float(bh) <= 1.25:
+            continue
+        if best is None or bw * bh > best[0]:
+            best = (bw * bh, [int(x), int(y), int(bw), int(bh)])
+    return None if best is None else best[1]
 
 
 def hud_controls(records, size):

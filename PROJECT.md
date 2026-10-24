@@ -5613,3 +5613,15 @@ diagnostics），失明时以**画面变化**判定进展：画面在动就继�
 实机 `packaged-mirror-20261024-064826` 暴露了下一个阻塞点：HUD 已认出（`scene: BATTLE_HUD`），但窗口层
 返回 `battle_has_no_proven_control`——`start_button` 与 `auto_assign_buttons` 都没读到，说明这套 UI 里
 提交控件得靠别的锚点（右上红色 `DONE` 横幅或拨盘本身）来定位。
+
+## DSH continuation: 读不出名字的控件（2026-10-24）
+
+D101：战斗 HUD 已能认出，但 `START`/`dial_control`/`auto_assign_buttons` 在这套 UI 上全部为 None，
+于是每个回合都 `battle_has_no_proven_control`。两帧实测拨盘在 (1323,768,123,133)，新增
+`battle_vision.submit_dial`（金色圆环 + 形状门）作为 `start_button` 的最后兜底。实机
+`packaged-mirror-20261024-065736`（240 秒）发了 **8 次点击**：5 次提交回合、3 次 Win Rate 分配、1 次关闭技能弹窗，
+结束于自身预算。
+
+**D101 的局限（2026-10-24）**：`packaged-mirror-20261024-070705` 对
+`the_skill_detail_popup_is_dismissed_off_the_board` 连发 43 次同样点击、页面未变；该理由在
+`LOOP_GUARD_EXEMPT` 中。下一个单元：用画面变化给这条豁免设界。

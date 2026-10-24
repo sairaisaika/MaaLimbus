@@ -93,3 +93,37 @@ def test_a_read_signature_still_decides_on_its_numbers():
     assert [battle_progress(state, ('1/1', '4'), rounds=3, frame='a') for _ in range(3)] == ['progress'] * 3
     assert battle_progress(state, ('1/1', '4'), rounds=3, frame='b') == 'stalled'
     assert battle_progress(state, ('1/1', '5'), rounds=3, frame='c') == 'progress'
+
+
+def _frame(run, name):
+    import cv2
+    import json
+    directory = ROOT / 'evidence/runtime' / run
+    image = cv2.imread(str(directory / f'{name}.png'))
+    meta = json.loads((directory / f'{name}.json').read_text(encoding='utf-8'))
+    records = [Text(t['text'], tuple(t['box']), t.get('score', 1.0)) for t in meta.get('ocr') or []]
+    return image, records, meta.get('size') or SIZE
+
+
+def test_the_submit_dial_is_found_on_both_live_frames():
+    """D101: two live battle frames, one measured box, and no START word on either."""
+    for run, name in (('packaged-mirror-20261024-064826', 'frame-0009'),
+                      ('packaged-mirror-20261024-063942', 'frame-0001')):
+        image, records, size = _frame(run, name)
+        if image is None:
+            continue
+        dial = battle_vision.submit_dial(image)
+        assert dial is not None, (run, name)
+        x, y, w, h = dial
+        cx, cy = x + w / 2.0, y + h / 2.0
+        # the click lands on the dial's centre: the ring's outer box is (1323,768,123,133)
+        assert 1323 <= cx <= 1446 and 768 <= cy <= 901, (run, name, dial)
+        assert battle_vision.start_button(records, size, image) == dial or dial == battle_vision.start_button(records, size, image)
+
+
+def test_a_page_without_a_battle_has_no_submit_dial():
+    import cv2
+    image = cv2.imread(str(ROOT / 'evidence/runtime/map-live-20261023-214443/frame.png'))
+    if image is None:
+        return
+    assert battle_vision.submit_dial(image) is None
