@@ -563,10 +563,18 @@ def bounded_action(deadline, *, limit=None, clock=time.monotonic):
 MIN_SETTLE = 1.5
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
-    ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
+    # Order is evidence, not taste.  A stop spends the rungs in order and most stops never
+    # get past the second one (274 recoveries in the retained archive: rung 0 spent 157
+    # times, rung 1 seventy-seven, rungs 2-5 three to sixteen times each), so the front of
+    # this tuple is what the engine actually tries.  Measured on `evidence/runtime/
+    # packaged-mirror-*` (2026-10-23): on MAP `drag_down` changed what the reader could see
+    # 18 times of 72, while `drag_up` changed it 14 of 14 and `pan_left` 7 of 8.  The weak
+    # rung therefore sits behind the strong ones instead of in front of them.
     ('drag_up', 'the_page_is_dragged_on_towards_its_later_rows'),
     ('pan_left', 'the_page_is_wider_than_the_viewport_and_is_panned_back_towards_its_start'),
     ('pan_right', 'the_page_is_wider_than_the_viewport_and_is_panned_on_towards_its_end'),
+    ('drag_down', 'the_page_is_dragged_back_towards_its_first_rows'),
+    # `wait` stays last whatever the numbers say: it is the settle round, not a gesture.
     ('wait', 'the_page_is_given_one_more_round_to_settle'),
 )
 """What a step that did not land gets before the run is allowed to end.

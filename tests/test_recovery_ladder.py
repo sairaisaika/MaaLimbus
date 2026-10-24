@@ -104,14 +104,21 @@ def test_every_rung_moves_the_view_and_none_of_them_presses_a_control(tmp_path):
     assert device.clicks == [], 'a recovery never presses a game control'
     assert device.pinches == [(tuple(MAP_ZOOM_OUT['centre']), MAP_ZOOM_OUT['radius'],
                                MAP_ZOOM_OUT['factor'], MAP_ZOOM_OUT['seconds'])]
-    assert device.swipes == [(RECOVERY_DRAG[0], RECOVERY_DRAG[1],
-                              RECOVERY_DRAG[2], RECOVERY_DRAG[3], 400),
-                             (RECOVERY_DRAG[2], RECOVERY_DRAG[3],
-                              RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400),
-                             (RECOVERY_PAN[0], RECOVERY_PAN[1],
-                              RECOVERY_PAN[2], RECOVERY_PAN[3], 400),
-                             (RECOVERY_PAN[2], RECOVERY_PAN[3],
-                              RECOVERY_PAN[0], RECOVERY_PAN[1], 400)], (
+    # Expected in the ladder's own order: the rungs are named, so a reorder of the ladder
+    # (D62 put the weak rung behind the strong ones) has to show up here instead of being
+    # absorbed by a hard-coded list.
+    gestures = {
+        'drag_down': (RECOVERY_DRAG[0], RECOVERY_DRAG[1],
+                      RECOVERY_DRAG[2], RECOVERY_DRAG[3], 400),
+        'drag_up': (RECOVERY_DRAG[2], RECOVERY_DRAG[3],
+                    RECOVERY_DRAG[0], RECOVERY_DRAG[1], 400),
+        'pan_left': (RECOVERY_PAN[0], RECOVERY_PAN[1],
+                     RECOVERY_PAN[2], RECOVERY_PAN[3], 400),
+        'pan_right': (RECOVERY_PAN[2], RECOVERY_PAN[3],
+                      RECOVERY_PAN[0], RECOVERY_PAN[1], 400),
+    }
+    expected = [gestures[name] for name, _ in RECOVERY_LADDER if name in gestures]
+    assert device.swipes == expected, (
         'both axes, because a floor is wider than the viewport as well as taller')
 
 

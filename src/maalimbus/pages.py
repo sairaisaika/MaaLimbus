@@ -829,6 +829,79 @@ SUCCESSORS_THE_ARCHIVE_SAW = {
     'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},
 }
 
+# What each rung of `runner.RECOVERY_LADDER` was observed to do to the *view*, per page.
+# A rung moves the viewport, so a page change cannot measure it: D58 found 0 of 274
+# recoveries landing on a different page name, which said nothing about the rungs.  The
+# journal already carries the evidence (`map_observed` records the boxes the reader found),
+# and the classes below are what `run_metrics.rung_effect` derives from
+# `evidence/runtime/packaged-mirror-*` (2026-10-23).  The page is part of the key because
+# it is part of the answer: `wait` changed the view 7 times of 9 on MAP, where the page is
+# still animating, and 0 times of 38 on DRIVE, a fixed layout -- the same gesture, the
+# opposite result.
+#   moves_the_view   the rung changed what the reader could see in most of its spends
+#   rarely           it changed something, but most spends left the frame identical
+LADDER_VIEW_EVIDENCE = {
+    ('pinch_out', 'MAP'): 'moves_the_view',
+    ('drag_up', 'MAP'): 'moves_the_view',
+    ('pan_left', 'MAP'): 'moves_the_view',
+    ('pan_right', 'MAP'): 'moves_the_view',
+    ('wait', 'MAP'): 'moves_the_view',
+    ('drag_down', 'MAP'): 'rarely',
+    ('pinch_out', 'UNKNOWN'): 'rarely',
+    ('drag_down', 'UNKNOWN'): 'rarely',
+}
+
+# Rungs that are supposed to move nothing: on a fixed screen the engine is only allowed the
+# settle wait (`FIXED_LAYOUT_PAGES`, and pinching DRIVE once killed the task), so a zero
+# change there is the design working, not a rung failing to act.
+LADDER_STATIC_BY_DESIGN = {('wait', 'DRIVE')}
+
+
+def ladder_view_class(changed, measured):
+    """Which class a rung's own measurement puts it in.
+
+    The boundary is a rate, not a count, so adding runs to the archive does not silently
+    reclassify a rung: at least half of the measured spends changed the view, or it did
+    not.  A rung measured fewer than three times is `unmeasured` -- it is not evidence.
+    """
+    if measured < 3:
+        return 'unmeasured'
+    return 'moves_the_view' if changed / measured >= 0.5 else 'rarely'
+
+
+# Where the rungs are compared with their evidence.  Every rung is shared across pages, and
+# MAP is the page where all of them are spent (the other pages the ladder touches are either
+# fixed layouts, where only `wait` is allowed, or unreadable, where no gesture has anything
+# to move), so the ordering rule is asked about MAP.
+LADDER_ORDER_PAGE = 'MAP'
+LADDER_SETTLE_RUNG = 'wait'
+
+
+def ladder_order_problems(rungs=None):
+    """Rungs placed before a rung the archive measured as better.
+
+    A stop spends the ladder in order and most stops never reach the third rung, so the
+    order *is* the policy: a rung that changed the view in one spend of four must not be
+    spent before one that changed it every time.  `wait` is exempt -- it is the settle
+    round, not a gesture, and it belongs last whatever its number says.
+    """
+    if rungs is None:
+        from .runner import RECOVERY_LADDER
+        rungs = [name for name, _ in RECOVERY_LADDER]
+    kinds = []
+    for name in rungs:
+        if name == LADDER_SETTLE_RUNG:
+            continue
+        kinds.append((name, LADDER_VIEW_EVIDENCE.get((name, LADDER_ORDER_PAGE))))
+    problems = []
+    for index, (name, kind) in enumerate(kinds):
+        if kind != 'rarely':
+            continue
+        for later, later_kind in kinds[index + 1:]:
+            if later_kind == 'moves_the_view':
+                problems.append((name, later))
+    return problems
+
 
 def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     """The kind of one refusal, from whichever of its three names it carries.

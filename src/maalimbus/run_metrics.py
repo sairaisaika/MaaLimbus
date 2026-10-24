@@ -186,6 +186,87 @@ def stopped_in_events(records):
 
 
 
+# --- what a recovery rung did to the view ------------------------------------
+# The ladder does not change the page -- it moves the viewport, so its effect is a change
+# in what the reader can see on the *same* page.  D58 measured 0 of 274 recoveries landing
+# on a different page name, which said nothing about the rungs: the journal already carries
+# the evidence in `map_observed`, whose boxes are what the reader found.  Measured over
+# `evidence/runtime/packaged-mirror-*` (2026-10-23): pinch_out on MAP changed 73 of 110
+# frames, drag_down on MAP 18 of 72, drag_up 14 of 14, pan_left 7 of 8, pan_right 6 of 7,
+# and `wait` 7 of 59 -- a wait is not supposed to move anything, and on DRIVE (a fixed
+# layout) it is the only rung allowed, changing nothing 38 of 38 times by design.
+VIEW_KEYS = ('scene', 'floor', 'header_box', 'pack_box', 'battle_box',
+             'clear_selection_box', 'panel_enter_box')
+
+
+def view(row):
+    """What the reader could see in a frame, as a signature two frames can be compared by."""
+    parts = []
+    for key in VIEW_KEYS:
+        value = row.get(key)
+        parts.append(tuple(value) if isinstance(value, (list, tuple)) else value)
+    return tuple(parts)
+
+
+def rung_effect(rows):
+    """Per (gesture, page): did spending this rung change the view?
+
+    `seen` counts the rung, `measured` the ones with a readable frame on both sides, and
+    the rest is the answer.  A rung spent on an unreadable page (`UNKNOWN`) is measured
+    too: it is exactly the case where a gesture has nothing to move.
+    """
+    found = {}
+    for index, row in enumerate(rows):
+        if row.get('event') != 'window_recovery':
+            continue
+        gesture = row.get('gesture')
+        page = row.get('page')
+        entry = found.setdefault((gesture, page),
+                                 {'seen': 0, 'measured': 0, 'changed': 0, 'same': 0})
+        entry['seen'] += 1
+        before = None
+        for other in range(index - 1, -1, -1):
+            if rows[other].get('event') == 'map_observed':
+                before = rows[other]
+                break
+        after = None
+        for other in range(index + 1, len(rows)):
+            if rows[other].get('event') == 'map_observed':
+                after = rows[other]
+                break
+        if before is None or after is None:
+            continue
+        entry['measured'] += 1
+        if view(before) == view(after):
+            entry['same'] += 1
+        else:
+            entry['changed'] += 1
+    for entry in found.values():
+        entry['change_rate'] = (round(entry['changed'] / entry['measured'], 3)
+                                if entry['measured'] else None)
+    return found
+
+
+def ladder_effect(directories=None):
+    """The same answer over the whole corpus, as rows a report can print."""
+    total = {}
+    for directory in _archives(directories):
+        for (gesture, page), entry in rung_effect(_rows_of(directory)).items():
+            into = total.setdefault((gesture, page),
+                                    {'seen': 0, 'measured': 0, 'changed': 0, 'same': 0})
+            for key in ('seen', 'measured', 'changed', 'same'):
+                into[key] += entry[key]
+    rows = []
+    for (gesture, page), entry in total.items():
+        entry = dict(entry)
+        entry['gesture'] = gesture
+        entry['page'] = page
+        entry['change_rate'] = (round(entry['changed'] / entry['measured'], 3)
+                                if entry['measured'] else None)
+        rows.append(entry)
+    return sorted(rows, key=lambda row: (-row['seen'], row['gesture'], str(row['page'])))
+
+
 # --- the six figures phase 6 asks for, from one definition --------------------
 # A frame the observer actually read.  `scene_mismatch` is the map node's own record of a
 # frame it read and could not identify -- still a recognition call.  Leaving it out made a
