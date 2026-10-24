@@ -500,3 +500,35 @@ def battle_hud(records, size):
     return {'wave': wave_value, 'turn': turn_value, 'wave_box': wave[0].box,
             'turn_box': turn[0].box, 'diagnostics': diagnostics,
             'scope': 'HUD identity only; no turn submission, coverage or victory claim'}
+
+TURN_BADGE = (0.050, 0.074, 0.014, 0.026)   # the digit inside the TURN badge, 1920x1080
+TURN_CHANGED = 4.0                          # mean abs difference that means "a new turn"
+
+
+def turn_signature(image, box=None):
+    """A small, comparable picture of the turn badge's digit.
+
+    Measured on `evidence/runtime/packaged-mirror-20261024-095825`: within one turn the
+    crop varies by <= 0.06 (mean absolute difference) and across a turn boundary by 13.56
+    -- a two-hundredfold margin, so the badge answers "did the turn advance" without any
+    OCR (the caption itself reads `TURN` and its digit is not recognised at all).
+    """
+    if image is None:
+        return None
+    height, width = image.shape[:2]
+    fx, fy, fw, fh = box or TURN_BADGE
+    x, y = int(round(fx * width)), int(round(fy * height))
+    w, h = max(8, int(round(fw * width))), max(8, int(round(fh * height)))
+    crop = image[y:y + h, x:x + w]
+    if crop.size == 0:
+        return None
+    small = cv2.resize(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), (8, 8), interpolation=cv2.INTER_AREA)
+    return [int(v) for v in small.reshape(-1)]
+
+
+def turn_changed(before, after, *, limit=TURN_CHANGED):
+    """True when the badge picture moved far enough to mean a new turn (D113)."""
+    if not before or not after or len(before) != len(after):
+        return False
+    total = sum(abs(int(a) - int(b)) for a, b in zip(before, after))
+    return total / float(len(before)) > limit

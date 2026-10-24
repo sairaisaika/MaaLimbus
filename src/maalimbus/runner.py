@@ -2436,6 +2436,30 @@ class MirrorRunner:
             return None
         return dict(target=target, completed=seen)
 
+    def _turn_signal(self, page, record):
+        """D113: the battle badge says whether the turn advanced, without any OCR.
+
+        Measured on `evidence/runtime/packaged-mirror-20261024-095825`: the badge crop
+        varies by <= 0.06 within one turn and by 13.56 across a turn boundary, while the
+        caption's digit is not recognised at all (`turn` is None on 41 of 41 reads).  A
+        new signature means the submit landed, so the pair counter D112 introduced is
+        cleared by evidence instead of by hope.
+        """
+        from .battle_vision import turn_changed
+        if not str(page or '').startswith('BATTLE'):
+            return
+        signature = (record or {}).get('turn_signature')
+        if not signature:
+            return
+        before = self.state.get('turn_signature')
+        if before is not None and turn_changed(before, signature):
+            if int(self.state.get('battle_pairs') or 0) > 0:
+                self.note('battle_turn_advanced', page=page,
+                          pairs_cleared=int(self.state.get('battle_pairs') or 0))
+            self.state['battle_pairs'] = 0
+            self.state['battle_assigns'] = 0
+        self.state['turn_signature'] = signature
+
     def _map_verdict(self, **fields):
         """Record a map click verdict together with the party it was judged against.
 
@@ -2819,6 +2843,7 @@ class MirrorRunner:
             # absence of one, and asking which page it is belongs to the page vocabulary.
             state['last_named_page'] = page
             state.pop('transition_since', None)
+        self._turn_signal(page, record)
         self._resolve_map_click(page)
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
             outcome=self.exploration.finish(frame_file(directory),page)
