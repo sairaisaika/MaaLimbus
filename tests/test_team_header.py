@@ -26,12 +26,14 @@ def header(text, box=LIVE_BOX, score=0.9098):
 
 
 def test_the_live_wording_names_its_slot():
-    assert saved_team_header(header('Preset #1'), SIZE) == {'slot': 1, 'word': 'preset'}
+    # The header is also the control, so its box travels with the answer (D117).
+    assert saved_team_header(header('Preset #1'), SIZE) == {
+        'slot': 1, 'word': 'preset', 'box': (150, 254, 84, 21)}
     assert selected_saved_team(header('Preset #1'), SIZE) == 1
 
 
 def test_the_other_wording_is_still_understood():
-    assert saved_team_header(header('TEAMS #2'), SIZE) == {'slot': 2, 'word': 'teams'}
+    assert saved_team_header(header('TEAMS #2'), SIZE) == {'slot': 2, 'word': 'teams', 'box': None}
     assert selected_saved_team(header('TEAM #3'), SIZE) == 3
 
 
@@ -108,13 +110,13 @@ def test_a_teams_header_outranks_the_preset_number_beside_it():
     records = [Text('TEAMS #2', (336, 176, 120, 28), 0.99),
                Text('Preset #1', (150, 255, 110, 24), 0.99),
                Text('TEAMS #1', (150, 450, 120, 28), 0.99)]
-    assert saved_team_header(records, SIZE) == {'slot': 2, 'word': 'teams'}
+    assert saved_team_header(records, SIZE) == {'slot': 2, 'word': 'teams', 'box': None}
     assert selected_saved_team(records, SIZE) == 2
 
 
 def test_a_preset_only_page_is_read_because_the_build_prints_nothing_else():
     records = [Text('Preset #1', (150, 255, 110, 24), 0.99)]
-    assert saved_team_header(records, SIZE) == {'slot': 1, 'word': 'preset'}
+    assert saved_team_header(records, SIZE) == {'slot': 1, 'word': 'preset', 'box': (150, 255, 110, 24)}
 
 def test_a_preset_is_not_a_team_on_a_page_that_speaks_teams():
     """The loadout picker shows a preset number and TEAMS rows; only TEAMS counts."""
