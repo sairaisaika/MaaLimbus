@@ -159,7 +159,13 @@ def test_a_wedged_node_read_returns_instead_of_spending_the_run(tmp_path):
 
 
 def test_a_wedged_read_ends_its_run_instead_of_eating_the_budget(tmp_path, monkeypatch):
-    """Integration: the runner's own loop ends on the read's reason, quickly."""
+    """Integration: the loop retries a failed read a bounded number of times, then ends.
+
+    D59 changed the ending, not the boundedness: before it the *first* failed read ended
+    the run (`the_task_raised_before_the_next_input`), so one 30 s hiccup forfeited the
+    rest of a 420 s window.  The read is still bounded, the retries are counted, and the
+    ending now carries the read's own reason.
+    """
 
     class NeverDone:
         done = False
@@ -186,8 +192,10 @@ def test_a_wedged_read_ends_its_run_instead_of_eating_the_budget(tmp_path, monke
     result = loop.run(steps=1, interval=0, round_limit=1)
     spent = time.monotonic() - started
     assert result["passed"] is False
-    assert loop.state["session_ended"] == "the_task_raised_before_the_next_input"
+    assert loop.state["session_ended"] == runner.ReadNeverReturned.reason
     assert spent < 10.0, f"one wedged read may not spend the run (took {spent:.1f}s)"
+    failures = [row for row in runner.events(tmp_path, "loop_read_failed")]
+    assert [row["failures"] for row in failures] == [1, 2, 3], failures
     ended = runner.events(tmp_path, "mirror_session_ended")
     assert ended and "no page for this frame" in ended[-1]["error"]
 

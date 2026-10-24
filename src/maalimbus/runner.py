@@ -164,6 +164,10 @@ def _defaults():
         # player did not name a number and the window walks until another bound stops it.
         'run_count': 0,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
+        # D59: how many times one step may be retried after a read did not come
+        # back.  Bounded, not a loop: after these the run ends with the read's own
+        # reason, which is the ending it used to reach on the first failure.
+        'read_retries': 2,
         # A wedged recognition never returns, so the loop is watched from outside it:
         # with no new frame for this many seconds the process ends itself loudly
         # instead of sitting silent (live run pi-20261015-191205, 19:16:07).
@@ -511,6 +515,23 @@ class ActionNeverReturned(RuntimeError):
     """
 
     reason = 'the_action_node_did_not_finish_inside_its_window'
+
+
+class ReadNeverReturned(RuntimeError):
+    """A page read did not come back inside its window.
+
+    A read that fails is *not* a verdict about the page: it is the same thing as a
+    frame the recogniser could not name, which this loop already models as ``UNKNOWN``
+    and already spends a bounded budget on.  Before D59 a failed read unwound the whole
+    step, so one 30 s emulator hiccup forfeited the rest of a 420 s run -- the bound
+    ``dea7028`` added turned a hang into a *stop*, which is the other half of the same
+    defect (16 of 51 silent retained runs ended on ``window_no_progress`` with their
+    last event a settle read).  Raising a named error lets the settle loop treat it as
+    an unproductive round and lets the loop retry the step a bounded number of times
+    before it names the ending.
+    """
+
+    reason = 'the_page_read_did_not_come_back_inside_its_window'
 
 
 def bounded_action(deadline, *, limit=None, clock=time.monotonic):
@@ -1066,7 +1087,7 @@ class MaaObserver:
             if len(recorded) > before:
                 break
         if len(recorded) <= before:
-            raise RuntimeError('the observation node recorded no page for this frame')
+            raise ReadNeverReturned('the observation node recorded no page for this frame')
         record = recorded[-1]
         if record.get('scene') in BATTLE_PAGES:
             battle = events(self.directory, 'battle_observed')
@@ -1077,7 +1098,7 @@ class MaaObserver:
                 if len(battle) > before_battle:
                     break
             if len(battle) <= before_battle:
-                raise RuntimeError('the battle observation node recorded no page for this frame')
+                raise ReadNeverReturned('the battle observation node recorded no page for this frame')
             record = battle[-1]
         return record
 
@@ -2104,6 +2125,18 @@ class MirrorRunner:
             return observe(self.observer, deadline)
         finally:
             reading['lasted_seconds'] = round(time.monotonic() - now, 1)
+
+    def _unreadable_frame(self, before_sha=None):
+        """The frame the loop stands in for when a read did not come back (D59).
+
+        A failed read and an unnameable frame are the same observation from the loop's
+        side, and ``UNKNOWN`` already has a page, a budget (``unknown_rounds``) and a
+        recovery.  Constructing that record here keeps a failed read from unwinding a
+        step whose input had already been sent.
+        """
+        return {'scene': 'UNKNOWN', 'image_sha256': before_sha, 'size': None,
+                'ocr': [], 'local_ocr': [], 'unreadable': True,
+                'reason': ReadNeverReturned.reason}
 
     def _act(self, node, *, phase='node_action'):
         """One pipeline node action, bounded and visible while it runs.
@@ -3726,7 +3759,18 @@ class MirrorRunner:
                 time.sleep(settings.interval)
             # The read after an input is the one that wedged: name it in the breadcrumb
             # the watchdog writes down, so a silent stop says *this* call and not "observe".
-            settled = self._observe(phase='settle')
+            try:
+                settled = self._observe(phase='settle')
+            except ReadNeverReturned as error:
+                # D59: the input is already out, so ending the step here would forfeit a
+                # run whose click has landed.  This round produced no frame; the page is
+                # unreadable for this round only, and both the settle budget and the run
+                # deadline still bound how many rounds that can happen.
+                self.note('settle_read_never_returned', page=page, round=index + 1,
+                          reason=error.reason, detail=str(error)[:160])
+                settled = self._unreadable_frame(before_sha)
+                settled_page = 'UNKNOWN'
+                continue
             settled_page = resolve_scene(self.registry, directory, settled)
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
@@ -4311,12 +4355,30 @@ class MirrorRunner:
             started_step = time.monotonic()
             try:
                 result = self.step()
+                self.state['read_failures'] = 0
                 blocked = time.monotonic() - started_step
                 if blocked > DEEP_STEP_SECONDS:
                     # Names the block the budget cannot interrupt: next time this fires,
                     # the number is the evidence for which Maa node to bound.
                     self.note('step_outlived_its_window', seconds=round(blocked, 1),
                               page=self.state.get('page') or getattr(self, '_last_page', None))
+            except ReadNeverReturned as error:
+                # D59: one unreadable page is not a verdict.  The read door already bounds
+                # every call (`dea7028`, `92be12e`), so before this the *bound* was the
+                # ending: one 30 s hiccup ended a 420 s run.  Retry the step a bounded
+                # number of times (``settings.read_retries``), then name the ending.
+                failures = int(self.state.get('read_failures', 0)) + 1
+                self.state['read_failures'] = failures
+                retries = max(0, int(settings.read_retries))
+                page_now = self.state.get('page') or getattr(self, '_last_page', None)
+                self.note('loop_read_failed', failures=failures, retries=retries,
+                          page=page_now, reason=error.reason, detail=str(error)[:160])
+                if failures > retries:
+                    self._end_session(error.reason, failures=failures,
+                                      page=page_now, error=str(error)[:300])
+                    break
+                time.sleep(min(float(settings.interval), 1.0))
+                continue
             except (RuntimeError, OSError) as error:
                 # One end, one reason: the deadline the caller set outranks a failure that
                 # is only its symptom, and the loop must stop rather than end twice.
