@@ -785,6 +785,20 @@ TRANSITION_KEYS = ('pending', 'submit_pending')
 SUBMIT_TRANSITION_SECONDS = 180.0
 
 
+def transition_pause(interval, seen, *, ceiling=4.0):
+    """How long to pause after the nth poll of one transition (D128).
+
+    `interval` is the measured short poll (1.0 s); the pause doubles per wait and stops
+    at `ceiling`, because a longer animation is still a duration and not a page.
+    """
+    try:
+        count = max(0, int(seen))
+    except (TypeError, ValueError):
+        count = 0
+    pause = float(interval) * (2.0 ** min(count, 3))
+    return round(min(float(ceiling), pause), 2)
+
+
 def _is_transition_blocker(name):
     """A pending card on the *deployment* transaction is a submitted turn, not a stall.
 
@@ -3147,8 +3161,17 @@ class MirrorRunner:
                         # The loop pauses after a waiting step; handing it this pace is
                         # what stops a 1 s poll from being added to the 4 s page pause
                         # (measured: 1.0 + 4.0 per cycle in the first live shape).
+                        # D128: a long animation is polled by a loop that can back off.
+                        # Measured on `packaged-mirror-20261024-135553`: 2..21 transition
+                        # waits per battle turn, each 1.0 s of pause plus a read, so a
+                        # 45 s turn spent most of it re-reading the same animation.
+                        # The pause grows with the count of waits spent on this
+                        # transition and resets the moment the page is named, so a
+                        # short animation still gets a short poll.
+                        pause = transition_pause(settings.transition_interval,
+                                                 state['transition_seen'])
                         return self._result(page, None, False, None, waiting=True,
-                                            pause=settings.transition_interval)
+                                            pause=pause)
                 else:
                     state['transition_seen'] = 0
             state['unknown_seen'] += 1

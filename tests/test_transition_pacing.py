@@ -65,8 +65,12 @@ def test_a_transition_is_paced_faster_than_a_page_wait(tmp_path, monkeypatch):
     # (its `_pause_between_steps` measures from the last input), so only the poll is
     # pinned here and `test_the_wait_it_notes_says_which_interval_it_used` pins the rest.
     _loop, sleeps, _result = _run(tmp_path, monkeypatch)
-    assert 1.0 in sleeps, sleeps
-    assert sleeps.count(1.0) >= sleeps.count(4.0)
+    # D128: the poll backs off, so the first pause is the short one and no poll may be
+    # slower than the page interval the transition replaced.
+    polls = [value for value in sleeps if value in (1.0, 2.0, 4.0)]
+    assert polls and polls[0] == 2.0, sleeps          # the first poll is the short one
+    assert max(sleeps) <= 4.0, sleeps                 # never slower than the page wait
+    assert polls == sorted(polls), sleeps             # and it only ever backs off
 
 
 def test_the_wait_it_notes_says_which_interval_it_used(tmp_path, monkeypatch):
