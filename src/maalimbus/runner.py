@@ -175,6 +175,11 @@ def _defaults():
         # patience.  A fifth of a second under one read keeps the cadence below the cost
         # of the sample it precedes.
         'unknown_interval': 1.5,
+        # D110: a transition is a duration, not a number of rounds.  Measured over 190
+        # transitions after a submitted turn: median 27 s, p90 54 s.  The page interval
+        # (4 s) spends that window asleep, while one read costs ~1.2 s.
+        'transition_interval': 1.0,
+        'transition_seconds': 90.0,
         # D59: how many times one step may be retried after a read did not come
         # back.  Bounded, not a loop: after these the run ends with the read's own
         # reason, which is the ending it used to reach on the first failure.
@@ -255,6 +260,16 @@ class Settings:
                 or isinstance(self._values['unknown_interval'], bool)
                 or not 0.0 < self._values['unknown_interval'] <= 30.0):
             raise ValueError('Invalid bounded unknown-page interval')
+        # D110: the transition poll must be shorter than a page wait, and the window it
+        # may spend on one transition is a clock, not a count of rounds.
+        if (not isinstance(self._values['transition_interval'], (int, float))
+                or isinstance(self._values['transition_interval'], bool)
+                or not 0.0 < self._values['transition_interval'] <= 30.0):
+            raise ValueError('Invalid transition interval')
+        if (not isinstance(self._values['transition_seconds'], (int, float))
+                or isinstance(self._values['transition_seconds'], bool)
+                or not 5.0 <= self._values['transition_seconds'] <= 600.0):
+            raise ValueError('Invalid transition window')
         # D96: how long a page nobody can read may be waited on while a transaction is
         # open.  Bounded like every other wait, so a deadlock cannot spend the run.
         if (type(self._values['submit_seconds']) is not int
@@ -2803,6 +2818,7 @@ class MirrorRunner:
             # say what it followed.  Only a name is stored; the unreadable page is the
             # absence of one, and asking which page it is belongs to the page vocabulary.
             state['last_named_page'] = page
+            state.pop('transition_since', None)
         self._resolve_map_click(page)
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
             outcome=self.exploration.finish(frame_file(directory),page)
@@ -3063,13 +3079,20 @@ class MirrorRunner:
                 moved = sha != state.get('unknown_sha')
                 state['unknown_sha'] = sha
                 if looks_like_transition(record) and moved:
+                    # D110: a transition is a duration, and its poll is not a page wait.
                     state['transition_seen'] = int(state.get('transition_seen', 0)) + 1
-                    if state['transition_seen'] <= max(4, settings.unknown_rounds * 4):
+                    state.setdefault('transition_since', time.monotonic())
+                    waited = time.monotonic() - float(state['transition_since'])
+                    if waited < float(settings.transition_seconds):
                         self.note('window_transition_wait', page=page,
-                                  round=state['transition_seen'], interval_s=settings.interval,
-                                  input_sent=False)
-                        time.sleep(settings.interval)
-                        return self._result(page, None, False, None, waiting=True)
+                                  round=state['transition_seen'],
+                                  interval_s=settings.transition_interval,
+                                  waited=round(waited, 1), input_sent=False)
+                        # The loop pauses after a waiting step; handing it this pace is
+                        # what stops a 1 s poll from being added to the 4 s page pause
+                        # (measured: 1.0 + 4.0 per cycle in the first live shape).
+                        return self._result(page, None, False, None, waiting=True,
+                                            pause=settings.transition_interval)
                 else:
                     state['transition_seen'] = 0
             state['unknown_seen'] += 1
@@ -5164,7 +5187,7 @@ class MirrorRunner:
                 walked += 1
             if result.get('done'):
                 break
-            pause = self._pause_between_steps(interval)
+            pause = self._pause_between_steps(result.get('pause') or interval)
             if pause:
                 time.sleep(pause)
         return self.summary()
@@ -5828,7 +5851,7 @@ class MirrorRunner:
             pass
         return record
 
-    def _result(self, page, target, sent, stopped, *, done=False, waiting=False):
+    def _result(self, page, target, sent, stopped, *, done=False, waiting=False, pause=None):
         """The public shape of one step."""
         entry = self.artifacts['steps'][-1] if self.artifacts['steps'] else None
         return {'page': page, 'reason': None if entry is None else entry.get('reason'),
@@ -5836,6 +5859,7 @@ class MirrorRunner:
                 'event': self.last_event,
                 'stopped': stopped, 'done': bool(done or stopped is not None),
                 'waiting': bool(waiting), 'step': self.state['step'],
+                'pause': None if pause is None else float(pause),
                 'observation': None if entry is None else entry.get('observation')}
 
     def summary(self):
