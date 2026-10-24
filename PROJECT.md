@@ -5249,3 +5249,25 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 反例：存活的绑定照常发送；拒绝只在 `note_binding_lost` 之后生效且保留第一个原因；三个输入门都拒绝；D74 的继续路径仍然能读。
 
 局限：循环无法自己修复被释放的绑定——只有「拥有控制器的新任务」可以，把它接上属于另一项决定；原生调用阻塞时任何 Python 看门狗都拦不住，预防是唯一的防御。下一轮：把「新任务重新获得输入权」做成显式的重入路径（有界、一次）。
+
+## DSH continuation: 只会进不会结束的任务（D83）
+
+上一轮 600 秒实机在 05:12:41 让入口任务从 DRIVE 出发，它依次认出 `MIRROR_ENTRY`、`RESUME_DIALOG`，
+到 05:13:06 每一帧都读到 `MAP`——说明它**已经进去了**。任务却没有这一页的节点，三次读之后以
+`unknown_or_bounded_transition_exhausted` 收场；`D74` 把循环救了回来，`D82` 又因为控制器已随任务消失
+而关掉输入门。一个缺失的节点，让那次运行剩下的时间全部作废。
+
+| 项目 | 改前 | 改后 |
+| --- | --- | --- |
+| 入口任务落在 MAP | 无节点 → 三次读后 `unknown_or_bounded_transition_exhausted`，任务失败 | `MirrorInside`（识别 MAP、`DoNothing`、`next: []`）→ 任务**成功**结束 |
+| 可达性 | `MirrorDrive/Resume/Enter/Hard` 的 `next` 里没有「已在内」 | 四个节点都指向 `MirrorInside`，安装树同步 |
+| 场景白名单 | `SCENES` 不含 `MAP`（`test_pipeline_scenes` 红） | `SCENES` 加入 `MAP`，守卫改的是名单不是断言 |
+| 全量测试 | 2430 passed | **`2436 passed in 306.35 s`，pytest 退出码 0** |
+
+`build/verify_inside_replay.py`（真实 `limbus_scene` + 回放控制器，零输入）给出改前/改后对照：
+改前认出 3 个节点、终止 `unknown_or_bounded_transition_exhausted`（`last_scene: MAP`）、`succeeded: False`；
+改后多认出 `MAP`、无终止、`succeeded: True`。
+
+局限：`MAP` 是唯一被观察到「里面」的页面；`BATTLE_HUD`、`DUNGEON_PROGRESS` 需要各自的节点与证据；任务仍
+分不清「玩家在里面」和「玩家在一张他没要的地图上」——这属于调用方的判断。下一轮：把入口任务的「已经在内」
+判定改成由调用方声明（它知道自己从哪一页点进来），而不是让任务盲目接受任何 `MAP`。

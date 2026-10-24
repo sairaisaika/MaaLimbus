@@ -21,7 +21,13 @@
         "the_task_ended_but_the_page_moved",
         "page decides",
         "屏幕说了算",
-        "任务判决不等于屏幕"
+        "任务判决不等于屏幕",
+        "MirrorInside",
+        "already inside",
+        "已经在内",
+        "entry task coverage",
+        "入口任务覆盖",
+        "DoNothing 终局"
       ],
       "sources": [
         {
@@ -55,6 +61,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def _page_after_a_failed_node(self, page):"
+        },
+        {
+          "path": "tests/test_entry_task_inside.py",
+          "symbol": "_reachable"
+        },
+        {
+          "path": "assets/resource/base/pipeline/mirror.json",
+          "needle": "\"MirrorInside\": {"
         }
       ],
       "docs": [
@@ -64,12 +78,15 @@
         "docs/wiki/en_us/2.3-decisions.md#d73-a-task-that-cannot-resume-the-run-it-was-asked-to-continue",
         "docs/wiki/zh_cn/2.3-decisions.md#d73-一个无法继续它被要求继续的那一局的任务",
         "docs/wiki/en_us/2.3-decisions.md#d74-the-tasks-verdict-is-a-statement-about-its-route-not-about-the-screen",
-        "docs/wiki/zh_cn/2.3-decisions.md#d74-任务的判决说的是它自己的路线不是屏幕"
+        "docs/wiki/zh_cn/2.3-decisions.md#d74-任务的判决说的是它自己的路线不是屏幕",
+        "docs/wiki/en_us/2.3-decisions.md#d83-a-task-that-can-only-enter-cannot-finish-entering",
+        "docs/wiki/zh_cn/2.3-decisions.md#d83-只会进不会结束的任务进不完"
       ],
       "tests": [
         "tests/test_main_task_dispatch.py",
         "tests/test_agent_loop.py",
-        "tests/test_entry_task_resume.py"
+        "tests/test_entry_task_resume.py",
+        "tests/test_entry_task_inside.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_main_task_dispatch.py tests/test_agent_loop.py",
@@ -110,8 +127,8 @@
         {
           "path": "assets/resource/base/pipeline/mirror.json",
           "needle": "\"MirrorResume\": {",
-          "line": 9390,
-          "sha256": "e050955c048fc615c8f61a7b650768f20cad13a322ce88483f93cad07433dcf7"
+          "line": 9393,
+          "sha256": "a8e8af0e0919eeb6f62bde5bf39a94ea8d34757ef9df396b5b6467fc08fd2cb7"
         },
         {
           "path": "tests/test_entry_task_resume.py",
@@ -124,6 +141,18 @@
           "needle": "    def _page_after_a_failed_node(self, page):",
           "line": 2349,
           "sha256": "0f1379c50b872e6c00a630993b9a4cddf6beeee763ff01be470d50bc066f4f09"
+        },
+        {
+          "path": "tests/test_entry_task_inside.py",
+          "symbol": "_reachable",
+          "line": 22,
+          "sha256": "1a339eb613346251e513ff76f103a52997153ab7b430a18ce84eb27e9130f1cf"
+        },
+        {
+          "path": "assets/resource/base/pipeline/mirror.json",
+          "needle": "\"MirrorInside\": {",
+          "line": 9424,
+          "sha256": "a8e8af0e0919eeb6f62bde5bf39a94ea8d34757ef9df396b5b6467fc08fd2cb7"
         }
       ]
     },
