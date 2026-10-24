@@ -1198,7 +1198,14 @@
         "run_bounded",
         "taskkill",
         "selfrun_mirror",
-        "外壳清理"
+        "外壳清理",
+        "seconds_per_floor",
+        "floor pace",
+        "每层秒数",
+        "floor_pace",
+        "TARGET_SECONDS_PER_FLOOR",
+        "一层十分钟",
+        "ten minutes a floor"
       ],
       "sources": [
         {
@@ -1380,6 +1387,14 @@
         {
           "path": "tools/selfrun_mirror.py",
           "symbol": "run_bounded"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "floor_pace"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "_floor_of"
         }
       ],
       "docs": [
@@ -1428,7 +1443,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d93-a-spacer-between-inputs-is-not-a-sleep-the-clock-is-owed",
         "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠",
         "docs/wiki/en_us/2.3-decisions.md#d94-a-killer-that-leaves-the-child-alive-has-not-ended-the-run",
-        "docs/wiki/zh_cn/2.3-decisions.md#d94-只杀了父进程却没杀掉子进程的杀手并没有让这一轮结束"
+        "docs/wiki/zh_cn/2.3-decisions.md#d94-只杀了父进程却没杀掉子进程的杀手并没有让这一轮结束",
+        "docs/wiki/en_us/2.3-decisions.md#d95-the-requirement-has-units-so-the-report-needs-them-too",
+        "docs/wiki/zh_cn/2.3-decisions.md#d95-要求有单位报表就得有单位"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1444,7 +1461,8 @@
         "tests/test_input_call_deadline.py",
         "tests/test_progress_window.py",
         "tests/test_step_pacing.py",
-        "tests/test_harness_reap.py"
+        "tests/test_harness_reap.py",
+        "tests/test_floor_pace.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",
