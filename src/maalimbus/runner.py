@@ -1570,9 +1570,19 @@ def overlaps(box, other):
 # the tile centre, which is empty space when the node sits on a corner.  Everything
 # unranked keeps its place after them rather than being dropped -- a frame that offers
 # only tiles must still offer something to try.
-CLICK_KIND_ORDER = ('bright_lit_icon', 'lit_icon', 'lit_node', 'lit_ring',
-                    'badge_mark', 'neutral_outline_candidate', 'gold_badge_node',
-                    'node_away_from_player', 'lattice_step')
+# D127: the order is the measured one.  Over the archived corpus
+# (`python tools/audit_map_clicks.py`, 506 verdicts, 102 of them naming a kind) the
+# acceptance rate is lit_icon 7/22, bright_lit_icon 2/9, gold_badge_node 2/21,
+# lit_node 3/31, badge_mark 1/9, lit_ring 0/6, lattice_step 0/3 -- so the bright glyph
+# still leads, but a ring or a lattice tile has never once moved the party and may not be
+# spent while anything else is on offer.
+CLICK_KIND_ORDER = ('lit_icon', 'bright_lit_icon', 'gold_badge_node', 'lit_node',
+                    'badge_mark', 'neutral_outline_candidate', 'node_away_from_player',
+                    'lit_ring', 'lattice_step')
+# Kinds with no accepted click in the whole archive.  They stay in the ranking (an
+# unknown kind must not outrank them) and are dropped before the click when any other
+# kind is offered: clicking a tile's centre is clicking the empty floor between nodes.
+CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step')
 
 
 def box_key(box):
@@ -1586,6 +1596,21 @@ def _kind_rank(kind):
         return CLICK_KIND_ORDER.index(kind)
     except ValueError:
         return len(CLICK_KIND_ORDER)
+
+
+def order_candidates(boxes, kinds):
+    """Rank click boxes by what the reader called them, and drop the never-accepted ones.
+
+    ``kinds`` maps :func:`box_key` to the kind the reader gave that box.  A kind in
+    ``CLICK_KINDS_WITHOUT_EVIDENCE`` has never moved the party in the archive, so it is
+    dropped when anything else is offered; a frame that offers only such kinds returns an
+    empty list on purpose, and the window takes its own no-candidate path (a viewport
+    nudge and a re-read) instead of clicking empty floor (D127).
+    """
+    ordered = sorted(boxes, key=lambda box: _kind_rank(kinds.get(box_key(box))))
+    tried = [box for box in ordered
+             if kinds.get(box_key(box)) not in CLICK_KINDS_WITHOUT_EVIDENCE]
+    return tried
 
 
 def candidates_of(directory, record):
@@ -1654,9 +1679,9 @@ def candidates_of(directory, record):
     # `bright_lit_icon` box was never reached because it sat fourth in the list.  The
     # bright glyph is the game's own "this is the step it will accept" mark, so it goes
     # first; the tie inside a rank keeps the reader's order.
-    adjacent = adjacent_to(party, boxes)
-    adjacent.sort(key=lambda box: _kind_rank(record['map_candidate_kinds'].get(box_key(box))))
-    return name, adjacent
+    # D127: rank by what the reader called the box and drop the kinds that have never
+    # moved the party.  An empty list is a verdict: the window nudges the view instead.
+    return name, order_candidates(adjacent_to(party, boxes), record['map_candidate_kinds'])
 
 
 def check_of(directory, record, *, page=None):
