@@ -5995,3 +5995,18 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 分布：`2 次读 × 22`，剩下三次是 `29 / 19 / 12` 次读的极端情形（战斗与过渡）。所以 D123 把普通点击的读从 4 降到 2，而**长尾**仍在战斗/过渡上。
 
 **新的提前停止**：打完第 3 层、在 `THEME_PACKS` 选第 4 层主题时，主题事务的后继证明失败（`Selected theme successor map floor/name is not proven`），运行在 292 秒结束而不是跑到 420 秒。这是下一轮的单位。
+
+## DSH continuation: 同一个主题包的两种拼写（2026-10-24，D124）
+
+**问题。** 420 秒那次运行（`packaged-mirror-20261024-132342`）打到第 3、4 层后，292 秒自己停了：`Selected theme successor map floor/name is not proven`。账本里记的选择是 `Vield My Flesh to Claim Their Bones BokGak`，三次读取之后地图头部写的是 `Yield My Flesh to Claim Their`（第 4 层）。一个 OCR 字母（V/Y）加一个被截断的长标题，就足以把一次**正确**的选择判成未证明——而这条比较两边都是读取结果。
+
+**改动。**
+1. `theme-catalog.json` 增 `aliases`，把 `Vield My Flesh to Claim Their Bones BokGak` 显式声明为 `Yield My Flesh to Claim Their Bones` 的别名（加载时校验：指向不存在的主题就报错）。
+2. `ThemeCatalog` 增 `_prefix_identity()`（≥12 字符且是唯一目录名的前缀 → 该包；两个候选 → 歧义 None）与 `_merge_near_duplicates()`（相似度 .93，或“前缀词共享 ≥4 且相似度 ≥.85”）。
+3. `ThemeTransaction.matches` 改为**两边都经目录归一**再比，只有解析不了的一侧才退回原文比较。
+
+**反例（测试）。** 楼层不同仍拒；别名指向未列出的主题报错；目录不认识的名字不是身份（读不出的头部无法被当成匹配）；合并记录标明是哪种拼写被声明。
+
+**证据。** `tests/test_theme_identity.py` 7 个用例；主题相关 46 passed；全量见 `build/full-r70b.log`。
+
+**附带。** 新实机运行让 `pages.SUCCESSORS_THE_ARCHIVE_SAW` 的计数按 D58 的规矩移动（`the_cutscene… → EVENT_CHECK` 9→10、`→ EVENT_CHECK_READY` 4→5，新增 `the_check_outcome… → CUTSCENE` 3），**规则不变、计数随语料**。

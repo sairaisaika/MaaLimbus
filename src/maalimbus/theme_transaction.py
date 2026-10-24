@@ -33,6 +33,18 @@ class ThemeTransaction:
         d['selected'].append(dict(**p,map_proof=str(proof)));d['pending']=None;write_json(self.path,d);return True
 
     def matches(self,scope,header,catalog):
+        """Do the pending selection and the map header name the same pack and floor?
+
+        Both sides are *readings*, so both are resolved through the catalog: the selection
+        page can misspell a word and the header can truncate a long title, and neither is a
+        different pack (D124).  A side the catalog cannot resolve falls back to comparing
+        the raw text, which only ever matches when the two readings agree exactly.
+        """
         d=self.data;p=d.get('pending')
-        return bool(p and d.get('scope')==scope and header is not None
-                    and header.floor==p['floor'] and catalog.identity(header.pack or '')==p['name'])
+        if not p or d.get('scope')!=scope or header is None:
+            return False
+        if header.floor!=p['floor']:
+            return False
+        wanted=catalog.identity(p['name']) or p['name']
+        seen=catalog.identity(header.pack or '') or (header.pack or '')
+        return wanted==seen

@@ -429,5 +429,8 @@
   ],
   "name_source": "lalc_backend/config/theme_pack_cfg.json",
   "name_sha256": "b74aa3beae1d0f31410aa81e212e3cfaaa2d43dada0e7d74c4999cdf130d2639",
-  "note": "Reference weights are provenance only. Active defaults are neutral 10; team overrides apply."
+  "note": "Reference weights are provenance only. Active defaults are neutral 10; team overrides apply.",
+  "aliases": {
+    "Vield My Flesh to Claim Their Bones BokGak": "Yield My Flesh to Claim Their Bones"
+  }
 }

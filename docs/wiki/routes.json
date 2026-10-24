@@ -285,7 +285,13 @@
         "超级商店",
         "商店标题",
         "shop title",
-        "两个标题"
+        "两个标题",
+        "theme identity",
+        "主题身份",
+        "aliases",
+        "theme catalog",
+        "Vield",
+        "truncated header"
       ],
       "sources": [
         {
@@ -303,18 +309,29 @@
         {
           "path": "assets/resource/en/locale.json",
           "needle": "\"super_shop\""
+        },
+        {
+          "path": "src/maalimbus/theme_vision.py",
+          "needle": "    def _prefix_identity(self,target):"
+        },
+        {
+          "path": "src/maalimbus/theme_transaction.py",
+          "needle": "    def matches(self,scope,header,catalog):"
         }
       ],
       "docs": [
-        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8",
-        "docs/wiki/en_us/4-business-flows.md#feature-4-3-8",
+        "docs/wiki/en_us/2.3-decisions.md#d124-two-spellings-of-one-pack-are-one-identity-not-a-mismatch",
         "docs/wiki/en_us/2.3-decisions.md#d77-a-page-named-by-one-of-its-two-titles-is-named-by-luck",
-        "docs/wiki/zh_cn/2.3-decisions.md#d77-只有两个名字里一个被记住的页面等于靠运气命名"
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-8",
+        "docs/wiki/zh_cn/2.3-decisions.md#d124-同一个主题包的两种拼写是同一个身份不是不一致",
+        "docs/wiki/zh_cn/2.3-decisions.md#d77-只有两个名字里一个被记住的页面等于靠运气命名",
+        "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8"
       ],
       "tests": [
-        "tests/test_shop_transaction.py",
         "tests/test_shop_actual_purchase.py",
-        "tests/test_shop_super_shop.py"
+        "tests/test_shop_super_shop.py",
+        "tests/test_shop_transaction.py",
+        "tests/test_theme_identity.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_shop_transaction.py tests/test_shop_actual_purchase.py"

@@ -38,6 +38,21 @@ class PackCandidate:
     new: bool = False
 
 
+def _shared_prefix_words(left, right):
+    """How many leading words two normalised names share, allowing one OCR letter.
+
+    `vield` against `yield` is the V/Y confusion the game's own catalog shipped with, and
+    an exact word comparison would call those two names different packs.
+    """
+    count = 0
+    for a, b in zip(left.split(), right.split()):
+        if a == b or difflib.SequenceMatcher(None, a, b).ratio() >= .8:
+            count += 1
+            continue
+        break
+    return count
+
+
 class ThemeCatalog:
     def __init__(self,root,filename='theme-catalog.json'):
         self.root=Path(root).resolve()
@@ -47,6 +62,15 @@ class ThemeCatalog:
         self.names=tuple(entry['name'] for entry in data['names'])
         if len(set(self.names))!=len(self.names):
             raise ValueError('Duplicate theme name')
+        self.aliases = dict(data.get('aliases') or {})
+        # `aliases` is a declared fact with its evidence, not a guess: the shipped catalog
+        # held both spellings of one pack (V/Y), and the selection page named one while the
+        # map header named the other (live `packaged-mirror-20261024-132342`: the theme
+        # successor was called unproven and the run stopped at 292 s of a 420 s budget).
+        for wrong, right in self.aliases.items():
+            if wrong not in self.names or right not in self.names:
+                raise ValueError('Theme alias names a theme the catalog does not list')
+        self._merge_near_duplicates()
         self.glyphs={}
         for key,entry in data['glyphs'].items():
             path=(self.root/entry['path']).resolve()
@@ -56,13 +80,63 @@ class ThemeCatalog:
             if glyph is None: raise ValueError('Invalid theme glyph')
             self.glyphs[key]=glyph
 
+    def _merge_near_duplicates(self):
+        """One pack, one entry: the catalog must not keep two OCR spellings of a theme.
+
+        The shipped catalog holds both `Vield My Flesh to Claim Their Bones BokGak` and
+        `Yield My Flesh to Claim Their Bones` -- the same pack read twice, once with the
+        V/Y confusion.  Two entries mean the selection page can name one and the map header
+        the other, and the transaction calls that a mismatch (live
+        `packaged-mirror-20261024-132342`: `Selected theme successor map floor/name is not
+        proven`, 292 s of a 420 s budget).  A later spelling that is close enough to an
+        earlier one is an alias, not a theme.
+        """
+        canonical={}
+        self.merged=[]
+        for name in self.names:
+            target=normalized(name)
+            close=None
+            for kept in canonical:
+                ratio=difflib.SequenceMatcher(None,target,normalized(kept)).ratio()
+                if ratio>=.93 or (ratio>=.85 and _shared_prefix_words(target,normalized(kept))>=4):
+                    # `.93` alone misses the live pair: `vield my flesh to claim their bones
+                    # bokgak` against `yield my flesh to claim their bones` scores .90, and
+                    # four shared leading words say they are the same pack read twice.
+                    close=kept
+                    break
+            if close is None and name in self.aliases:
+                close = self.aliases[name]
+                canonical[name] = close
+                self.merged.append({'name': name, 'alias_of': close, 'declared': True})
+                continue
+            if close is None:
+                canonical[name]=name
+            else:
+                canonical[name]=close
+                self.merged.append({'name':name,'alias_of':close})
+        self.alias=canonical
+
+    def _prefix_identity(self,target):
+        """A header the page truncated still names its pack (its text is a prefix)."""
+        if len(target)<12:
+            return None
+        hits=[name for name in self.alias
+              if normalized(name).startswith(target) or target.startswith(normalized(name))]
+        resolved={self._canonical(name) for name in hits}
+        return resolved.pop() if len(resolved)==1 else None
+
+    def _canonical(self,name):
+        return getattr(self,'alias',{}).get(name,name)
+
     def identity(self,text):
         target=normalized(text)
         ranks=sorted([(difflib.SequenceMatcher(None,target,normalized(n)).ratio(),n)
                       for n in self.names],reverse=True)
-        if not ranks or ranks[0][0]<.93 or (len(ranks)>1 and ranks[0][0]-ranks[1][0]<.04):
-            return None
-        return ranks[0][1]
+        if ranks and ranks[0][0]>=.93 and not (len(ranks)>1 and ranks[0][0]-ranks[1][0]<.04):
+            return self._canonical(ranks[0][1])
+        # A header that shows only the beginning of a long title is not a different pack:
+        # the page prints what fits, and the identity is the unique entry it starts.
+        return self._prefix_identity(target)
 
     def matches(self,image,key,roi):
         h,w=image.shape[:2]
