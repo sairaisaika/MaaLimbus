@@ -195,7 +195,13 @@
         "shop purchase delta",
         "Exact shop purchase currency delta not proven",
         "purchase",
-        "refresh"
+        "refresh",
+        "super_shop",
+        "Super Shop",
+        "超级商店",
+        "商店标题",
+        "shop title",
+        "两个标题"
       ],
       "sources": [
         {
@@ -209,15 +215,22 @@
         {
           "path": "src/maalimbus/shop_transaction.py",
           "symbol": "ShopTransaction.reconcile_refresh"
+        },
+        {
+          "path": "assets/resource/en/locale.json",
+          "needle": "\"super_shop\""
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8",
-        "docs/wiki/en_us/4-business-flows.md#feature-4-3-8"
+        "docs/wiki/en_us/4-business-flows.md#feature-4-3-8",
+        "docs/wiki/en_us/2.3-decisions.md#d77-a-page-named-by-one-of-its-two-titles-is-named-by-luck",
+        "docs/wiki/zh_cn/2.3-decisions.md#d77-只有两个名字里一个被记住的页面等于靠运气命名"
       ],
       "tests": [
         "tests/test_shop_transaction.py",
-        "tests/test_shop_actual_purchase.py"
+        "tests/test_shop_actual_purchase.py",
+        "tests/test_shop_super_shop.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_shop_transaction.py tests/test_shop_actual_purchase.py"
