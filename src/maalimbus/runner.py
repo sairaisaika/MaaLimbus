@@ -2759,6 +2759,13 @@ class MirrorRunner:
         # D104: the same picture, read again and again, is the one fault no page rule can
         # repair -- the device is frozen.  Counted here, before a plan exists, so a frozen
         # screen costs reads and never inputs.
+        if not frame_sha and not state.get('still_unmeasured'):
+            # D105: a missing identity is not a frozen screen. It means the row cannot
+            # answer the question, and a guard that silently cannot fire is the defect
+            # this series keeps finding -- so it says so, once per run.
+            state['still_unmeasured'] = True
+            self.note('frozen_check_unmeasured', page=state.get('last_named_page'),
+                      reason='the_read_did_not_record_the_picture_it_read')
         if frame_sha and frame_sha == state.get('last_frame_sha'):
             state['same_frames'] = state.get('same_frames', 0) + 1
         else:

@@ -63,3 +63,17 @@ def test_the_budget_is_a_setting_with_bounds(tmp_path):
     for bad in (0, 201):
         with pytest.raises(ValueError):
             runner.settings({'still_frames': bad})
+
+
+def test_a_row_without_an_identity_is_not_a_frozen_screen(tmp_path):
+    """D105: absent evidence must say it is absent, not end the run."""
+    class _NoSha:
+        directory = tmp_path
+
+        def observe(self, deadline=None):
+            return {'scene': 'BATTLE_TIP', 'frame': 'frame-0001', 'size': [1920, 1080], 'ocr': []}
+
+    loop = _loop(tmp_path, _NoSha(), still_frames=3)
+    loop.run(steps=4, interval=0, round_limit=1)
+    assert loop.state.get('session_ended') != runner.STILL_FRAME_REASON
+    assert loop.state.get('still_unmeasured') is True
