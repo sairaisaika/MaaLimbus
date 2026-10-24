@@ -1042,7 +1042,14 @@
         "killed at the budget",
         "MARGIN_SECONDS",
         "余量",
-        "harness_budget"
+        "harness_budget",
+        "unknown_interval",
+        "未知页节拍",
+        "unknown page pacing",
+        "window_unknown_wait",
+        "hazard",
+        "风险率",
+        "flat hazard"
       ],
       "sources": [
         {
@@ -1140,6 +1147,10 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "ENDING_KINDS = ("
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "'unknown_interval': 1.5,"
         }
       ],
       "docs": [
@@ -1164,7 +1175,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d72-a-node-that-answers-no-has-already-ended-the-task",
         "docs/wiki/zh_cn/2.3-decisions.md#d72-回答不的节点已经把任务结束了",
         "docs/wiki/en_us/2.3-decisions.md#d78-a-killed-process-cannot-write-its-ending-so-the-killer-does",
-        "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写"
+        "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写",
+        "docs/wiki/en_us/2.3-decisions.md#d79-waiting-is-not-patience-when-the-hazard-is-flat",
+        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1172,7 +1185,8 @@
         "tests/test_run_efficiency.py",
         "tests/test_payout_journal.py",
         "tests/test_time_budget.py",
-        "tests/test_read_cost.py"
+        "tests/test_read_cost.py",
+        "tests/test_unknown_pacing.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",
