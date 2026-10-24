@@ -959,7 +959,10 @@ LADDER_VIEW_EVIDENCE = {
     ('wait', 'PRE_BATTLE_TEAM'): 'moves_the_view',
     ('drag_down', 'MAP'): 'rarely',
     ('pinch_out', 'UNKNOWN'): 'rarely',
-    ('drag_down', 'UNKNOWN'): 'rarely',
+    ('drag_down', 'UNKNOWN'): 'rarely',    # Measured 2026-10-24 (`packaged-mirror-20261024-172437`): three waits on the
+    # battle page, none changed what the reader could see.
+    ('wait', 'BATTLE_HUD'): 'rarely',
+
 }
 
 # Rungs that are supposed to move nothing: on a fixed screen the engine is only allowed the

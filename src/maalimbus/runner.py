@@ -3206,8 +3206,14 @@ class MirrorRunner:
                         # short animation still gets a short poll.
                         pause = transition_pause(settings.transition_interval,
                                                  state['transition_seen'])
+                        # D149: a battle transition is counted by its own clock, not by
+                        # the loop's "waited without a new page" budget.  Measured
+                        # 2026-10-24 (`packaged-mirror-20261024-172437`): a healthy
+                        # battle spent 41 transition waits at 1-4 s each, WAIT_LIMIT=40
+                        # ended the run at 85 s, and the fight had not finished.  The
+                        # transition clock (20 s) and the run's own budget still bound it.
                         return self._result(page, None, False, None, waiting=True,
-                                            pause=pause)
+                                            pause=pause, battle=in_battle)
                 else:
                     state['transition_seen'] = 0
             state['unknown_seen'] += 1
@@ -5413,7 +5419,9 @@ class MirrorRunner:
             # run once waited 421 s on RESUME_DIALOG while writing nothing, so the
             # progress watchdog, not the loop, was the only thing that noticed.
             if result.get('waiting'):
-                self._waited = getattr(self, '_waited', 0) + 1
+                self._waited = getattr(self, '_waited', 0)
+                if not result.get('battle'):
+                    self._waited += 1
                 decision = wait_decision(self._waited)
                 if decision['note']:
                     self.note('loop_waited', page=result.get('page'),
@@ -6132,7 +6140,7 @@ class MirrorRunner:
             pass
         return record
 
-    def _result(self, page, target, sent, stopped, *, done=False, waiting=False, pause=None):
+    def _result(self, page, target, sent, stopped, *, done=False, waiting=False, pause=None, battle=False):
         """The public shape of one step."""
         entry = self.artifacts['steps'][-1] if self.artifacts['steps'] else None
         return {'page': page, 'reason': None if entry is None else entry.get('reason'),
@@ -6141,6 +6149,9 @@ class MirrorRunner:
                 'stopped': stopped, 'done': bool(done or stopped is not None),
                 'waiting': bool(waiting), 'step': self.state['step'],
                 'pause': None if pause is None else float(pause),
+                # D149: a wait that is a battle transition is counted by the
+                # transition clock, not by the page budget.
+                'battle': bool(battle),
                 'observation': None if entry is None else entry.get('observation')}
 
     def summary(self):
