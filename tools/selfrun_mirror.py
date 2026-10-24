@@ -23,6 +23,13 @@ from maalimbus import run_record  # noqa: E402  (after the path is in place)
 LOG = ROOT / 'build' / 'selfrun-mirror.jsonl'
 ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 
+# The loop's own budget is checked between steps, so its overshoot is one step long.
+# Measured across the retained attempts: 12.3, 12.3, 13.3 and 15.2 s.  The harness waits
+# this much past the budget so a healthy run can end itself and write its ending; a kill
+# that happens anyway is written into the run's own directory (D78) instead of leaving the
+# run to be counted as a death.
+MARGIN_SECONDS = 45
+
 
 def attempt(index: int, seconds: int) -> dict:
     record = {'attempt': index, 'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -43,11 +50,14 @@ def attempt(index: int, seconds: int) -> dict:
                                '--authorize', nonce,
                                '--steps', '400', '--seconds', str(seconds)],
                               cwd=str(ROOT), capture_output=True, text=True,
-                              # The budget is the caller's contract: one step can block
-                              # for 423 s inside the recogniser (live runs kept going to
-                              # 603 s for a 420 s budget), so the harness enforces it from
-                              # outside instead of trusting the loop to notice.
-                              timeout=seconds + 15)
+                              # The budget is still enforced from outside, because a
+                              # caller cannot take its own wall clock away.  The gap is
+                              # `MARGIN_SECONDS`, not 15 s: 15 s was shorter than one step,
+                              # so the 2026-10-24 00:19 run (420 s budget, walking floor 2
+                              # into 3) was killed mid-step and lost its ending.  D37/D43/
+                              # D46/D59 bound every read and action now, which is what makes
+                              # a fixed margin meaningful at all.
+                              timeout=seconds + MARGIN_SECONDS)
     except subprocess.TimeoutExpired as expired:
         # Name it instead of letting the record read as a silent death.
         killed_by_budget = True
@@ -90,6 +100,18 @@ def attempt(index: int, seconds: int) -> dict:
     if killed_by_budget:
         record['stop'] = 'the_budget_ended_the_run'
         record['note'] = 'the harness killed the run at its budget; the loop did not stop itself'
+        # The killed process cannot write its ending, so the process that killed it does.
+        # `run_metrics.ending` reads this file and reports the run as `budget` instead of
+        # `died`; without it the census counts a healthy run as a death (D78).
+        (directory / 'harness.json').write_text(json.dumps({
+            'killed_by_budget': True,
+            'stop': record['stop'],
+            'seconds': seconds,
+            'margin_seconds': MARGIN_SECONDS,
+            'elapsed_s': record['elapsed_s'],
+            'exit': record['exit'],
+            'utc': record['utc'],
+        }, ensure_ascii=False) + '\n', encoding='utf-8')
     return record
 
 

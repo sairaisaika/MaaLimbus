@@ -56,7 +56,7 @@ def census(runs):
     failed = []
     floors = 0
     for run in runs:
-        report = run_metrics.summarise(read(run / 'events.jsonl'))
+        report = run_metrics.summarise(read(run / 'events.jsonl'), run)
         end = report['ending']
         counts[end['kind']] += 1
         paths[end['path'] or '-'] += 1
@@ -73,8 +73,10 @@ def main(argv):
         return 2
     counts, paths, failed, floors = census(runs)
     total = sum(counts.values())
-    print('runs: %d  stopped: %d  errored: %d  died: %d  no events: %d'
-          % (total, counts['stop'], counts['error'], counts['died'], counts['no_events']))
+    print('runs: %d  stopped: %d  errored: %d  died: %d  killed at the budget: %d  '
+          'no events: %d'
+          % (total, counts['stop'], counts['error'], counts['died'], counts['budget'],
+             counts['no_events']))
     print('runs_that_reached_a_floor: %d' % floors)
     print('endings by path: %s' % dict(paths.most_common()))
     if total != len(runs):

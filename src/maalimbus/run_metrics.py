@@ -89,11 +89,16 @@ def recovery_advanced(rows, *, window=5):
             'rate': (advanced / seen) if seen else None}
 
 
-ENDING_KINDS = ('stop', 'error', 'died', 'no_events')
+# `budget` is the fifth way a run ends: the caller's own wall clock stopped it.  It is
+# not a death -- the 2026-10-24 00:19 run was walking floor 2 into floor 3 when the
+# harness killed it 15 s after its 420 s budget -- and until D78 the census counted
+# it under `process_died`, which is what `no_progress_stop_rate` is computed from.
+ENDING_KINDS = ('stop', 'error', 'died', 'budget', 'no_events')
+HARNESS_FILE = 'harness.json'
 
 
-def ending(rows):
-    """Which of the four ways this run ended; the four are exhaustive by construction.
+def ending(rows, directory=None):
+    """Which of the five ways this run ended; the five are exhaustive by construction.
 
     `tools/audit_runs.py` used to classify a run as "stopped" or "died" and nothing else,
     so the ten retained runs that ended on `mirror_loop_error` alone appeared in neither
@@ -105,6 +110,9 @@ def ending(rows):
     """
     if not rows:
         return {'kind': 'no_events', 'path': None, 'reason': None}
+    killed = _harness_kill(directory)
+    if killed is not None:
+        return killed
     for row in rows:
         if row.get('event') == 'mirror_loop_stopped':
             return {'kind': 'stop', 'path': str(row.get('stop_path') or 'unrecorded'),
@@ -117,6 +125,31 @@ def ending(rows):
     return {'kind': 'died', 'path': 'process_died', 'reason': None}
 
 
+def _harness_kill(directory):
+    """The caller's own record of killing this run, when it left one.
+
+    A run killed from outside cannot write its ending, so the process that killed it has
+    to: `tools/selfrun_mirror.py` drops `harness.json` beside the journal when its own
+    wall clock fired.  Without that file the same rows stay `died`, because a process
+    that vanished is not evidence of a budget.
+    """
+    if directory is None:
+        return None
+    import json
+    import pathlib
+    path = pathlib.Path(directory) / HARNESS_FILE
+    if not path.exists():
+        return None
+    try:
+        record = json.loads(path.read_text(encoding='utf-8'))
+    except ValueError:
+        return None
+    if not isinstance(record, dict) or not record.get('killed_by_budget'):
+        return None
+    return {'kind': 'budget', 'path': 'harness_budget',
+            'reason': str(record.get('stop') or 'the_budget_ended_the_run')}
+
+
 def unknown_stop_paths(rows):
     """Paths in this record that no writer is allowed to name, or none."""
     from maalimbus.pages import STOP_PATHS
@@ -125,7 +158,7 @@ def unknown_stop_paths(rows):
     return sorted(seen - set(STOP_PATHS))
 
 
-def summarise(rows):
+def summarise(rows, directory=None):
     """One dict of counts for one run.  Pure: same rows in, same dict out."""
     events = [row.get('event') for row in rows]
     stops = [row for row in rows if row.get('event') == 'mirror_loop_stopped']
@@ -165,7 +198,7 @@ def summarise(rows):
         # made 10 runs look like silent deaths (33 vs 23 on the same corpus) because
         # they ended on `mirror_loop_error`.
         'ended_without_a_stop': bool(rows) and not stopped_in_events(rows),
-        'ending': ending(rows),
+        'ending': ending(rows, directory),
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
     }
@@ -342,7 +375,7 @@ def _stamps(rows):
     return sorted(stamps)
 
 
-def efficiency(rows):
+def efficiency(rows, directory=None):
     """One run's efficiency numbers; `None` where the journal cannot supply one.
 
     Kept apart from `summarise`, which counts *events*: these are what phase 6 asks for,
@@ -350,7 +383,7 @@ def efficiency(rows):
     claim, and this session has already published two wrong numbers by letting a default
     stand in for a measurement (D50's denominator, D56's dismissal).
     """
-    base = summarise(rows)
+    base = summarise(rows, directory)
     stamps = _stamps(rows)
     seconds = (stamps[-1] - stamps[0]).total_seconds() if len(stamps) >= 2 else None
     reads = sum(1 for row in rows if row.get('event') in READ_EVENTS)
@@ -469,7 +502,9 @@ def metrics(runs):
         'no_progress_stop_rate': {
             'value': round((died + errored) / total, 3) if total else None,
             'basis': f'{died} died + {errored} errored of {total}',
-            'note': 'a run that ended without a stop record counts here'},
+            'note': ('a run that ended without a stop record counts here; a run the '
+                     'harness killed at its budget does not, because the caller ended it '
+                     'and the loop never got to speak (D78)')},
         # Two different facts look alike here: a corpus where every purchase was confirmed
         # and a corpus where nothing was ever bought.  The first is a measurement of the
         # risk; the second is the absence of one, and saying "0 unconfirmed" for both would
