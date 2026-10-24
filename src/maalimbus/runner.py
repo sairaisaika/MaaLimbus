@@ -722,6 +722,22 @@ BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_t
 INPUT_NEEDS_A_TASK = 'the_input_door_needs_a_task_that_owns_the_controller'
 ROUTE_LOST = 'the_controller_route_was_lost_and_rebinding_did_not_help'
 
+PIPELINE_INPUT_NODES = {'click': 'MirrorPointClick', 'swipe': 'MirrorPointSwipe'}
+'''The two shapes an input can take when a task has to carry it.
+
+D87: `post_connection` cannot rebuild a route whose controller id is empty -- live
+`packaged-mirror-20261024-025135` shows MaaFW answering
+`handle_controller_post_connection controller not found [req.controller_id=""]` -- while a
+*task* still runs happily with the same empty id.  So the repair is not to ask for the
+route back; it is to send the input the way every successful input of the session went:
+through a task.
+'''
+
+PIPELINE_INPUT_WINDOW = 10.0
+'''How long a task carrying one input may take.  It clicks once, so this bounds the
+framework's own overhead, not the game.'''
+
+
 
 class RouteLost(RuntimeError):
     """The framework refused an input and one rebind did not bring the route back.
@@ -733,6 +749,26 @@ class RouteLost(RuntimeError):
     """
 
     reason = ROUTE_LOST
+
+
+def point_override(entry, payload, *, post_delay=150):
+    """The one-node pipeline that sends exactly this input (D87).
+
+    `Recognition: DirectHit` matches without reading the screen, so the task does one
+    thing -- the input -- and ends.  Boxes are one pixel wide because MaaFW wants a box
+    and a click takes its centre.
+    """
+    kind = payload[0]
+    if kind == 'swipe':
+        _, x1, y1, x2, y2, duration_ms = payload
+        return {'recognition': 'DirectHit', 'action': 'Swipe',
+                'begin': [int(x1), int(y1), 1, 1], 'end': [int(x2), int(y2), 1, 1],
+                'duration': int(duration_ms), 'next': [],
+                'pre_delay': 0, 'post_delay': int(post_delay)}
+    _, x, y = payload
+    return {'recognition': 'DirectHit', 'action': 'Click',
+            'target': [int(x), int(y), 1, 1],
+            'next': [], 'pre_delay': 0, 'post_delay': int(post_delay)}
 
 
 def binding_is_empty(controller):
@@ -769,6 +805,7 @@ class MaaDevice:
         # alive: the task that owned the controller was torn down (D82).
         self.binding_lost = None
         self.rebinds = 0
+        self.pipeline_inputs = 0
         self.last_input_error = None
         self.wait = wait
         self.deadline = deadline
@@ -832,21 +869,35 @@ class MaaDevice:
         if self.binding_is_empty():
             raise RuntimeError('the_controller_binding_is_empty')
 
-    def rebind(self):
-        """Ask the framework for a fresh controller route.
+    def send_through_a_task(self, what, payload):
+        """Send one input as a task, which is the route this session always used.
 
-        D85: `post_click` carries the controller id in its request, while a screenshot
-        does not, and the probe `tools/probe_route.py` showed the screenshot answering
-        happily with `controller.id` unset.  So an empty id is not proof that input is
-        dead, and a *rejected* input is the only reliable signal.  `post_connection`
-        is the framework's own way to bind one again; it sends no game input.
+        Live `packaged-mirror-20261024-025135`: after the loop's own entry task ended,
+        every controller request answered `controller not found [controller_id=""]` --
+        including `post_connection`, whose job never came back, so the repair D86 added
+        blocked instead of helping.  A *task* keeps working with the same empty id (the
+        reads two seconds earlier did), and a task can click, so the input goes out the
+        way the reads already do: `post_task` with a pipeline override that defines a
+        one-node task for this point.
         """
-        self.rebinds += 1
+        tasker = getattr(self, 'tasker', None)
+        entry = PIPELINE_INPUT_NODES.get(payload[0] if payload else None)
+        if tasker is None or entry is None:
+            raise RouteLost('%s; nothing can carry it' % what)
+        override = point_override(entry, payload)
+        try:
+            job = tasker.post_task(entry, {entry: override})
+        except (RuntimeError, TypeError, ValueError) as error:
+            raise RouteLost('%s; %s' % (what, error)) from error
+        deadline = time.monotonic() + PIPELINE_INPUT_WINDOW
+        verdict = wait_task(tasker, job, deadline=deadline)
+        if not verdict.get('task_succeeded'):
+            raise RouteLost('%s; the task carrying it reported %s'
+                            % (what, verdict.get('error') or verdict.get('verdict')))
+        self.pipeline_inputs += 1
+        self.rebinds = self.pipeline_inputs
         self.route_suspect = False
-        post = getattr(self.controller, 'post_connection', None)
-        if post is None:
-            raise RuntimeError(ROUTE_LOST)
-        self._wait(post(), timeout=15)
+        return verdict
 
     route_suspect = False
 
@@ -864,32 +915,38 @@ class MaaDevice:
         """
         self.route_suspect = True
 
-    def _send(self, what, post, timeout=10):
-        """Post one input, and give a rejected route exactly one repair (D85)."""
-        if getattr(self, 'route_suspect', False):
-            self.rebind()
+    def _send(self, what, post, payload, timeout=10):
+        """Post one input: directly, or carried by a task when the route is gone (D87).
+
+        The direct post goes first because it is what every healthy input does.  A
+        controller refusal, or a task this loop started itself having just ended, means
+        the framework no longer knows the route; then the same input is sent as a
+        one-node task, which does not need one.
+        """
+        if getattr(self, 'route_suspect', False) and payload:
+            return self.send_through_a_task(what, payload)
         try:
-            return self._wait(post(), timeout=timeout)
+            verdict = self._wait(post(), timeout=timeout)
         except RuntimeError as error:
             if 'controller' not in str(error).lower():
                 raise
             self.last_input_error = str(error)[:200]
-            self.rebind()
-            try:
-                return self._wait(post(), timeout=timeout)
-            except RuntimeError as again:
-                raise RouteLost('%s; %s' % (what, again)) from again
+            return self.send_through_a_task(what, payload)
+        self.last_input_error = None
+        return verdict
 
     def click(self, x, y):
         self._refuse_if_ended('click')
         self._refuse_binding_lost('click')
-        self._send('click', lambda: self.controller.post_click(int(x), int(y)))
+        self._send('click', lambda: self.controller.post_click(int(x), int(y)),
+                   ('click', int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
         self._refuse_if_ended('swipe')
         self._refuse_binding_lost('swipe')
         self._send('swipe', lambda: self.controller.post_swipe(
-            int(x1), int(y1), int(x2), int(y2), int(duration_ms)), timeout=15)
+            int(x1), int(y1), int(x2), int(y2), int(duration_ms)),
+            ('swipe', int(x1), int(y1), int(x2), int(y2), int(duration_ms)), timeout=15)
 
     def key(self, code):
         self._refuse_if_ended('key')
@@ -4800,7 +4857,8 @@ class MirrorRunner:
                 page_now = self.state.get('page') or getattr(self, '_last_page', None)
                 self.note('input_withheld', page=page_now, reason=error.reason,
                           target=self.state.get('map_pending'), detail=str(error)[:200],
-                          rebinds=getattr(self.device, 'rebinds', None))
+                          rebinds=getattr(self.device, 'rebinds', None),
+                          pipeline_inputs=getattr(self.device, 'pipeline_inputs', None))
                 self._end_session(error.reason, page=page_now, error=str(error)[:300])
                 break
             except (RuntimeError, OSError) as error:

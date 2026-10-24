@@ -1,4 +1,4 @@
-"""An input door must refuse a binding that cannot route it (D71).
+"""An input door must refuse a binding that cannot route it (D71), or carry it (D87).
 
 The first authorised live run (evidence/runtime/packaged-mirror-20261023-221109) sent eight
 clicks and lost the ninth: the agent log shows `controller not found [controller_id=]` for the
@@ -63,29 +63,45 @@ class _Controller:
 _MISSING = object()
 
 
+class _Tasker:
+    """The carrier D87 sends input through when the controller route is gone."""
+
+    def __init__(self):
+        self.posted = []
+
+    def post_task(self, entry, override=None):
+        self.posted.append((entry, override))
+        return _Job()
+
+    def post_stop(self):
+        return _Job()
+
+
 def _device(id):
     controller = _Controller(id)
     device = MaaDevice(controller, wait=lambda job, timeout=10, deadline=None: job,
                        target_long_side=0)
+    device.tasker = _Tasker()
     return device, controller
 
 
-def test_an_empty_id_is_repaired_instead_of_refused():
-    """D85: an unset id proves nothing (a screenshot answers with it unset), so the
-    door is one repair, not a prediction."""
+def test_an_empty_id_is_carried_instead_of_refused():
+    """D87: an unset id proves nothing, and `post_connection` cannot rebuild it, so the
+    input is carried by a one-node task."""
     device, controller = _device('')
     device.click(966, 591)
-    assert controller.clicks == [(966, 591)]
-    assert controller.bindings == 1
+    assert controller.clicks == []
+    assert [entry for entry, _ in device.tasker.posted] == ['MirrorPointClick']
+    assert device.pipeline_inputs == 1
 
 
-def test_a_none_id_is_repaired_the_same_way():
+def test_a_none_id_is_carried_the_same_way():
     """The live regression: `None` is not `''`, and it reaches the framework as ``."""
     device, controller = _device(None)
     assert device.binding_is_empty() is True
     device.click(966, 591)
-    assert controller.clicks == [(966, 591)]
-    assert controller.bindings == 1
+    assert controller.clicks == []
+    assert device.pipeline_inputs == 1
 
 
 def test_a_bound_controller_still_posts():
@@ -102,13 +118,12 @@ def test_a_stub_without_an_id_is_not_accused():
     assert controller.clicks == [(10, 20)]
 
 
-def test_swipe_and_key_are_repaired_the_same_way():
+def test_swipe_is_carried_the_same_way():
     device, controller = _device(None)
     device.swipe(1, 2, 3, 4, 600)
-    device.key(4)
-    assert controller.swipes == [(1, 2, 3, 4, 600)]
-    assert controller.keys  # the stub records or not; the repair is what matters
-    assert controller.bindings >= 1
+    assert controller.swipes == []
+    assert [entry for entry, _ in device.tasker.posted] == ['MirrorPointSwipe']
+    assert device.pipeline_inputs == 1
 
 
 def test_the_predicate_is_one_answer_for_every_door():

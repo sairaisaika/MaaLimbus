@@ -1536,20 +1536,32 @@ def test_a_handle_that_answers_without_an_id_records_nothing_invented():
     assert recorder.events[-1][1]['empty_id_fields'] == []
 
 
-def test_a_click_with_an_empty_binding_is_repaired_before_it_gives_up():
+def test_a_click_with_an_empty_binding_is_carried_before_it_gives_up():
     """The measured failure: MaaFW logged `controller not found [controller_id=]` for a
     click that had already been posted, so the tap never landed
     (evidence/runtime/packaged-mirror-20261023-153338).
 
-    D85 replaced the pre-flight refusal with one repair: a screenshot answers with an
-    unset id and no task running (`tools/probe_route.py`), so the click is posted, the
-    framework's refusal buys exactly one rebind, and a second refusal is a named ending
-    instead of a run that sits until its budget."""
+    D85 replaced the pre-flight refusal with one repair through `post_connection`, and
+    live `packaged-mirror-20261024-025135` showed the framework refusing *that* too --
+    `handle_controller_post_connection controller not found [req.controller_id=""]` --
+    while the reads went on working through the same tasker.  D87 therefore carries the
+    input as a one-node task, which is the route the session has always used."""
     from maalimbus.runner import MaaDevice
 
     class _Done:
         done = True
         succeeded = True
+
+    class _Tasker:
+        def __init__(self):
+            self.posted = []
+
+        def post_task(self, entry, override=None):
+            self.posted.append((entry, override))
+            return _Done()
+
+        def post_stop(self):
+            return _Done()
 
     class _Controller:
         id = ''
@@ -1569,8 +1581,12 @@ def test_a_click_with_an_empty_binding_is_repaired_before_it_gives_up():
             return _Done()
 
     controller = _Controller()
+    tasker = _Tasker()
     device = MaaDevice(controller, wait=lambda job, timeout=None, deadline=None: job,
                        target_long_side=0)
+    device.tasker = tasker
     device.click(963, 593)
-    assert controller.posted == [(963, 593)]
-    assert controller.bindings == 1
+    assert controller.posted == []
+    assert controller.bindings == 0
+    assert [entry for entry, _ in tasker.posted] == ['MirrorPointClick']
+    assert tasker.posted[0][1]['MirrorPointClick']['target'] == [963, 593, 1, 1]
