@@ -31,6 +31,71 @@ ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 MARGIN_SECONDS = 45
 
 
+# A killed verifier does not kill the agent it started: `subprocess.run(timeout=...)`
+# kills the direct child only, and on Windows no signal travels down.  The 2026-10-24
+# 04:59 attempt left `MaaLimbusAgent.exe` holding the controller lease, so the next
+# attempt wrote no event at all for 481 s and looked like a silent death (D94).
+AGENT_IMAGE = 'MaaLimbusAgent.exe'
+REAP_SECONDS = 20.0
+
+
+def _tasklist():
+    out = subprocess.run(['tasklist', '/FO', 'CSV', '/NH'], capture_output=True,
+                         text=True, timeout=REAP_SECONDS).stdout or ''
+    rows = []
+    for line in out.splitlines():
+        parts = [cell.strip('"') for cell in line.strip().split('","')]
+        if len(parts) >= 2 and parts[1].isdigit():
+            rows.append((int(parts[1]), parts[0].strip('"')))
+    return rows
+
+
+def _taskkill(pid):
+    """`/T` is the point: the agent is a child of the verifier, and killing the parent
+    alone leaves it running with the controller lease (measured 2026-10-24)."""
+    done = subprocess.run(['taskkill', '/F', '/T', '/PID', str(int(pid))],
+                          capture_output=True, text=True, timeout=REAP_SECONDS)
+    return done.returncode == 0
+
+
+def agent_processes(list_processes=None):
+    """Pids of the packaged agent image that are still running."""
+    lister = _tasklist if list_processes is None else list_processes
+    return [pid for pid, image in lister() if image.lower() == AGENT_IMAGE.lower()]
+
+
+def reap(pid, kill=None):
+    """Kill a process and every child it started; True when the kill was issued."""
+    killer = _taskkill if kill is None else kill
+    return bool(killer(pid))
+
+
+def reap_stale_agents(*, list_processes=None, kill=None):
+    """Kill agents a previous attempt left behind, and say how many were found."""
+    pids = agent_processes(list_processes)
+    killed = [pid for pid in pids if reap(pid, kill)]
+    return {'found': pids, 'killed': killed}
+
+
+def run_bounded(command, *, cwd, timeout, kill=None, reap_seconds=REAP_SECONDS):
+    """Run a command; on overrun kill the whole tree and still hand back its output."""
+    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True)
+    try:
+        out, err = process.communicate(timeout=timeout)
+        return {'returncode': process.returncode, 'stdout': out or '', 'stderr': err or '',
+                'killed': False, 'reaped': None}
+    except subprocess.TimeoutExpired:
+        reaped = reap(process.pid, kill)
+        try:
+            out, err = process.communicate(timeout=reap_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            out, err = '', ''
+        return {'returncode': 124, 'stdout': out or '', 'stderr': err or '',
+                'killed': True, 'reaped': reaped}
+
+
 def attempt(index: int, seconds: int) -> dict:
     record = {'attempt': index, 'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
               'seconds': seconds}
@@ -41,35 +106,27 @@ def attempt(index: int, seconds: int) -> dict:
     nonce = __import__('uuid').uuid4().hex
     (ROOT / 'build' / 'map-probe-authorization.json').write_text(
         json.dumps({'live_input_authorized': True, 'nonce': nonce}), encoding='utf-8')
-    killed_by_budget = False
-    try:
-        finished = subprocess.run([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
-                               '--app', str(ROOT / 'dist' / 'MaaLimbus'),
-                               '--address', '127.0.0.1:16416',
-                               '--adb', ADB,
-                               '--authorize', nonce,
-                               '--steps', '400', '--seconds', str(seconds)],
-                              cwd=str(ROOT), capture_output=True, text=True,
-                              # The budget is still enforced from outside, because a
-                              # caller cannot take its own wall clock away.  The gap is
-                              # `MARGIN_SECONDS`, not 15 s: 15 s was shorter than one step,
-                              # so the 2026-10-24 00:19 run (420 s budget, walking floor 2
-                              # into 3) was killed mid-step and lost its ending.  D37/D43/
-                              # D46/D59 bound every read and action now, which is what makes
-                              # a fixed margin meaningful at all.
-                              timeout=seconds + MARGIN_SECONDS)
-    except subprocess.TimeoutExpired as expired:
-        # Name it instead of letting the record read as a silent death.
-        killed_by_budget = True
-        finished = type('Finished', (), {'returncode': 124,
-                                         'stdout': expired.stdout or '',
-                                         'stderr': expired.stderr or ''})()
-    record['exit'] = finished.returncode
+    # A previous attempt that was killed can still own the controller: the 2026-10-24
+    # 04:59 attempt left an agent behind and the next one wrote no event for 481 s.
+    record['stale_agents'] = reap_stale_agents()
+    # The budget is still enforced from outside, because a caller cannot take its own
+    # wall clock away.  On overrun the whole process tree is killed (D94), and the kill
+    # is recorded in the run's own directory (D78) so it cannot read as a death.
+    finished = run_bounded([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
+                            '--app', str(ROOT / 'dist' / 'MaaLimbus'),
+                            '--address', '127.0.0.1:16416',
+                            '--adb', ADB,
+                            '--authorize', nonce,
+                            '--steps', '400', '--seconds', str(seconds)],
+                           cwd=str(ROOT), timeout=seconds + MARGIN_SECONDS)
+    killed_by_budget = bool(finished['killed'])
+    record['reaped'] = finished.get('reaped')
+    record['exit'] = finished['returncode']
     record['elapsed_s'] = round(time.time() - started, 1)
     # A driver-level silent death: the verifier can refuse in under a second (gate,
     # stale freeze, missing address) and this record used to say only `exit: 1`.
-    if finished.returncode != 0:
-        tail = (finished.stderr or finished.stdout or '').strip().splitlines()
+    if finished['returncode'] != 0:
+        tail = (finished['stderr'] or finished['stdout'] or '').strip().splitlines()
         # Twelve lines, not one: a traceback's last line names the exception and its
         # first lines name the frame that raised it -- the only way to tell a click
         # apart from a deadline without another live run.
@@ -77,7 +134,7 @@ def attempt(index: int, seconds: int) -> dict:
         # The verifier answers a refusal with a JSON object that names the reason;
         # lift it so the record says "refused: <why>" instead of a JSON prefix.
         try:
-            body = json.loads(finished.stdout or '')
+            body = json.loads(finished['stdout'] or '')
         except ValueError:
             body = {}
         if isinstance(body, dict) and body.get('refused'):
