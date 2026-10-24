@@ -53,7 +53,7 @@ from . import pages as page_vocabulary
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
-from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES
+from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES, receipt_owed
 from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
 from .jobs import bounded_limit, call_with_a_deadline, dispatch, screencap, wait_job, wait_task
@@ -3825,7 +3825,7 @@ class MirrorRunner:
                         and self._resolve_floor_receipt(floor_tx,page,floor_receipt,directory,record)
                         and (_attributed(floor_tx.data) if page=='GIFT_GET'
                              else bool(floor_tx.data['completed'])))
-                if not booked:
+                if not booked and receipt_owed(d):
                     stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
                     return self._result(page,None,False,stopped,done=True)
                 receipt_booked=True

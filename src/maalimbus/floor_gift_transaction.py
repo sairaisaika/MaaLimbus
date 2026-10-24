@@ -500,3 +500,18 @@ def adopt_legacy_single_pick(transaction, result_path, evidence_root, scope, cat
     transaction.data['legacy_migration']=str(path)
     write_json(transaction.path,transaction.data)
     return transaction.data
+
+def receipt_owed(data):
+    """D148: is anything in this ledger still owed a receipt?
+
+    A commit that was sent and then retired (D143) leaves `commit_sent True` with
+    `pending None` -- a debt with no name.  Measured 2026-10-24
+    (`packaged-mirror-20261024-170840`): the receipt stage stopped a run on that record
+    while its screen had no notice to print and nothing pending to match.
+    """
+    pending = data.get('pending') or {}
+    if pending.get('kind') == 'commit':
+        return True
+    booked = {r.get('title') for r in (data.get('receipts') or [])}
+    unbooked = [n for n in (data.get('selected') or []) if n not in booked]
+    return bool(unbooked)
