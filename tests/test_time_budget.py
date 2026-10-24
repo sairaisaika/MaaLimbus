@@ -175,3 +175,57 @@ def test_the_portfolio_carries_a_time_budget_next_to_the_measures():
     assert set(portfolio) == {'runs', 'measures', 'time', 'reads', 'split'}
     assert portfolio['time']['value'] is None
     assert 'no time was attributed' in portfolio['time']['note']
+
+
+# --- D81: an unknown page is not one behaviour -------------------------------------------
+
+
+def test_the_unknown_wait_budget_is_kept_by_the_page_before_it():
+    rows = [
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:00Z', 'scene': 'MAP'},
+        {'event': 'window_unknown_wait', 'utc': '2026-10-24T00:00:04Z',
+         'after': 'BATTLE_HUD', 'interval_s': 1.5},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:08Z', 'scene': 'MAP'},
+        {'event': 'window_unknown_wait', 'utc': '2026-10-24T00:00:12Z',
+         'after': 'MAP', 'interval_s': 1.5},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:16Z', 'scene': 'MAP'},
+    ]
+    waits = run_metrics.time_budget(rows)['unknown_waits']
+    assert waits['BATTLE_HUD'] == {'seconds': 4.0, 'n': 1, 'mean': 4.0}
+    assert waits['MAP'] == {'seconds': 4.0, 'n': 1, 'mean': 4.0}
+
+
+def test_a_wait_written_before_d81_is_its_own_bucket():
+    rows = [
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:00Z', 'scene': 'MAP'},
+        {'event': 'window_unknown_wait', 'utc': '2026-10-24T00:00:04Z', 'interval_s': 4.0},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:08Z', 'scene': 'MAP'},
+    ]
+    assert set(run_metrics.time_budget(rows)['unknown_waits']) == {'unrecorded'}
+
+
+def test_the_portfolio_adds_the_splits_it_was_given():
+    one = run_metrics.time_budget([
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:00Z', 'scene': 'MAP'},
+        {'event': 'window_unknown_wait', 'utc': '2026-10-24T00:00:04Z',
+         'after': 'BATTLE_HUD'},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:08Z', 'scene': 'MAP'},
+    ])
+    two = run_metrics.time_budget([
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:00Z', 'scene': 'MAP'},
+        {'event': 'window_unknown_wait', 'utc': '2026-10-24T00:00:06Z',
+         'after': 'BATTLE_HUD'},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:12Z', 'scene': 'MAP'},
+    ])
+    waits = run_metrics.time_portfolio([one, two])['value']['unknown_waits']
+    assert waits['BATTLE_HUD'] == {'seconds': 10.0, 'n': 2, 'mean': 5.0}
+
+
+def test_a_corpus_without_the_split_reports_no_bucket():
+    rows = [
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:00Z', 'scene': 'MAP'},
+        {'event': 'loop_heartbeat', 'utc': '2026-10-24T00:00:04Z'},
+        {'event': 'map_observed', 'utc': '2026-10-24T00:00:08Z', 'scene': 'MAP'},
+    ]
+    assert run_metrics.time_portfolio([run_metrics.time_budget(rows)])[
+        'value']['unknown_waits'] == {}

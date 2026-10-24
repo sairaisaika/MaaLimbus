@@ -49,6 +49,7 @@ from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
 from .pages import REFUSALS, kind_of, ladder_for, recovery_for, superseded_click
+from . import pages as page_vocabulary
 from .anchors import evaluate
 from .event_vision import (best_check_choice, check_box, check_stage, choice_options,
                            gift_hints, odds_scores, preferred_choice)
@@ -2426,6 +2427,11 @@ class MirrorRunner:
         directory = self.directory
         record = self._observe()
         page = resolve_scene(self.registry, directory, record)
+        if not page_vocabulary.is_unreadable(page):
+            # D81: the last page the reader could name, kept so that an unknown page can
+            # say what it followed.  Only a name is stored; the unreadable page is the
+            # absence of one, and asking which page it is belongs to the page vocabulary.
+            state['last_named_page'] = page
         self._resolve_map_click(page)
         if self.exploration is not None and self.exploration.data.get('pending') is not None:
             outcome=self.exploration.finish(frame_file(directory),page)
@@ -2700,8 +2706,15 @@ class MirrorRunner:
                 return self._result(page, None, False, stopped)
             # Loading screens, turn animations and the battle result clear themselves;
             # they are not a refusal, so wait them out instead of stopping the window.
+            # D81: an unknown page is not one behaviour.  Waiting on a loading screen
+            # after a battle and waiting on a transition after the mirror menu have
+            # nothing in common, and the group's cost cannot be judged until the journal
+            # says which one it was.  `last_named_page` is the last page the reader could
+            # name -- the unknown page itself is not a name.
             self.note('window_unknown_wait', page=page, round=state['unknown_seen'],
-                      interval_s=settings.unknown_interval, submitted_turn_wait=turn_waiting)
+                      interval_s=settings.unknown_interval,
+                      after=state.get('last_named_page'),
+                      submitted_turn_wait=turn_waiting)
             time.sleep(settings.unknown_interval)
             return self._result(page, None, False, None, waiting=True)
         state['unknown_seen'] = 0

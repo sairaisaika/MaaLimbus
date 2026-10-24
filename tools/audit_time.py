@@ -77,6 +77,17 @@ def main(argv=None):
                   'classify_seconds, because the writers that record them are newer (D70)')
     else:
         print(f'  not measured -- {reads.get("note")}')
+    waits = value.get('unknown_waits') or {}
+    if waits:
+        print('')
+        print('unknown-page waits, by the page that came before them (D81):')
+        for after, entry in waits.items():
+            print(f'  after {after:<20} {entry["seconds"]:7.0f} s  n={entry["n"]:<4} '
+                  f'mean {entry["mean"]:.2f} s')
+    else:
+        print('')
+        print('unknown-page waits by preceding page: not measured -- the rows that record '
+              '`after` are newer (D81)')
     print('')
     print(f'node versus wrapper: {split.get("basis")}')
     if split.get('value'):

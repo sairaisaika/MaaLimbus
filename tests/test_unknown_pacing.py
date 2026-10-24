@@ -69,6 +69,15 @@ def test_the_pause_is_shorter_than_the_read_it_precedes(tmp_path, monkeypatch):
     assert runner.settings().unknown_interval < 2.07
 
 
+def test_the_wait_says_which_page_came_before_it(tmp_path, monkeypatch):
+    """D81: a loading screen after a battle and a transition after the menu differ."""
+    loop, _sleeps, _result = _run(tmp_path, monkeypatch)
+    waits = runner.events(tmp_path, 'window_unknown_wait')
+    assert waits, 'the unknown wait should be journalled'
+    assert waits[0]['after'] is None, 'nothing named a page yet, so it may not invent one'
+    assert loop.state.get('last_named_page') is None
+
+
 def test_the_note_carries_the_interval_that_was_actually_waited(tmp_path, monkeypatch):
     loop, _sleeps, _result = _run(tmp_path, monkeypatch, unknown_interval=2.5)
     waits = runner.events(tmp_path, 'window_unknown_wait')
@@ -87,3 +96,13 @@ def test_the_pacing_is_a_bounded_setting():
     for bad in (0, -1, 0.0, 31, '1.5', True, None):
         with pytest.raises(ValueError):
             runner.settings({'unknown_interval': bad})
+
+
+def test_the_unreadable_page_is_asked_for_by_the_vocabulary():
+    """D44's ratchet forbids a new page comparison in the runner; D81 moved it here."""
+    from maalimbus import pages
+
+    assert pages.is_unreadable('UNKNOWN') is True
+    assert pages.is_unreadable('MAP') is False
+    assert pages.is_unreadable(None) is False
+    assert pages.UNREADABLE_PAGE in pages.PAGES

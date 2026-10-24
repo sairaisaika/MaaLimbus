@@ -537,6 +537,21 @@ DISPATCH_FACTS = {
     'WINDOW_RESET': {'actions': ('CLICK',), 'expects': ('*',), 'refusals': ('weekly_reset_cancel_not_anchored',)},
 }
 
+UNREADABLE_PAGE = 'UNKNOWN'
+
+
+def is_unreadable(name):
+    """True for the page that stands for "the reader could not name this one".
+
+    D81 asked the loop to remember the last page it *could* name, which is a question
+    about the page vocabulary and not about the map or the menu.  Keeping the literal
+    here is what lets `MirrorRunner.step` ask it without adding a page-specific
+    comparison to the runner -- D44's ratchet failed the first draft for exactly that
+    reason, and it was right.
+    """
+    return name == UNREADABLE_PAGE
+
+
 def facts(page):
     """The recorded capabilities of one page, or ``None`` if the chain has none."""
     return DISPATCH_FACTS.get(page)

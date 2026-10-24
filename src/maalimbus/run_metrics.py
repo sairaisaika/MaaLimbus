@@ -652,6 +652,18 @@ def group_of(event):
     return GROUP_OF.get(str(event), OTHER_GROUP)
 
 
+def _stamp(row):
+    """One row's `utc` as a datetime, or None when it does not parse (D81)."""
+    from datetime import datetime
+    value = row.get('utc')
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 def stamped(rows):
     """[(event, stamp)] for the rows whose `utc` really parses, in journal order."""
     from datetime import datetime
@@ -675,10 +687,23 @@ def time_budget(rows, *, cap=MAX_GAP_SECONDS):
     a budget that silently drops the unexplained part is a share of nothing.
     """
     pairs = stamped(rows)
+    # The gap after a row belongs to that row, so the row itself is what can explain it.
+    # Before D81 the pairing threw the row away and kept only its name, which is why an
+    # unknown wait could not say which page it followed.
+    rows_by_stamp = []
+    for row in rows:
+        when = _stamp(row)
+        if when is not None:
+            rows_by_stamp.append((row, when))
     per_event = {}
+    # D81: an unknown page is not one behaviour, so its cost is also kept by the page it
+    # followed.  Rows written before D81 carry no `after`, which is its own bucket rather
+    # than silently joining the named ones.
+    waits = {}
     attributed = 0.0
     capped = 0
-    for (event, when), (_, then) in zip(pairs, pairs[1:]):
+    for (row, when), (_, then) in zip(rows_by_stamp, rows_by_stamp[1:]):
+        event = row.get('event')
         gap = (then - when).total_seconds()
         if gap < 0:
             continue
@@ -689,6 +714,11 @@ def time_budget(rows, *, cap=MAX_GAP_SECONDS):
         entry = per_event.setdefault(event, {'seconds': 0.0, 'n': 0})
         entry['seconds'] += gap
         entry['n'] += 1
+        if event == 'window_unknown_wait':
+            after = row.get('after') or 'unrecorded'
+            bucket = waits.setdefault(after, {'seconds': 0.0, 'n': 0})
+            bucket['seconds'] += gap
+            bucket['n'] += 1
     total = (pairs[-1][1] - pairs[0][1]).total_seconds() if len(pairs) >= 2 else None
     events = {}
     for event, entry in per_event.items():
@@ -713,6 +743,12 @@ def time_budget(rows, *, cap=MAX_GAP_SECONDS):
         'capped_gaps': capped,
         'events': events,
         'groups': groups,
+        # D81: the unknown-page group split by the page that preceded it.
+        'unknown_waits': {after: {'seconds': round(entry['seconds'], 1),
+                                  'n': entry['n'],
+                                  'mean': round(entry['seconds'] / entry['n'], 2)}
+                          for after, entry in sorted(waits.items(),
+                                                     key=lambda item: -item[1]['seconds'])},
     }
 
 
@@ -902,6 +938,18 @@ def time_portfolio(budgets, reads=None):
         entry['seconds'] = round(entry['seconds'], 1)
         entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
         entry['share'] = round(entry['seconds'] / attributed, 3) if attributed else None
+    # D81: the unknown-page group is only worth its share if it can be split by what the
+    # loop was waiting for; a loading screen after a battle and a transition after the
+    # menu are different behaviours sharing one event name.
+    waits = {}
+    for budget in timed:
+        for after, detail in (budget.get('unknown_waits') or {}).items():
+            entry = waits.setdefault(after, {'seconds': 0.0, 'n': 0})
+            entry['seconds'] += detail['seconds']
+            entry['n'] += detail['n']
+    for entry in waits.values():
+        entry['seconds'] = round(entry['seconds'], 1)
+        entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
     return {
         'value': None if not timed else {
             'attributed_seconds': attributed,
@@ -910,6 +958,8 @@ def time_portfolio(budgets, reads=None):
                                      key=lambda pair: -pair[1]['seconds'])[:10]),
             'groups': dict(sorted(groups.items(),
                                   key=lambda pair: -pair[1]['seconds'])),
+            'unknown_waits': dict(sorted(waits.items(),
+                                         key=lambda pair: -pair[1]['seconds'])),
         },
         'basis': f'{len(timed)} of {len(budgets)} runs carry two or more timestamps, '
                  f'{round(sum(b["capped_gaps"] for b in timed))} gap(s) beyond '
