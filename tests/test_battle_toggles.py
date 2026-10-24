@@ -77,3 +77,15 @@ def test_a_readable_caption_still_wins():
 def test_the_plan_still_needs_a_battle_hud():
     plan = battle_vision.auto_assign_plan([], SIZE)
     assert plan['target'] is None and plan['reason'] == 'battle_hud_not_identified'
+
+
+def test_a_fixed_point_is_not_evidence_that_a_page_is_the_battle():
+    # The click path may stand in for an unreadable caption; the page-identity gate may
+    # not, or a frame that is not the board would be read as one (live
+    # `tests/test_theme_vision.py::test_regular_battle_requires_numeric_turn_and_both_controls`).
+    records = [_token('MAX', [1690, 40, 60, 24]), _token('TURN', [18, 95, 44, 24]),
+               _token('5', [68, 90, 30, 30])]
+    clickable = battle_vision.auto_assign_buttons(records, SIZE)
+    assert clickable is not None and clickable.get('positional') is True
+    assert battle_vision.auto_assign_buttons(records, SIZE, positional=False) is None
+    assert battle_vision.battle_hud(records, SIZE) is None

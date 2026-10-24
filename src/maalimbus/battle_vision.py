@@ -326,7 +326,7 @@ def _battle_chrome(records, size):
     return False
 
 
-def auto_assign_buttons(records, size):
+def auto_assign_buttons(records, size, *, positional=True):
     """The battle's `Win Rate` and `Damage` auto-assignment buttons.
 
     Each button is the union of its two caption words in its own band.  When a caption
@@ -343,7 +343,10 @@ def auto_assign_buttons(records, size):
         # Only a frame that shows battle chrome may borrow the fixed point: a non-battle
         # page must keep getting None, or the caller would click a toggle that is not
         # drawn there (live `tests/test_battle_touch.py::test_auto_assign_refuses_without_the_battle_page`).
-        if not _battle_chrome(records, size):
+        # A *fixed point* is not evidence that anything is drawn, so the page-identity
+        # gate asks for `positional=False` and keeps requiring the captions themselves
+        # (live `tests/test_theme_vision.py::test_regular_battle_requires_numeric_turn_and_both_controls`).
+        if not positional or not _battle_chrome(records, size):
             return None
         fixed = toggle_boxes(size)
         return {'win_rate': fixed['win_rate'], 'damage': fixed['damage'],
@@ -475,7 +478,7 @@ def battle_hud(records, size):
                         diagnostics=controls and ['Win', 'Rate', 'Damage', 'MAX'],
                         scope='HUD identity from the wave caption plus its own controls; '
                               'turn caption unreadable, no turn submission or victory claim')
-    if not wave and len(turn)==1 and auto_assign_buttons(records,size) is not None:
+    if not wave and len(turn)==1 and auto_assign_buttons(records,size,positional=False) is not None:
         # Regular encounters omit WAVE entirely. A local numeric turn and both
         # independent assignment controls identify this variant; wave stays None.
         values=find(records,r'^\d{1,3}$',(.035,.077,.081,.121),size,.9)
