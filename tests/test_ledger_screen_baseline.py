@@ -94,3 +94,22 @@ def test_one_pick_is_still_required_when_the_page_carried_nothing(tmp_path):
     tx.observe_pick(offers, {"chosen": 1, "required": 1}, "frame-0003")
     tx.commit("frame-0004")
     assert tx.data["pending"]["adopted"] is False
+
+
+def test_an_adopted_selection_attributes_the_first_notice(tmp_path):
+    """D139: an adopted pick has no printed substitution to look up beforehand."""
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    tx.commit("frame-0002")
+    tx.receipt_intent("Faint Vestige", "frame-0003", on_notice_page=True)
+    pending = tx.data["pending"]
+    assert pending["kind"] == "receipt" and pending["title"] == "Melted Eyeball"
+    assert pending.get("printed") == "Faint Vestige"
+
+
+def test_an_adopted_selection_without_a_notice_still_refuses(tmp_path):
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    tx.commit("frame-0002")
+    with pytest.raises(ValueError, match="receipt_unknown_repeated_or_pending"):
+        tx.receipt_intent("", "frame-0003", on_notice_page=False)

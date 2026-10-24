@@ -241,6 +241,15 @@ class FloorGiftTransaction:
             # pick; the pick itself is still the one this run chose.
             unclaimed=[n for n in d['selected'] if n not in seen]
             if len(unclaimed)==1:expected=unclaimed
+        if not expected and (p or {}).get('adopted') and title:
+            # An adopted selection was never pressed as a pick: the game had already
+            # marked the card Owned, so the first notice after Select is its answer to
+            # *that* screen, and there is no substitution to look up beforehand.  The
+            # adopted title is the expectation and the printed name is kept beside it
+            # (D139).  Measured 2026-10-24: packaged-mirror-20261024-162043 stopped on
+            # this exact guard with commit_sent true and selected ['Melted Eyeball'].
+            unclaimed=[n for n in d['selected'] if n not in seen]
+            if len(unclaimed)==1:expected=unclaimed
         if not expected and on_notice_page and self.notice_matches_a_pick(title):
             # The device answered the submitted selection with a gift under its own
             # name. The next unclaimed pick is the one that press answered; its own
