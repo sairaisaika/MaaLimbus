@@ -63,14 +63,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 669,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 682,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1642,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 1655,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         },
         {
           "path": "agent/recognition.py",
@@ -625,8 +625,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
-          "line": 192,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 200,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         }
       ]
     },
@@ -810,20 +810,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
-          "line": 581,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 594,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4637,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 4673,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
-          "line": 608,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 621,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         }
       ]
     },
@@ -1216,7 +1216,13 @@
         "settle_read_never_returned",
         "loop_read_failed",
         "read_retries",
-        "_unreadable_frame"
+        "_unreadable_frame",
+        "unreadable_rounds",
+        "reads_failed",
+        "读预算",
+        "read budget",
+        "连续读失败",
+        "consecutive reads"
       ],
       "sources": [
         {
@@ -1242,13 +1248,19 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _unreadable_frame("
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "'unreadable_rounds': 2,"
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
         "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator",
         "docs/wiki/en_us/2.3-decisions.md#d59-a-read-that-does-not-come-back-is-not-a-verdict",
-        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定"
+        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定",
+        "docs/wiki/en_us/2.3-decisions.md#d60-one-budget-cannot-count-two-different-events",
+        "docs/wiki/zh_cn/2.3-decisions.md#d60-一个预算不能同时数两件事"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1257,7 +1269,7 @@
       "checks": [
         "python -m pytest -q tests/test_run_endings.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure.",
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed.",
       "locations": [
         {
           "path": "src/maalimbus/pages.py",
@@ -1286,14 +1298,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "class ReadNeverReturned(",
-          "line": 520,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 533,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _unreadable_frame(",
-          "line": 2129,
-          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+          "line": 2142,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "'unreadable_rounds': 2,",
+          "line": 178,
+          "sha256": "ebb58649df30aa8027719572e97366fbb31cd34b563bd7955b3b0268f9ebf6fb"
         }
       ]
     },

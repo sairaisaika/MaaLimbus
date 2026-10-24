@@ -4301,3 +4301,46 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 1. settle 预算与"读不出来的轮"是否该共享一个上限：现在 30 轮 × 30 秒靠运行截止时间兜底，值得用一条独立计数（`unreadable_rounds`）显式有界。
 2. 那次 30 秒超时本身：把 `settle_read_never_returned` 的 `lasted_seconds` 与页名做成后续可检索的证据，判断是动画、OCR 还是原生调用卡住。
 3. `MirrorRunner.step` 里 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
+## DSH continuation: 一个预算不能同时数两件事 (2026-10-23)
+
+### 三个最关键的原因（本轮的层次：*预算计错了事件*）
+
+1. **页面预算被用来数读失败。** settle 循环的 `rounds` 是为"帧到了、画面没变"设计的；D59 之后一次读失败也算一轮，于是 30 个耐心轮次 × (30 秒读窗口 + 间隔) = 1080 秒可以在一整步里烧掉 420 秒的预算，最后落在截止时间上——一个 D37/D38/D59 都在避免的结局，换了一条路到达。
+2. **一个计数不能同时回答两个问题。** "这一页等了多久"和"这台设备还能不能读"是两回事；同一个变量同时表示它们，就无法为两者分别设上限。
+3. **失败之后没有留下"卡在哪"的证据。** `settle_read_never_returned` 原来只记页名与轮次，读到底花了多久、用了多少预算都不可检索。
+
+### 改了什么
+
+- `settings.unreadable_rounds`（默认 2，构造时校验 0..30，CLI `--unreadable-rounds`）。
+- settle 循环里两个计数：`unreadable_rounds`（连续，成功读清零，用于预算）与 `reads_failed`（本步累计，进步记录）。
+- 事件 `settle_read_never_returned` 增加 `seconds`、`limit_seconds`、`consecutive`、`reads_failed`、`budget`；超出预算时 `break` 出 settle，页面留成 `UNKNOWN`（沿用旧哈希），**不结束这一局**。
+
+### 反例（都进了测试）
+
+- 失败两次、中间夹一次成功读：`reads_failed == 2` 但预算 1 仍不拦停，这一步照样走到 MAP。
+- 预算为 0：第一次失败即停，不会多读一次。
+- 页面预算 4 且四次都读到：四次都发生，读预算不得缩短读到了的轮次。
+- 负数预算：构造即拒绝（否则循环会在第一次读之前停下）。
+
+### 证据
+
+| 项目 | 之前 | 现在 |
+|---|---|---|
+| 连续读失败的最坏耗时 | 30 轮 × 36 秒 ≈ 1080 秒，只由运行截止时间兜底 | 3 轮（预算 2 + 1）× 36 秒 ≈ 108 秒，之后交给 unknown 预算 |
+| 一次读失败的可检索证据 | 页名、轮次 | 页名、轮次、读耗时、读窗口、连续次数、本步累计、预算 |
+| `tests/test_read_failure.py` | 9 passed | **16 passed** |
+| 相关套件（10 个） | — | **205 passed in 60.91 s** |
+| 全套 | 2236 passed, 2 skipped | 2245 passed in 202.11 s, exit 0 |
+| pipeline 规格 | ok | `ok — 0 problem(s)`（805 节点 / 16 agent 名 / 6 入口） |
+| 实机 | — | 只读一帧，`input_sent: false`，第 2 层进度未动 |
+
+### 提交
+
+- `<code>` runner: one budget cannot count two different events
+- `<wiki>` wiki: D60 -- one budget cannot count two different events
+
+### 下一个单位
+
+1. 把"每步读失败次数"和"每步耗时"写进 summary，让第六阶段的效率指标（识别调用量、无进展率）第一次有逐局数字。
+2. `MirrorRunner.step` 里 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
+3. `read_retries`（步级）与 `unreadable_rounds`（步内）仍然彼此独立，`reads_failed` 是将来统一它们时需要的证据。
