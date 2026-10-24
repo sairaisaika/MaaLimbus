@@ -32,7 +32,17 @@ class DeploymentTransaction:
         if d['order']==saved_order and d['order']!=order and not d['sequence'] and count[0]==0:
             d.update(saved_order=saved_order,order=order,unavailable=unavailable,availability_proof=availability_proof)
             write_json(self.path,d)
-        if d['order']!=list(order):raise ValueError('Deployment order changed during selection')
+        if d['order']!=list(order):
+            # A board that names another team changes the order before anything was
+            # clicked: nothing has been reserved for the old order, so re-pointing the
+            # card does not lose a transaction (D119 -- the pre-battle page can now be
+            # adopted from the screen, and the rotation's order would otherwise stop the
+            # run with 'Deployment order changed during selection').
+            if not d.get('sequence') and not d.get('pending') and not d.get('submitted'):
+                d.update(order=list(order), unavailable=list(unavailable))
+                write_json(self.path,d)
+            else:
+                raise ValueError('Deployment order changed during selection')
         if d['sequence'] and count[0]!=len(d['sequence']):raise ValueError('Participant count diverged from verified deployment')
         from .team_vision import carries_saved_order
         inherited=carries_saved_order(numbers,order,count)

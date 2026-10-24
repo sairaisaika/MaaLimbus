@@ -3244,9 +3244,16 @@ class MirrorRunner:
                 # listed is still refused: that team was not chosen by anyone here.
                 shown = team.get('shown')
                 slots = tuple(getattr(self.store, 'slots', ()) or ())
-                if shown is not None and int(shown) in slots:
+                # The board wins even when its preset is outside the rotation (D119):
+                # the operator's rotation is a preference and the screen is the fact,
+                # and refusing here stopped every run at the pre-battle page while the
+                # gift plan already reads the board's team (D90) -- so the two halves
+                # agree on the board's team and the disagreement is journalled once.
+                if shown is not None and 1 <= int(shown) <= 40:
                     was = self.store.team_slot
-                    self.store.point_at(int(shown))
+                    # The ledger's pointer is not moved: `point_at` refuses while a run is
+                    # active, and the pointer is the *next* run's rotation.  This run
+                    # adopts the board for its own order and its own journal instead.
                     team['preset_mismatch'] = False
                     team['tries'] = 0
                     team['reconciled'] = {'ledger': was, 'board': int(shown)}
@@ -3255,9 +3262,9 @@ class MirrorRunner:
                     if saved is not None and saved.deployment:
                         team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
                     self.note('team_reconciled_to_the_board', ledger_slot=was,
-                              board_slot=int(shown),
-                              reason='the_board_shows_one_of_this_rotations_saved_teams_'
-                                     'so_that_is_the_team_this_run_deploys')
+                              board_slot=int(shown), in_rotation=int(shown) in slots,
+                              reason='the_board_is_the_fact_and_the_rotation_is_a_'
+                                     'preference_so_this_run_deploys_what_the_screen_shows')
         if page=='PRE_BATTLE_TEAM' and team is not None and team.get('order'):
             if self.deployment_transaction is None:
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')

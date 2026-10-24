@@ -5875,3 +5875,27 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 
 读的是字幕，不是棋盘：棋盘上站着哪些罪人，仍然只在印出存档顺序时才比较（D90）；
 一个印着同样预设却悄悄换人的棋盘，目前检测不到。
+
+## DSH continuation: 屏幕是事实，轮换只是偏好（2026-10-24，D119）
+
+**这一轮解决的问题是“每一次运行都死在战前页”。** D117 把“页面预设与账本不符”判为拒绝，D118 又只在页面对得上轮换时才采纳；账本轮换是 `(2,)`、游戏里是 `Preset #1`，于是三次实机 `…-113756`（14 秒、0 点击）、`…-115826`（按两次后拒绝）、`…-121001`（死在 `Deployment order changed during selection`）都停在这一页。
+
+**测量先于改动。** 战前页的标题按了四次、页面不动（D117 的 `SELECT_TEAM_TRIES = 2` 实证）；左侧那块牌子循环的是预览头像而不是预设号——用一次性探针 `tools/probe_preset_picker.py` 在 `evidence/runtime/preset-probe-20261024-120739` 里点了一次并留下前后两帧。顺带记下一个陷阱：设备这些探针在 **1280x720**，归档证据是 1920x1080，任何固定像素点都要先按帧尺寸缩放。
+
+**改动。**
+1. `runner.step` 的预设不符处改为“采纳屏幕”：本局使用页面显示的那支队伍，日志先写 `team_mismatch`、再写 `team_reconciled_to_the_board`（带 `ledger_slot`、`board_slot`、`in_rotation`），账本轮换指针不动（`RunStore.point_at` 在运行中会拒绝）。
+2. `DeploymentTransaction.prepare` 允许在 `sequence`、`pending`、`submitted` 三者皆空时改序；一旦有输入在飞仍然抛 `Deployment order changed during selection`，并把这条原因登记为 `refused_by_policy`。
+3. 新测试 `tests/test_deployment_reselect.py`，重写 `tests/test_team_reconcile.py` 的三条断言。
+
+**证据。**
+
+| 项 | 结果 |
+| --- | --- |
+| 实机 `packaged-mirror-20261024-121316` | 222.9 秒、281 事件、**22 次点击**、按自己预算结束 |
+| 路径 | `PRE_BATTLE_TEAM → DEPLOYMENT_RESET → PRE_BATTLE_TEAM → BATTLE_HUD`（进入战斗） |
+| 队伍日志 | `team_mismatch {seen 1, wanted 2}` → `team_reconciled…{in_rotation false}` |
+| 部署 | 12 次补位卡 + `battle_button_submits_the_team` |
+| 战斗 | 4 次 `start_button…`、3 次 `win_rate…`（D107/D114 的量测点在用） |
+| 全量测试 | 2647 passed（`build/full-r65.log`），wiki 0 problem |
+
+**下一步。** 这次运行不再死在战前页，但它也没走完一层（`floors: []`）：22 次点击里有 12 次是补位卡，说明“继承来的参与者顺序”每次都清空重排。下一轮量这件事：能不能保留已选槽位，只补空缺。

@@ -32,15 +32,34 @@ def test_the_board_team_is_adopted_when_it_is_one_of_the_rotations_teams(tmp_pat
     assert journal['rotation'] is not None
 
 
-def test_a_board_team_outside_the_rotation_is_not_deployable(tmp_path):
+def test_a_board_team_outside_the_rotation_is_adopted_too(tmp_path):
+    # D119: the screen is the fact and the rotation is a preference.  Refusing an
+    # out-of-rotation board stopped every run at the pre-battle page (live
+    # `…-115826`: board 1, rotation (2,)), while the gift plan already reads the board's
+    # team (D90) -- so both halves now name the same team and the disagreement is
+    # journalled once instead of ending the run.
     store = _store(tmp_path, slots=(2, 3))
     assert 1 not in tuple(store.slots)
-    plan = window.plan_step('PRE_BATTLE_TEAM', controls={'pre_battle.battle': (1, 2, 3, 4)},
-                            team={'preset_mismatch': True, 'states': [], 'participants': [],
-                                  'order': [], 'saved_team': 1,
-                                  'saved_team_box': (150, 254, 84, 21), 'tries': 99})
-    assert plan['action'] == 'record'
-    assert plan['reason'] == 'the_board_shows_a_different_saved_team_than_the_plan_deploys'
+    shown = 1
+    assert 1 <= shown <= 40
+    plan = window.plan_step('PRE_BATTLE_TEAM',
+                            controls={'pre_battle.battle': (1651, 832, 192, 97),
+                                      'pre_battle.clear_selection': (1651, 669, 173, 97)},
+                            team={'reset_required': True, 'states': [], 'participants': [],
+                                  'order': [], 'saved_team': 1, 'tries': 99,
+                                  'reconciled': {'ledger': 2, 'board': 1}})
+    assert plan['action'] == 'click'
+
+
+def test_an_unreadable_board_is_still_not_a_team(tmp_path):
+    # ``shown is None`` never sets the mismatch flag at all (D90), so the plan is the
+    # ordinary pre-battle one and no team is invented.
+    plan = window.plan_step('PRE_BATTLE_TEAM',
+                            controls={'pre_battle.battle': (1651, 832, 192, 97),
+                                      'pre_battle.clear_selection': (1651, 669, 173, 97)},
+                            team={'reset_required': True, 'states': [], 'participants': [],
+                                  'order': [], 'saved_team': None, 'tries': 0})
+    assert plan['action'] == 'click'
 
 
 def test_after_adoption_the_page_deploys_normally():

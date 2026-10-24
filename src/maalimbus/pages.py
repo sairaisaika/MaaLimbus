@@ -754,6 +754,10 @@ STOP_KINDS = {
     # nothing left to look at or click.  The only honest recovery action is to stop this
     # run -- a fresh task is a new run, not a recovery of this one, and the viewport
     # ladder cannot reach a session that no longer exists.
+    # D119: the transaction refuses to re-point a card that already has input in
+    # flight, so the only honest answer is to stop before sending more (a re-order
+    # after a reservation is a data question, not a recovery gesture).
+    'Deployment order changed during selection': 'refused_by_policy',
     'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
     # D96: the page never became readable, so the only honest recovery is another read
     # -- which the blocked-wait budget has already refused to spend.
