@@ -1049,7 +1049,13 @@
         "window_unknown_wait",
         "hazard",
         "风险率",
-        "flat hazard"
+        "flat hazard",
+        "floor_progress",
+        "budget_ended",
+        "平均楼层",
+        "clear rate denominator",
+        "通关率的分母",
+        "progress figure"
       ],
       "sources": [
         {
@@ -1151,6 +1157,10 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unknown_interval': 1.5,"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "'floor_progress': {"
         }
       ],
       "docs": [
@@ -1177,7 +1187,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d78-a-killed-process-cannot-write-its-ending-so-the-killer-does",
         "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写",
         "docs/wiki/en_us/2.3-decisions.md#d79-waiting-is-not-patience-when-the-hazard-is-flat",
-        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心"
+        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心",
+        "docs/wiki/en_us/2.3-decisions.md#d80-a-clear-rate-over-runs-nobody-gave-time-to-clear-is-a-statement-about-the-budget",
+        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算"
       ],
       "tests": [
         "tests/test_run_endings.py",

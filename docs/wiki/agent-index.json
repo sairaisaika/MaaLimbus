@@ -992,13 +992,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
           "line": 273,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
           "line": 314,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -1022,7 +1022,7 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "node_view",
           "line": 247,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -1033,8 +1033,8 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "click_kinds",
-          "line": 544,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 566,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -1057,8 +1057,8 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "CLICK_VERDICTS = ('accepted', 'rejected', 'superseded', 'unjudged')",
-          "line": 541,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 563,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         }
       ]
     },
@@ -1548,7 +1548,13 @@
         "window_unknown_wait",
         "hazard",
         "风险率",
-        "flat hazard"
+        "flat hazard",
+        "floor_progress",
+        "budget_ended",
+        "平均楼层",
+        "clear rate denominator",
+        "通关率的分母",
+        "progress figure"
       ],
       "sources": [
         {
@@ -1650,6 +1656,10 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unknown_interval': 1.5,"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "'floor_progress': {"
         }
       ],
       "docs": [
@@ -1676,7 +1686,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d78-a-killed-process-cannot-write-its-ending-so-the-killer-does",
         "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写",
         "docs/wiki/en_us/2.3-decisions.md#d79-waiting-is-not-patience-when-the-hazard-is-flat",
-        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心"
+        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心",
+        "docs/wiki/en_us/2.3-decisions.md#d80-a-clear-rate-over-runs-nobody-gave-time-to-clear-is-a-statement-about-the-budget",
+        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1703,13 +1715,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 100,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 153,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "tools/audit_runs.py",
@@ -1738,14 +1750,14 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
-          "line": 378,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 379,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
-          "line": 582,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 604,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "tools/audit_efficiency.py",
@@ -1763,19 +1775,19 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = (",
           "line": 350,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_budget",
-          "line": 648,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 670,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_portfolio",
-          "line": 848,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 870,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "tools/audit_time.py",
@@ -1786,20 +1798,20 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "        'heartbeats': heartbeats,",
-          "line": 418,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 419,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_cost",
-          "line": 697,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 719,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_split",
-          "line": 820,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 842,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "agent/recognition.py",
@@ -1810,8 +1822,8 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_phases",
-          "line": 742,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 764,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "agent/recognition.py",
@@ -1835,13 +1847,19 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "ENDING_KINDS = (",
           "line": 96,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unknown_interval': 1.5,",
           "line": 175,
           "sha256": "5792862de791cf7712a6a0e13da77cd6b3a0dcff1e20310853b0e023474af48a"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "'floor_progress': {",
+          "line": 494,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         }
       ]
     },
@@ -2134,8 +2152,8 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_phases_of",
-          "line": 798,
-          "sha256": "20377c82ae2f36472b661f064ff82a8ed8fbd1c616b1a6ab4812618da5af0557"
+          "line": 820,
+          "sha256": "ca75996615c45a19f20d0b605ad26bd87a8b73202ffa4d6eac64e94924defd46"
         }
       ]
     }
