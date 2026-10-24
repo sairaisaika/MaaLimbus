@@ -35,9 +35,14 @@ def test_another_page_gets_no_such_control(tmp_path):
         assert loop._battle_tip_control(page, loop.state) is None
 
 
-def test_a_run_that_never_pressed_a_card_has_no_close(tmp_path):
+def test_a_run_that_never_pressed_a_card_closes_it_on_a_skill_slot(tmp_path):
+    """D106: with no card in hand the tap goes to the measured skill row, not the board."""
+    from maalimbus.battle_vision import SKILL_ROW_POINT
     loop = _loop(tmp_path)
-    assert loop._battle_tip_control('BATTLE_TIP', loop.state) is None
+    box = loop._battle_tip_control('BATTLE_TIP', loop.state)
+    assert box is not None
+    centre = (box[0] + box[2] / 2, box[1] + box[3] / 2)
+    assert centre == (SKILL_ROW_POINT[0], SKILL_ROW_POINT[1])
 
 
 def test_the_anchored_board_point_is_not_what_the_loop_uses(tmp_path):

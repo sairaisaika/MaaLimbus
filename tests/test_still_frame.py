@@ -37,7 +37,7 @@ def _loop(tmp_path, observer, **settings):
 
 
 def test_a_frozen_screen_ends_with_its_own_reason(tmp_path):
-    observer = _Observer(tmp_path)
+    observer = _Observer(tmp_path, scene='UNKNOWN')
     loop = _loop(tmp_path, observer, still_frames=4)
     result = loop.run(steps=20, interval=0, round_limit=1)
     assert result is not None

@@ -398,6 +398,12 @@ which is the shape every stop of that session took.
 
 MAP_PROGRESS_CONTROL = (1780, 8, 128, 104)   # the map page's progress button, agent space
 FIXED_LAYOUT_PAGES = ('HOME', 'DRIVE', 'THEME', 'REWARD', 'EXPLORATION_COMPLETE')
+# D106: the battle and deployment boards are fixed too, and a drag there is not a view
+# move -- it grabs a skill or a sinner card and sends it somewhere.  The user reproduced
+# exactly that: a skill slot dragged across the board while the loop was trying to submit
+# a turn.  These pages get the settle wait and no gesture at all.
+FIXED_CONTROL_PAGES = ('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_TIP', 'BATTLE_RESULT',
+                       'DEPLOYMENT', 'PRE_BATTLE_TEAM', 'ENCOUNTER', 'REWARD_CARD')
 """Pages whose layout does not scroll or zoom, so viewport gestures are not recoveries."""
 
 SUBMIT_IGNORED_WINDOW_S = 25.0
@@ -5399,7 +5405,11 @@ class MirrorRunner:
             return None
         point = state.get('battle_tip_from')
         if not point:
-            return None
+            # D106: a run that started with the overlay already open has no card in hand;
+            # the user's rule is that a skill slot is a harmless tap, so the measured slot
+            # point dismisses it instead of the board (which closed it 0 times in 52).
+            from .battle_vision import SKILL_ROW_POINT
+            point = SKILL_ROW_POINT
         return [int(point[0]) - 2, int(point[1]) - 2, 4, 4]
 
     def _exempt_step(self, page, reason):
@@ -5486,7 +5496,7 @@ class MirrorRunner:
         raw = self.settings.get('recovery_tries')
         ladder = RECOVERY_LADDER[:(len(RECOVERY_LADDER) if raw is None
                                    else max(0, int(raw)))]
-        if str(page) in FIXED_LAYOUT_PAGES:
+        if str(page) in FIXED_LAYOUT_PAGES or str(page) in FIXED_CONTROL_PAGES:
             # A fixed screen has no view to move: pinching it proved to kill the task
             # (2026-10-22 00:09 run, access violation right after rung 0 on DRIVE), so
             # those pages get the settle wait and nothing that drags or pinches.
@@ -5534,7 +5544,7 @@ class MirrorRunner:
         """How many rungs this page is allowed, matching :meth:`_recover` exactly."""
         raw = self.settings.get('recovery_tries')
         length = len(RECOVERY_LADDER) if raw is None else max(0, int(raw))
-        if str(page) in FIXED_LAYOUT_PAGES:
+        if str(page) in FIXED_LAYOUT_PAGES or str(page) in FIXED_CONTROL_PAGES:
             length = min(length, 1)
         return length
 

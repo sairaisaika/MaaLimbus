@@ -5661,3 +5661,17 @@ pytest 退出码 0。D44 的棘轮两次拦下我：`page == 'BATTLE_TIP'` 与 `
 行**没有一条**带 `image_sha256`，集合大小 1 其实是 `{None}`。D104 因此是一条永远不会
 触发的死规则。D105 让写入方把画面身份放到行上，缺失时记 `frozen_check_unmeasured`；
 D104 的规则保留，现在测的是真实信号。全量 `2575 passed in 291.68 s`，pytest 退出码 0。
+
+
+## DSH continuation: 战斗板上的拖动是游戏动作，不是视野移动（2026-10-24）
+
+**三个根因。**
+1. **恢复阶梯在固定布局上按了游戏按钮。** `RECOVERY_LADDER` 用滑动来移动视野；在战斗板上同一次滑动抓到的是技能卡/角色卡，于是"恢复"变成了一次游戏动作——操作者复现的"把一个技能槽拿去拖动"就是它。
+2. **点击框会漂。** `START` 的框在同一局五连回合里落在 1400/1361/1232/1208/1165，偏到金环左侧的技能槽上（"点 START 点到旁边的槽"）。
+3. **浮层从来关不掉。** 归档里 52 次 `the_skill_detail_popup_is_dismissed_off_the_board` 全部失败（0 次关掉），因为它们点的是空地。
+
+**改动。** `FIXED_CONTROL_PAGES`（战斗/部署/结算/遭遇/选卡八页）与 `FIXED_LAYOUT_PAGES` 并列为"只许 `wait` 一档、不发任何手势"；浮层在没有"那张卡"时点**技能槽** `battle_vision.SKILL_ROW_POINT = (560, 960)`（实测 `…-073605/frame-0003.png`：卡排 x 470–1300、y 900–1030）；`START` 有标签时仍以标签为准（一律用金环会点到自动指派盘，`test_battle_touch` 当场拦住）。
+
+**证据。** 240 s 实机 `…-080044`：8 回合 8 次点击，**恢复只发生 1 次且是 `wait`，没有任何滑动**。全量 `2591 passed in 294.54 s`，pytest 退出码 0；`wiki_route --check` 23 条、`snapshot_stale: false`；`check_wiki` 0 problem。
+
+**下一步。** 战斗页的固定点表（Win Rate / Damage / submit 环 / 技能排）要按操作者的要求一次测准、按固定点点击，而不是每回合重新识别；`BATTLE_TIP` 的关闭点要由实机确认后写进表里。

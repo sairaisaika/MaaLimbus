@@ -256,6 +256,13 @@ def start_button(records, size, image=None):
     return label if control is None else control
 
 
+# D106: the skill row sits along the bottom of the battle board (measured on
+# `evidence/runtime/packaged-mirror-20261024-073605/frame-0003.png`: cards from x 470 to
+# 1300, y 900 to 1030).  Tapping a slot is harmless -- the game opens or closes that
+# slot's detail -- which is why the overlay is dismissed here rather than on the board.
+SKILL_ROW_POINT = (560, 960)
+
+
 def begin_turn_plan(records, size, image=None):
     """Plan one bounded turn-submission click, or refuse with an explicit reason."""
     hud = battle_hud(records, size)
