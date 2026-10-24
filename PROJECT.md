@@ -4837,3 +4837,7 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 - `MirrorDrive` 为什么两次都以 `unknown_or_bounded_transition_exhausted` 失败——现在它是每局最后一行，好查了。
 - 绑定句柄为什么在任务被拆后仍报非空 id（D71 的局限）。
 - `the_suspended_exploration_is_left_for_the_entry` 在有效探索上被触发、把 F2 那局放弃的问题。
+
+**改动后实测（第三次获授权实机运行，`evidence/runtime/packaged-mirror-20261023-224524`）**：
+`exit: 1`、`elapsed_s: 129.0`、217 事件、7 次点击，`stop: an_action_node_failed_and_the_task_was_torn_down`。
+同一处 `MirrorDrive` 失败再次出现，但这一次**循环自己停下并说明原因**，不再挂到看门狗预算（前两次为 `exit: 124`）。
