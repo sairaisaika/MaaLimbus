@@ -165,6 +165,14 @@ def _defaults():
         # player did not name a number and the window walks until another bound stops it.
         'run_count': 0,
         'interval': 4.0, 'map_tries': 8, 'page_tries': 3, 'team': 5,
+        # D79: how long to hold still on a page the reader could not name.  The step
+        # interval is 4 s, but a read costs 2.07 s and the chance that the *next* read
+        # names the page does not improve with waiting: measured over 413 unknown-page
+        # episodes in 154 retained runs, it is 12% after 4 s, 23% after 8 s, 36% after
+        # 12 s, 23% after 20 s and 28% after 40 s -- flat, so waiting is latency and not
+        # patience.  A fifth of a second under one read keeps the cadence below the cost
+        # of the sample it precedes.
+        'unknown_interval': 1.5,
         # D59: how many times one step may be retried after a read did not come
         # back.  Bounded, not a loop: after these the run ends with the read's own
         # reason, which is the ending it used to reach on the first failure.
@@ -220,6 +228,12 @@ class Settings:
         if (type(self._values['unreadable_rounds']) is not int
                 or not 0 <= self._values['unreadable_rounds'] <= 30):
             raise ValueError('Invalid bounded unreadable round count')
+        # D79: a page the reader cannot name gets its own pacing, and it has to be a real
+        # wait (zero would busy-loop the recogniser) inside one step's worth of time.
+        if (not isinstance(self._values['unknown_interval'], (int, float))
+                or isinstance(self._values['unknown_interval'], bool)
+                or not 0.0 < self._values['unknown_interval'] <= 30.0):
+            raise ValueError('Invalid bounded unknown-page interval')
 
     def __getattr__(self, name):
         try:
@@ -2687,8 +2701,8 @@ class MirrorRunner:
             # Loading screens, turn animations and the battle result clear themselves;
             # they are not a refusal, so wait them out instead of stopping the window.
             self.note('window_unknown_wait', page=page, round=state['unknown_seen'],
-                      interval_s=settings.interval,submitted_turn_wait=turn_waiting)
-            time.sleep(settings.interval)
+                      interval_s=settings.unknown_interval, submitted_turn_wait=turn_waiting)
+            time.sleep(settings.unknown_interval)
             return self._result(page, None, False, None, waiting=True)
         state['unknown_seen'] = 0
         if not settings.observe_only and page == 'TUTORIAL' and sha in state['tutorial_cards']:
@@ -5480,6 +5494,9 @@ def build_parser(defaults=None):
                         help='how many turns a battle may repeat one readout')
     parser.add_argument('--interval', type=float, default=defaults['interval'],
                         help='seconds between observations')
+    parser.add_argument('--unknown-interval', type=float,
+                        default=defaults['unknown_interval'],
+                        help='seconds to hold still on a page the reader could not name')
     parser.add_argument('--map-tries', type=int, default=defaults['map_tries'],
                         help='how many map spots may be tried before stopping')
     parser.add_argument('--page-tries', type=int, default=defaults['page_tries'],
