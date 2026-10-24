@@ -28,6 +28,9 @@ SUFFIX = '_not_anchored'
 #: countable: two of these were found by the guard test, not by reading code.
 ALIASES = {
     'battle_has_no_proven_control': 'battle',
+    # The dial is a control on the same board, so the anchor it is missing is the board's
+    # (D111: live `packaged-mirror-20261024-092948`).
+    'the_submit_dial_was_not_found_after_the_assignment': 'battle',
     'owned_gift_refuse_control_missing': 'owned_gift_refuse',
 }
 

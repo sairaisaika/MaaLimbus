@@ -988,6 +988,8 @@ REFUSALS = {
     'battle_assignment_observe_only': 'refused_by_policy',
     'battle_button_not_anchored': 'missing_control',
     'battle_has_no_proven_control': 'missing_control',
+    # A repeated mode switch cannot conjure the submit dial (D111).
+    'the_submit_dial_was_not_found_after_the_assignment': 'missing_control',
     'battle_result_control_not_anchored': 'missing_control',
     'battle_tip_dismiss_not_anchored': 'missing_control',
     'battle_victory_confirm_not_anchored': 'missing_control',

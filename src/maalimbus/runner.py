@@ -4083,6 +4083,7 @@ class MirrorRunner:
                          auto_assign=record.get('auto_assign_buttons'),
                          battle_assignment=settings.battle_assignment,
                          battle_previous=state.get('battle_previous'),
+                         battle_assigns=state.get('battle_assigns') or 0,
                          candidates=candidates, candidate_index=choice_index,
                          team=team, reward=reward, gift=gift, cards=cards,
                          graces=graces, initial=initial, check=check, defeat=defeat,
@@ -4390,8 +4391,12 @@ class MirrorRunner:
                 state['battle_previous']='submit'
             elif str(plan.get('reason','')).endswith('_is_the_proven_auto_assign_control'):
                 state['battle_previous']='assign'
+                state['battle_assigns']=int(state.get('battle_assigns') or 0)+1
+            if plan.get('reason')=='start_button_submits_the_assigned_turn':
+                state['battle_assigns']=0
         else:
             state['battle_previous']=None
+            state['battle_assigns']=0
         if plan.get('reason')=='start_button_submits_the_assigned_turn':
             # All twelve sinners can animate for longer than the ordinary page
             # read budget. Wait at most two minutes after the submitted turn;

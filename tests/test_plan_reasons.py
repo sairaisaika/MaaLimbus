@@ -29,11 +29,13 @@ def test_no_hook_names_a_word_nobody_writes():
 
 
 def test_the_hook_count_and_the_word_count_only_shrink():
-    # Measured 2026-10-23 on the tree that shipped D48: 42 comparisons over 22 words,
+    # Measured 2026-10-23 on the tree that shipped D48: 42 comparisons over 22 words.
+    # D111 added the forty-third: the battle branch resets `battle_assigns` on the submit
+    # word, which was already read there, so the words stay at 22.
     # 130 words the window can write, and exactly one plan the runner assembles.
     relation = reasons.unmatched()
     written = reasons.producers()
-    assert relation['hooks'] <= 42, f'{relation["hooks"]} reason hooks'
+    assert relation['hooks'] <= 43, f'{relation["hooks"]} reason hooks'
     assert relation['words'] <= 22, f'{relation["words"]} words read'
     assert len(written['window']) >= 130, f'{len(written["window"])} window words'
     assert len(written['runner']) <= 1, f'{len(written["runner"])} hand-built plans'

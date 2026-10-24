@@ -39,6 +39,8 @@ OBSERVE_ONLY = ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
                 'BATTLE_RESULT', 'UNKNOWN')
 
 #: pages whose only input is an existing, already proven pipeline node.
+MAX_BATTLE_ASSIGNS = 4   # live 2026-10-24: three in a row was the working maximum
+
 PAGE_NODES = {'DRIVE': 'MirrorDrive'}
 
 #: controls a window must never click, whatever else is on the same page. Halt
@@ -121,7 +123,7 @@ def _refuse(page, reason):
     return plan
 
 
-def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
+def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_assigns=0,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
@@ -139,7 +141,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                       initial=initial, search=search, check=check, defeat=defeat,
                       bonus=bonus, difficulty=difficulty, shop=shop,
                       battle_assignment=battle_assignment,
-                      battle_previous=battle_previous)
+                      battle_previous=battle_previous,
+                      battle_assigns=battle_assigns)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -597,7 +600,8 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
-               shop=None, battle_assignment='win_rate', battle_previous=None):
+               shop=None, battle_assignment='win_rate', battle_previous=None,
+               battle_assigns=0):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -1252,6 +1256,16 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason='start_button_submits_the_assigned_turn')
         if auto_assign and auto_assign.get(battle_assignment):
+            if battle_assigns >= MAX_BATTLE_ASSIGNS:
+                # The mode switch changes no page, so a board whose dial the reader cannot
+                # find used to be answered with the same assignment again: live
+                # `packaged-mirror-20261024-092229` sent twenty toggles for nine submitted
+                # turns, three in a row on the worst turn. A repeated mode switch buys
+                # nothing the first one did not, so the missing dial is named instead --
+                # above the observed working maximum (three), because a bound that ends a
+                # working turn is a regression: live `…-092948` stopped at 72 s when this
+                # was two.
+                return _refuse(page, 'the_submit_dial_was_not_found_after_the_assignment')
             return _plan(page, CLICK, target=auto_assign[battle_assignment],
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
                                  'UNKNOWN'),
