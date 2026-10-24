@@ -207,9 +207,74 @@ def summarise(rows, directory=None):
         'ending': ending(rows, directory),
         'floors': sorted({row.get('floor') for row in rows
                           if row.get('event') == 'map_observed' and row.get('floor')}),
+        'floor_pace': floor_pace(rows),
     }
 
 STOP_EVENTS = ('mirror_loop_stopped', 'mirror_loop_error')
+
+
+# The player's own requirement (2026-10-24): one floor per ten minutes, so a complete
+# five-floor exploration fits in fifty.  Everything the loop does that is not a floor is
+# measurable against this number, and a run that cannot be given this much time is not
+# evidence about throughput at all.
+TARGET_SECONDS_PER_FLOOR = 600.0
+# Below this a floor change is a label that repeated, not a floor that was walked.
+MIN_FLOOR_SECONDS = 30.0
+
+
+def _floor_of(value):
+    """The floor number as the journal writes it.
+
+    It is a **string** on every retained run (`'2'`, `'3'`), which a type check for
+    numbers silently drops: measured 2026-10-24, five runs walked two floors and every
+    one of them reported no pace.
+    """
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def floor_pace(rows):
+    """Seconds the run spent per floor it actually gained, or None.
+
+    Measured from the **first floor seen to the last**, not from the run's start: the
+    entry walk before the first floor is a different cost, and charging it to a floor
+    makes a slow entry look like a slow floor.  A run that gained no floor has no pace.
+    """
+    seen = []
+    for row in rows:
+        if row.get('event') != 'map_observed':
+            continue
+        floor = _floor_of(row.get('floor'))
+        if floor is None:
+            continue
+        at = _stamp(row)
+        if at is not None:
+            seen.append((at, floor))
+    if len({floor for _, floor in seen}) < 2:
+        return None
+    seen.sort()
+    # A floor label that moves within seconds is not a cleared floor: measured on the
+    # retained archive (2026-10-24), the five runs that showed two floors moved between
+    # them in 5-19 s, which is one floor read twice, not two floors walked.  A floor that
+    # takes less than MIN_FLOOR_SECONDS is dropped from the sample rather than averaged
+    # into it, and the caller is told how many were dropped.
+    if (seen[-1][0] - seen[0][0]).total_seconds() < MIN_FLOOR_SECONDS:
+        return None
+    gained = seen[-1][1] - seen[0][1]
+    seconds = (seen[-1][0] - seen[0][0]).total_seconds()
+    if gained <= 0 or seconds <= 0:
+        return None
+    return {'seconds': round(seconds, 1), 'floors': gained,
+            'per_floor': round(seconds / gained, 1),
+            'from_floor': seen[0][1], 'to_floor': seen[-1][1]}
+
+
 
 
 def stopped_in_events(records):
@@ -358,6 +423,7 @@ PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_ski
 MEASURES = (
     'clear_rate',
     'floor_progress',
+    'seconds_per_floor',
     'payout_rate',
     'mean_seconds',
     'reads_per_step',
@@ -422,6 +488,7 @@ def efficiency(rows, directory=None):
         'reads': reads,
         'payout': payout,
         'steps': steps,
+        'floor_pace': floor_pace(rows),
         'heartbeats': heartbeats,
         'reads_per_step': round(reads / steps, 2) if steps else None,
         'reached_floor': max(floors) if floors else None,
@@ -482,6 +549,8 @@ def metrics(runs):
     explored = sum(1 for run in runs if run['explored'])
     capped = sum(1 for run in runs if run.get('budget_ended'))
     walked = [run['reached_floor'] for run in runs if run.get('reached_floor')]
+    pace = [run['floor_pace']['per_floor'] for run in runs
+            if run.get('floor_pace') and run['floor_pace'].get('per_floor')]
     paid = [run['payout'] for run in runs if run['payout'] is not None]
     claimed = sum(1 for payout in paid if payout['claimed'])
     return {
@@ -504,6 +573,20 @@ def metrics(runs):
                       f'none of {total} runs reached a floor'),
             'note': (None if walked else
                      'no run walked a floor, so there is no progress to average')},
+        # The player's requirement, in the units they stated it in: ten minutes per
+        # floor, fifty for five.  Measured over the runs that actually gained a floor,
+        # because a run capped before its second floor cannot say how long a floor takes.
+        'seconds_per_floor': {
+            'value': round(sum(pace) / len(pace), 1) if pace else None,
+            'basis': (f"mean over {len(pace)} run(s) that gained a floor; target "
+                      f"{int(TARGET_SECONDS_PER_FLOOR)} s per floor, "
+                      f"{sum(1 for value in pace if value <= TARGET_SECONDS_PER_FLOOR)} of "
+                      f"{len(pace)} at or under it" if pace else
+                      f'no run gained a floor; target {int(TARGET_SECONDS_PER_FLOOR)} s'),
+            'note': (None if pace else
+                     'a floor takes at least two floor readings, and no retained run has '
+                     'two of them: the caller budget, not the loop, is what these runs '
+                     'measured (D80/D95)')},
         'payout_rate': {
             'value': round(claimed / len(paid), 3) if paid else None,
             'basis': f'{claimed} of {len(paid)} runs that recorded a payout outcome claimed it',
