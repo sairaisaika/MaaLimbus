@@ -31,6 +31,7 @@ ALIASES = {
     # The dial is a control on the same board, so the anchor it is missing is the board's
     # (D111: live `packaged-mirror-20261024-092948`).
     'the_submit_dial_was_not_found_after_the_assignment': 'battle',
+    'the_board_did_not_answer_the_pair_of_inputs': 'battle',
     'owned_gift_refuse_control_missing': 'owned_gift_refuse',
 }
 

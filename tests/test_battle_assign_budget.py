@@ -51,3 +51,35 @@ def test_the_submit_still_resets_the_budget_from_the_runner_side():
     source = __import__('pathlib').Path('src/maalimbus/runner.py').read_text(encoding='utf-8')
     assert "state['battle_assigns']=int(state.get('battle_assigns') or 0)+1" in source
     assert "state['battle_assigns']=0" in source
+
+
+def _controls():
+    return {'start': [1290, 745, 100, 100],
+            'auto_assign': {'win_rate': [1560, 795, 120, 44], 'damage': [1560, 858, 120, 44]}}
+
+
+def test_three_assign_after_submit_pairs_end_the_alternation():
+    # Neither the turn caption nor the frame can say whether a submit landed, so the pair
+    # is bounded by a count (D112).
+    from maalimbus import window
+    plan = window.plan_step('BATTLE_HUD', controls=_controls(), start_box=[1290, 745, 100, 100],
+                            auto_assign={'win_rate': [1560, 795, 120, 44]},
+                            battle_previous='submit', battle_pairs=window.MAX_BATTLE_SUBMIT_PAIRS)
+    assert plan['action'] == 'record'
+    assert plan['reason'] == 'the_board_did_not_answer_the_pair_of_inputs'
+
+
+def test_below_the_bound_the_pair_is_still_allowed():
+    from maalimbus import window
+    plan = window.plan_step('BATTLE_HUD', controls=_controls(), start_box=[1290, 745, 100, 100],
+                            auto_assign={'win_rate': [1560, 795, 120, 44]},
+                            battle_previous='submit',
+                            battle_pairs=window.MAX_BATTLE_SUBMIT_PAIRS - 1)
+    assert plan['action'] == 'click'
+    assert plan['reason'] == 'win_rate_is_the_proven_auto_assign_control'
+
+
+def test_the_pair_counter_belongs_to_the_board_not_to_the_run():
+    from maalimbus import pages
+    assert pages.kind_of(reason='the_board_did_not_answer_the_pair_of_inputs') == 'attempts_exhausted'
+    assert pages.recovery_for('attempts_exhausted') == 'escalate_ladder'

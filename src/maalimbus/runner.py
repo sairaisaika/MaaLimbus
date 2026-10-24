@@ -4084,6 +4084,7 @@ class MirrorRunner:
                          battle_assignment=settings.battle_assignment,
                          battle_previous=state.get('battle_previous'),
                          battle_assigns=state.get('battle_assigns') or 0,
+                         battle_pairs=state.get('battle_pairs') or 0,
                          candidates=candidates, candidate_index=choice_index,
                          team=team, reward=reward, gift=gift, cards=cards,
                          graces=graces, initial=initial, check=check, defeat=defeat,
@@ -4389,14 +4390,19 @@ class MirrorRunner:
         if page in ('BATTLE_HUD','BATTLE_PLANNING'):
             if plan.get('reason')=='start_button_submits_the_assigned_turn':
                 state['battle_previous']='submit'
+                state['battle_assigns']=0
             elif str(plan.get('reason','')).endswith('_is_the_proven_auto_assign_control'):
+                # An assign that follows a submit is the pair the board may not answer:
+                # neither the turn caption nor the frame can say whether it advanced
+                # (D112), so this count is the only bound on repeating the pair.
+                if state.get('battle_previous')=='submit':
+                    state['battle_pairs']=int(state.get('battle_pairs') or 0)+1
                 state['battle_previous']='assign'
                 state['battle_assigns']=int(state.get('battle_assigns') or 0)+1
-            if plan.get('reason')=='start_button_submits_the_assigned_turn':
-                state['battle_assigns']=0
         else:
             state['battle_previous']=None
             state['battle_assigns']=0
+            state['battle_pairs']=0
         if plan.get('reason')=='start_button_submits_the_assigned_turn':
             # All twelve sinners can animate for longer than the ordinary page
             # read budget. Wait at most two minutes after the submitted turn;

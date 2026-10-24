@@ -990,6 +990,10 @@ REFUSALS = {
     'battle_has_no_proven_control': 'missing_control',
     # A repeated mode switch cannot conjure the submit dial (D111).
     'the_submit_dial_was_not_found_after_the_assignment': 'missing_control',
+    # The pair of battle inputs was taken and the board still did not advance: nothing
+    # this plan can send is the missing one, so the honest class is "tried enough" and
+    # the action is to wait on the board rather than to send it again (D112).
+    'the_board_did_not_answer_the_pair_of_inputs': 'attempts_exhausted',
     'battle_result_control_not_anchored': 'missing_control',
     'battle_tip_dismiss_not_anchored': 'missing_control',
     'battle_victory_confirm_not_anchored': 'missing_control',

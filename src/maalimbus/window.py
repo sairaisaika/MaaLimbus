@@ -40,6 +40,14 @@ OBSERVE_ONLY = ('SHOP', 'EVENT_DIALOG', 'REWARD_SETTLE', 'FLOOR_GIFTS',
 
 #: pages whose only input is an existing, already proven pipeline node.
 MAX_BATTLE_ASSIGNS = 4   # live 2026-10-24: three in a row was the working maximum
+# A submit that lands and a submit that is swallowed look identical: the turn caption is
+# unreadable on the live boards (turn=None on 41 of 41 battle reads in
+# `packaged-mirror-20261024-092229`), the frame changes every read because the scene is
+# animated (`frame_changed: True` on all of them), and the dial's own brightness does not
+# encode the assignment (mean saturation 157.8 for both the submit and the assign frames).
+# So the alternation is bounded by a count instead of being trusted: after this many
+# assign-after-submit cycles the board is answered with a wait, never with the same pair.
+MAX_BATTLE_SUBMIT_PAIRS = 3
 
 PAGE_NODES = {'DRIVE': 'MirrorDrive'}
 
@@ -124,6 +132,7 @@ def _refuse(page, reason):
 
 
 def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_assigns=0,
+              battle_pairs=0,
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
@@ -142,7 +151,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_a
                       bonus=bonus, difficulty=difficulty, shop=shop,
                       battle_assignment=battle_assignment,
                       battle_previous=battle_previous,
-                      battle_assigns=battle_assigns)
+                      battle_assigns=battle_assigns,
+                      battle_pairs=battle_pairs)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -601,7 +611,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
                shop=None, battle_assignment='win_rate', battle_previous=None,
-               battle_assigns=0):
+               battle_assigns=0, battle_pairs=0):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -1233,7 +1243,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         # page comes back with the same turn, assign first. `battle_previous` is what this
         # run last sent on this battle page; without it the two intents cannot alternate
         # and the page would sit on one of them forever.
-        if battle_previous == 'submit' and auto_assign and auto_assign.get(battle_assignment):
+        if (battle_previous == 'submit' and auto_assign
+                and auto_assign.get(battle_assignment)):
+            if battle_pairs >= MAX_BATTLE_SUBMIT_PAIRS:
+                # Three assign-after-submit cycles that changed no page: the switch and the
+                # dial are both being taken and the board is not advancing, so neither is
+                # the missing input. Wait on the board's own animation instead of sending
+                # the pair a fourth time (D112).
+                return _refuse(page, 'the_board_did_not_answer_the_pair_of_inputs')
             # Literal words, not `battle_assignment + '_is_the_proven_auto_assign_control'`:
             # the concatenation produced 152 recorded sends under a name no static reader
             # could see, so the plan could never be gated against its own successors
