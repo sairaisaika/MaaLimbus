@@ -137,3 +137,46 @@ def test_a_ledger_says_which_reader_wrote_it(tmp_path):
     legacy = FloorGiftTransaction(tmp_path / "old.json")
     legacy.path.write_text(__import__("json").dumps({"scope": "s", "selected": [], "pending": None}), encoding="utf-8")
     assert FloorGiftTransaction(tmp_path / "old.json").schema == 1
+
+
+def test_an_old_ledger_learns_the_adopted_title_from_its_proof(tmp_path):
+    """D142: a record older than the reader is refreshed from the proof, not refused."""
+    import json
+    from maalimbus.floor_gift_transaction import FloorGiftTransaction
+    offers = _offers(owned=True)
+    proof = tmp_path / "frame-0001.json"
+    proof.write_text(json.dumps({"ocr": [
+        {"text": "Owned", "box": [1186, 218, 86, 30], "score": 0.99},
+        {"text": "Melted Eyeball", "box": [1262, 260, 184, 27], "score": 0.99},
+        {"text": "Acquire E.G.O Gift", "box": [976, 228, 150, 28], "score": 0.99},
+    ]}), encoding="utf-8")
+    path = tmp_path / "user-floor-gift-transaction.json"
+    path.write_text(json.dumps({
+        "scope": "s", "offer": FloorGiftTransaction.signature(offers),
+        "selected": ["Melted Eyeball"], "adopted": True, "commit_sent": True,
+        "required": 1, "screen_before": 1, "receipts": [], "substitutions": [],
+        "proofs": [str(proof)], "completed": False, "history": [],
+        "pending": {"kind": "commit", "adopted": True, "proof": str(proof)},
+    }), encoding="utf-8")
+    FloorGiftTransaction(path)  # loading the old record is what refreshes it
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert saved["pending"]["title"] == "Melted Eyeball"
+    assert saved["pending"]["title_from"] == "proof"
+
+
+def test_a_proof_without_an_owned_caption_is_not_guessed(tmp_path):
+    import json
+    from maalimbus.floor_gift_transaction import FloorGiftTransaction
+    proof = tmp_path / "frame-0001.json"
+    proof.write_text(json.dumps({"ocr": [{"text": "Select", "box": [1, 2, 3, 4], "score": 0.9}]}), encoding="utf-8")
+    path = tmp_path / "user-floor-gift-transaction.json"
+    path.write_text(json.dumps({
+        "scope": "s", "offer": FloorGiftTransaction.signature(_offers(owned=True)),
+        "selected": [], "commit_sent": True, "required": 1,
+        "screen_before": 1, "receipts": [], "substitutions": [], "completed": False,
+        "history": [], "proofs": [str(proof)],
+        "pending": {"kind": "commit", "adopted": True, "proof": str(proof)},
+    }), encoding="utf-8")
+    FloorGiftTransaction(path)
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert "title" not in (saved.get("pending") or {})

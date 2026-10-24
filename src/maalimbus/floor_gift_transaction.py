@@ -20,12 +20,60 @@ FINAL_SUCCESSOR_PAGES = ('THEME_PACKS', 'MAP')
 RECEIPT_SUCCESSOR_PAGES = ('GIFT_GET', 'GIFT_PICK', 'REWARD_CARD') + FINAL_SUCCESSOR_PAGES
 
 
+def _adopted_title(proof):
+    """The card the page already owned, read from its own caption in the retained frame.
+
+    The proof is the picture the commit was judged on.  A card is named by the ``Owned``
+    caption printed above it, and the title sits directly under that band -- measured on
+    ``packaged-mirror-20261024-161620/frame-0001``: ``Owned`` [1186,218,86,30] with
+    ``Melted Eyeball`` [1262,260,184,27] beneath it.  No caption, no card: this returns
+    ``None`` so the caller can refuse instead of guessing.
+    """
+    try:
+        record = read_json(Path(proof))
+    except Exception:
+        return None
+    rows = record.get('ocr') or []
+    owned = [r for r in rows if str(r.get('text') or '').strip() == 'Owned']
+    if len(owned) != 1:
+        return None
+    box = owned[0]['box']
+    below = [r for r in rows
+             if str(r.get('text') or '').strip() != 'Owned'
+             and box[1] + 10 <= r['box'][1] <= box[1] + 60
+             and 0 <= r['box'][0] - box[0] <= 200]
+    below.sort(key=lambda r: r['box'][1])
+    return str(below[0]['text']).strip() if below else None
+
+
 class FloorGiftTransaction:
     def __init__(self, path):
         self.path = path
         self.data = read_json(path) if path.exists() else None
         # D141: the reader's generation is a fact about the record, not a guess.
         self.schema = int((self.data or {}).get('schema') or 1) if self.data else SCHEMA
+        self._learn_pending_title()
+
+    def _learn_pending_title(self):
+        """D142: refresh a pre-D140 record from the proof it kept.
+
+        A ledger written before D140 never recorded the adopted card's name, and `prepare`
+        must refuse while a commit is pending, so the refresh belongs where the record is
+        loaded.  The proof is the picture the commit was judged on; nothing to read there is
+        not a guess to make, so the name stays absent and the receipt stage still refuses.
+        """
+        d = self.data or {}
+        pending = d.get('pending') or {}
+        if (d.get('schema') or 1) != 1 or pending.get('kind') != 'commit':
+            return
+        if pending.get('title') or not pending.get('adopted'):
+            return
+        title = _adopted_title(pending.get('proof'))
+        if not title:
+            return
+        pending['title'] = title
+        pending['title_from'] = 'proof'
+        write_json(self.path, d)
 
     @staticmethod
     def _picks(d):
