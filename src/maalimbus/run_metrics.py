@@ -208,6 +208,35 @@ def view(row):
     return tuple(parts)
 
 
+NODE_EVENTS = ('map_nodes_offered',)
+
+
+def node_view(row):
+    """The destinations a frame offered, as a signature two frames can be compared by.
+
+    Added after D62 measured the ladder by page chrome alone: a gesture can pull a node
+    into view without moving the header, pack or panel boxes, so the chrome signal can
+    only ever lower-bound a rung's effect. Positions are compared as a sorted set of box
+    centres, because the offer is ordered by adjacency and a re-order is not a change.
+    """
+    points = []
+    for box in row.get('boxes') or ():
+        if not isinstance(box, (list, tuple)) or len(box) < 4:
+            continue
+        points.append((int(float(box[0]) + float(box[2]) / 2),
+                       int(float(box[1]) + float(box[3]) / 2)))
+    return (row.get('offered'), tuple(sorted(points)))
+
+
+def _nearest(rows, index, direction, event):
+    other = index + direction
+    while 0 <= other < len(rows):
+        if rows[other].get('event') == event:
+            return rows[other]
+        other += direction
+    return None
+
+
 def rung_effect(rows):
     """Per (gesture, page): did spending this rung change the view?
 
@@ -222,25 +251,27 @@ def rung_effect(rows):
         gesture = row.get('gesture')
         page = row.get('page')
         entry = found.setdefault((gesture, page),
-                                 {'seen': 0, 'measured': 0, 'changed': 0, 'same': 0})
+                                 {'seen': 0, 'measured': 0, 'changed': 0, 'same': 0,
+                                  'nodes_measured': 0, 'nodes_changed': 0})
         entry['seen'] += 1
-        before = None
-        for other in range(index - 1, -1, -1):
-            if rows[other].get('event') == 'map_observed':
-                before = rows[other]
-                break
-        after = None
-        for other in range(index + 1, len(rows)):
-            if rows[other].get('event') == 'map_observed':
-                after = rows[other]
-                break
+        before = _nearest(rows, index, -1, 'map_observed')
+        after = _nearest(rows, index, 1, 'map_observed')
         if before is None or after is None:
             continue
         entry['measured'] += 1
-        if view(before) == view(after):
-            entry['same'] += 1
-        else:
+        chrome = view(before) != view(after)
+        nodes_before = _nearest(rows, index, -1, NODE_EVENTS[0])
+        nodes_after = _nearest(rows, index, 1, NODE_EVENTS[0])
+        nodes = (nodes_before is not None and nodes_after is not None
+                 and node_view(nodes_before) != node_view(nodes_after))
+        if nodes_before is not None and nodes_after is not None:
+            entry['nodes_measured'] += 1
+            if nodes:
+                entry['nodes_changed'] += 1
+        if chrome or nodes:
             entry['changed'] += 1
+        else:
+            entry['same'] += 1
     for entry in found.values():
         entry['change_rate'] = (round(entry['changed'] / entry['measured'], 3)
                                 if entry['measured'] else None)

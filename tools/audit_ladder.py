@@ -35,6 +35,8 @@ def report(directories=None):
                    'measured': measured, 'changed': changed,
                    'change_rate': row['change_rate'], 'declared': declared,
                    'observed': observed,
+                   'nodes_measured': row.get('nodes_measured', 0),
+                   'nodes_changed': row.get('nodes_changed', 0),
                    'by_design': key in pages.LADDER_STATIC_BY_DESIGN}
         verdicts.append(verdict)
         if verdict['by_design'] or observed == 'unmeasured':
@@ -72,6 +74,13 @@ def main(argv=None):
                  verdict['changed'], verdict['change_rate'], verdict['observed'],
                  verdict['declared'] or '-',
                  '  (moves nothing by design)' if verdict['by_design'] else ''))
+    nodes_measured = sum(verdict['nodes_measured'] for verdict in found['verdicts'])
+    nodes_changed = sum(verdict['nodes_changed'] for verdict in found['verdicts'])
+    print('rungs whose node signal was measured: %d of %d (changed %d)'
+          % (nodes_measured, seen, nodes_changed))
+    if not nodes_measured:
+        print('  the node signal needs `map_nodes_offered` rows; this archive has none, so'
+              ' every change above is chrome and a rung that moved only a node reads `same`')
     print('declared evidence the archive disagrees with: %d' % len(found['problems']))
     for problem in found['problems']:
         print('  %s on %s: %s (declared %s, archive %s, %s of %s)'

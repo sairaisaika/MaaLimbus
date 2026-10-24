@@ -42,7 +42,8 @@ def test_a_rung_whose_frame_did_not_move_is_counted_as_same():
     rows = [_frame(), _recovery(), _frame()]
     found = run_metrics.rung_effect(rows)
     assert found[('drag_up', 'MAP')] == {
-        'seen': 1, 'measured': 1, 'changed': 0, 'same': 1, 'change_rate': 0.0}
+        'seen': 1, 'measured': 1, 'changed': 0, 'same': 1, 'change_rate': 0.0,
+        'nodes_measured': 0, 'nodes_changed': 0}
 
 
 def test_a_rung_whose_boxes_moved_is_counted_as_changed():
@@ -56,7 +57,8 @@ def test_a_rung_with_no_frame_after_it_is_spent_but_not_measured():
     rows = [_frame(), _recovery()]
     found = run_metrics.rung_effect(rows)
     assert found[('drag_up', 'MAP')] == {
-        'seen': 1, 'measured': 0, 'changed': 0, 'same': 0, 'change_rate': None}
+        'seen': 1, 'measured': 0, 'changed': 0, 'same': 0, 'change_rate': None,
+        'nodes_measured': 0, 'nodes_changed': 0}
 
 
 def test_the_page_is_part_of_the_answer():
@@ -133,7 +135,10 @@ def test_the_retained_archive_agrees_with_the_declaration():
         pytest.skip('no retained archive on this machine')
     tool = _tool_module('audit_ladder')
     found = tool.report()
-    assert found['problems'] == [], found['problems']
+    # A synthetic archive can only show one (gesture, page) pair, so every other declared
+    # pair is legitimately `stale`; what this test is about is that nothing is undeclared
+    # or contradicted, and that the node signal is reported as unmeasured rather than zero.
+    assert {problem['problem'] for problem in found['problems']} <= {'stale'}, found['problems']
     assert any(verdict['by_design'] for verdict in found['verdicts']), \
         'a wait on a fixed layout moves nothing by design and must be marked so'
 
@@ -155,3 +160,48 @@ def _tool_module(name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _nodes(offered, boxes):
+    return {'event': 'map_nodes_offered', 'offered': offered, 'boxes': boxes}
+
+
+def test_a_rung_that_brought_a_node_into_view_changed_the_view():
+    # The chrome is identical on both sides: a viewport gesture moved the board, not the
+    # header.  Judging by the chrome alone is what made `rarely` a lower bound (D65).
+    rows = [_frame(), _nodes(1, [[300, 400, 40, 40]]), _recovery('pan_left', 'MAP'),
+            _frame(), _nodes(2, [[100, 200, 40, 40], [300, 400, 40, 40]])]
+    entry = run_metrics.rung_effect(rows)[('pan_left', 'MAP')]
+    assert entry['measured'] == 1
+    assert entry['nodes_measured'] == 1
+    assert entry['nodes_changed'] == 1
+    assert entry['changed'] == 1 and entry['same'] == 0
+
+
+def test_the_node_signal_is_unmeasured_without_rows_and_the_chrome_still_decides():
+    rows = [_frame(), _recovery('pan_left', 'MAP'), _frame()]
+    entry = run_metrics.rung_effect(rows)[('pan_left', 'MAP')]
+    assert entry['measured'] == 1
+    assert entry['nodes_measured'] == 0
+    assert entry['changed'] == 0 and entry['same'] == 1
+
+
+def test_a_reordered_offer_is_not_a_change():
+    rows = [_frame(), _nodes(2, [[0, 0, 10, 10], [100, 100, 10, 10]]),
+            _recovery('pan_left', 'MAP'), _frame(),
+            _nodes(2, [[100, 100, 10, 10], [0, 0, 10, 10]])]
+    entry = run_metrics.rung_effect(rows)[('pan_left', 'MAP')]
+    assert entry['nodes_measured'] == 1 and entry['nodes_changed'] == 0
+    assert entry['changed'] == 0
+
+
+def test_the_audit_says_when_the_node_signal_could_not_be_measured(tmp_path):
+    tool = _tool_module('audit_ladder')
+    rows = [_frame('UNKNOWN'), _recovery('drag_down', 'UNKNOWN'), _frame('UNKNOWN')]
+    _archive(tmp_path, rows)
+    found = tool.report([str(tmp_path)])
+    assert found['verdicts']
+    assert sum(verdict['nodes_measured'] for verdict in found['verdicts']) == 0
+    # A synthetic archive only shows one (gesture, page) pair, so the other declared
+    # pairs are legitimately `stale`; the node signal is what this test is about.
+    assert {problem['problem'] for problem in found['problems']} <= {'stale'}

@@ -2251,6 +2251,21 @@ class MirrorRunner:
                 if page!='MAP':break
         frame, candidates = candidates_of(directory, record)
         self.state['map_party'] = record.get('map_party')
+        if candidates is not None:
+            # `candidates_of` answers None for every page that offers no destinations, so
+            # this is the map case without spending another page comparison on it (D44
+            # ratchets the runner's page checks; D65 only needed the offer recorded).
+            # The journal never carried the destinations a map frame offered, so a
+            # gesture's effect could only be judged by the page chrome: a rung that
+            # brings a node into view without touching the header left no evidence at
+            # all, which is why `rarely` was a lower bound and not a verdict (D62).
+            # Record the offer as the loop saw it -- adjacency filter included, because
+            # that is what the loop was really allowed to choose from.
+            self.note('map_nodes_offered', offered=len(candidates or ()),
+                      boxes=[[int(v) for v in (item['box'] if isinstance(item, dict)
+                                               else item)] for item in (candidates or ())],
+                      party=self.state.get('map_party'),
+                      reason='the_destinations_this_map_frame_offered_to_the_loop')
         # When a MAP page yields no candidate the reason is one of two very different
         # things -- the image handed to the reading is not the one the evidence file
         # holds, or the party was not read in it.  Record both so the next live stop
