@@ -1795,6 +1795,80 @@
           "sha256": "0dbcb6e358f2d8c20f629cd4fa4609bdc440ce841618fb594c68a2732409559c"
         }
       ]
+    },
+    {
+      "id": "binding",
+      "title": "设备绑定的读与写两半：方法、计价与固定",
+      "aliases": [
+        "设备绑定",
+        "binding",
+        "adb_device",
+        "pin_input",
+        "pin_screencap",
+        "screencap method",
+        "截图方法",
+        "capture",
+        "截图耗时",
+        "measure_screencap",
+        "input policy",
+        "输入策略"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_screencap"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_input"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "build"
+        },
+        {
+          "path": "tools/measure_screencap.py",
+          "symbol": "main"
+        }
+      ],
+      "docs": [
+        "docs/wiki/en_us/2.3-decisions.md#d69-the-capture-half-was-named-not-priced",
+        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价"
+      ],
+      "tests": [
+        "tests/test_screencap_pricing.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_screencap_pricing.py",
+        "python tools/measure_screencap.py --binary build/mxu-probe-271/maafw --count 3"
+      ],
+      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。",
+      "locations": [
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_screencap",
+          "line": 81,
+          "sha256": "4df9714080ad9b717dbe0e9daa1ecce4e5a9ee3d104f9904905f14c37ce605d4"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_input",
+          "line": 66,
+          "sha256": "4df9714080ad9b717dbe0e9daa1ecce4e5a9ee3d104f9904905f14c37ce605d4"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "build",
+          "line": 119,
+          "sha256": "4df9714080ad9b717dbe0e9daa1ecce4e5a9ee3d104f9904905f14c37ce605d4"
+        },
+        {
+          "path": "tools/measure_screencap.py",
+          "symbol": "main",
+          "line": 82,
+          "sha256": "b1bb5d78941d37b84783b75575831585aa4286051e9b447b5090fd48e0744c83"
+        }
+      ]
     }
   ]
 }

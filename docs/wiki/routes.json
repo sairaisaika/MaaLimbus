@@ -1170,6 +1170,54 @@
         "python tools/verify_hard_toggle_replay.py --binary build/mxu-probe-271/maafw --frame evidence/runtime/hard-toggle-replay-1791255518617925400-unchanged/frame-0001.png"
       ],
       "boundary": "这一层证明的是拒绝、取帧与记账；它不证明某个场景的期望合理，也没有把 29 个仍然经邻居 import Replay 的工具摊平——清单如实报出这条链。 D53 adds the runtime proof: the layer is built in a test, so a construction failure cannot hide behind a static count; the 46 neighbour imports are reported, not flattened. D54 flattened every tool whose source class only stored a frame (46 -> 12 neighbour imports), so what remains is exactly the tools whose expectation needs flattening one at a time. D55: the layer holds the mechanical half (frames, advance, records); a scene still owns its own expectation, and the five remaining scene reuses keep theirs."
+    },
+    {
+      "id": "binding",
+      "title": "设备绑定的读与写两半：方法、计价与固定",
+      "aliases": [
+        "设备绑定",
+        "binding",
+        "adb_device",
+        "pin_input",
+        "pin_screencap",
+        "screencap method",
+        "截图方法",
+        "capture",
+        "截图耗时",
+        "measure_screencap",
+        "input policy",
+        "输入策略"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_screencap"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "pin_input"
+        },
+        {
+          "path": "src/maalimbus/adb_device.py",
+          "symbol": "build"
+        },
+        {
+          "path": "tools/measure_screencap.py",
+          "symbol": "main"
+        }
+      ],
+      "docs": [
+        "docs/wiki/en_us/2.3-decisions.md#d69-the-capture-half-was-named-not-priced",
+        "docs/wiki/zh_cn/2.3-decisions.md#d69-截图那一半只是被点名没有被计价"
+      ],
+      "tests": [
+        "tests/test_screencap_pricing.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_screencap_pricing.py",
+        "python tools/measure_screencap.py --binary build/mxu-probe-271/maafw --count 3"
+      ],
+      "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。"
     }
   ]
 }
