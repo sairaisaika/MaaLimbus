@@ -108,6 +108,34 @@ def test_a_page_that_reads_clears_the_blocked_wait():
     assert loop.state['transaction_waits'] == 0
 
 
+def test_the_ending_names_the_transaction_and_not_a_missing_step():
+    """The first live test wrote `no_step_recorded`: the reason has to come from the
+    branch, and `_end_session` is the one writer of it."""
+    source = (ROOT / 'src/maalimbus/runner.py').read_text(encoding='utf-8')
+    assert 'self._end_session(PENDING_TRANSACTION_UNREADABLE,' in source
+    assert "blocked_by=list(state.get('unknown_blockers') or [])" in source
+    # the helper itself must not end the session: one ending, one writer
+    start = source.index('def _pending_transaction_wait')
+    body = source[start:start + 1600]
+    assert '_end_session' not in body
+
+
+def test_a_loop_that_ends_on_a_blocker_writes_the_reason_it_was_given():
+    loop = _loop()
+    loop.state['session_ended'] = None
+    wrote = loop._end_session(runner.PENDING_TRANSACTION_UNREADABLE,
+                              blocked_by=['active.victory'], waited=4)
+    assert wrote is True
+    assert loop.state['session_ended'] == runner.PENDING_TRANSACTION_UNREADABLE
+    name, fields = loop.notes[-1]
+    assert name == 'mirror_session_ended'
+    assert fields['reason'] == runner.PENDING_TRANSACTION_UNREADABLE
+    assert fields['blocked_by'] == ['active.victory']
+    assert fields['waited'] == 4
+    # and it says so only once
+    assert loop._end_session(runner.PENDING_TRANSACTION_UNREADABLE) is False
+
+
 def test_the_ending_has_a_name_of_its_own():
     assert runner.PENDING_TRANSACTION_UNREADABLE == ('the_outcome_of_a_pending_transaction'
                                                      '_is_unreadable')

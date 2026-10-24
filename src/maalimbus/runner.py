@@ -2943,6 +2943,12 @@ class MirrorRunner:
                 recovered=self._explore_unknown(record,frame,candidates)
                 if recovered is not None:return recovered
                 if self._pending_transaction_wait():
+                    # The ending must carry its own reason: `_result(done=True)` writes
+                    # `no_step_recorded` when the step never produced a record, which is
+                    # how the first live test of this path named the wrong thing (D96).
+                    self._end_session(PENDING_TRANSACTION_UNREADABLE,
+                                      blocked_by=list(state.get('unknown_blockers') or []),
+                                      waited=int(state.get('transaction_waits', 0)))
                     return self._result(page,None,False,PENDING_TRANSACTION_UNREADABLE,done=True)
                 # An animation is not a page.  A battle's skill cutscene carries a
                 # handful of fragmentary reads and no control of any kind
