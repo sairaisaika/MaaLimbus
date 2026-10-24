@@ -30,6 +30,9 @@ from collections import Counter
 
 PAGES = {
     'BATTLE_DEFEAT': ('vision', 'plan'),
+    # A scene loader runs no control: the page is a duration, and the loop
+    # waits on it without spending the no-progress budget (D120).
+    'LOADING': ('vision', 'wait'),
     'BATTLE_HUD': ('vision+agent', 'runner'),
     'BATTLE_PLANNING': ('agent', 'runner'),
     'BATTLE_RESULT': ('vision', 'wait'),
@@ -281,7 +284,7 @@ INLINE_RUNNER = {
 #: module later -- the move is allowed, it just has to show up in a diff instead of
 #: in a stop.  The baseline was 61 until D47 moved the 27 single-shape branches into
 #: ``window.STEP_ROWS``; a ratchet that may only be raised is a counter, not a bound.
-INLINE_WINDOW = 34
+INLINE_WINDOW = 35  # D120: the loader page's own branch is the 35th
 
 
 
@@ -337,6 +340,9 @@ def undeclared(names):
 #: ``'<expr>'`` is a name the chain chooses at runtime; the number of those is
 #: ratcheted in the same test.
 DISPATCH_FACTS = {
+    # D120: a named loader is waited on; its refusal is the wait's own reason.
+    'LOADING': {'actions': (), 'expects': (),
+                'refusals': ('the_game_is_loading_the_next_scene',)},
     'BATTLE_DEFEAT': {'actions': ('CLICK',),
                       'expects': ('*',),
                       'refusals': ('defeat_accept_row_not_anchored',
@@ -562,6 +568,19 @@ def is_battle_tip(name):
     return name == BATTLE_TIP_PAGE
 
 
+LOADING_PAGE = 'LOADING'
+
+
+def is_loading(name):
+    """Is this page the game's own scene loader?
+
+    A loader has no control and no name to read beyond its caption, so it is a state of
+    its own rather than an unreadable page (D120).  The runner asks this instead of
+    comparing against a page name (D44 counts page dispatch wherever it is written).
+    """
+    return str(name or '') == LOADING_PAGE
+
+
 def is_unreadable(name):
     """True for the page that stands for "the reader could not name this one".
 
@@ -758,6 +777,9 @@ STOP_KINDS = {
     # flight, so the only honest answer is to stop before sending more (a re-order
     # after a reservation is a data question, not a recovery gesture).
     'Deployment order changed during selection': 'refused_by_policy',
+    # D120: the loader is bounded by a clock, and the clock running out is a stop
+    # (there is no control on a loading screen to escalate to).
+    'the_loading_screen_never_left': 'refused_by_policy',
     'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
     # D96: the page never became readable, so the only honest recovery is another read
     # -- which the blocked-wait budget has already refused to spend.
@@ -1055,6 +1077,7 @@ REFUSALS = {
     'no_event_choice_observed': 'no_candidate',
     'owned_gift_refuse_control_missing': 'missing_control',
     'page_is_observe_only': 'refused_by_policy',
+    'the_game_is_loading_the_next_scene': 'missing_control',
     'pass_level_up_confirm_not_anchored': 'missing_control',
     'resume_button_not_anchored': 'missing_control',
     'reward_card_box_not_anchored': 'missing_control',

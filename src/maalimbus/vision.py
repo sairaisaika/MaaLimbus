@@ -102,7 +102,24 @@ def dialog_dismissal(records, size, locale):
     return close[0].box
 
 
+def loading_screen(records, size):
+    """The scene loader the game shows while it moves between maps and fights.
+
+    Live `evidence/runtime/packaged-mirror-20261024-122522` spent 100 s on a page
+    that ran no control at all -- a starfield with `Combat Tips` and `NOW LOADING...`
+    over a progress bar -- and the loop read it as UNKNOWN until the wait limit ended
+    the run (D120).  The caption is the page's only identity; the bar underneath it
+    is a picture and must not be used as a control.
+    """
+    # `find` answers a list, so emptiness is the question: `is not None` would call
+    # every frame a loader (caught by the band counter-example, 2026-10-24).
+    return bool(find(records, r'^\s*NOW\s+LOADING\s*\.{0,3}\s*$', (0.55, 0.78, 1.0, 0.98),
+                     size, 0.85))
+
+
 def classify(records, locale, size):
+    if loading_screen(records, size):
+        return 'LOADING'
     if deployment_reset_confirm(records,size) is not None:
         return 'DEPLOYMENT_RESET'
     # The dungeon's pause panel is the one screen that states how far the run got

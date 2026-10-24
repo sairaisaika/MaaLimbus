@@ -657,7 +657,8 @@ def test_the_battle_result_is_waited_out_rather_than_stopped_on():
     # Live: build/window-run62.json stopped on BATTLE_RESULT with nothing sent, and the
     # next observation already showed the post-battle story and then the map.
     from maalimbus.window import WAIT_PAGES
-    assert WAIT_PAGES == ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT')
+    # D120: the scene loader is a wait page too -- it has no control to take.
+    assert WAIT_PAGES == ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT', 'LOADING')
     assert 'MAP' not in WAIT_PAGES and 'PRE_BATTLE_TEAM' not in WAIT_PAGES
 
 

@@ -85,7 +85,7 @@ FORBIDDEN_CONTROLS = ('resume.halt_button', 'reward_card.cancel_button',
 #: on screen yet, and run-continue-18 stopped there ('page_is_observe_only') while the
 #: game was still drawing the stage-failure dialog that follows it - the dialog is
 #: BATTLE_DEFEAT and that page is the one with a plan and a bounded retry count.
-WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT')
+WAIT_PAGES = ('UNKNOWN', 'BATTLE_RESULT', 'DEFEAT', 'LOADING')
 
 
 def resolve_overlay(page, *, overlay_hit):
@@ -1188,7 +1188,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             # is refused by name: every other action here would deploy the wrong team.
             box = (team or {}).get('saved_box') or (team or {}).get('saved_team_box')
             tries = int((team or {}).get('tries') or 0)
-            from .pages import SELECT_TEAM_TRIES
+            from .pages import LOADING_PAGE, SELECT_TEAM_TRIES
 
             if box is not None and tries < SELECT_TEAM_TRIES:
                 return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
@@ -1338,6 +1338,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             return _refuse(page, 'unknown_dialog_close_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='the_unexpected_dialog_is_dismissed_with_its_own_close')
+    if page == 'LOADING':
+        # A named loader is a transition, not an unreadable page: its reason is
+        # distinct so the runner can put it on the transition clock instead of the
+        # no-progress budget (live `…-122522` waited 41 times and stopped a healthy
+        # run while the game was still loading).
+        return _refuse(page, 'the_game_is_loading_the_next_scene')
     return _refuse(page, 'page_is_observe_only')
 
 

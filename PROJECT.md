@@ -5899,3 +5899,20 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 | 全量测试 | 2647 passed（`build/full-r65.log`），wiki 0 problem |
 
 **下一步。** 这次运行不再死在战前页，但它也没走完一层（`floors: []`）：22 次点击里有 12 次是补位卡，说明“继承来的参与者顺序”每次都清空重排。下一轮量这件事：能不能保留已选槽位，只补空缺。
+
+## DSH continuation: 有名字的加载页是一段时长（2026-10-24，D120）
+
+**这一轮从“900 秒吞吐测试 107 秒就停了”开始。** `evidence/runtime/packaged-mirror-20261024-122522`：战斗结算之后页面变成星空 + `Combat Tips` + `NOW LOADING...` + 进度条，读取器判为 `UNKNOWN`；48 次读取、18 次未知等待、23 次过渡等待之后，“无进展预算”响到第 41 次，用 `the_loop_waited_without_a_new_page` 结束了一次还在加载的运行——0 次点击、`bounded_progress_verified: false`。
+
+**测量先于改动。** 那一页是游戏的场景加载页，除了右下角的 `NOW LOADING.`（OCR 0.99，1920 帧在 `[1540,930]` 附近）没有任何可读控件，也没有任何可点的东西。
+
+**改动。**
+1. `vision.loading_screen()` + `classify` 在**所有**控件型页面之前判 `LOADING`；`pages.PAGES['LOADING'] = ('vision','wait')`，`window.WAIT_PAGES` 加进去，`window.plan_step` 用独立理由 `the_game_is_loading_the_next_scene` 拒绝。
+2. `runner._loading_wait()`：打 `state['loading_since']`，按**时钟**（`settings.submit_seconds`，180 秒）等待，不走“无进展预算”；到时用 `the_loading_screen_never_left` 结束，并且仍然只经由唯一的结束写者 `_end_session`。离开该页清掉时间戳。
+3. `pages.is_loading()` 供 runner 判断，避免在循环里写页面名（D44 的棘轮会数出来）；`anchor.py` 把新理由登记为 `HELD`。
+
+**被守卫抓到的两件事（都改对了）。** `tests/test_page_contracts.py` 要求新分支进 `DISPATCH_FACTS` 且 `fact_drift() == {}`；`tests/test_transaction_wait.py` 要求过渡等待函数体内不得出现 `_end_session`（我把 `_loading_wait` 挪到 `_explore_unknown` 之后，守卫的本意是“过渡等待自己不结束会话”）；`tests/test_pages.py` 的窗口棘轮按 D44 规矩把 `INLINE_WINDOW` 从 34 提到 35 并注明原因。
+
+**测试证据。** `tests/test_loading_screen.py` 7 个用例（实机帧判 `LOADING`、去掉字幕就不是、字幕移出带外不是、等待页性质、拒绝种类、时钟内等待、超时用自己名字结束）；相关 6 套 147 passed；全量见 `build/full-r66b.log`。
+
+**下一步。** 这一轮之后，加载页不再吃掉“无进展预算”；下一份实机数据要回答的是：加载页平均停留多久，以及 900 秒里能推进到第几层。

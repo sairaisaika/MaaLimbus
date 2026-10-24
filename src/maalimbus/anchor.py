@@ -58,6 +58,8 @@ NON_ANCHOR = {
     'no_event_check_candidate_observed': PAGE_UNREADABLE,
     'no_event_choice_observed': PAGE_UNREADABLE,
     'page_is_observe_only': HELD,
+    # D120: a named loader answers with its own wait reason; it is held, never a control.
+    'the_game_is_loading_the_next_scene': HELD,
     'saved_deployment_order_invalid': HELD,
     'saved_deployment_sequence_not_proven': HELD,
     'the_board_shows_a_different_saved_team_than_the_plan_deploys': HELD,

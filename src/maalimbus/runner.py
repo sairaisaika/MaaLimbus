@@ -3150,6 +3150,10 @@ class MirrorRunner:
             time.sleep(settings.unknown_interval)
             return self._result(page, None, False, None, waiting=True)
         state['unknown_seen'] = 0
+        if page_vocabulary.is_loading(page):
+            # A named loader is its own state with its own clock (D120).
+            return self._loading_wait(page, settings)
+        self.state.pop('loading_since', None)
         if not settings.observe_only and page == 'TUTORIAL' and sha in state['tutorial_cards']:
             stopped = self._record(page, record, frame, candidates, None,
                                    'tutorial_card_repeated')
@@ -5399,6 +5403,36 @@ class MirrorRunner:
             progress_verified=outcome['success'],review_proposal=outcome['proposal'],
             reason='unknown_navigation_succeeded' if outcome['success'] else 'unknown_navigation_unresolved')
         return self._result(record['scene'],box,True,None)
+
+    def _loading_wait(self, page, settings):
+        """A scene loader is a duration, not an unreadable page (D120).
+
+        Live `evidence/runtime/packaged-mirror-20261024-122522` sat on the loader for
+        100 s listening to the no-progress budget and then ended a healthy run
+        (`the_loop_waited_without_a_new_page`).  The loader has no control to take and
+        no name to read, so the honest instrument is a clock: wait, and give up with
+        its own name when the clock runs out.  Nothing here is a refusal, so the
+        no-progress budget is not charged for it.
+        """
+        now = time.monotonic()
+        since = self.state.get('loading_since')
+        if since is None:
+            since = now
+            self.state['loading_since'] = now
+        waited = round(now - since, 1)
+        limit = float(settings.submit_seconds)
+        if waited > limit:
+            # The loader has no control to escalate to and no frame worth keeping: the
+            # ending is the clock's, written once through the single ending writer.
+            self.note('loading_never_left', page=page, waited=waited, limit=limit)
+            self._end_session('the_loading_screen_never_left',
+                              waited=waited, limit=limit, page=page)
+            return self._result(page, None, False, 'the_loading_screen_never_left')
+        self.note('window_loading_wait', page=page, waited=waited, limit=limit,
+                  interval_s=settings.transition_interval)
+        time.sleep(settings.transition_interval)
+        return self._result(page, None, False, None, waiting=True,
+                            pause=settings.transition_interval)
 
     def _receipt_successor_offers(self,record,page,directory):
         """The fresh offers that prove a floor-gift receipt's successor on this page.

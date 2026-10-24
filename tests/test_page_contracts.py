@@ -24,7 +24,8 @@ SOURCE = pathlib.Path(window.__file__).read_text(encoding='utf-8')
 #: clicked on BATTLE_RESULT (it advances without input), so naming the refusal
 #: keeps the missing-control diagnostic instead of falling through to the generic
 #: observe-only answer.
-NAMED_REFUSAL_ON_A_WAIT_PAGE = {'BATTLE_RESULT'}
+NAMED_REFUSAL_ON_A_WAIT_PAGE = {'BATTLE_RESULT', 'LOADING'}  # D120: the loader
+# refuses by name too, and its refusal is a wait-only action.
 
 #: Names the chain chooses at runtime and no reader can resolve statically.
 #: ``DUNGEON_TEAM`` refuses with ``navigation['reason']``, a control-dependent
