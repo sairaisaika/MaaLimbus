@@ -297,3 +297,42 @@ def test_a_corpus_that_never_walked_a_floor_is_not_a_progress_of_zero():
 def test_the_progress_figure_sits_next_to_the_clear_rate():
     assert run_metrics.MEASURES.index('floor_progress') == (
         run_metrics.MEASURES.index('clear_rate') + 1)
+
+
+# --- D121: the floor a run *stayed* in -----------------------------------------
+def _dwell_rows(seconds, floor='3'):
+    return [_row('map_observed', _stamp(0), floor=floor),
+            _row('map_observed', _stamp(int(seconds // 2)), floor=floor),
+            _row('map_observed', _stamp(int(seconds)), floor=floor)]
+
+
+def test_the_dwell_of_a_floor_is_the_time_it_was_on_screen():
+    dwell = run_metrics.floor_dwell(_dwell_rows(90))
+    assert dwell[3]['seconds'] == 90.0
+    assert dwell[3]['reads'] == 3
+    assert dwell[3]['ended_here'] is True
+
+
+def test_a_run_that_ends_inside_a_floor_still_reports_its_dwell():
+    """The 610 s run of 2026-10-24 reached floor 3 and never left it: pace is None."""
+    rows = _dwell_rows(418)
+    assert run_metrics.floor_pace(rows) is None
+    assert run_metrics.floor_dwell(rows)[3]['seconds'] == 418.0
+
+
+def test_the_dwell_measure_averages_the_floor_a_run_ended_in():
+    short = run_metrics.efficiency(_dwell_rows(100))
+    long = run_metrics.efficiency(_dwell_rows(200))
+    figure = run_metrics.metrics([short, long])['floor_dwell']
+    assert figure['value'] == 150.0
+    assert '2 run(s)' in figure['basis']
+
+
+def test_a_corpus_that_named_no_floor_does_not_claim_a_dwell():
+    figure = run_metrics.metrics([run_metrics.efficiency([])])['floor_dwell']
+    assert figure['value'] is None
+    assert 'no run named a floor' in figure['note']
+
+
+def test_the_dwell_has_a_name_in_the_measure_list():
+    assert 'floor_dwell' in run_metrics.MEASURES

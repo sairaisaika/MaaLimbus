@@ -276,6 +276,45 @@ def floor_pace(rows):
 
 
 
+def floor_dwell(rows):
+    """How long the run stayed inside each floor it could name, and what ended it.
+
+    `floor_pace` needs two floors, so a run that ends inside one floor has no pace at
+    all -- and that is exactly the run an operator asking "is a floor ten minutes?" has
+    in front of them.  Measured 2026-10-24 on `packaged-mirror-20261024-124531` (610 s):
+    the harness reported `floors [3]` while the pace was `None`, because the run entered
+    floor 3 and never left it.  The dwell is the honest figure for that run: first and
+    last time the floor was *seen*, the seconds between, and whether the run ended while
+    still on it (no later floor was ever named).
+    """
+    seen = {}
+    order = []
+    for row in rows:
+        if row.get('event') != 'map_observed':
+            continue
+        floor = _floor_of(row.get('floor'))
+        at = _stamp(row)
+        if floor is None or at is None:
+            continue
+        if floor not in seen:
+            seen[floor] = {'first': at, 'last': at, 'reads': 0}
+            order.append(floor)
+        entry = seen[floor]
+        entry['last'] = at if at > entry['last'] else entry['last']
+        entry['reads'] += 1
+    if not order:
+        return {}
+    result = {}
+    for index, floor in enumerate(order):
+        entry = seen[floor]
+        ended_here = index == len(order) - 1
+        result[floor] = {'seconds': round((entry['last'] - entry['first']).total_seconds(), 1),
+                         'reads': entry['reads'],
+                         'ended_here': ended_here}
+    return result
+
+
+
 
 def stopped_in_events(records):
     """Did this run end on a recorded stop?
@@ -424,6 +463,7 @@ MEASURES = (
     'clear_rate',
     'floor_progress',
     'seconds_per_floor',
+    'floor_dwell',
     'payout_rate',
     'mean_seconds',
     'reads_per_step',
@@ -488,6 +528,7 @@ def efficiency(rows, directory=None):
         'reads': reads,
         'payout': payout,
         'steps': steps,
+        'dwell': floor_dwell(rows),
         'floor_pace': floor_pace(rows),
         'heartbeats': heartbeats,
         'reads_per_step': round(reads / steps, 2) if steps else None,
@@ -551,6 +592,9 @@ def metrics(runs):
     walked = [run['reached_floor'] for run in runs if run.get('reached_floor')]
     pace = [run['floor_pace']['per_floor'] for run in runs
             if run.get('floor_pace') and run['floor_pace'].get('per_floor')]
+    dwell = [entry['seconds']
+             for run in runs
+             for entry in (run.get('dwell') or {}).values() if entry.get('ended_here')]
     paid = [run['payout'] for run in runs if run['payout'] is not None]
     claimed = sum(1 for payout in paid if payout['claimed'])
     return {
@@ -566,6 +610,16 @@ def metrics(runs):
         # loop; the floor the loop actually reached per run is the figure that moves.  It
         # is measured over the runs that walked at least one floor, because a run capped
         # before its first floor is not evidence about progress.
+        # A run that ends inside one floor has no pace (`floor_pace` needs two), which is
+        # exactly the run an operator asking "is a floor ten minutes?" is looking at
+        # (D121).  The dwell is how long the floor it ended in was on screen.
+        'floor_dwell': {
+            'value': round(sum(dwell) / len(dwell), 1) if dwell else None,
+            'basis': (f'mean time inside the floor a run ended in, over {len(dwell)} run(s) '
+                      'that ended inside a floor' if dwell else
+                      'no run recorded a floor it stayed in'),
+            'note': (None if dwell else
+                     'no run named a floor, so there is no time inside one to average')},
         'floor_progress': {
             'value': round(sum(walked) / len(walked), 2) if walked else None,
             'basis': (f'best floor {max(walked)}; {len(walked)} of {total} runs reached a '

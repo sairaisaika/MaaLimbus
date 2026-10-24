@@ -132,13 +132,13 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
           "line": 884,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
           "line": 2067,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "agent/recognition.py",
@@ -162,7 +162,7 @@
           "path": "src/maalimbus/runner.py",
           "needle": "    def _page_after_a_failed_node(self, page):",
           "line": 2687,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "tests/test_entry_task_inside.py",
@@ -185,8 +185,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def _loading_wait(self, page, settings):",
-          "line": 5348,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "line": 5407,
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -399,19 +399,19 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "team_verdict",
           "line": 1773,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "gift_slot",
           "line": 1786,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def _check_team(self, team, *, page=",
           "line": 2624,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/team_vision.py",
@@ -842,7 +842,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
           "line": 226,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         }
       ]
     },
@@ -1161,31 +1161,31 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
           "line": 680,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
           "line": 5651,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
           "line": 707,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
-          "line": 344,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 383,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
-          "line": 385,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 424,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -1208,56 +1208,56 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "node_view",
-          "line": 318,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 357,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "self.note('map_nodes_offered',",
           "line": 2884,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "click_kinds",
-          "line": 655,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 709,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def box_key(box):",
           "line": 1573,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _kind_rank(kind):",
           "line": 1578,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _resolve_map_click(self, page):",
           "line": 2489,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "CLICK_VERDICTS = ('accepted', 'rejected', 'superseded', 'unjudged')",
-          "line": 652,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 706,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "map_escape_wanted",
           "line": 2249,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "MAP_ESCAPE_REFUSALS = 3",
           "line": 2246,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/battle_vision.py",
@@ -1269,7 +1269,7 @@
           "path": "src/maalimbus/runner.py",
           "needle": "FIXED_CONTROL_PAGES = ('BATTLE_HUD'",
           "line": 420,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         }
       ]
     },
@@ -1841,7 +1841,12 @@
         "pending transaction",
         "待结事务",
         "unknown_blockers",
-        "pending_transaction_wait_exhausted"
+        "pending_transaction_wait_exhausted",
+        "floor_dwell",
+        "停留时长",
+        "dwell",
+        "一层多久",
+        "ended inside a floor"
       ],
       "sources": [
         {
@@ -2039,58 +2044,64 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "PENDING_TRANSACTION_UNREADABLE = 'the_outcome"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "def floor_dwell("
         }
       ],
       "docs": [
-        "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
+        "docs/wiki/en_us/2.3-decisions.md#d121-a-run-that-ends-inside-a-floor-has-a-dwell-not-a-pace",
         "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator",
         "docs/wiki/en_us/2.3-decisions.md#d59-a-read-that-does-not-come-back-is-not-a-verdict",
-        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定",
         "docs/wiki/en_us/2.3-decisions.md#d60-one-budget-cannot-count-two-different-events",
-        "docs/wiki/zh_cn/2.3-decisions.md#d60-一个预算不能同时数两件事",
         "docs/wiki/en_us/2.3-decisions.md#d61-the-efficiency-figures-have-one-owner-and-a-zero-is-not-a-measurement",
-        "docs/wiki/zh_cn/2.3-decisions.md#d61-效率数字只能有一个主人而零不是测量结果",
         "docs/wiki/en_us/2.3-decisions.md#d63-a-run-that-never-says-it-was-paid-cannot-be-measured",
-        "docs/wiki/zh_cn/2.3-decisions.md#d63-说不清有没有领到奖的运行量不出通关率",
         "docs/wiki/en_us/2.3-decisions.md#d66-a-duration-without-a-budget-is-a-stopwatch-not-a-measurement",
-        "docs/wiki/zh_cn/2.3-decisions.md#d66-只有总时长没有预算是秒表不是测量",
         "docs/wiki/en_us/2.3-decisions.md#d67-a-rate-over-a-proxy-is-not-a-rate",
-        "docs/wiki/zh_cn/2.3-decisions.md#d67-用代理量算出的比率不是比率",
         "docs/wiki/en_us/2.3-decisions.md#d68-a-read-that-does-not-time-itself-cannot-be-split",
-        "docs/wiki/zh_cn/2.3-decisions.md#d68-不会计时的读取拆不开",
         "docs/wiki/en_us/2.3-decisions.md#d70-the-reads-cost-is-the-full-frame-ocr-and-now-the-row-says-so",
-        "docs/wiki/zh_cn/2.3-decisions.md#d70-一次读取的成本就是整帧-ocr现在这一行自己会说了",
         "docs/wiki/en_us/2.3-decisions.md#d72-a-node-that-answers-no-has-already-ended-the-task",
-        "docs/wiki/zh_cn/2.3-decisions.md#d72-回答不的节点已经把任务结束了",
         "docs/wiki/en_us/2.3-decisions.md#d78-a-killed-process-cannot-write-its-ending-so-the-killer-does",
-        "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写",
         "docs/wiki/en_us/2.3-decisions.md#d79-waiting-is-not-patience-when-the-hazard-is-flat",
-        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心",
         "docs/wiki/en_us/2.3-decisions.md#d80-a-clear-rate-over-runs-nobody-gave-time-to-clear-is-a-statement-about-the-budget",
-        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算",
         "docs/wiki/en_us/2.3-decisions.md#d81-an-unknown-page-is-not-one-behaviour",
-        "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为",
         "docs/wiki/en_us/2.3-decisions.md#d82-a-torn-down-task-closes-the-input-door-not-the-reading-one",
-        "docs/wiki/zh_cn/2.3-decisions.md#d82-任务被拆掉之后关的是输入门不是读门",
         "docs/wiki/en_us/2.3-decisions.md#d84-a-task-that-finished-still-owns-the-door",
-        "docs/wiki/zh_cn/2.3-decisions.md#d84-任务结束了门还归它管",
         "docs/wiki/en_us/2.3-decisions.md#d85-no-local-predicate-can-predict-a-rejected-click-so-the-door-is-one-repair",
-        "docs/wiki/zh_cn/2.3-decisions.md#d85-没有本地谓词能预测被拒的点击门就只是一次修复",
         "docs/wiki/en_us/2.3-decisions.md#d86-a-task-that-ends-hands-the-route-back-so-the-next-input-asks-for-it",
-        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要",
         "docs/wiki/en_us/2.3-decisions.md#d87-a-refused-input-is-carried-by-a-task-not-repaired-by-asking-for-the-route",
-        "docs/wiki/zh_cn/2.3-decisions.md#d87-被拒的输入改由任务承载而不是去要回路由",
         "docs/wiki/en_us/2.3-decisions.md#d88-a-request-that-is-never-answered-must-not-own-the-run",
-        "docs/wiki/zh_cn/2.3-decisions.md#d88-一个永远不回答的请求不能占据整次运行",
         "docs/wiki/en_us/2.3-decisions.md#d89-a-watchdog-that-cannot-fire-inside-the-budget-is-not-a-watchdog",
-        "docs/wiki/zh_cn/2.3-decisions.md#d89-在预算内开不了火的看门狗不算看门狗",
         "docs/wiki/en_us/2.3-decisions.md#d93-a-spacer-between-inputs-is-not-a-sleep-the-clock-is-owed",
-        "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠",
         "docs/wiki/en_us/2.3-decisions.md#d94-a-killer-that-leaves-the-child-alive-has-not-ended-the-run",
-        "docs/wiki/zh_cn/2.3-decisions.md#d94-只杀了父进程却没杀掉子进程的杀手并没有让这一轮结束",
         "docs/wiki/en_us/2.3-decisions.md#d95-the-requirement-has-units-so-the-report-needs-them-too",
-        "docs/wiki/zh_cn/2.3-decisions.md#d95-要求有单位报表就得有单位",
         "docs/wiki/en_us/2.3-decisions.md#d96-a-wait-that-can-spend-the-whole-run-has-no-budget",
+        "docs/wiki/zh_cn/2.3-decisions.md#d121-停在同一层里的运行有停留时长没有速度",
+        "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
+        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定",
+        "docs/wiki/zh_cn/2.3-decisions.md#d60-一个预算不能同时数两件事",
+        "docs/wiki/zh_cn/2.3-decisions.md#d61-效率数字只能有一个主人而零不是测量结果",
+        "docs/wiki/zh_cn/2.3-decisions.md#d63-说不清有没有领到奖的运行量不出通关率",
+        "docs/wiki/zh_cn/2.3-decisions.md#d66-只有总时长没有预算是秒表不是测量",
+        "docs/wiki/zh_cn/2.3-decisions.md#d67-用代理量算出的比率不是比率",
+        "docs/wiki/zh_cn/2.3-decisions.md#d68-不会计时的读取拆不开",
+        "docs/wiki/zh_cn/2.3-decisions.md#d70-一次读取的成本就是整帧-ocr现在这一行自己会说了",
+        "docs/wiki/zh_cn/2.3-decisions.md#d72-回答不的节点已经把任务结束了",
+        "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写",
+        "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心",
+        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算",
+        "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为",
+        "docs/wiki/zh_cn/2.3-decisions.md#d82-任务被拆掉之后关的是输入门不是读门",
+        "docs/wiki/zh_cn/2.3-decisions.md#d84-任务结束了门还归它管",
+        "docs/wiki/zh_cn/2.3-decisions.md#d85-没有本地谓词能预测被拒的点击门就只是一次修复",
+        "docs/wiki/zh_cn/2.3-decisions.md#d86-任务结束时把路由交回去所以下一次输入要先去要",
+        "docs/wiki/zh_cn/2.3-decisions.md#d87-被拒的输入改由任务承载而不是去要回路由",
+        "docs/wiki/zh_cn/2.3-decisions.md#d88-一个永远不回答的请求不能占据整次运行",
+        "docs/wiki/zh_cn/2.3-decisions.md#d89-在预算内开不了火的看门狗不算看门狗",
+        "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠",
+        "docs/wiki/zh_cn/2.3-decisions.md#d94-只杀了父进程却没杀掉子进程的杀手并没有让这一轮结束",
+        "docs/wiki/zh_cn/2.3-decisions.md#d95-要求有单位报表就得有单位",
         "docs/wiki/zh_cn/2.3-decisions.md#d96-能把整把时间等完的等待就是没有预算"
       ],
       "tests": [
@@ -2127,13 +2138,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 100,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 159,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "tools/audit_runs.py",
@@ -2145,31 +2156,31 @@
           "path": "src/maalimbus/runner.py",
           "needle": "class ReadNeverReturned(",
           "line": 611,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _unreadable_frame(",
           "line": 2675,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unreadable_rounds': 2,",
           "line": 198,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
-          "line": 451,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 491,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
-          "line": 693,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 747,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "tools/audit_efficiency.py",
@@ -2186,20 +2197,20 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = (",
-          "line": 421,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 460,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_budget",
-          "line": 771,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 825,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_portfolio",
-          "line": 995,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 1049,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "tools/audit_time.py",
@@ -2210,20 +2221,20 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "        'heartbeats': heartbeats,",
-          "line": 492,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 533,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_cost",
-          "line": 844,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 898,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_split",
-          "line": 967,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 1021,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "agent/recognition.py",
@@ -2234,8 +2245,8 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_phases",
-          "line": 889,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 943,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "agent/recognition.py",
@@ -2247,7 +2258,7 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "ActionNodeFailed",
           "line": 584,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "tools/selfrun_mirror.py",
@@ -2259,19 +2270,19 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "ENDING_KINDS = (",
           "line": 96,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "'unknown_interval': 1.5,",
           "line": 177,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "'floor_progress': {",
-          "line": 569,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 623,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -2283,25 +2294,25 @@
           "path": "src/maalimbus/runner.py",
           "needle": "    def note_binding_lost(self, reason):",
           "line": 934,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "BINDING_GONE_AFTER_A_TORN_TASK = '",
           "line": 793,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "INPUT_NEEDS_A_TASK = ",
           "line": 803,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "class RouteLost(RuntimeError):",
           "line": 826,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "tools/probe_route.py",
@@ -2313,31 +2324,31 @@
           "path": "src/maalimbus/runner.py",
           "needle": "    route_suspect = False",
           "line": 986,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def mark_action_ended(self):",
           "line": 988,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def point_override(entry, payload, *, post_delay=150):",
           "line": 838,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def send_through_a_task(self, what, payload):",
           "line": 956,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "PIPELINE_INPUT_NODES = ",
           "line": 809,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "tests/test_input_route_after_action.py",
@@ -2355,25 +2366,25 @@
           "path": "src/maalimbus/runner.py",
           "needle": "INPUT_CALL_SECONDS = 10.0",
           "line": 806,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    PROGRESS_SECONDS = 90.0",
           "line": 5735,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _pause_between_steps(self, interval):",
           "line": 5175,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "self.artifacts['input_at'] = time.monotonic()",
           "line": 4438,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "tools/selfrun_mirror.py",
@@ -2391,25 +2402,31 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "floor_pace",
           "line": 242,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "_floor_of",
           "line": 225,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    def _pending_transaction_wait(self):",
           "line": 5304,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/runner.py",
           "needle": "PENDING_TRANSACTION_UNREADABLE = 'the_outcome",
           "line": 768,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "def floor_dwell(",
+          "line": 279,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         }
       ]
     },
@@ -2697,13 +2714,13 @@
           "path": "src/maalimbus/runner.py",
           "symbol": "binding_is_empty",
           "line": 858,
-          "sha256": "d365033b69d227f567461e2ca8837917749035e4d5c30888e072d499f8f59354"
+          "sha256": "8eaeebbbb243e0850480ee88587ffb26152a71a35125018262af8efb0d3e9e5b"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_phases_of",
-          "line": 945,
-          "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+          "line": 999,
+          "sha256": "228ca49f9c5b17c0a2f2473013d9bb134958d76890d7f69958d172c44a81382c"
         }
       ]
     },
