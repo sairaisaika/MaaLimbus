@@ -113,3 +113,16 @@ def test_an_adopted_selection_without_a_notice_still_refuses(tmp_path):
     tx.commit("frame-0002")
     with pytest.raises(ValueError, match="receipt_unknown_repeated_or_pending"):
         tx.receipt_intent("", "frame-0003", on_notice_page=False)
+
+
+def test_a_ledger_written_before_adoption_still_attributes_its_commit(tmp_path):
+    """D140: `selected` was empty in ledgers written before D138; the commit's own title answers."""
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    tx.commit("frame-0002")
+    data = tx.data
+    data["selected"] = []          # the shape a pre-D138 ledger has on disk
+    tx._write(data) if hasattr(tx, "_write") else None
+    tx.path.write_text(__import__("json").dumps(data), encoding="utf-8")
+    tx.receipt_intent("Some Other Gift", "frame-0003", on_notice_page=True)
+    assert tx.data["pending"]["title"] == "Melted Eyeball"

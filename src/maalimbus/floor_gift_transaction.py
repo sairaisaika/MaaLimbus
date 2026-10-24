@@ -183,6 +183,11 @@ class FloorGiftTransaction:
         # sel:0 req:1 (D137).
         d['commit_sent']=True
         d['pending']=dict(kind='commit',proof=str(proof),adopted=bool(adopted))
+        if adopted:
+            # The adopted title travels with the commit so a receipt can be attributed
+            # even when the ledger was written before `selected` learned about adoption
+            # (D138 landed 2026-10-24; ledgers written before it carry selected []).
+            d['pending']['title']=d['selected'][0] if d['selected'] else None
         write_json(self.path,d)
 
     def refuse_owned(self, offers, count, proof):
@@ -241,6 +246,9 @@ class FloorGiftTransaction:
             # pick; the pick itself is still the one this run chose.
             unclaimed=[n for n in d['selected'] if n not in seen]
             if len(unclaimed)==1:expected=unclaimed
+        claimed=(p or {}).get('title')
+        if not expected and claimed and title and not seen and (p or {}).get('adopted'):
+            expected=[claimed]
         if not expected and (p or {}).get('adopted') and title:
             # An adopted selection was never pressed as a pick: the game had already
             # marked the card Owned, so the first notice after Select is its answer to
