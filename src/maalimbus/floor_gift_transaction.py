@@ -158,10 +158,16 @@ class FloorGiftTransaction:
 
     def commit(self, proof):
         d=self.data
-        if d['pending'] or d['commit_sent'] or len(d['selected'])!=d['required']:
+        adopted = (not d['selected'] and int(d.get('screen_before') or 0) >= d['required'])
+        if d['pending'] or d['commit_sent'] or (len(d['selected'])!=d['required'] and not adopted):
             raise ValueError('floor_gift_commit_not_ready')
+        # A page that arrived with enough cards already selected needs no pick at all:
+        # the requirement is satisfied by the screen, and the only remaining input is
+        # Select.  Measured 2026-10-24 (`packaged-mirror-20261024-161442`): the ledger
+        # had screen_before 1, selected [], and commit refused with p:False c:False
+        # sel:0 req:1 (D137).
         d['commit_sent']=True
-        d['pending']=dict(kind='commit',proof=str(proof))
+        d['pending']=dict(kind='commit',proof=str(proof),adopted=bool(adopted))
         write_json(self.path,d)
 
     def refuse_owned(self, offers, count, proof):

@@ -66,3 +66,31 @@ def test_a_ledger_without_a_baseline_learns_it_from_a_page_with_no_picks(tmp_pat
     tx = FloorGiftTransaction(path)
     tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0002")
     assert _json.loads(path.read_text(encoding="utf-8"))["screen_before"] == 1
+
+
+def test_a_page_that_arrived_satisfied_commits_without_a_pick(tmp_path):
+    """D137: screen_before 1, selected [], required 1 -> the screen is the selection."""
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    tx.commit("frame-0002")
+    data = tx.data
+    assert data["pending"]["adopted"] is True and data["commit_sent"] is True
+
+
+def test_an_unsatisfied_page_still_cannot_commit(tmp_path):
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(), {"chosen": 0, "required": 1}, "frame-0001")
+    with pytest.raises(ValueError, match="commit_not_ready"):
+        tx.commit("frame-0002")
+
+
+def test_one_pick_is_still_required_when_the_page_carried_nothing(tmp_path):
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(), {"chosen": 0, "required": 1}, "frame-0001")
+    tx.intent("Melted Eyeball", {"chosen": 0, "required": 1}, "frame-0002")
+    from maalimbus.floor_gifts import Offer, Trial
+    offers = [Offer("Melted Eyeball", "melted_eyeball", frozenset(), (0, 0, 10, 10),
+                    Trial(0, "none", 0), False, "three_free_select_button", 0)]
+    tx.observe_pick(offers, {"chosen": 1, "required": 1}, "frame-0003")
+    tx.commit("frame-0004")
+    assert tx.data["pending"]["adopted"] is False
