@@ -198,13 +198,39 @@ def observe_single_free(records, size, catalog, box, image, select_box):
         raise ValueError('single_free_gift_select_geometry_unknown')
     mean = button_mean(image, select_box)
     edges = single_free_selection_edges(image, box, size)
-    dim = mean is not None and mean <= 25 and edges and max(edges)<.05
-    lit = mean is not None and mean >= 45 and edges and min(edges)>=.25
+    state = outline_state(edges)
+    dim = mean is not None and mean <= 25 and state == 0
+    lit = mean is not None and mean >= 45 and state == 1
     if not (dim or lit):
         raise ValueError('single_free_gift_selection_ambiguous')
     offer = Offer(titles[0].text, canonical, keywords_of(catalog, canonical),
                   tuple(box), Trial(0,'none',0), bool(find(records,r'^Owned$',(.40,.20,.47,.245),size,.9)), 'single_free_select_button')
     return [offer], dict(chosen=int(lit), required=1)
+
+
+def outline_state(edges):
+    """One card's selection, from its four UI outline segments.
+
+    Measured 2026-10-24 on `packaged-mirror-20261024-144625/frame-0011.png`: the
+    selected right card reads [0.668, 0.502, 0.149, 0.473] -- its **top** segment
+    sits under the `Owned` / `Acquire E.G.O Gift` bands, so it is covered, not
+    dark.  The old rule demanded every segment be lit and called that card
+    ambiguous, which stopped a run whose screen showed the selection plainly.
+
+    The two *side* segments are never covered by a label, so they carry the rule:
+    dark means nothing is lit (max < .05); lit means both sides are lit and at
+    least one horizontal segment is lit too.  One dark side against a lit button is
+    a disagreement, not a covered band -- and a single lit segment is a frame
+    caught mid-sweep, so both land in None.
+    """
+    if not edges:
+        return None
+    left, right, top, bottom = edges
+    if max(edges) < .05:
+        return 0
+    if left >= .25 and right >= .25 and max(top, bottom) >= .25:
+        return 1
+    return None
 
 
 def single_free_selection_edges(image, box, size, *, bottom_span=350):
@@ -278,9 +304,9 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
         # The right card's lower edge is partly covered by Refuse Gift. Probe
         # its visible left segment; never count that overlay as an absent edge.
         edges=single_free_selection_edges(image,box,size,bottom_span=110)
-        if edges and max(edges)<.05:states.append(0)
-        elif edges and min(edges)>=.25:states.append(1)
-        else:raise ValueError('three_free_gift_outline_ambiguous')
+        state=outline_state(edges)
+        if state is None:raise ValueError('three_free_gift_outline_ambiguous')
+        states.append(state)
         # A bounded generic damage benefit, only for the complete visible pair.
         # This is heuristic value; it never replaces title or receipt identity.
         damage=find(records,r'^Skills with 1 Atk Weight deal$',(bounds[index],.40,bounds[index+1],.49),size,.9)

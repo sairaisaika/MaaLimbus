@@ -60,7 +60,12 @@ def test_actual_selected_right_card_uses_visible_bottom_edge():
     _,_,catalog=fixture();image=cv2.imread(str(path.with_suffix('.png')))
     offers,count=read(records,image,catalog)
     assert count==dict(chosen=1,required=1) and offers[2].title=='Phantom Pain'
-    image[835:850,1180:1290]=0
+    # D130: the selected card's outline is carried by its **sides** -- a horizontal
+    # segment can sit under a label or under the button row, and this very card's top
+    # segment did (0.149 of lit pixels in packaged-mirror-20261024-144625/frame-0011).
+    # So the counter-example is a dark *side*, which no label covers, and the reading
+    # must refuse that: the button says selected and the outline disagrees.
+    image[250:810,1160:1172]=0
     with pytest.raises(ValueError):read(records,image,catalog)
 
 
