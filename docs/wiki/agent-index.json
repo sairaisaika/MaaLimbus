@@ -588,8 +588,8 @@
         {
           "path": "src/maalimbus/floor_gift_transaction.py",
           "symbol": "FloorGiftTransaction.observe_receipt",
-          "line": 217,
-          "sha256": "92d6361b7497a3824e89db74ac233cc28fbcc41484eb31a262a8990438585ad7"
+          "line": 234,
+          "sha256": "aacc5d24a36f844082832d626b3a45cb1fb688fa27520f6922e70e0d8912edd0"
         }
       ]
     },

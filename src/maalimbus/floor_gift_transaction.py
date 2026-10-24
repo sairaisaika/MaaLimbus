@@ -31,22 +31,39 @@ class FloorGiftTransaction:
         if not d or d['scope']!=scope or d['offer']!=signature:
             if d and (d['pending'] or not d.get('completed')):
                 raise ValueError('floor_gift_previous_transaction_unresolved')
-            if count['chosen']!=0:
+            if count['chosen']!=0 and not any(getattr(o,'owned',False) for o in offers):
+                # A page may arrive with a card the game already selected -- marked
+                # Owned -- and that is the baseline, not this run's pick (D136).  A
+                # selection with no owned card behind it is still unattributed evidence.
                 raise ValueError('floor_gift_selected_without_scoped_evidence')
             history = (d.get('history',[])+[d]) if d else []
             if d: history[-1] = {k:v for k,v in d.items() if k!='history'}
+            # `screen_before` is the number of cards the game had already selected when
+            # this run first looked.  A three-free page can arrive with one card marked
+            # Owned and outlined, so the *screen's* count and the *run's* picks are two
+            # different counters (D136): measured 2026-10-24, a fresh ledger with
+            # selected=[] met a page showing chosen=1 and stopped the run on a mismatch.
             d = dict(scope=scope,offer=signature,required=count['required'],
-                     selected=[],picked_owned={},pending=None,commit_sent=False,receipts=[],
+                     screen_before=count['chosen'],selected=[],picked_owned={},pending=None,commit_sent=False,receipts=[],
                      substitutions=[],completed=False,proofs=[str(proof)],history=history)
             self.data=d
             write_json(self.path,d)
-        if d['pending'] or d['commit_sent'] or d['completed'] or count['required']!=d['required'] or count['chosen']!=len(d['selected']):
+        if d.get('screen_before') is None and not d['selected'] and not d['pending'] and not d['commit_sent']:
+            # A ledger written before this counter existed cannot say what the page
+            # looked like; a page with no picks by this run is exactly where a baseline
+            # can still be learned, so learn it instead of ending the run (D136, the
+            # same shape as D134's refresh).
+            d['screen_before']=count['chosen']
+            write_json(self.path,d)
+        if (d['pending'] or d['commit_sent'] or d['completed'] or count['required']!=d['required']
+                or count['chosen']-int(d.get('screen_before') or 0)!=len(d['selected'])):
             raise ValueError('floor_gift_pending_commit_or_counter_mismatch')
         return d
 
     def intent(self, title, count, proof, *, owned=False):
         d=self.data
-        if d['pending'] or d['commit_sent'] or title in d['selected'] or count['chosen']!=len(d['selected']):
+        if (d['pending'] or d['commit_sent'] or title in d['selected']
+                or count['chosen']-int(d.get('screen_before') or 0)!=len(d['selected'])):
             raise ValueError('floor_gift_selection_would_repeat')
         d['pending']=dict(kind='pick',title=title,before=count['chosen'],proof=str(proof))
         # A gift the run already owns cannot be granted twice: the game answers such a
