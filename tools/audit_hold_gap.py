@@ -49,10 +49,14 @@ def measure(directories):
             if not name:
                 continue
             total += 1
-            literal_kind = REFUSALS.get(name, STOP_KINDS.get(name))
+            # D146: an instrumented refusal carries its numbers after a colon, so the
+            # name to classify is the part before it; the census used to count every
+            # variant as its own unnamed failure.
+            head = name.split(':', 1)[0]
+            literal_kind = REFUSALS.get(head, STOP_KINDS.get(head))
             if literal_kind:
                 literal += 1
-            kind = literal_kind or kind_for(name)
+            kind = literal_kind or kind_for(head)
             if kind is None:
                 unresolved += 1
                 leave[name] = leave.get(name, 0) + 1

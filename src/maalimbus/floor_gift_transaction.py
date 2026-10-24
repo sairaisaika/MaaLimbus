@@ -10,6 +10,9 @@ from .storage import read_json, write_json
 #: and "older" is the only thing that can explain a field the current rules need but the
 #: record does not carry (measured: `selected` empty on a ledger written before D138).
 SCHEMA = 2
+# D144: fields that describe the ledger itself, not this run's progress.  `prepare`
+# builds a fresh record, so anything in this tuple has to be carried across by hand.
+CARRIED_FIELDS = ('retired_commit',)
 
 #: The page families that end a floor gift's pick sequence without another pick:
 #: the theme-pack shelf and the map both mean this floor's gift step is over.
@@ -112,9 +115,16 @@ class FloorGiftTransaction:
             # refuse with floor_gift_receipt_unknown_repeated_or_pending.
             owned_titles=[o.title for o in offers if getattr(o,'owned',False)]
             adopted_titles=owned_titles[:count['required']] if count['chosen']>=count['required'] else []
+            # D144: a field that describes the ledger's own situation -- its generation
+            # and the commit a previous run was owed -- is not run state and must not be
+            # erased by the record this run builds.  Measured 2026-10-24: the retirement
+            # marker was written at load, then a prepare on the same page dropped it and
+            # the receipt guard saw a fresh ledger.
+            retired=(d or {}).get('retired_commit')
             d = dict(schema=SCHEMA,scope=scope,offer=signature,required=count['required'],
                      screen_before=count['chosen'],selected=list(adopted_titles),
                      adopted=bool(adopted_titles),picked_owned={},pending=None,commit_sent=False,receipts=[],
+                     retired_commit=retired,
                      substitutions=[],completed=False,proofs=[str(proof)],history=history)
             self.data=d
             write_json(self.path,d)

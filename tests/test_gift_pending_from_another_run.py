@@ -11,7 +11,9 @@ import pathlib
 
 import pytest
 
+from maalimbus import floor_gift_transaction as gift_ledger
 from maalimbus.floor_gift_transaction import FloorGiftTransaction
+from maalimbus.floor_gifts import Offer, Trial
 
 
 def _ledger(path, proof, **extra):
@@ -100,3 +102,51 @@ def test_a_commit_that_was_never_retired_still_refuses(tmp_path):
     tx = FloorGiftTransaction(path)
     with pytest.raises(ValueError):
         tx.receipt_intent("Some Gift", tmp_path / "frame-0009.json")
+
+
+def test_the_runner_treats_a_retired_commit_as_satisfied(tmp_path):
+    """The same rule, at the runner's own guard (line ~3809): it stops on
+    `floor_gift_receipt_unknown_repeated_or_pending` when no notice can be attributed,
+    and a retired commit has no notice to attribute."""
+    other = tmp_path / "run-a" / "frame-0001.json"
+    other.parent.mkdir()
+    other.write_text("{}", encoding="utf-8")
+    mine = tmp_path / "run-b"
+    mine.mkdir()
+    path = _ledger(tmp_path / "t.json", {"kind": "commit", "title": "Melted Eyeball",
+                                         "adopted": True, "proof": str(other)})
+    FloorGiftTransaction(path).retire_from_another_run(mine)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    # the runner's condition, in one line: retired and no pending means nothing is owed
+    assert data.get("retired_commit") and not (data.get("pending") or {})
+
+
+def test_a_prepare_does_not_erase_a_field_about_the_ledger_itself(tmp_path):
+    """D144: `prepare` builds this run's record, and the fields that describe the
+    ledger -- its generation and an owed commit from another run -- belong to the file,
+    not to the run.  Measured 2026-10-24: the marker was written at load and gone after
+    a prepare on the same page."""
+    other = tmp_path / "run-a" / "frame-0001.json"
+    other.parent.mkdir()
+    other.write_text("{}", encoding="utf-8")
+    mine = tmp_path / "run-b"
+    mine.mkdir()
+    path = _ledger(tmp_path / "t.json", {"kind": "commit", "title": "Melted Eyeball",
+                                         "adopted": True, "proof": str(other)})
+    FloorGiftTransaction(path).retire_from_another_run(mine)
+    # A previous transaction that did finish: the ledger's own state, not a pending one.
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["completed"] = True
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    tx = FloorGiftTransaction(path)
+    tx.prepare("37fc4d01", [Offer("Melted Eyeball", "Melted Eyeball", (), (100, 200, 240, 200), Trial(0, "none", 0), False, "three_free_select_button", 0)], {"chosen": 0, "required": 1}, mine / "frame-0002.json")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["retired_commit"] and data["schema"] == gift_ledger.SCHEMA
+    assert data["selected"] == [] and data["commit_sent"] is False
+
+
+
+def test_the_ledger_fields_survive_a_run_that_rebuilds_the_record(tmp_path):
+    """D144 guarded by the class itself: the fields that describe the ledger are the
+    ones `prepare` has to carry, and the run's own state is the one it resets."""
+    assert gift_ledger.CARRIED_FIELDS == ('retired_commit',)

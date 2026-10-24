@@ -1679,7 +1679,11 @@ def candidates_of(directory, record):
     party = party_point(image)
     # The verdict that follows this click must carry the same party the candidates
     # were filtered against; nothing else records it (see `_map_verdict`).
-    record['map_party'] = list(party) if party else None
+    # D147: `party_point` can answer with an array, and `if party` on an array is a
+    # ValueError, not a truth test.  Measured 2026-10-24
+    # (packaged-mirror-20261024-155435): the run ended with "The truth value of an
+    # array with more than one element is ambiguous" one event after its first read.
+    record['map_party'] = [int(v) for v in party] if party is not None else None
     boxes = [list(item['box']) for item in clicks]
     # The kind the reader gave a box never reached the journal, so a verdict could say
     # which box was refused but not what the reader thought it was -- and `map_clicks`

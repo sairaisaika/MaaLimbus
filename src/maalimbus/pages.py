@@ -242,7 +242,7 @@ def dispatch_sites(source):
 #: goes up.  A new page-specific inline check must therefore either replace an
 #: existing one or be argued for by editing this table deliberately.
 INLINE_RUNNER = {
-    '?': 13,
+    '?': 14,
     'BATTLE_DEFEAT': 1,
     'BATTLE_HUD': 4,
     'BATTLE_PLANNING': 1,
@@ -807,6 +807,14 @@ STOP_KINDS = {
     # A re-read is the honest recovery: the outline is a picture, not a text it can
     # re-parse, and a second look is cheaper than a wrong pick.
     'three_free_gift_outline_ambiguous': 'unreadable_text',
+    # D147: the ledger knows a commit was sent and no receipt followed it.  That is a
+    # saved state that does not reconcile with the screen, so the ladder is the honest
+    # recovery -- a re-read or a gesture may still produce the page that prints it.
+    'floor_gift_receipt_unknown_repeated_or_pending': 'bad_saved_state',
+    # D147: a numpy array used as a truth test crashed one run on 2026-10-24
+    # (packaged-mirror-20261024-155435); the cause is fixed, and the sentence stays
+    # classified so the historical census keeps naming it instead of holding it.
+    'The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()': 'unreadable_text',
 }
 
 # Words a plan the *runner* assembles carries.  These plans do not pass through
@@ -1017,12 +1025,18 @@ def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
     from .reason_kinds import kind_for
 
     for name in (reason, stopped_reason, plan_reason):
-        kind = REFUSALS.get(name, STOP_KINDS.get(name, PLANNED_REASONS.get(name)))
+        # D146: an instrumented refusal appends its numbers after a colon
+        # (`three_free_gift_outline_ambiguous:0:[]:...`), and the message is the only
+        # place those numbers can travel.  Measured 2026-10-24: fifteen such strings
+        # entered the census as fifteen unnamed failures.  The name is the part before
+        # the first colon; the numbers stay in the record.
+        head = name.split(':', 1)[0] if isinstance(name, str) else name
+        kind = REFUSALS.get(head, STOP_KINDS.get(head, PLANNED_REASONS.get(head)))
         if kind is None:
             # The literal tables only ever held the names somebody remembered to add.
             # `reason_kinds.kind_for` classifies *every* failure name by meaning, so a
             # page-specific sentence now inherits its class's action instead of holding.
-            kind = kind_for(name)
+            kind = kind_for(head)
         if kind is not None:
             return kind
     return None
