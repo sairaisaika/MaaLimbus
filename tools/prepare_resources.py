@@ -26,22 +26,36 @@ def main():
                'exploring': 'Exploring|Before Entry', 'details': '^Details$', 'teams': r'TEAMS|Preset',
                'forbidden_dialog': r'Purchase\s*Lunacy|Refill\s*Enkephalin|Extract\s*10|Exchange\s*Lunacy',
                'expired': 'previous session has expired', 'defeat': '^DEFEAT$', 'sin_cost': r'^SIN\s*\|?\s*COST$',
-               'acquire_gift':r'^Acquire\s*E\.?G\.?O\.?\s*Gift$', 'owned_gift':r'^Owned$', 'gift_confirm':r'^Confirm$'},
+               'acquire_gift':r'^Acquire\s*E\.?G\.?O\.?\s*Gift$', 'owned_gift':r'^Owned$', 'gift_confirm':r'^Confirm$', 'resume': r'^Resume$'},
         'jp': {'mirror_menu': '鏡ダンジョン|鏡のダンジョン', 'inferno': 'Inferno|地獄', 'enter': '入場|入る|Enter',
                'exploring': '探索状況|入場前|探索中|Exploring', 'details': '詳細|Details', 'teams': 'チーム|プリセット|TEAMS',
                'forbidden_dialog': '狂気を購入|狂気で.*回復|抽出10回|エンケファリン.*回復',
                'expired': '前回.*期限|前回.*終了', 'defeat': '敗北|DEFEAT', 'sin_cost': r'SIN\s*\|?\s*COST|罪悪.*コスト',
                'acquire_gift':r'E\.?G\.?O\.?\s*ギフト.*獲得|^Acquire\s*E\.?G\.?O\.?\s*Gift$',
-               'owned_gift':r'^所持済み$|^所持$|^Owned$', 'gift_confirm':r'^確定$|^確認$|^Confirm$'},
+               'owned_gift':r'^所持済み$|^所持$|^Owned$', 'gift_confirm':r'^確定$|^確認$|^Confirm$', 'resume': 'Resume|再開|続きから'},
     }
     for locale, words in locales.items():
         write(ROOT / f'assets/resource/{locale}/locale.json', words)
         write(ROOT / f'assets/resource/{locale}/pipeline/locale.json', {})
     nodes = {
-        'MirrorHard': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action':'limbus_preflight', 'next': ['LimbusSafety', 'MirrorDrive', 'MirrorEnter', 'MirrorTeamEvidence'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        'MirrorHard': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action':'limbus_preflight', 'next': ['LimbusSafety', 'MirrorDrive', 'MirrorEnter', 'MirrorResume', 'MirrorTeamEvidence'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
         'LimbusSafety': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'RESOURCE_DIALOG'}, 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unconfigured_resource_dialog'}, 'next': [], 'on_error': []},
-        'MirrorDrive': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'DRIVE', 'token': 'mirror_menu', 'roi': [.23, .25, .46, .55]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 3, 'next': ['LimbusSafety', 'MirrorEnter', 'MirrorDrive'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        'MirrorDrive': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'DRIVE', 'token': 'mirror_menu', 'roi': [.23, .25, .46, .55]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 3, 'next': ['LimbusSafety', 'MirrorEnter', 'MirrorResume', 'MirrorDrive'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
         'MirrorEnter': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'MIRROR_ENTRY', 'token': 'enter', 'roi': [.76, .55, .97, .85]}, 'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 2, 'next': ['LimbusSafety', 'MirrorTeamEvidence'], 'timeout': 20000, 'on_error': ['LimbusUnknown']},
+        # An unfinished run answers the mirror menu with its own dialog (Resume / Halt
+        # Exploration / Cancel), and the packaged task had no node for it: two live runs
+        # (packaged-mirror-20261023-221109, -223237) clicked the mirror card, landed on
+        # RESUME_DIALOG, and ended on LimbusUnknown with
+        # 'unknown_or_bounded_transition_exhausted' -- the task could not resume the run it
+        # had just been asked to continue. The token and ROI are the live frame's own
+        # OCR box for 'Resume' ([902,579,114,34] at 1920x1080), widened to the button
+        # band so a shifted dialog still matches and Halt Exploration stays outside.
+        'MirrorResume': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene',
+            'custom_recognition_param': {'scene': 'RESUME_DIALOG', 'token': 'resume',
+                                        'roi': [.38, .505, .62, .585]},
+            'action': 'Click', 'target': True, 'post_delay': 1000, 'max_hit': 2,
+            'next': ['LimbusSafety', 'MirrorDrive', 'MirrorEnter', 'MirrorResume'],
+            'timeout': 20000, 'on_error': ['LimbusUnknown']},
         'MirrorTeamEvidence': {'recognition': 'Custom', 'custom_recognition': 'limbus_scene', 'custom_recognition_param': {'scene': 'TEAM_LIBRARY'}, 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unexpected_team_library_not_dungeon_deployment'}, 'next': [], 'on_error': []},
         'LimbusUnknown': {'recognition': 'DirectHit', 'action': 'Custom', 'custom_action': 'limbus_terminal', 'custom_action_param': {'reason': 'unknown_or_bounded_transition_exhausted'}, 'next': [], 'on_error': []},
     }

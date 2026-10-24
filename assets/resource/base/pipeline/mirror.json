@@ -5,6 +5,7 @@
     "custom_action": "limbus_preflight",
     "next": [
       "LimbusSafety",
+      "MirrorResume",
       "LimbusExpired",
       "LimbusDefeat",
       "MirrorTutorialBack",
@@ -689,6 +690,7 @@
       "LimbusSafety",
       "LimbusExpired",
       "LimbusDefeat",
+      "MirrorResume",
       "MirrorEnter"
     ],
     "timeout": 20000,
@@ -9383,5 +9385,35 @@
       "shop_reserve_coins": "saved"
     },
     "next": []
+  },
+  "MirrorResume": {
+    "recognition": "Custom",
+    "custom_recognition": "limbus_scene",
+    "custom_recognition_param": {
+      "scene": "RESUME_DIALOG",
+      "token": "resume",
+      "roi": [
+        0.38,
+        0.505,
+        0.62,
+        0.585
+      ]
+    },
+    "action": "Click",
+    "target": true,
+    "post_delay": 1000,
+    "max_hit": 2,
+    "next": [
+      "LimbusSafety",
+      "LimbusExpired",
+      "LimbusDefeat",
+      "MirrorDrive",
+      "MirrorEnter",
+      "MirrorResume"
+    ],
+    "timeout": 20000,
+    "on_error": [
+      "LimbusUnknown"
+    ]
   }
 }

@@ -22,5 +22,6 @@
   "sin_cost": "SIN\\s*\\|?\\s*COST|罪悪.*コスト",
   "acquire_gift": "E\\.?G\\.?O\\.?\\s*ギフト.*獲得|^Acquire\\s*E\\.?G\\.?O\\.?\\s*Gift$",
   "owned_gift": "^所持済み$|^所持$|^Owned$",
-  "gift_confirm": "^確定$|^確認$|^Confirm$"
+  "gift_confirm": "^確定$|^確認$|^Confirm$",
+  "resume": "Resume|再開|続きから"
 }

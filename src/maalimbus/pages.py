@@ -713,6 +713,11 @@ STOP_KINDS = {
     # A plan that refuses to click until an unresolved exploration is resumed is a
     # saved-state error: nothing is missing on the page, our route is stale.
     'the_exploration_must_be_resumed_before_a_node_click': 'bad_saved_state',
+    # D72: the framework tears the task down when a pipeline node fails, so there is
+    # nothing left to look at or click.  The only honest recovery action is to stop this
+    # run -- a fresh task is a new run, not a recovery of this one, and the viewport
+    # ladder cannot reach a session that no longer exists.
+    'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
 }
 
 # Words a plan the *runner* assembles carries.  These plans do not pass through
