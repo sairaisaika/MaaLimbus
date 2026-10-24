@@ -1055,7 +1055,14 @@
         "平均楼层",
         "clear rate denominator",
         "通关率的分母",
-        "progress figure"
+        "progress figure",
+        "unknown_waits",
+        "after",
+        "前驱页",
+        "what came before",
+        "is_unreadable",
+        "UNREADABLE_PAGE",
+        "wait cause"
       ],
       "sources": [
         {
@@ -1161,6 +1168,10 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "'floor_progress': {"
+        },
+        {
+          "path": "src/maalimbus/pages.py",
+          "symbol": "is_unreadable"
         }
       ],
       "docs": [
@@ -1189,7 +1200,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d79-waiting-is-not-patience-when-the-hazard-is-flat",
         "docs/wiki/zh_cn/2.3-decisions.md#d79-风险率是平的等待就不叫耐心",
         "docs/wiki/en_us/2.3-decisions.md#d80-a-clear-rate-over-runs-nobody-gave-time-to-clear-is-a-statement-about-the-budget",
-        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算"
+        "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算",
+        "docs/wiki/en_us/2.3-decisions.md#d81-an-unknown-page-is-not-one-behaviour",
+        "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为"
       ],
       "tests": [
         "tests/test_run_endings.py",

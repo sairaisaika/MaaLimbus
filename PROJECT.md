@@ -5183,3 +5183,45 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 3. 只在「有资格」的子集上取平均，并把这个子集写进 basis。
 4. 把「零」与「没量到」继续分开：`None` 不是 `0.0`。
 5. 一个指标要能说明自己的局限（难度未归一），否则下一轮会把它当成跨难度可比。
+
+## DSH continuation: 无法命名的页面，不是一种行为 (2026-10-24)
+
+**本轮的问题**
+
+`window_unknown_wait` 是可归属时间的第二大成本组（D66：19.9%），而它把三种毫无共同点的
+状态平均在一起：战斗之后的载入、菜单之后的过渡、过场之后的黑屏。D79 量出「等久一点不会更
+容易认出」，但那是对整组说的；要评判节拍或成本，得先把它按前驱拆开。
+
+**改动**
+
+- `src/maalimbus/runner.py`：`state['last_named_page']` 在地点解析处记录（只有不是不可读页
+  时才记录）；每条 `window_unknown_wait` 带 `after=<该页>`，没有命名过就写 `None`。
+- `src/maalimbus/pages.py`：新增 `UNREADABLE_PAGE` 与 `is_unreadable(name)`——「这一页是不是
+  不可读页」属于页面词汇表，不属于 runner。**D44 的棘轮第一版就红了是对的**：直接写
+  `if page != 'UNKNOWN'` 等于在 runner 里新增一处页面特判，改走词汇表谓词后通过。
+- `src/maalimbus/run_metrics.py`：`time_budget` 改为「按产生间隔的那一行」归属（此前只留了
+  事件名，行被丢掉，所以前驱无从得知），新增 `_stamp(row)`；输出 `unknown_waits`
+  （按 `after` 分组，`unrecorded` 自成一桶）；`time_portfolio` 跨运行合并。
+- `tools/audit_time.py`：打印 `unknown-page waits, by the page that came before them`。
+- 测试：`tests/test_time_budget.py`（19 个，+4）、`tests/test_unknown_pacing.py`（7 个，+2）。
+
+**证据**
+
+| 项目 | 结果 |
+| --- | --- |
+| 实机（获授权，150 秒） | `packaged-mirror-20261024-005708`：169.3 秒、4 次点击、99 事件、`stop_path=agent_loop`（自己收尾）|
+| 该运行的新字段 | 4 次未知等待，**全部 `after='BATTLE_HUD'`、`interval_s: 1.5`** |
+| 工具输出 | `after unrecorded 4601 s n=520`（旧语料，如实标注）、`after BATTLE_HUD 22 s n=4 mean 5.50 s` |
+| 全量测试 | 见本轮报告 |
+
+**下一轮的第一优先项**：有了 `after` 之后，「战斗之后的载入」这一桶已经能单独计时；下一步是
+在同一前驱下比较不同节拍的样本，再决定是否对载入类过渡采用更长的单次等待（而不是现在这种
+短节拍多次读取）。
+
+**可迁移的经验**
+
+1. 一个平均数跨了多种行为，就不能用来评判其中任何一种。
+2. 前驱只能写在产生等待的那一行；事后重放要靠「中间恰好命名过」的运气。
+3. 「这一页是不是不可读页」属于页面词汇表——把它放到 runner 里，棘轮会（并且应该）拦住。
+4. 归属要按行而不是按名：丢掉行就等于丢掉解释。
+5. 新字段一上线就用真实运行验证一次，让工具打印出来，而不是只写进测试。
