@@ -228,19 +228,32 @@ def start_button(records, size, image=None):
         buttons=auto_assign_buttons(records,size)
         hud = battle_hud(records,size)
         if hud is None:return None
+        # D107: a board whose turn caption this OCR cannot read keeps the ring as the
+        # authority for the dial, because the toggle captions that would narrow the
+        # search band were never read either (they stand in as fixed points, and a
+        # fixed point cannot say where a *moving* dial is).
+        if hud.get('turn') is None:
+            ring = submit_dial(image)
+            if ring is not None:return ring
         if buttons is not None:
             # The rightmost dial moves when the number of active sinners changes.
-            # Derive its search band from the two native assignment captions; keep
-            # the exact same lit-disc area/shape/fill gate and reject dim controls.
+            # Derive its search band from the two native assignment captions; keep the
+            # exact same lit-disc area/shape/fill gate and reject dim controls.
+            #
+            # D107: a fixed point may stand in for a toggle, but it cannot say where a
+            # *moving* dial is, so only a toggle read from its own caption may anchor
+            # this band (live
+            # `tests/test_battle_dynamic_dial.py::test_shifted_lit_dial_is_bound_to_the_actual_assignment_captions`).
             width,height=size;x,y,w,h=buttons['win_rate'];sx,sy=width/1920,height/1080
-            moving=dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
+            if not buttons.get('positional'):
+                moving=dial_control(image,roi=((x-180*sx)/width,(y-55*sy)/height,
                                            (x-10*sx)/width,(y+145*sy)/height))
-            if moving is not None:return moving
-            # Still fragmented after both bands -- read it from the `Win Rate` caption it
-            # sits left of; that is what the board of live run
-            # packaged-mirror-20261022-015843 needs (see dial_beside_caption).
-            captured=dial_beside_caption(records,size,image)
-            if captured is not None:return captured
+                if moving is not None:return moving
+                # Still fragmented after both bands -- read it from the `Win Rate` caption
+                # it sits left of; that is what the board of live run
+                # packaged-mirror-20261022-015843 needs (see dial_beside_caption).
+                captured=dial_beside_caption(records,size,image)
+                if captured is not None:return captured
         # D101: on a board whose turn caption this OCR cannot read -- the D99/D100 case,
         # where `battle_hud` says `turn is None` -- every caption-anchored reading above
         # is unavailable by construction, and the dial is the gold ring itself (two live
@@ -274,17 +287,69 @@ def begin_turn_plan(records, size, image=None):
     return dict(target=box, reason='submit_turn', wave=hud['wave'], turn=hud['turn'])
 
 
+#: The two auto-assignment toggles, measured on every archived `BATTLE_HUD` frame
+#: (2026-10-24): the `Win`/`Rate` caption union centred on (1622, 816) in 544 frames with
+#: its y band 790-839, and `Damage` centred on (1623, 876) in 541 frames with its y band
+#: 861-889, both on a 1920x1080 screen.  The spread is the arrow glyph beside each label,
+#: not a moving control, so the point is fixed and the operator is right that it can be
+#: pressed instead of rediscovered (D107).
+TOGGLE_POINTS = {'win_rate': (1622, 816), 'damage': (1623, 876)}
+TOGGLE_HALF = (60, 22)
+
+
+def toggle_boxes(size):
+    """The measured toggle boxes, scaled to this frame.
+
+    A click target is a box, so the measured centre is given a half-size large enough to
+    absorb the caption height and small enough to stay clear of the skill row directly
+    below (the row's top edge is at y 900 on a 1080 screen, 84 px below the centre).
+    """
+    width, height = float(size[0]), float(size[1])   # `find` reads size as (width, height)
+    half_width, half_height = TOGGLE_HALF
+    boxes = {}
+    for name, (x, y) in TOGGLE_POINTS.items():
+        boxes[name] = (int(round(x * width / 1920.0 - half_width)),
+                       int(round(y * height / 1080.0 - half_height)),
+                       2 * half_width, 2 * half_height)
+    return boxes
+
+
+def _battle_chrome(records, size):
+    """Whether this frame draws the battle's own chrome (`MAX`, `WAVE` or `TURN`).
+
+    Used only to decide whether the measured toggle points may stand in for a caption
+    that could not be read -- a page without this chrome is not the battle board.
+    """
+    for pattern in (r'^MAX$', r'^WAVE$', r'^TURN$'):
+        if find(records, pattern, (.0, .0, 1.0, .25), size, .85):
+            return True
+    return False
+
+
 def auto_assign_buttons(records, size):
     """The battle's `Win Rate` and `Damage` auto-assignment buttons.
 
-    Each button is the union of its two caption words in its own band. These are
-    read-only targets; this function never clicks and never infers a turn result.
+    Each button is the union of its two caption words in its own band.  When a caption
+    cannot be read the measured fixed points stand in for it (D107): the operator asked
+    for the toggle to be pressed rather than rediscovered, and the two are the same place
+    to within a few pixels on every archived frame.
+
+    These are read-only targets; this function never clicks and never infers a turn result.
     """
     win = find(records, r'^Win$', (.58, .70, .95, .84), size, .85)
     rate = find(records, r'^Rate$', (.58, .70, .95, .84), size, .85)
     damage = find(records, r'^Damage$', (.58, .77, .95, .90), size, .85)
     if len(win) != 1 or len(rate) != 1 or len(damage) != 1:
-        return None
+        # Only a frame that shows battle chrome may borrow the fixed point: a non-battle
+        # page must keep getting None, or the caller would click a toggle that is not
+        # drawn there (live `tests/test_battle_touch.py::test_auto_assign_refuses_without_the_battle_page`).
+        if not _battle_chrome(records, size):
+            return None
+        fixed = toggle_boxes(size)
+        return {'win_rate': fixed['win_rate'], 'damage': fixed['damage'],
+                'positional': True,
+                'scope': 'auto-assignment toggles at their measured fixed points; '
+                         'the captions were not readable on this frame (D107)'}
     union = (min(win[0].box[0], rate[0].box[0]), min(win[0].box[1], rate[0].box[1]),
              max(win[0].box[0] + win[0].box[2], rate[0].box[0] + rate[0].box[2])
              - min(win[0].box[0], rate[0].box[0]),

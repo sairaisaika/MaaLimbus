@@ -1222,8 +1222,8 @@
         {
           "path": "src/maalimbus/battle_vision.py",
           "needle": "SKILL_ROW_POINT = (",
-          "line": 263,
-          "sha256": "aa6f9d3fbcb38be0e8e3b66f3d35b4096b7acd378d6f6700afda7039860027e5"
+          "line": 276,
+          "sha256": "0b53d57fdb344bc073c4b13c236816d3abd9c8080716cf4bfcc881b4f6f8806e"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -2664,6 +2664,88 @@
           "symbol": "read_phases_of",
           "line": 945,
           "sha256": "18d6fd6080f71b229f572cf153f5f6a94337384fa9ea4350db4abfb28b746de3"
+        }
+      ]
+    },
+    {
+      "id": "battle",
+      "title": "战斗板：固定点、提交表盘与浮层",
+      "aliases": [
+        "battle",
+        "战斗",
+        "battle board",
+        "TOGGLE_POINTS",
+        "fixed point",
+        "固定点",
+        "toggle_boxes",
+        "Win Rate",
+        "Damage",
+        "提交表盘",
+        "submit dial",
+        "SKILL_ROW_POINT",
+        "skill row",
+        "技能排",
+        "BATTLE_TIP",
+        "浮动层",
+        "popup"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "TOGGLE_POINTS = {"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "auto_assign_buttons"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "submit_dial"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "SKILL_ROW_POINT = ("
+        }
+      ],
+      "docs": [
+        "docs/wiki/en_us/2.3-decisions.md#d107-a-control-that-never-moves-is-a-point-not-a-search",
+        "docs/wiki/zh_cn/2.3-decisions.md#d107-不会动的控件是一个点不是一次搜索",
+        "docs/wiki/en_us/2.3-decisions.md#d106-a-drag-on-the-battle-board-is-a-game-action-not-a-view-move",
+        "docs/wiki/zh_cn/2.3-decisions.md#d106-战斗板上的拖动是游戏动作不是视野移动"
+      ],
+      "tests": [
+        "tests/test_battle_toggles.py",
+        "tests/test_battle_touch.py",
+        "tests/test_battle_hud_controls.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_battle_toggles.py tests/test_battle_touch.py"
+      ],
+      "boundary": "固定点是 2026-10-24 归档实测；提交表盘仍靠搜索，因为随存活人数移动。",
+      "locations": [
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "TOGGLE_POINTS = {",
+          "line": 296,
+          "sha256": "0b53d57fdb344bc073c4b13c236816d3abd9c8080716cf4bfcc881b4f6f8806e"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "auto_assign_buttons",
+          "line": 329,
+          "sha256": "0b53d57fdb344bc073c4b13c236816d3abd9c8080716cf4bfcc881b4f6f8806e"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "submit_dial",
+          "line": 374,
+          "sha256": "0b53d57fdb344bc073c4b13c236816d3abd9c8080716cf4bfcc881b4f6f8806e"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "SKILL_ROW_POINT = (",
+          "line": 276,
+          "sha256": "0b53d57fdb344bc073c4b13c236816d3abd9c8080716cf4bfcc881b4f6f8806e"
         }
       ]
     }

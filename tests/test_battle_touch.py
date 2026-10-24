@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import pytest
 
+from maalimbus import battle_vision
 from maalimbus.battle_vision import (auto_assign_buttons, auto_assign_plan, battle_hud,
                                      begin_turn_plan, dial_control, start_button)
 from maalimbus.vision import Text
@@ -70,11 +71,14 @@ def test_auto_assign_refuses_without_the_battle_page():
     assert battle_hud(records, size) is None
     assert auto_assign_buttons(records, size) is None
     assert auto_assign_plan(records, size) == dict(target=None, reason='battle_hud_not_identified')
-    # A page with HUD counters but no auto-assign buttons must still refuse.
+    # A page with HUD counters but no readable toggle caption now gets the measured
+    # fixed point instead of a refusal (D107): the operator asked for the point to be
+    # pressed, and it is where the caption draws on every archived frame.
     wave = Text('WAVE', (16, 39, 54, 30), .99)
     turn = Text('TURN', (18, 95, 44, 24), .99)
-    assert auto_assign_plan([wave, turn], size) == dict(target=None,
-                                                       reason='auto_assign_buttons_not_present')
+    fixed = auto_assign_plan([wave, turn], size)
+    assert fixed['target'] is not None
+    assert 'fixed point' in battle_vision.auto_assign_buttons([wave, turn], size)['scope']
 
 
 def test_turn_start_appears_only_after_auto_assign():

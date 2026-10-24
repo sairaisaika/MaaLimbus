@@ -1697,6 +1697,62 @@
         "python tools/measure_screencap.py --binary build/mxu-probe-271/maafw --count 3"
       ],
       "boundary": "D69: 这一路只解释\"一次截图要多久\"与\"绑定被固定成哪一种\"。它不解释识别耗时，也不解释流水线往返；MuMu 12 只提供 EmulatorExtras 一种方法，因此在这台设备上不存在\"选更快的方法\"这个选项。 D71: 空绑定（`\"\"` 或 `None`）在任何输入门前都会被拒绝；这不解释绑定为什么会在运行中变空。"
+    },
+    {
+      "id": "battle",
+      "title": "战斗板：固定点、提交表盘与浮层",
+      "aliases": [
+        "battle",
+        "战斗",
+        "battle board",
+        "TOGGLE_POINTS",
+        "fixed point",
+        "固定点",
+        "toggle_boxes",
+        "Win Rate",
+        "Damage",
+        "提交表盘",
+        "submit dial",
+        "SKILL_ROW_POINT",
+        "skill row",
+        "技能排",
+        "BATTLE_TIP",
+        "浮动层",
+        "popup"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "TOGGLE_POINTS = {"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "auto_assign_buttons"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "symbol": "submit_dial"
+        },
+        {
+          "path": "src/maalimbus/battle_vision.py",
+          "needle": "SKILL_ROW_POINT = ("
+        }
+      ],
+      "docs": [
+        "docs/wiki/en_us/2.3-decisions.md#d107-a-control-that-never-moves-is-a-point-not-a-search",
+        "docs/wiki/zh_cn/2.3-decisions.md#d107-不会动的控件是一个点不是一次搜索",
+        "docs/wiki/en_us/2.3-decisions.md#d106-a-drag-on-the-battle-board-is-a-game-action-not-a-view-move",
+        "docs/wiki/zh_cn/2.3-decisions.md#d106-战斗板上的拖动是游戏动作不是视野移动"
+      ],
+      "tests": [
+        "tests/test_battle_toggles.py",
+        "tests/test_battle_touch.py",
+        "tests/test_battle_hud_controls.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_battle_toggles.py tests/test_battle_touch.py"
+      ],
+      "boundary": "固定点是 2026-10-24 归档实测；提交表盘仍靠搜索，因为随存活人数移动。"
     }
   ]
 }
