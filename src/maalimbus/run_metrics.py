@@ -351,7 +351,17 @@ def efficiency(rows):
     stamps = _stamps(rows)
     seconds = (stamps[-1] - stamps[0]).total_seconds() if len(stamps) >= 2 else None
     reads = sum(1 for row in rows if row.get('event') in READ_EVENTS)
-    steps = sum(1 for row in rows if row.get('event') == 'loop_heartbeat')
+    # A heartbeat is not a step.  `loop_heartbeat` is written before each loop iteration
+    # only since 2026-10-23 (it was added for the runs that died with no cause), so an
+    # archive that spans older builds has far fewer heartbeats than steps -- 303 against
+    # the 1065 steps those same runs declare.  Using the heartbeat count as the
+    # denominator published `reads_per_step 34.2` for a corpus whose real figure is 9.73
+    # (D67).  The step count the loop declares when it stops is the denominator; the
+    # heartbeats are kept beside it as what the journal documents.
+    heartbeats = sum(1 for row in rows if row.get('event') == 'loop_heartbeat')
+    declared = [row.get('steps') for row in rows
+                if row.get('event') == 'mirror_loop_stopped' and isinstance(row.get('steps'), int)]
+    steps = max(declared) if declared else None
     floors = [row.get('floor') for row in rows
               if row.get('event') == 'map_observed' and isinstance(row.get('floor'), int)]
     sent = sum(1 for row in rows if row.get('event') == 'shop_purchase_sent')
@@ -369,6 +379,7 @@ def efficiency(rows):
         'reads': reads,
         'payout': payout,
         'steps': steps,
+        'heartbeats': heartbeats,
         'reads_per_step': round(reads / steps, 2) if steps else None,
         'reached_floor': max(floors) if floors else None,
         'explored': bool(floors) and max(floors) >= CLEAR_FLOORS,
@@ -408,8 +419,12 @@ def metrics(runs):
     """The six figures across many runs, each with its basis and its honest note."""
     total = len(runs)
     timed = [run['seconds'] for run in runs if run['seconds'] is not None]
-    stepped = sum(run['steps'] or 0 for run in runs)
-    reads = sum(run['reads'] or 0 for run in runs)
+    documented = [run for run in runs if run['steps'] is not None]
+    stepped = sum(run['steps'] for run in documented)
+    # The numerator has to come from the same set as the denominator: reads from the runs
+    # that declare steps, never from the whole corpus (D67).  Mixing them is how a rate
+    # stops being a rate.
+    reads = sum(run['reads'] or 0 for run in documented)
     recoveries = sum(run['recoveries'] or 0 for run in runs)
     advanced = sum(run['advanced'] or 0 for run in runs)
     purchases = [run['unconfirmed_purchases'] for run in runs
@@ -438,9 +453,12 @@ def metrics(runs):
             'note': None if timed else 'no run carries two timestamps, so there is no duration to average'},
         'reads_per_step': {
             'value': round(reads / stepped, 2) if stepped else None,
-            'basis': f'{reads} reads over {stepped} heartbeats',
-            'note': ('one read is one observer call, retries included' if stepped else
-                     'no run wrote a heartbeat, so there is no per-step rate')},
+            'basis': (f"{reads} reads over {stepped} steps declared by "
+                      f"{len(documented)} of {total} runs"),
+            'note': ('one read is one observer call, retries included; a heartbeat is not a '
+                     'step, and the builds before 2026-10-23 wrote none at all (D67)'
+                     if stepped else
+                     'no run declares its step count, so there is no per-step rate')},
         'recovery_advanced_rate': {
             'value': round(advanced / recoveries, 3) if recoveries else None,
             'basis': f'{advanced} of {recoveries} recoveries advanced the run',

@@ -1,10 +1,13 @@
-"""D61: the six figures phase 6 asks for, and the difference between 0 and None.
+"""D61 and D67: the six figures phase 6 asks for, and the difference between 0 and None.
 
 A run that was not measured must report `None`, not `0` -- this session published two
 wrong conclusions by letting a default stand in for a measurement (D50's census that lost
 ten runs, D56's "28 unjudgeable words" that were all judged by a dismissal).  So the
-tests here are about boundaries: one timestamp is not a duration, no heartbeat is not a
-rate, a corpus that never bought anything is not a corpus where nothing went wrong.
+tests here are about boundaries: one timestamp is not a duration, a corpus that never
+bought anything is not a corpus where nothing went wrong -- and, since D67, a heartbeat is
+not a step.  The heartbeat was added on 2026-10-23 for runs that died with no cause, so an
+archive spanning older builds has far fewer heartbeats than steps, and `reads_per_step`
+published 34.2 for a corpus whose real figure is 9.73.
 """
 
 import importlib.util
@@ -55,17 +58,36 @@ def test_reads_count_every_frame_the_observer_read():
     rows = [_row('loop_heartbeat', _stamp(0)),
             _row('map_observed', _stamp(1), scene='MAP', floor=1),
             _row('scene_mismatch', _stamp(2), expected='MAP', scene='RESUME_DIALOG'),
-            _row('map_observed', _stamp(3), scene='MAP', floor=1)]
+            _row('map_observed', _stamp(3), scene='MAP', floor=1),
+            _row('mirror_loop_stopped', _stamp(4), steps=1, stop_path='agent_loop')]
     measured = run_metrics.efficiency(rows)
     assert measured['reads'] == 3
     assert measured['steps'] == 1
+    assert measured['heartbeats'] == 1
     assert measured['reads_per_step'] == 3.0
 
 
-def test_no_heartbeat_means_no_rate():
-    measured = run_metrics.efficiency([_row('map_observed', _stamp(1), floor=1)])
-    assert measured['reads'] == 1
+def test_a_heartbeat_is_not_a_step():
+    """The rate the corpus publishes is a rate over steps.  A run that documented three
+    steps but declared no step count has no rate -- not a rate with 3 in the denominator."""
+    rows = [_row('loop_heartbeat', _stamp(0)),
+            _row('loop_heartbeat', _stamp(1)),
+            _row('loop_heartbeat', _stamp(2)),
+            _row('map_observed', _stamp(3), floor=1)]
+    measured = run_metrics.efficiency(rows)
+    assert measured['heartbeats'] == 3
+    assert measured['steps'] is None
     assert measured['reads_per_step'] is None
+
+
+def test_the_step_count_the_loop_declares_is_the_denominator():
+    rows = [_row('loop_heartbeat', _stamp(0))]
+    rows += [_row('map_observed', _stamp(i), floor=1) for i in range(1, 11)]
+    rows += [_row('mirror_loop_stopped', _stamp(11), steps=5, stop_path='agent_loop')]
+    measured = run_metrics.efficiency(rows)
+    assert measured['reads'] == 10
+    assert measured['steps'] == 5
+    assert measured['reads_per_step'] == 2.0
 
 
 def test_five_floors_is_an_exploration_and_four_is_not():
@@ -131,7 +153,7 @@ def test_the_portfolio_measures_the_runs_it_can_read(tmp_path):
     _journal(tmp_path / 'packaged-mirror-1', [
         _row('loop_heartbeat', _stamp(0)),
         _row('map_observed', _stamp(30), floor=1),
-        _row('mirror_loop_stopped', _stamp(60), stop_path='no_progress_watchdog',
+        _row('mirror_loop_stopped', _stamp(60), stop_path='no_progress_watchdog', steps=1,
              reason='the_run_kept_observing_without_writing_anything')])
     measured = run_metrics.portfolio([tmp_path / 'packaged-mirror-1'])
     assert len(measured['runs']) == 1
@@ -139,6 +161,26 @@ def test_the_portfolio_measures_the_runs_it_can_read(tmp_path):
     assert measured['measures']['mean_seconds']['value'] == 60.0
     assert measured['measures']['reads_per_step']['value'] == 1.0
     assert measured['measures']['no_progress_stop_rate']['value'] == 0.0
+
+
+def test_a_corpus_rate_does_not_mix_heartbeats_with_steps():
+    """D67: the numerator and the denominator have to come from the same runs.  An older
+    run that wrote heartbeats but declared no step count must not contribute reads to a
+    rate whose denominator is the newer runs' steps."""
+    declared = {'run': 'declared', **run_metrics.efficiency([
+        _row('map_observed', _stamp(0), floor=1),
+        _row('map_observed', _stamp(1), floor=1),
+        _row('mirror_loop_stopped', _stamp(2), steps=2, stop_path='agent_loop')])}
+    older = {'run': 'older', **run_metrics.efficiency([
+        _row('loop_heartbeat', _stamp(0)),
+        _row('map_observed', _stamp(1), floor=1),
+        _row('map_observed', _stamp(2), floor=1),
+        _row('map_observed', _stamp(3), floor=1)])}
+    figure = run_metrics.metrics([declared, older])['reads_per_step']
+    assert figure['value'] == 1.0
+    assert '2 reads over 2 steps' in figure['basis']
+    assert '1 of 2 runs' in figure['basis']
+    assert 'heartbeat is not a step' in figure['note']
 
 
 def _tool():
