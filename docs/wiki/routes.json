@@ -687,7 +687,14 @@
         "state proof",
         "pixel proof",
         "PLANS_AWAITING_A_STATE_PROOF",
-        "PLANS_WITH_ONLY_A_DISMISSAL"
+        "PLANS_WITH_ONLY_A_DISMISSAL",
+        "declared_same",
+        "unexpected",
+        "索引视野",
+        "index reach",
+        "同页后继",
+        "PLANS_THE_INDEX_CANNOT_NAME",
+        "successor set"
       ],
       "sources": [
         {
@@ -724,7 +731,7 @@
         },
         {
           "path": "src/maalimbus/pages.py",
-          "needle": "PLANS_AWAITING_A_STATE_PROOF = {"
+          "needle": "PLANS_THE_INDEX_CANNOT_NAME = {"
         },
         {
           "path": "src/maalimbus/plan_outcomes.py",
@@ -737,6 +744,14 @@
         {
           "path": "src/maalimbus/plan_reasons.py",
           "needle": "def _dismissal("
+        },
+        {
+          "path": "src/maalimbus/plan_reasons.py",
+          "needle": "def _locals("
+        },
+        {
+          "path": "src/maalimbus/plan_outcomes.py",
+          "needle": "def after_page("
         }
       ],
       "docs": [
@@ -745,7 +760,9 @@
         "docs/wiki/zh_cn/2.3-decisions.md#d49-无法被证伪的输入是一个决定不是一次诊断",
         "docs/wiki/en_us/2.3-decisions.md#d49-an-input-nothing-can-judge-is-a-decision-not-a-diagnosis",
         "docs/wiki/en_us/2.3-decisions.md#d56-the-instrument-that-measured-the-gap-was-the-gap",
-        "docs/wiki/zh_cn/2.3-decisions.md#d56-度量缺口的仪器本身就是缺口"
+        "docs/wiki/zh_cn/2.3-decisions.md#d56-度量缺口的仪器本身就是缺口",
+        "docs/wiki/en_us/2.3-decisions.md#d57-a-successor-set-is-names-and-an-index-has-a-reach",
+        "docs/wiki/zh_cn/2.3-decisions.md#d57-后继集合是名字而索引有它的视野边界"
       ],
       "tests": [
         "tests/test_plan_reasons.py",
@@ -756,7 +773,7 @@
         "python -m pytest -q tests/test_plan_reasons.py tests/test_plan_proof.py",
         "python tools/audit_plan_evidence.py"
       ],
-      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。 D56: the archive can only see pages and only from runs older than the change; a state proof can be demanded, never derived from it."
+      "boundary": "两侧都由 ast 静态派生：窗口层的 _plan/_refuse/STEP_ROWS 行与 runner 里 plan=… 的赋值是写方，plan['reason'] 比较是读方；只对计划这一层设闸，回合结论与设置项交给 pages.kind_of，运行期拼出的词记为未解析。 证据关系另由 plan_reasons.acting_plans/unproven 派生：只数得出\"有证据/无证据\"，判不出\"证据是否永远成立\"。 D56: the archive can only see pages and only from runs older than the change; a state proof can be demanded, never derived from it. D57: the archive can compare an observed page with the successor set a plan declared; it cannot see a frame, so an advance plan's pixel proof stays invisible to it."
     },
     {
       "id": "endings",
