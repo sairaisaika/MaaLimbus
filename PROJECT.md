@@ -5916,3 +5916,18 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 **测试证据。** `tests/test_loading_screen.py` 7 个用例（实机帧判 `LOADING`、去掉字幕就不是、字幕移出带外不是、等待页性质、拒绝种类、时钟内等待、超时用自己名字结束）；相关 6 套 147 passed；全量见 `build/full-r66b.log`。
 
 **下一步。** 这一轮之后，加载页不再吃掉“无进展预算”；下一份实机数据要回答的是：加载页平均停留多久，以及 900 秒里能推进到第几层。
+
+## DSH continuation: 600 秒实机验证（2026-10-24，D120 之后）
+
+`python tools/selfrun_mirror.py --attempts 1 --seconds 600`（先 `build/refreeze_agent.py`）：
+
+| 项 | 结果 |
+| --- | --- |
+| 用时 / 结局 | **609.8 秒**，`loop_deadline_exceeded`（自己的预算，没有提前停） |
+| 事件 / 点击 | 910 / **42** |
+| 层数 | **floors [3]** |
+| 页面链 | `MAP → NODE_PANEL → PRE_BATTLE_TEAM → **LOADING** → BATTLE_HUD → … → BATTLE_RESULT → **LOADING** → MAP → SHOP → 买入/领奖 ×2 → MAP → 节点 → 队伍 → LOADING → BATTLE …` |
+| 输入构成 | 10 次 `start_button…`、9 次 `map_node_click…`、8 次 `win_rate…`、3 次 `panel_enter…`、2 次 `battle_button…`、2 次买礼物 |
+| 加载页 | 以 `LOADING` 出现并被当作过渡等待处理，`loading_never_left` 0 次、`window_loading_wait` 0 次 |
+
+对照 D120 之前那次 107 秒就结束的运行（0 点击、`floors []`），这一轮完成了一整条链路：进图、打两场、买东西、领礼物、再进下一场，并把第三层推进完。按 D95 的口径，**610 秒 3 层 ≈ 203 秒/层**，低于“一层 10 分钟”的要求；但这是一次样本，且这次运行是“接着已有的第五次运行”进行的，不能当成通关率。
