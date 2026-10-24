@@ -32,7 +32,7 @@ from maalimbus.runtime_paths import ROOT, data_directory, ledger_path
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import KEYWORDS, SINNERS
-from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button
+from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button,turn_signature
 from maalimbus import star_vision
 from maalimbus import initial_gifts
 from maalimbus.grace_vision import AVAILABLE_LABEL, AVAILABLE_PATTERN
@@ -119,24 +119,6 @@ def frame_identity(directory, name):
         return None
 
 
-
-def frame_identity(directory, name):
-    """The picture's own name, read from the frame record the recorder just wrote (D105).
-
-    The journal row used to carry `frame` (a fresh file name per read, so it names the
-    *file*, not the picture) and no hash, which is why D104's frozen-screen rule could
-    never fire: over `packaged-mirror-20261024-072236` all 97 `map_observed` rows had
-    `image_sha256` absent. The frame JSON already holds the hash, so the row copies it.
-    """
-    if not name or directory is None:
-        return None
-    path = Path(directory) / (str(name) + '.json')
-    try:
-        return json.loads(path.read_text(encoding='utf-8')).get('image_sha256')
-    except (OSError, ValueError):
-        return None
-
-
 def in_roi(record, roi, size):
     """Whether a record's centre sits inside ``roi`` (normalised 0..1 corners)."""
     x, y, w, h = record.box
@@ -204,6 +186,22 @@ class LimbusRecognition(CustomRecognition):
         if self.battle is None:self.battle=BattleCatalog(ROOT/'assets/resource/base')
         return self.battle
 
+    def timing_fields(self):
+        """How long the last read spent on each phase, or nothing when it was cached.
+
+        D68 made every observation row say how long the read took, which could not say
+        which half spent it; D69 then priced the capture at 0.05 s of 1.44 s, leaving
+        ~1.39 s of recognition in a single unexplained number. These are the three parts
+        of that number (D70). A cached read reports nothing, because nothing was spent.
+        """
+        record = getattr(self, 'last_timing', None) or {}
+        if record.get('cached') or record.get('total_seconds') in (None, 0.0):
+            return {}
+        return dict(ocr_seconds=record.get('frame_seconds'),
+                    roi_seconds=record.get('roi_seconds'),
+                    classify_seconds=record.get('classify_seconds'),
+                    roi_reads=record.get('roi_calls'))
+
     def observe(self, context, image):
         digest = hashlib.sha256(image.tobytes()).hexdigest()
         if self.cache and self.cache[0] == digest:
@@ -250,7 +248,7 @@ class LimbusRecognition(CustomRecognition):
         if find(records, self.locale['inferno'], (.70,.07,.99,.3), size):
             w,h=size
             roi=[round(.315*w),round(.442*h),round(.077*w),round(.028*h)]
-            detail=context.run_recognition_direct(JRecognitionType.OCR,
+            detail=roi_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,only_rec=True,threshold=.8),image)
             if detail is not None:
                 for result in detail.all_results:
@@ -280,7 +278,7 @@ class LimbusRecognition(CustomRecognition):
                                            ((370,136,25,37),r'^[1-5]$'),
                                            ((55,120,370,65),HEADER_PATTERN)):
                     roi=tuple(round(v*(w/1920 if i%2==0 else h/1080)) for i,v in enumerate(source_roi))
-                    detail=context.run_recognition_direct(JRecognitionType.OCR,
+                    detail=roi_direct(JRecognitionType.OCR,
                         JOCR(roi=roi,only_rec=True,expected=[expected],threshold=.9),image)
                     found=detail.filtered_results if detail is not None and detail.hit else []
                     readings.append((roi,found))
@@ -295,7 +293,7 @@ class LimbusRecognition(CustomRecognition):
                     records.append(Text(caption[0].text,readings[2][0],min(digit[0].score,second[0].score,caption[0].score)))
         if scene in ('UNKNOWN','BATTLE_HUD') and len(find(records,r'^TURN$',(.0,.06,.06,.13),size,.9))==1 and auto_assign_buttons(records,size) is not None:
             w,h=size;roi=(round(68*w/1920),round(90*h/1080),round(82*w/1920),round(40*h/1080))
-            detail=context.run_recognition_direct(JRecognitionType.OCR,
+            detail=roi_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,3}$'],threshold=.9),image)
             if detail is not None and detail.hit:
                 x,y,rw,rh=roi
@@ -306,7 +304,7 @@ class LimbusRecognition(CustomRecognition):
             # Decorations beside HARD confuse the detector. Independent page
             # controls gate a narrow recognizer; unchanged .9 confidence gate.
             w,h=size;roi=(round(1372*w/1920),round(48*h/1080),round(64*w/1920),round(38*h/1080))
-            detail=context.run_recognition_direct(JRecognitionType.OCR,
+            detail=roi_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,only_rec=True,expected=[r'^HARD$'],threshold=.9),image)
             if detail is not None and detail.hit:
                 records=[t for t in records if not (t.text.strip()=='HARD'
@@ -323,13 +321,13 @@ class LimbusRecognition(CustomRecognition):
         local=map_local
         if scene in ('UNKNOWN','BATTLE_HUD'):
             from maalimbus.battle_counter_native import repair_turn
-            records,turn_local=repair_turn(context.run_recognition_direct,image,records)
+            records,turn_local=repair_turn(roi_direct,image,records)
             local.extend(turn_local)
         if scene=='DEPLOYMENT':
             # Isolated ordinal digits are often absent from the full-frame text
             # detector. Recognize only the small badge strips, retaining ROIs.
             for sinner,roi in badge_rois((image.shape[1],image.shape[0])).items():
-                detail=context.run_recognition_direct(JRecognitionType.OCR,
+                detail=roi_direct(JRecognitionType.OCR,
                     JOCR(roi=roi,only_rec=True,expected=[r'^\s*(?:[1-9]|1[0-2])\s*$'],threshold=.85),image)
                 if detail is None:raise RuntimeError('Maa local deployment OCR did not return evidence')
                 x,y,w,h=roi
@@ -376,7 +374,7 @@ class LimbusRecognition(CustomRecognition):
             # (dist/MaaLimbus/evidence/runtime/pi-20261015-130115). The crop now covers the
             # whole row with margin on both sides.
             roi=(1610,745,250,80)
-            detail=context.run_recognition_direct(JRecognitionType.OCR,
+            detail=roi_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,expected=[r'\d{1,2}\s*/\s*\d{1,2}'],threshold=.8),image)
             if detail is None:
                 # A frame whose counter has not settled is still a frame, not a page: the
@@ -401,11 +399,11 @@ class LimbusRecognition(CustomRecognition):
             # reads card 7's '6' at .79 and card 10's '8' at .99), so each card gets its own
             # narrow crop.
             from maalimbus.deployment_numbers_native import read_assignments
-            records,assignment_proof=read_assignments(context.run_recognition_direct,image,records,
+            records,assignment_proof=read_assignments(roi_direct,image,records,
                 [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)])
             local.extend(assignment_proof)
             from maalimbus.deployment_availability_native import read_availability
-            local.extend(read_availability(context.run_recognition_direct,image,records,
+            local.extend(read_availability(roi_direct,image,records,
                 [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)]))
         if scene=='UNKNOWN' and battle_hud(records,size) is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
@@ -415,11 +413,11 @@ class LimbusRecognition(CustomRecognition):
             scene='BATTLE_PLANNING'
         if scene in ('STAR_GRACES','STAR_CONFIRM'):
             from maalimbus.grace_balance_native import repair as repair_grace_balance
-            records, balance_proof=repair_grace_balance(context.run_recognition_direct,image,records)
+            records, balance_proof=repair_grace_balance(roi_direct,image,records)
             local.extend(balance_proof)
         if scene=='STAR_CONFIRM':
             roi=(1318,459,66,45)
-            detail=context.run_recognition_direct(JRecognitionType.OCR,
+            detail=roi_direct(JRecognitionType.OCR,
                 JOCR(roi=roi,only_rec=True,expected=[r'^\d{1,4}$'],threshold=.85),image)
             if detail is None:raise RuntimeError('Maa local conversion cost OCR returned no evidence')
             x,y,w,h=roi
@@ -437,7 +435,7 @@ class LimbusRecognition(CustomRecognition):
                     roi=star_vision.cost_roi(box)
                     # The badge may put the starlight glyph in the same crop the digits
                     # are read from (2026-10 client); the digits are the cost.
-                    detail=context.run_recognition_direct(JRecognitionType.OCR,
+                    detail=roi_direct(JRecognitionType.OCR,
                         JOCR(roi=roi,only_rec=True,expected=[r'^\D{0,2}\s*\d{1,3}\s*$'],threshold=.85),image)
                     if detail is None:raise RuntimeError('Maa local grace cost OCR returned no evidence')
                     found=[]
@@ -451,17 +449,17 @@ class LimbusRecognition(CustomRecognition):
                     local.append(dict(purpose='grace_cost',roi=list(roi),only_rec=True,results=found))
         if scene=='GIFT_PICK':
             from maalimbus.floor_trial_vision import repair_levels
-            records, trial_local=repair_levels(context.run_recognition_direct,image,records)
+            records, trial_local=repair_levels(roi_direct,image,records)
             local.extend(trial_local)
         if scene=='SHOP':
             from maalimbus.shop_native import repair_refresh_cost,repair_purchased_badges
-            records,shop_local=repair_refresh_cost(context.run_recognition_direct,image,records)
+            records,shop_local=repair_refresh_cost(roi_direct,image,records)
             local.extend(shop_local)
-            records,shop_local=repair_purchased_badges(context.run_recognition_direct,image,records)
+            records,shop_local=repair_purchased_badges(roi_direct,image,records)
             local.extend(shop_local)
         if scene=='SHOP_PURCHASE':
             from maalimbus.shop_native import repair_purchase_balances
-            records,shop_local=repair_purchase_balances(context.run_recognition_direct,image,records)
+            records,shop_local=repair_purchase_balances(roi_direct,image,records)
             local.extend(shop_local)
         if scene in ('PRE_BATTLE_TEAM','DEPLOYMENT','TEAM_LIBRARY'):
             # The participant counter is fine print on a textured plate, so the
@@ -474,7 +472,7 @@ class LimbusRecognition(CustomRecognition):
                     def __init__(self,row):
                         self.text=row['text']; self.box=row['box']; self.score=row['score']
                 extra=[_Read(row) for row in
-                    counter_reads(lambda crop: context.run_recognition_direct(
+                    counter_reads(lambda crop: roi_direct(
                         JRecognitionType.OCR, JOCR(threshold=.2), crop), image)]
                 if extra:
                     records=list(records)+extra
@@ -482,7 +480,7 @@ class LimbusRecognition(CustomRecognition):
         from maalimbus.reward_cost import observe_native as observe_reward_cost
         reward_cost,reward_cost_provenance=observe_reward_cost(context,image,records)
         from maalimbus.overlay_dismissal import recognize as recognize_overlay
-        overlay_dismissal=recognize_overlay(context.run_recognition_direct,image,
+        overlay_dismissal=recognize_overlay(roi_direct,image,
             dict(scene=scene,size=[image.shape[1],image.shape[0]],
                 ocr=[dict(text=t.text,box=list(t.box),score=t.score) for t in records]))
         from maalimbus.neural_shadow import observe as observe_neural_shadow
@@ -1226,7 +1224,17 @@ class ThemeObservation(CustomAction):
         # could not fire in 5384 recorded observations.
         party=None
         if scene=='MAP':
-            party=party_point(image)
+            # A reader that throws must leave a name behind.  Returning None silently made
+            # "no party on this board" and "the reader crashed" the same observation, and
+            # three rounds of diagnosis were spent on the wrong layer because of it
+            # (goal mandate: a failure may never be silently absorbed).
+            try:
+                party=party_point(image)
+            except Exception as error:
+                self.recognition.journal.record('map_party_failed',
+                    error_type=type(error).__name__, error=str(error)[:200],
+                    shape=list(getattr(image,'shape',())))
+                party=None
         header=map_header(records,size) if scene=='MAP' else None
         # The pack line must equal the pack this run planned; any other name keeps
         # the selection unproven instead of borrowing an unrelated page as proof.
@@ -1247,7 +1255,6 @@ class ThemeObservation(CustomAction):
             self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
                 pack=header.pack,route=route_decision(header,size),
                 image_sha256=frame_identity(getattr(self.recognition.journal,'directory',None),frame),
-                image_sha256=frame_identity(self.directory,frame),
                 **self.recognition.timing_fields(),
                 # This writer sees a fresh map page before the main observation does. It used
                 # to hard-code None, and because it is the writer that actually runs on a map
@@ -1319,7 +1326,6 @@ class MapObservation(CustomAction):
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
             seconds=round(time.monotonic()-started,2),
             image_sha256=frame_identity(getattr(self.recognition.journal,'directory',None),frame),
-            image_sha256=frame_identity(self.directory,frame),
             **self.recognition.timing_fields(),
             floor=None if header is None else header.floor,
             pack=None if header is None else header.pack,
@@ -1367,6 +1373,7 @@ class BattleObservation(CustomAction):
         begin=start_button(records,size,image)
         self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
             seconds=round(time.monotonic()-started,2),
+            turn_signature=turn_signature(image) if hud is not None else None,
             **self.recognition.timing_fields(),
             frame_changed=changed,wave=None if hud is None else hud['wave'],
             turn=None if hud is None else hud['turn'],
