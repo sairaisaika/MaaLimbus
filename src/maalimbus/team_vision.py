@@ -11,12 +11,56 @@ PARTICIPANT_ROI = (0.86, 0.66, 0.97, 0.78)
 CARD_COUNT = 12
 
 
+#: The page names the saved team two ways. Both live wordings are the same
+#: header in the same column; the reader understood only the first one, so the
+#: team check that shipped for it never fired once (`Preset #1` at
+#: [150,254,84,21] score .9098 on every pre-battle frame of
+#: packaged-mirror-20261024-042500 / -001120 / -001939, while the old band
+#: started at x=0.16 and the word was not `TEAMS`).
+TEAM_HEADER_PATTERN = r'^\s*(TEAMS?|Preset)\s*#\s*([1-9]|[1-3][0-9]|40)\s*$'
+#: Both wordings sit in the page's top-left column; the pattern is specific
+#: enough that the wider band cannot pick up a button caption.
+TEAM_HEADER_ROI = (0.02, 0.10, 0.50, 0.32)
+TEAM_HEADER_SCORE = 0.85
+#: The word alone, used to decide whether a page speaks "TEAMS" at all.
+TEAMS_ONLY_PATTERN = r'^\s*TEAMS?\s*#'
+
+
+def saved_team_header(records, size):
+    """The saved-team header the page shows, with the word it used.
+
+    ``TEAMS #N`` is the header the page has always had; ``Preset #N`` is what the
+    current build prints in the same column (four archived frames, three runs).
+    Both share the top-left band, so the *word* decides: a page that shows a
+    ``TEAMS`` header reads that one, and ``Preset`` is only accepted when no
+    ``TEAMS`` header is on the page at all. Anything else — two headers of the
+    same word, or none — is a question, not a guess.
+    """
+    hits = find(records, TEAM_HEADER_PATTERN, TEAM_HEADER_ROI, size, TEAM_HEADER_SCORE)
+    parsed = []
+    for hit in hits:
+        match = re.fullmatch(TEAM_HEADER_PATTERN, hit.text, re.I)
+        if match is not None:
+            parsed.append((match.group(1).lower(), int(match.group(2))))
+    teams = [slot for word, slot in parsed if word.startswith('team')]
+    presets = [slot for word, slot in parsed if word == 'preset']
+    # A page that shows any TEAMS header at all speaks that language: its
+    # preset number is a preset, not the team (the loadout picker lists
+    # several). Only a page with no TEAMS header anywhere is read by the
+    # preset column the current pre-battle page prints.
+    if not teams and find(records, TEAMS_ONLY_PATTERN, (0.0, 0.0, 1.0, 1.0), size, TEAM_HEADER_SCORE):
+        return None
+    if len(teams) == 1:
+        return {'slot': teams[0], 'word': 'teams'}
+    if not teams and len(presets) == 1:
+        return {'slot': presets[0], 'word': 'preset'}
+    return None
+
+
 def selected_saved_team(records, size):
-    """Read the selected loadout's header, never its separate Preset number."""
-    pattern=r'^\s*TEAMS\s*#\s*([1-9]|[1-3][0-9]|40)\s*$'
-    hits=find(records,pattern,(.16,.13,.42,.22),size,.9)
-    if len(hits)!=1:return None
-    return int(re.fullmatch(pattern,hits[0].text,re.I).group(1))
+    """Read the selected loadout's header, whichever word the page used."""
+    header = saved_team_header(records, size)
+    return None if header is None else header['slot']
 
 
 def card_states(records, boxes, size):

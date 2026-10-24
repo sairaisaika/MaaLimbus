@@ -71,7 +71,7 @@ from .shop_vision import (SHELF_PRICE_FAINT_FLOOR, SHELF_PRICE_FLOOR, shelf_toke
                           wanted_offers)
 from .shop_settings import CARRY_CAP_COINS
 from .team_vision import (CARD_COUNT, assignment_numbers, card_states, participants,
-                            selected_saved_team)
+                            selected_saved_team, saved_team_header)
 from .vision import Text, inset_box
 from . import click_trace
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
@@ -1673,7 +1673,8 @@ def team_state(record, controls):
             # resumed someone else's exploration would shop for the wrong team
             # (2026-10-24: gifts planned for slot 2's Charge/Tremor while the game had
             # slot 1's Bleed in play).
-            'saved_team': selected_saved_team(records, size)}
+            'saved_team': selected_saved_team(records, size),
+            'saved_team_word': (saved_team_header(records, size) or {}).get('word')}
 
 
 def team_verdict(seen, wanted):
@@ -2511,7 +2512,7 @@ class MirrorRunner:
             if verdict['kind'] == 'mismatch':
                 self.state['team_mismatch'] = dict(verdict)
             self.note(verdict['kind'] == 'verified' and 'team_verified' or 'team_mismatch',
-                      page=page, **verdict)
+                      page=page, word=(team or {}).get('saved_team_word'), **verdict)
         return verdict
 
     def _observe(self, deadline=None, *, phase='observe'):
