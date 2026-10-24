@@ -1034,7 +1034,15 @@
         "任务被拆",
         "torn task",
         "failed action node",
-        "an_action_node_failed"
+        "an_action_node_failed",
+        "harness.json",
+        "killed_by_budget",
+        "budget",
+        "预算结束",
+        "killed at the budget",
+        "MARGIN_SECONDS",
+        "余量",
+        "harness_budget"
       ],
       "sources": [
         {
@@ -1124,6 +1132,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "ActionNodeFailed"
+        },
+        {
+          "path": "tools/selfrun_mirror.py",
+          "needle": "MARGIN_SECONDS = 45"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "ENDING_KINDS = ("
         }
       ],
       "docs": [
@@ -1146,7 +1162,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d70-the-reads-cost-is-the-full-frame-ocr-and-now-the-row-says-so",
         "docs/wiki/zh_cn/2.3-decisions.md#d70-一次读取的成本就是整帧-ocr现在这一行自己会说了",
         "docs/wiki/en_us/2.3-decisions.md#d72-a-node-that-answers-no-has-already-ended-the-task",
-        "docs/wiki/zh_cn/2.3-decisions.md#d72-回答不的节点已经把任务结束了"
+        "docs/wiki/zh_cn/2.3-decisions.md#d72-回答不的节点已经把任务结束了",
+        "docs/wiki/en_us/2.3-decisions.md#d78-a-killed-process-cannot-write-its-ending-so-the-killer-does",
+        "docs/wiki/zh_cn/2.3-decisions.md#d78-被杀掉的进程写不了自己的结尾于是由杀它的进程来写"
       ],
       "tests": [
         "tests/test_run_endings.py",

@@ -5042,3 +5042,61 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 2. 页面识别要按"这一页的合法输入"收口（这里仍是 `Leave` 必需），否则多一个标题就会多一批误命。
 3. 感知缺口要先用录制帧离线证明，再花实机预算 —— 本轮离线分类先通过，实机只是复核。
 4. 一次运行能同时验证两个决策（D76 的临时判决与 D77 的标题对），因为它们都被写进了同一份日志。
+
+## DSH continuation: 杀掉进程的，写它的结尾 (2026-10-24)
+
+**本轮三件事**
+
+1. 首次在项目自己的 420 秒预算下跑完一段完整的推进：`packaged-mirror-20261024-001939`，
+   **floors `[2, 3]`**（本系列第一次推进楼层），300 事件、23 段页面路径，从 `BATTLE_HUD`
+   打到 `BATTLE_RESULT`、领 `REWARD_CARD`、选遗物、进 `THEME_PACKS`、回 `MAP`、走节点、
+   提交队伍、再开一场。
+2. 那次运行是被 harness 在预算后 15 秒杀掉的，而不是循环自己收尾的：`stop: []`，
+   日志停在一次读取上。原因是 `tools/selfrun_mirror.py` 的 `timeout=seconds + 15` 比一个
+   step 还短（量到的超时是 12.3 / 12.3 / 13.3 / 15.2 秒）。
+3. 由此查出一个度量错误：`run_metrics.ending` 看不到结尾就判 `died`，于是
+   `no_progress_stop_rate` 把一次健康的推进算成「没有进展就停下」。
+
+**改动**
+
+- `tools/selfrun_mirror.py`：`MARGIN_SECONDS = 45`（比每一次量到的超时都宽），
+  `timeout=seconds + MARGIN_SECONDS`；超时被杀时把 `harness.json` 写进这次运行自己的目录
+  （`killed_by_budget`、停止原因、预算、余量、耗时、退出码）。
+- `src/maalimbus/run_metrics.py`：`ENDING_KINDS` 五类（`stop`/`error`/`died`/`budget`/
+  `no_events`），`ENDING_HARNESS = 'harness_budget'`，`ending(rows, directory)` 先读
+  `harness.json`；`summarise`/`efficiency` 透传目录；`no_progress_stop_rate` 的注记说明
+  预算结束不计入。
+- `tools/audit_runs.py`：打印 `killed at the budget: N`，且不把预算结束列进失败。
+- `tests/test_run_endings.py`（20 个）：五个桶划分任意语料、有 `harness.json` 是 `budget`、
+  同样的行没有文件仍是死亡、文件里没写 `killed_by_budget` 则不变、
+  `census` 不把预算结束算失败、`summarise` 不给目录时仍回答 `died`、
+  `MARGIN_SECONDS` 宽于量到的最大超时且 `timeout` 用的是它。
+
+**本轮 420 秒运行的时间账**（`run_metrics.time_budget`，全部 428.5 秒都归属到事件）
+
+| 组 | 秒 | 占比 | 次数 |
+| --- | --- | --- | --- |
+| 读取 | 199.0 | 46% | 99 |
+| 等待 | 162.0 | 38% | 57 |
+| 输入 | 43.1 | 10% | 27 |
+| 其它 | 15.3 | 4% | 115 |
+| 恢复 | 8.9 | 2% | 1 |
+
+最贵的两行是 `map_observed` 161.7 秒 / 78 次（每次 2.07 秒）与 `window_unknown_wait`
+88.0 秒 / 12 次（每次 7.3 秒，`interval_s: 4.0`）。
+
+**一个被数据否掉的候选**：本想为「战斗 ↔ UNKNOWN 抖动」加一条专门等待。量了 154 次留存
+运行：31 次里出现过「战斗页之后读到 UNKNOWN」，而这类读取之后再读一次**仍是 UNKNOWN
+的有 136 次、回到战斗页只有 5 次** —— 说明那不是抖动，是真的进入了另一个页面状态，加特例
+等待只会更慢。记录在案，不写代码。
+
+**下一轮的第一优先项**：88 秒花在 `window_unknown_wait`（12 次、每次 7.3 秒），而每次的
+分辨率可由日志算；先把「等一次就够」的比例量出来，再决定未知页的等待节拍是否该按页区分。
+
+**可迁移的经验**
+
+1. 杀掉进程的人要负责留下死因：被杀的进程写不了结尾，而「没有结尾」和「失败」是两件事。
+2. 余量必须大于它要保护的那个单位；比一个 step 还短的余量等于没有余量。
+3. 一个默认值（`died`）会悄悄接管所有没写清楚的运行，并在指标里变成结论。
+4. 同一个数字的两种沉默（预算结束 vs 放弃）必须在类型上分开，不能靠人记得。
+5. 先用留存语料否掉候选，再决定要不要写代码 —— 本轮省下了一个只会更慢的特例。
