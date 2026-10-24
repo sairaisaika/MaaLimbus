@@ -720,6 +720,19 @@ BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_t
 #: `controller not found [controller_id=]` and then blocked inside the native call until the
 #: harness killed the wrapper.  No task, no route: the door asks the framework, not the id.
 INPUT_NEEDS_A_TASK = 'the_input_door_needs_a_task_that_owns_the_controller'
+ROUTE_LOST = 'the_controller_route_was_lost_and_rebinding_did_not_help'
+
+
+class RouteLost(RuntimeError):
+    """The framework refused an input and one rebind did not bring the route back.
+
+    D85: a *rejected* input is the only reliable signal that the controller route is
+    gone -- a screenshot answers happily with `controller.id` unset, so no local
+    predicate can predict it.  The loop ends with this name instead of posting into a
+    pointer the framework has already dropped.
+    """
+
+    reason = ROUTE_LOST
 
 
 def binding_is_empty(controller):
@@ -755,6 +768,8 @@ class MaaDevice:
         # Why this device may not post input any more even though the handle looks
         # alive: the task that owned the controller was torn down (D82).
         self.binding_lost = None
+        self.rebinds = 0
+        self.last_input_error = None
         self.wait = wait
         self.deadline = deadline
         # None means "the configured default"; 0 means "ask the controller for nothing".
@@ -817,18 +832,45 @@ class MaaDevice:
         if self.binding_is_empty():
             raise RuntimeError('the_controller_binding_is_empty')
 
+    def rebind(self):
+        """Ask the framework for a fresh controller route.
+
+        D85: `post_click` carries the controller id in its request, while a screenshot
+        does not, and the probe `tools/probe_route.py` showed the screenshot answering
+        happily with `controller.id` unset.  So an empty id is not proof that input is
+        dead, and a *rejected* input is the only reliable signal.  `post_connection`
+        is the framework's own way to bind one again; it sends no game input.
+        """
+        self.rebinds += 1
+        post = getattr(self.controller, 'post_connection', None)
+        if post is None:
+            raise RuntimeError(ROUTE_LOST)
+        self._wait(post(), timeout=15)
+
+    def _send(self, what, post, timeout=10):
+        """Post one input, and give a rejected route exactly one repair (D85)."""
+        try:
+            return self._wait(post(), timeout=timeout)
+        except RuntimeError as error:
+            if 'controller' not in str(error).lower():
+                raise
+            self.last_input_error = str(error)[:200]
+            self.rebind()
+            try:
+                return self._wait(post(), timeout=timeout)
+            except RuntimeError as again:
+                raise RouteLost('%s; %s' % (what, again)) from again
+
     def click(self, x, y):
         self._refuse_if_ended('click')
         self._refuse_binding_lost('click')
-        self._refuse_empty_binding('click')
-        self._wait(self.controller.post_click(int(x), int(y)))
+        self._send('click', lambda: self.controller.post_click(int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
         self._refuse_if_ended('swipe')
         self._refuse_binding_lost('swipe')
-        self._refuse_empty_binding('swipe')
-        self._wait(self.controller.post_swipe(int(x1), int(y1), int(x2), int(y2),
-                                              int(duration_ms)), timeout=15)
+        self._send('swipe', lambda: self.controller.post_swipe(
+            int(x1), int(y1), int(x2), int(y2), int(duration_ms)), timeout=15)
 
     def key(self, code):
         self._refuse_if_ended('key')
@@ -2372,19 +2414,6 @@ class MirrorRunner:
             return after
         return None
 
-    def _input_door(self):
-        """Why the loop may not send input right now, or ``None`` when it may.
-
-        The controller is owned by the task that is running (D82 removed the *torn down*
-        case; D83 then let an entry task end successfully on MAP, and the click after that
-        success was answered ``controller not found``).  The authoritative question is
-        therefore "is a task running", and it is asked of the framework rather than of the
-        controller id, which kept reporting non-empty after the teardown.
-        """
-        result = getattr(getattr(self, 'tasker', None), 'running', None)
-        if result is False:
-            return INPUT_NEEDS_A_TASK
-        return None
 
     def _act(self, node, *, phase='node_action'):
         """One pipeline node action, bounded and visible while it runs.
@@ -3748,13 +3777,6 @@ class MirrorRunner:
                  'check': check, 'defeat': defeat, 'shop': shop,
                  'bonus': {'spend': state['run_settled_itself']},
                  'arrows': arrows, 'candidates': candidates}
-        door = self._input_door()
-        if (door is not None and not settings.observe_only
-                and plan['action'] in ('click', SWIPE, NODE)):
-            self.note('input_withheld', page=page, reason=plan.get('reason'),
-                      target=plan.get('target') or plan.get('node'), detail=door)
-            self._end_session(door)
-            return self._result(page, plan.get('target'), False, door, done=True)
         if plan['action'] not in ('click', SWIPE, NODE) or settings.observe_only:
             entry.update(step_result(plan, sent=False, before=page, after=None, page=page))
             entry['stopped'] = ('observe_only' if settings.observe_only
@@ -4745,6 +4767,16 @@ class MirrorRunner:
                     break
                 time.sleep(min(float(settings.interval), 1.0))
                 continue
+            except RouteLost as error:
+                # D85: the framework refused an input, one rebind was spent, and the
+                # route did not come back.  Nothing was sent, so this is the moment to
+                # stop -- and to say which door refused it.
+                page_now = self.state.get('page') or getattr(self, '_last_page', None)
+                self.note('input_withheld', page=page_now, reason=error.reason,
+                          target=self.state.get('map_pending'), detail=str(error)[:200],
+                          rebinds=getattr(self.device, 'rebinds', None))
+                self._end_session(error.reason, page=page_now, error=str(error)[:300])
+                break
             except (RuntimeError, OSError) as error:
                 # One end, one reason: the deadline the caller set outranks a failure that
                 # is only its symptom, and the loop must stop rather than end twice.

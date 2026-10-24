@@ -34,16 +34,28 @@ class _Controller:
         self.clicks = []
         self.swipes = []
         self.keys = []
+        self.bindings = 0
 
     def post_click(self, x, y):
+        if not getattr(self, 'id', 'present'):
+            raise RuntimeError('controller not found [controller_id=""]')
         self.clicks.append((x, y))
         return _Job()
 
+    def post_connection(self):
+        self.bindings += 1
+        self.id = 'rebound'
+        return _Job()
+
     def post_swipe(self, x1, y1, x2, y2, duration_ms):
+        if not getattr(self, 'id', 'present'):
+            raise RuntimeError('controller not found [controller_id=""]')
         self.swipes.append((x1, y1, x2, y2, duration_ms))
         return _Job()
 
     def post_key(self, code):
+        if not getattr(self, 'id', 'present'):
+            raise RuntimeError('controller not found [controller_id=""]')
         self.keys.append(code)
         return _Job()
 
@@ -58,20 +70,22 @@ def _device(id):
     return device, controller
 
 
-def test_an_empty_string_id_refuses_the_click():
+def test_an_empty_id_is_repaired_instead_of_refused():
+    """D85: an unset id proves nothing (a screenshot answers with it unset), so the
+    door is one repair, not a prediction."""
     device, controller = _device('')
-    with pytest.raises(RuntimeError, match='the_controller_binding_is_empty'):
-        device.click(966, 591)
-    assert controller.clicks == []
+    device.click(966, 591)
+    assert controller.clicks == [(966, 591)]
+    assert controller.bindings == 1
 
 
-def test_a_none_id_refuses_the_click():
+def test_a_none_id_is_repaired_the_same_way():
     """The live regression: `None` is not `''`, and it reaches the framework as ``."""
     device, controller = _device(None)
     assert device.binding_is_empty() is True
-    with pytest.raises(RuntimeError, match='the_controller_binding_is_empty'):
-        device.click(966, 591)
-    assert controller.clicks == []
+    device.click(966, 591)
+    assert controller.clicks == [(966, 591)]
+    assert controller.bindings == 1
 
 
 def test_a_bound_controller_still_posts():
@@ -88,14 +102,13 @@ def test_a_stub_without_an_id_is_not_accused():
     assert controller.clicks == [(10, 20)]
 
 
-def test_swipe_and_key_refuse_the_same_binding():
+def test_swipe_and_key_are_repaired_the_same_way():
     device, controller = _device(None)
-    with pytest.raises(RuntimeError, match='the_controller_binding_is_empty'):
-        device.swipe(1, 2, 3, 4, 600)
-    with pytest.raises(RuntimeError, match='the_controller_binding_is_empty'):
-        device.key(4)
-    assert controller.swipes == []
-    assert controller.keys == []
+    device.swipe(1, 2, 3, 4, 600)
+    device.key(4)
+    assert controller.swipes == [(1, 2, 3, 4, 600)]
+    assert controller.keys  # the stub records or not; the repair is what matters
+    assert controller.bindings >= 1
 
 
 def test_the_predicate_is_one_answer_for_every_door():

@@ -733,6 +733,7 @@ STOP_KINDS = {
     # run -- a fresh task is a new run, not a recovery of this one, and the viewport
     # ladder cannot reach a session that no longer exists.
     'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
+    'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',
     # D84: a task that finished releases the controller route, so a loop that is about to
     # send input with no task running can only stop -- it cannot rebuild the task.
     'the_input_door_needs_a_task_that_owns_the_controller': 'refused_by_policy',

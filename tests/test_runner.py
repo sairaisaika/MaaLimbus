@@ -1536,23 +1536,41 @@ def test_a_handle_that_answers_without_an_id_records_nothing_invented():
     assert recorder.events[-1][1]['empty_id_fields'] == []
 
 
-def test_a_click_with_an_empty_binding_is_refused_before_it_is_posted():
+def test_a_click_with_an_empty_binding_is_repaired_before_it_gives_up():
     """The measured failure: MaaFW logged `controller not found [controller_id=]` for a
     click that had already been posted, so the tap never landed
-    (evidence/runtime/packaged-mirror-20261023-153338).  A device whose binding is the
-    empty string must refuse, and must not reach `post_click` at all."""
+    (evidence/runtime/packaged-mirror-20261023-153338).
+
+    D85 replaced the pre-flight refusal with one repair: a screenshot answers with an
+    unset id and no task running (`tools/probe_route.py`), so the click is posted, the
+    framework's refusal buys exactly one rebind, and a second refusal is a named ending
+    instead of a run that sits until its budget."""
     from maalimbus.runner import MaaDevice
+
+    class _Done:
+        done = True
+        succeeded = True
 
     class _Controller:
         id = ''
-        def __init__(self): self.posted = []
-        def set_screenshot_target_long_side(self, side): self.long_side = side
-        def post_click(self, x, y):          # pragma: no cover - must not be reached
+        def __init__(self):
+            self.posted = []
+            self.bindings = 0
+        def set_screenshot_target_long_side(self, side):
+            self.long_side = side
+        def post_click(self, x, y):
+            if not self.id:
+                raise RuntimeError('controller not found [controller_id=""]')
             self.posted.append((x, y))
+            return _Done()
+        def post_connection(self):
+            self.bindings += 1
+            self.id = 'rebound'
+            return _Done()
 
     controller = _Controller()
-    device = MaaDevice(controller)
-    with pytest.raises(RuntimeError) as caught:
-        device.click(963, 593)
-    assert 'binding' in str(caught.value)
-    assert controller.posted == []
+    device = MaaDevice(controller, wait=lambda job, timeout=None, deadline=None: job,
+                       target_long_side=0)
+    device.click(963, 593)
+    assert controller.posted == [(963, 593)]
+    assert controller.bindings == 1
