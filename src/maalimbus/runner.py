@@ -3213,7 +3213,8 @@ class MirrorRunner:
                         # ended the run at 85 s, and the fight had not finished.  The
                         # transition clock (20 s) and the run's own budget still bound it.
                         return self._result(page, None, False, None, waiting=True,
-                                            pause=pause, battle=in_battle)
+                                            pause=pause, battle=in_battle,
+                                            transition=True)
                 else:
                     state['transition_seen'] = 0
             state['unknown_seen'] += 1
@@ -5446,7 +5447,15 @@ class MirrorRunner:
                 walked += 1
             if result.get('done'):
                 break
-            pause = self._pause_between_steps(result.get('pause') or interval)
+            if result.get('transition'):
+                # D153: the backoff is a poll cadence for one animation, not the spacing
+                # between the loop's own actions.  `_pause_between_steps` subtracts the
+                # time already spent since the last input, which ate the backoff whole
+                # (measured 2026-10-24: 87 transition waits, every gap 1.0-1.3 s while
+                # `round` reached 52 in one turn).
+                pause = float(result.get('pause') or settings.transition_interval)
+            else:
+                pause = self._pause_between_steps(result.get('pause') or interval)
             if pause:
                 time.sleep(pause)
         return self.summary()
@@ -6152,7 +6161,8 @@ class MirrorRunner:
             pass
         return record
 
-    def _result(self, page, target, sent, stopped, *, done=False, waiting=False, pause=None, battle=False):
+    def _result(self, page, target, sent, stopped, *, done=False, waiting=False, pause=None,
+                battle=False, transition=False):
         """The public shape of one step."""
         entry = self.artifacts['steps'][-1] if self.artifacts['steps'] else None
         return {'page': page, 'reason': None if entry is None else entry.get('reason'),
@@ -6164,6 +6174,9 @@ class MirrorRunner:
                 # D149: a wait that is a battle transition is counted by the
                 # transition clock, not by the page budget.
                 'battle': bool(battle),
+                # D153: a transition poll carries its own pause and is not spaced by
+                # the loop's input cadence.
+                'transition': bool(transition),
                 'observation': None if entry is None else entry.get('observation')}
 
     def summary(self):

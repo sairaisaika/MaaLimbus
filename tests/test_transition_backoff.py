@@ -35,3 +35,27 @@ def test_the_pause_never_returns_a_bool_or_a_string():
     for seen in (0, 1, 2, 3):
         value = transition_pause(1.0, seen)
         assert isinstance(value, float) and not isinstance(value, bool)
+
+
+def test_a_transition_poll_is_not_spaced_by_the_input_cadence(tmp_path, monkeypatch):
+    """D153: the backoff is a poll cadence and must survive `_pause_between_steps`.
+
+    Measured 2026-10-24 (`packaged-mirror-20261024-185047`): 87 transition waits, every
+    gap 1.0-1.3 s while the count reached 52 in one turn -- the input-spacing subtraction
+    ate the whole backoff.
+    """
+    from maalimbus import runner
+    loop = runner.MirrorRunner.__new__(runner.MirrorRunner)
+    slept = []
+    monkeypatch.setattr(runner.time, 'sleep', lambda s: slept.append(round(float(s), 2)))
+    loop.artifacts = {'input_at': runner.time.monotonic(), 'steps': []}
+    loop.state = {'step': 0}
+    loop.last_event = None
+    assert loop._pause_between_steps(4.0) < 4.0          # the input spacing is real
+    # The loop's own branch: a transition result keeps its pause whole.
+    seen = []
+    made = loop._result('UNKNOWN', None, False, None, waiting=True, pause=4.0,
+                        battle=True, transition=True)
+    assert made['transition'] is True and made['pause'] == 4.0
+    seen.append(made)
+    assert seen[0]['pause'] == 4.0 and slept == []
