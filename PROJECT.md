@@ -4344,3 +4344,35 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 1. 把"每步读失败次数"和"每步耗时"写进 summary，让第六阶段的效率指标（识别调用量、无进展率）第一次有逐局数字。
 2. `MirrorRunner.step` 里 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
 3. `read_retries`（步级）与 `unreadable_rounds`（步内）仍然彼此独立，`reads_failed` 是将来统一它们时需要的证据。
+
+## DSH continuation: 效率数字只能有一个主人，而零不是测量结果 (2026-10-23)
+
+**本轮三个原因（都落在"测量层"）**
+
+1. **六个效率数字没有主人**：每轮报告手工从三个工具的数字里挑，D50 曾因此报出 132/142、D56 曾报出 28 个"无法判断"的输入（其实是驳回证明）。
+2. **`None` 与 `0` 混用**：算不出来时返回 0，读报告的人会以为测过了；"从没买过东西"和"每一笔都确认了"长得一模一样。
+3. **语料定义分散**：`audit_runs` 用"有 journal 的目录"，`audit_silent` 曾用自己的规则，`portfolio` 若再自定义一次就会第三次分叉。
+
+**改了什么**
+
+- `src/maalimbus/run_metrics.py` 新增 `READ_EVENTS`、`CLEAR_FLOORS`、`MEASURES`、`_stamps`、`efficiency(rows)`、`_archives`、`_rows_of`、`metrics(runs)`、`portfolio(directories=None)`。
+- 新 `tools/audit_efficiency.py`（插入 `src`，只打印；退出码 2 表示无可读档案）。
+- 新 `tests/test_run_efficiency.py`（17 例）：时间戳边界、心跳边界、恢复边界、两种零的区分、空目录跳过、与 `audit_runs.census` 的语料/划分/分子交叉校验。
+
+**前后对比**
+
+| 项 | 之前 | 现在 |
+|---|---|---|
+| 六个数字的来源 | 手工 + 三个工具 | 一个模块 + 一条命令 `python tools/audit_efficiency.py` |
+| 算不出来的数字 | 0（看起来像测过） | `None` + 原因 |
+| 语料定义 | 分散 | `run_metrics._archives()`，与 `audit_runs` 相同 |
+| 测试 | 无 | 17 例，含与旧普查的交叉校验 |
+| 全套 | 2245 passed | 2262 passed in 202.92 s, exit 0 |
+
+**当前效率现状（142 局留存档案，只读）**：通关率 0.0（最好第 3 层）、平均 276.6 秒、每步 34.2 次识别、恢复推进率 0.004（1/274）、无进展停止率 0.43（51 死 + 10 错）、未确认消费 0（有消费的 3 局全部确认）。其中 **1/274** 是本轮最有价值的一条：恢复会触发，但队伍不动。
+
+**下一单元**
+
+1. `1/274` 指出的问题：恢复阶梯的第一步是 `bind_control`（重绑控件），它几乎必然"成功"却几乎必然不推进；需要按 `pages.ladder_for` 的每一级分别统计，找出真正会推进的那一级。
+2. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
+3. `clear_rate` 只有探索一半：`reward_claim_transaction` 的领奖结果没有进 journal，`reward_task.writer` 是补上它的位置。
