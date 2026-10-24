@@ -137,3 +137,84 @@ def test_the_tool_says_so_when_there_is_nothing_to_read(tmp_path, capsys):
     spec.loader.exec_module(module)
     assert module.main(['--root', str(tmp_path)]) == 2
     assert 'no run wrote a journal' in capsys.readouterr().out
+
+
+# -- D70: the read's own seconds, split into the phases that spent them ------------------
+
+def _split(ocr=None, roi=None, classify=None, **extra):
+    row = _read(1.0, **extra)
+    for key, value in (('ocr_seconds', ocr), ('roi_seconds', roi),
+                       ('classify_seconds', classify)):
+        if value is not None:
+            row[key] = value
+    return row
+
+
+def test_the_three_phases_of_a_read_are_averaged_over_the_reads_that_carry_them():
+    phases = run_metrics.read_cost([_split(0.6, 0.2, 0.2), _split(0.4, 0.0, 0.6)])['phases']
+    assert phases['measured'] == 2
+    assert phases['mean'] == {'ocr_seconds': 0.5, 'roi_seconds': 0.1,
+                              'classify_seconds': 0.4}
+
+
+def test_a_read_that_only_says_its_total_is_not_a_split_of_zero():
+    cost = run_metrics.read_cost([_split()])['phases']
+    assert cost['measured'] == 0
+    assert cost['mean'] == {'ocr_seconds': None, 'roi_seconds': None,
+                            'classify_seconds': None}
+
+
+def test_a_partial_split_is_not_a_split():
+    """Two of three phases is a row written by a buggy writer, not a cheap phase."""
+    phases = run_metrics.read_cost([_split(0.6, 0.2)])['phases']
+    assert phases['measured'] == 0
+
+
+def test_a_boolean_is_not_a_phase_duration():
+    phases = run_metrics.read_cost([_split(True, 0.2, 0.6)])['phases']
+    assert phases['measured'] == 0
+
+
+def test_the_phases_are_only_read_off_the_timed_read_events():
+    phases = run_metrics.read_cost([_split(0.6, 0.2, 0.2, event='scene_mismatch')])['phases']
+    assert phases['measured'] == 0
+
+
+def test_a_cached_read_claims_no_phase_time():
+    import sys
+    sys.path.insert(0, str(REPO / 'agent'))
+    source = RECOGNITION.read_text(encoding='utf-8')
+    tree = ast.parse(source)
+    timing = next(node for node in ast.walk(tree)
+                  if isinstance(node, ast.FunctionDef) and node.name == 'timing_fields')
+    body = ast.get_source_segment(source, timing)
+    assert "record.get('cached')" in body, body
+    # A cached read must return nothing rather than three zeros: nothing was spent on it.
+    assert 'return {}' in body
+
+
+def test_every_observation_writer_hands_over_its_phases():
+    """The three writers that record a read must pass timing_fields(), not just seconds."""
+    source = RECOGNITION.read_text(encoding='utf-8')
+    tree = ast.parse(source)
+    found = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr != 'record' or not node.args:
+            continue
+        first = node.args[0]
+        if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
+            continue
+        if first.value not in run_metrics.TIMED_READ_EVENTS:
+            continue
+        found.setdefault(first.value, []).append(node)
+    assert found, 'no observation writer found'
+    for event, calls in found.items():
+        for call in calls:
+            unpacked = [value for keyword in call.keywords
+                        if keyword.arg is None for value in [keyword.value]]
+            assert unpacked, f'{event} writer at line {call.lineno} records no timing_fields()'
+            rendered = [ast.get_source_segment(source, value) or '' for value in unpacked]
+            assert any('timing_fields' in text for text in rendered), (
+                f'{event} writer at line {call.lineno} records {rendered} instead of timing_fields()')

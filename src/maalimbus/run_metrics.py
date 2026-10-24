@@ -626,7 +626,7 @@ def read_cost(rows):
             measured.append((row.get('event'), float(seconds)))
     if not measured:
         return {'rows': len(total), 'measured': 0, 'seconds': None, 'mean': None,
-                'median': None, 'by_event': {}}
+                'median': None, 'by_event': {}, 'phases': read_phases(total)}
     by_event = {}
     for event, seconds in measured:
         entry = by_event.setdefault(event, {'seconds': 0.0, 'n': 0})
@@ -644,7 +644,35 @@ def read_cost(rows):
             'mean': round(sum(values) / len(values), 2),
             'median': median,
             'by_event': dict(sorted(by_event.items(),
-                                    key=lambda pair: -pair[1]['seconds']))}
+                                    key=lambda pair: -pair[1]['seconds'])),
+            'phases': read_phases(total)}
+
+
+PHASE_KEYS = ('ocr_seconds', 'roi_seconds', 'classify_seconds')
+
+
+def read_phases(rows):
+    """Split a read's own `seconds` into the full-frame OCR, the ROI re-reads and the rest.
+
+    D70 writes the three on the row because one unexplained 1.39 s per read is not a basis
+    for choosing between fewer reads and cheaper reads.  A row written before D70 carries
+    none of them, and a corpus of those reports "not measured" rather than three zeros.
+    """
+    measured = []
+    for row in rows:
+        if row.get('event') not in TIMED_READ_EVENTS:
+            continue
+        values = [row.get(key) for key in PHASE_KEYS]
+        if all(isinstance(value, (int, float)) and not isinstance(value, bool)
+               for value in values):
+            measured.append(values)
+    if not measured:
+        return {'measured': 0, 'mean': {key: None for key in PHASE_KEYS}}
+    return {
+        'measured': len(measured),
+        'mean': {key: round(sum(entry[index] for entry in measured) / len(measured), 2)
+                 for index, key in enumerate(PHASE_KEYS)},
+    }
 
 
 def read_portfolio(costs):

@@ -153,6 +153,7 @@ class LimbusRecognition(CustomRecognition):
         self.callback_failure = None
         self.input_validator = None
         self.star_pending = None
+        self.last_timing = None
 
     def theme_catalog(self):
         if self.themes is None:
@@ -170,8 +171,35 @@ class LimbusRecognition(CustomRecognition):
     def observe(self, context, image):
         digest = hashlib.sha256(image.tobytes()).hexdigest()
         if self.cache and self.cache[0] == digest:
+            # A cached read is the same frame again: it says so and claims no phase time,
+            # because nothing was spent on it (D70).
+            self.last_timing = dict(cached=True, frame_seconds=None, roi_seconds=None,
+                                    roi_calls=0, classify_seconds=None, total_seconds=0.0)
             return self.cache[1:]
-        detail = context.run_recognition_direct(JRecognitionType.OCR, JOCR(threshold=.2), image)
+        # A read that says how long it took, and not which half spent it, cannot be
+        # optimised: D68 put one read at 1.08-1.44 s and D69 priced the capture at 0.05 s,
+        # so the remaining ~1.39 s is recognition. These counters split it into the
+        # full-frame OCR, the narrow ROI re-reads and everything else in this method,
+        # and every observation writer puts the three on its own row (D70).
+        started = time.monotonic()
+        costs = {"frame_seconds": 0.0, "roi_seconds": 0.0, "roi_calls": 0}
+
+        def frame_direct(kind=None, param=None, image=None):
+            began = time.monotonic()
+            try:
+                return context.run_recognition_direct(kind, param, image)
+            finally:
+                costs["frame_seconds"] += time.monotonic() - began
+
+        def roi_direct(kind=None, param=None, image=None):
+            began = time.monotonic()
+            try:
+                return context.run_recognition_direct(kind, param, image)
+            finally:
+                costs["roi_calls"] += 1
+                costs["roi_seconds"] += time.monotonic() - began
+
+        detail = frame_direct(JRecognitionType.OCR, JOCR(threshold=.2), image)
         if detail is None:
             raise RuntimeError('Maa OCR did not return evidence')
         records = []
@@ -449,6 +477,13 @@ class LimbusRecognition(CustomRecognition):
                 self.journal.record('semantic_frame_proposal_refused',reason=str(error),input_sent=False)
         self.last_frame, self.last_scene = image.copy(), scene
         self.cache = (digest, records, scene, name)
+        total = time.monotonic() - started
+        self.last_timing = dict(cached=False,
+            frame_seconds=round(costs["frame_seconds"], 2),
+            roi_seconds=round(costs["roi_seconds"], 2),
+            roi_calls=costs["roi_calls"],
+            classify_seconds=round(max(0.0, total - costs["frame_seconds"] - costs["roi_seconds"]), 2),
+            total_seconds=round(total, 2))
         return records, scene, name
 
     @guarded_callback(None)
@@ -1175,6 +1210,7 @@ class ThemeObservation(CustomAction):
         if header is not None:
             self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
                 pack=header.pack,route=route_decision(header,size),
+                **self.recognition.timing_fields(),
                 # This writer sees a fresh map page before the main observation does. It used
                 # to hard-code None, and because it is the writer that actually runs on a map
                 # page, every one of 235 events in
@@ -1244,6 +1280,7 @@ class MapObservation(CustomAction):
         team=pre_battle_team_page(records,size) if scene=='PRE_BATTLE_TEAM' else None
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
             seconds=round(time.monotonic()-started,2),
+            **self.recognition.timing_fields(),
             floor=None if header is None else header.floor,
             pack=None if header is None else header.pack,
             header_box=None if header is None else header.exploring_text.box,
@@ -1290,6 +1327,7 @@ class BattleObservation(CustomAction):
         begin=start_button(records,size,image)
         self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
             seconds=round(time.monotonic()-started,2),
+            **self.recognition.timing_fields(),
             frame_changed=changed,wave=None if hud is None else hud['wave'],
             turn=None if hud is None else hud['turn'],
             diagnostics=[] if hud is None else hud['diagnostics'],

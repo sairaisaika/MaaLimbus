@@ -65,6 +65,16 @@ def main(argv=None):
         for event, entry in measured['by_event'].items():
             print(f'  {event:<26} {entry["seconds"]:8.0f} s  n={entry["n"]:<6} '
                   f'mean {entry["mean"]:.2f} s')
+        phases = measured.get('phases') or {}
+        if phases.get('measured'):
+            mean = phases['mean']
+            print(f'  of which, per read: full-frame OCR {mean["ocr_seconds"]:.2f} s, '
+                  f'ROI re-reads {mean["roi_seconds"]:.2f} s, '
+                  f'classification {mean["classify_seconds"]:.2f} s '
+                  f'({phases["measured"]} read(s) split their own time)')
+        else:
+            print('  the split is not measured: no read carries ocr_seconds/roi_seconds/'
+                  'classify_seconds, because the writers that record them are newer (D70)')
     else:
         print(f'  not measured -- {reads.get("note")}')
     print('')
