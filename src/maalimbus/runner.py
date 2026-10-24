@@ -3223,6 +3223,7 @@ class MirrorRunner:
                 # will not cycle is a page that cannot be fixed from here.
                 team['preset_mismatch'] = True
                 team['tries'] = int(state.get('preset_tries') or 0)
+            team['shown'] = (verdict or {}).get('seen')
         if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team
@@ -3232,6 +3233,31 @@ class MirrorRunner:
                 saved = next((t for t in profiles.load() if t.slot == slot), None)
                 if saved is not None and saved.deployment:
                     team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
+            if team.get('preset_mismatch') and self.store is not None:
+                # The board's preset is a fact and the rotation is a preference (D118).
+                # When the board shows one of *this rotation's own saved teams*, that is
+                # the team the operator's game has selected, so the run adopts it and
+                # points the ledger at it: refusing here stopped every run at 14 s
+                # (`packaged-mirror-20261024-113756`) while the alternative -- planning
+                # one team's gifts and deploying another -- is the defect the operator
+                # reported first (m07302).  A board showing a preset this rotation never
+                # listed is still refused: that team was not chosen by anyone here.
+                shown = team.get('shown')
+                slots = tuple(getattr(self.store, 'slots', ()) or ())
+                if shown is not None and int(shown) in slots:
+                    was = self.store.team_slot
+                    self.store.point_at(int(shown))
+                    team['preset_mismatch'] = False
+                    team['tries'] = 0
+                    team['reconciled'] = {'ledger': was, 'board': int(shown)}
+                    saved = next((t for t in profiles.load() if t.slot == int(shown)), None) \
+                        if profiles.path.exists() else None
+                    if saved is not None and saved.deployment:
+                        team['order'] = [SINNERS.index(sinner) + 1 for sinner in saved.deployment]
+                    self.note('team_reconciled_to_the_board', ledger_slot=was,
+                              board_slot=int(shown),
+                              reason='the_board_shows_one_of_this_rotations_saved_teams_'
+                                     'so_that_is_the_team_this_run_deploys')
         if page=='PRE_BATTLE_TEAM' and team is not None and team.get('order'):
             if self.deployment_transaction is None:
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')

@@ -1193,7 +1193,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
             if box is not None and tries < SELECT_TEAM_TRIES:
                 return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                              reason='the_saved_team_is_selected_on_the_board')
-            return _refuse(page, 'the_board_shows_a_different_saved_team_than_the_plan_deploys')
+            plan = _refuse(page, 'the_board_shows_a_different_saved_team_than_the_plan_deploys')
+            # The refusal must say *which* two numbers disagree: the operator's next move
+            # is to add the board's team to the rotation, or to have the loop select the
+            # ledger's team in the game, and neither is possible from this page alone
+            # (live `…-115826`: board 1, rotation (2,), two presses, then this refusal).
+            plan['detail'] = {'board': (team or {}).get('saved_team'),
+                              'tries': tries}
+            return plan
         if (team or {}).get('reset_required'):
             box=controls.get('pre_battle.clear_selection')
             if box is None:return _refuse(page,'deployment_clear_selection_not_anchored')
