@@ -3832,8 +3832,20 @@ class MirrorRunner:
                         and (_attributed(floor_tx.data) if page=='GIFT_GET'
                              else bool(floor_tx.data['completed'])))
                 if not booked and receipt_owed(d):
-                    stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
-                    return self._result(page,None,False,stopped,done=True)
+                    # D150: a receipt can only be printed by a page that prints one
+                    # (`E.G.O Gift GET!`).  Measured 2026-10-24
+                    # (`packaged-mirror-20261024-174857`): the debt was raised on a
+                    # BATTLE_HUD page in the middle of a fight, where no notice can
+                    # ever appear, and the run stopped with 9 clicks sent and the
+                    # battle still going.  So the debt waits for a printing page
+                    # instead of ending the run -- the page budget and the run
+                    # deadline still bound how long it may wait.
+                    if not page_vocabulary.prints_a_gift_receipt(page):
+                        self.note('floor_receipt_awaits_a_printing_page',page=page,
+                                  reason='a_receipt_can_only_be_printed_by_the_gift_get_page')
+                    else:
+                        stopped=self._record(page,record,frame,candidates,None,'floor_gift_receipt_unknown_repeated_or_pending')
+                        return self._result(page,None,False,stopped,done=True)
                 receipt_booked=True
         plan_controls=dict(self.controls)
         _tip_box = self._battle_tip_control(page, state)

@@ -35,3 +35,17 @@ def test_a_pending_receipt_is_not_itself_a_debt():
 
 def test_an_empty_ledger_owes_nothing():
     assert receipt_owed({}) is False
+
+
+def test_a_receipt_waits_for_a_page_that_can_print_one():
+    """D150: the debt is only observable where a notice can appear."""
+    import inspect
+    import maalimbus.runner as runner
+    source = inspect.getsource(runner.MirrorRunner.step)
+    assert 'page_vocabulary.prints_a_gift_receipt(page)' in source
+    from maalimbus import pages
+    assert pages.prints_a_gift_receipt('GIFT_GET') is True
+    assert pages.prints_a_gift_receipt('BATTLE_HUD') is False
+    assert 'floor_receipt_awaits_a_printing_page' in source
+    # and the stop is still reachable from a printing page
+    assert "'floor_gift_receipt_unknown_repeated_or_pending')" in source

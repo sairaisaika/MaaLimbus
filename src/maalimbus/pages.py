@@ -551,6 +551,18 @@ DISPATCH_FACTS = {
 #: page did not change once, so the header is a label on this build and the real preset
 #: column still has to be found.  The bound stays small while that is open.
 SELECT_TEAM_TRIES = 2
+RECEIPT_PRINTING_PAGE = 'GIFT_GET'
+
+
+def prints_a_gift_receipt(name):
+    """The only page that prints `E.G.O Gift GET!` (D150).
+
+    A receipt can be observed nowhere else, so the rule belongs here beside the page's
+    own name instead of as a page comparison inside the loop's dispatch.
+    """
+    return name == RECEIPT_PRINTING_PAGE
+
+
 UNREADABLE_PAGE = 'UNKNOWN'
 # D103: the battle screen and its skill-detail overlay are named here so the runner can
 # ask about them without a page comparison of its own (D44's ratchet counts literals).
