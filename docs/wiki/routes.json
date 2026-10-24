@@ -188,7 +188,12 @@
         "team_mismatch",
         "team_verified",
         "slot_source",
-        "which team is in play"
+        "which team is in play",
+        "Preset #1",
+        "TEAMS #",
+        "team header",
+        "编队表头",
+        "saved_team_word"
       ],
       "sources": [
         {
@@ -214,17 +219,28 @@
         {
           "path": "src/maalimbus/team_vision.py",
           "symbol": "selected_saved_team"
+        },
+        {
+          "path": "src/maalimbus/team_vision.py",
+          "symbol": "saved_team_header"
+        },
+        {
+          "path": "src/maalimbus/team_vision.py",
+          "needle": "TEAM_HEADER_PATTERN = "
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-3",
         "docs/wiki/en_us/4-business-flows.md#feature-4-3-3",
         "docs/wiki/zh_cn/2.3-decisions.md#d90-计划必须知道场上用的是哪一套保存编队",
-        "docs/wiki/en_us/2.3-decisions.md#d90-the-plan-must-know-which-team-the-game-deployed"
+        "docs/wiki/en_us/2.3-decisions.md#d90-the-plan-must-know-which-team-the-game-deployed",
+        "docs/wiki/en_us/2.3-decisions.md#d92-a-reader-that-understands-one-wording-of-a-header-has-proved-nothing-about-the-page",
+        "docs/wiki/zh_cn/2.3-decisions.md#d92-只认一种写法的表头读取器什么也没证明"
       ],
       "tests": [
         "tests/test_deployment_transaction.py",
-        "tests/test_team_verification.py"
+        "tests/test_team_verification.py",
+        "tests/test_team_header.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_deployment_transaction.py tests/test_team_verification.py"

@@ -5440,3 +5440,46 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 - `MAP_ESCAPE_REFUSALS = 3` 是策略数字（档案里逃生口前的阶梯样本很少），不是拟合结果；
 - 队伍检测读的是页面标题与部署徽章，**不**读每个罪人的关键词/协同：关键词来自用户在
   `config/user-team-profiles.json` 里写的 slot 档案。
+
+## DSH continuation: 一种写法的表头，等于没有检查（2026-10-24）
+
+本轮（第 47 轮）用户问"你怎么还在用一队、一个流血都不拿，你没有检测队伍的能力吗"。
+答案分两半：能力有（D90），但**它从上线起就没有生效过**（本轮查出并修好，D92）。
+
+### 三个原因（按证据顺序）
+
+1. **读取器只认一种写法.** 语料里所有战前帧的表头都是 `Preset #1`；代码只认 `TEAMS #N`。
+   四个帧、三次运行、一个写法，代码一个都没读出来。
+2. **搜索带排除了实测位置.** 旧带 `(.16,.13,.42,.22)`，实测框中心 x=0.100。就算字对也读不到。
+3. **验证方式错了.** D90 的测试只测了"给定 `TEAMS #2` 会返回 2"，从没测过"归档的战前帧能读出槽位"，
+   所以一个必然空转的规则拿到了绿灯。
+
+### 改动
+
+- `src/maalimbus/team_vision.py`：`TEAM_HEADER_PATTERN`（`TEAMS?` 或 `Preset` 两种写法）、
+  `TEAM_HEADER_ROI = (0.02, 0.10, 0.50, 0.32)`、`TEAM_HEADER_SCORE = 0.85`、
+  `saved_team_header(records, size)` 返回 `{'slot', 'word'}`；`selected_saved_team` 保持签名、只回槽位。
+- `src/maalimbus/runner.py`：`team_state()` 带 `saved_team_word`；`team_verified` / `team_mismatch`
+  事件带 `word`，日志能说出页面用的是哪个词。
+- `tests/test_team_header.py`（11 个用例）：两种写法、实测框落在带内的断言、带外不读、
+  六种残缺写法不读、带内两个表头是疑问不是猜测、低分不读、记录带词、
+  **以及"归档战前帧全部能读出槽位"**——这条在改动前是红的。
+
+### 证据
+
+- 全量：见本轮 `build/full-r47.log`；相关套件 105 passed。
+- 实机（本轮，D90/D91 已在冻结 agent 内）：`packaged-mirror-20261024-042500`，
+  318.3 s、14 次点击、floors `[3]`、`stop: loop_deadline_exceeded`；
+  它这次**先花了一级恢复阶梯**（`window_recovery pinch_out`）才考虑进度面板（D91 生效），
+  并且用 D76 的迟判把 `gold_badge_node` 判成 accepted 后进了 `NODE_PANEL → PRE_BATTLE_TEAM → BATTLE_HUD`。
+- 同一轮里队伍检查没有任何事件——这就是本辖题的证据来源。
+
+### 迁移到后续开发的经验
+
+- **"代码里有这条规则"不等于"这条规则在页面生效过".** 判断标准是：归档里是否存在一条正样本事件。
+- 每条页面读取规则至少要有一条**来自真实帧**的断言，而不是只测正则本身。
+- 一条从不触发的检查，最安全的默认是"未测量"，而不是"通过"。
+
+**补充（同一轮）.** 旧守卫 `tests/test_saved_deployment_order.py` 否掉了第一版：一页若同时有侧栏 `TEAMS #1`
+和 `Preset #1`，必须回答"读不到"。因此最终规则是"整页出现 `TEAMS` 就按 `TEAMS` 读（表头带决定读哪一行），
+整页没有 `TEAMS` 才读 `Preset` 那一列"。全量 `2496 passed in 332.28 s`，退出码 0。
