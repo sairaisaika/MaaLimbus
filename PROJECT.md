@@ -5292,3 +5292,28 @@ Python 侧卡在原生调用里直到预算杀掉外层进程。D82 的门只为
 
 局限：知道路由没了不等于把路由要回来——起任务属于调用方（`--attempts`）。下一轮：给循环自己的**有界重入**
 （起一次新任务 → 读一帧 → 控制器回来就继续走，否则以命名理由结束）。
+
+## DSH continuation: 没有本地谓词能预测被拒的点击（D85）
+
+D84 的门问的是 `tasker.running`，而两件事让它站不住：循环自己的每次读取都会开始并结束一个任务（两次读取
+之间 `tasker.running` 恒为 `False`，这道门会拦掉几乎每一次点击）；`tools/probe_route.py`（只读、Null 输入法）
+显示任务前、任务自行结束后、以及再次请求截图都只用 0.05–0.06 秒答出，而 `controller.id` 始终是 `None`。
+
+| 项目 | 改前（D84） | 改后（D85） |
+| --- | --- | --- |
+| 判据 | 预测「有没有任务在跑」 | 不预测：发出 → 被拒 → 重绑一次 → 重试一次 |
+| 空 id / 无任务 | 预先拒绝（会拦掉正常点击） | 照常发出，由框架的回答决定 |
+| 第二次被拒 | 无（没有第二次） | `RouteLost` → `input_withheld` + 命名结束，归类 `refused_by_policy` |
+| 每次输入的代价 | 0（但可能拦掉全部） | 正常时 0，被拒时一次 `post_connection`（不发游戏输入） |
+
+改动：`src/maalimbus/runner.py`（`ROUTE_LOST`、`class RouteLost`、`MaaDevice.rebind()`、`MaaDevice._send()` 包住
+click/swipe、`_walk` 捕获 `RouteLost` 写 `input_withheld` 并以该理由结束；删除 D84 的门）、
+`src/maalimbus/pages.py`（`STOP_KINDS` 新条目）、`tools/probe_route.py`（只读探针）、
+`tests/test_input_route.py`（6 tests，替代 `tests/test_input_door_task.py`）、
+`tests/test_click_binding.py` 与 `tests/test_runner.py` 中 D71 的四个断言改为「修复一次」。
+
+局限：每次输入只修一次；路由真的没了仍要结束运行，因为起任务是调用方的决定。
+
+| 全量测试（改后） | — | **`2442 passed in 380.72 s`，pytest 退出码 0** |
+
+范围说明：本轮是**类别修复**——它同时改掉了 D71（预先拒绝）与 D84（预测任务）两处判据，而不是再加一个特例。
