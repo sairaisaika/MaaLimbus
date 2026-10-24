@@ -736,6 +736,9 @@ STOP_KINDS = {
     # D96: the page never became readable, so the only honest recovery is another read
     # -- which the blocked-wait budget has already refused to spend.
     'the_loop_waited_without_a_new_page': 'unreadable_text',
+    # A run that ended without recording a step ended without evidence (measured on
+    # `packaged-mirror-20261024-055841`): nothing here can be recovered.
+    'no_step_recorded': 'refused_by_policy',
     'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',
     # D84: a task that finished releases the controller route, so a loop that is about to
     # send input with no task running can only stop -- it cannot rebuild the task.
