@@ -78,6 +78,28 @@ def pin_input(record, method_name):
     return pinned
 
 
+def pin_screencap(record, method_name):
+    """Restrict a discovered record to one screencap method; unknown names are refused.
+
+    The input half had a pin and the read half did not, so a capture could only be
+    priced by guessing which of the offered methods the framework picked. Measured on
+    MuMu 12 (`evidence/runtime/screencap-20261023-215900/screencap.json`, 2026-10-23):
+    only `EmulatorExtras` is offered there and one capture costs a median 0.051 s --
+    which is what closed the "the missing second is the capture" question (D69).
+    """
+    values = {name: value for value, name in SCREENCAP_NAMES.items()}
+    if method_name not in values:
+        raise ValueError('Unknown ADB screencap method: ' + method_name)
+    value = values[method_name]
+    if not int(record.get('screencap_methods', 0)) & value:
+        raise ValueError('Discovered binding does not offer ' + method_name)
+    pinned = dict(record)
+    pinned['screencap_methods'] = value
+    pinned['screencap_names'] = [method_name]
+    pinned['pinned_screencap'] = method_name
+    return pinned
+
+
 def foreground_of(record):
     """Foreground check through the discovered device's own adb (never a stray path)."""
     from .adb_preflight import foreground
