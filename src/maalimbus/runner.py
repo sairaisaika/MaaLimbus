@@ -1226,6 +1226,19 @@ def events(directory, name):
     return records
 
 
+def _gift_picture(directory, observer=None):
+    """The pixels a pixel-reading layout needs, or ``None`` when the run kept none.
+
+    `latest_frame(...)[0] or ...` raised `The truth value of an array with more than
+    one element is ambiguous` the moment a picture *was* available -- the numpy array
+    has no truth value (D133).  Explicit is the only correct form here.
+    """
+    image = latest_frame(directory)[0]
+    if image is not None:
+        return image
+    return getattr(observer, 'last_image', None)
+
+
 def latest_frame(directory):
     """The newest readable frame image and its name, or ``(None, None)``."""
     for path in sorted(Path(directory).glob('frame-*.png'), reverse=True):
@@ -3690,9 +3703,32 @@ class MirrorRunner:
                 if self.floor_gift_catalog is None:
                     self.floor_gift_catalog=GiftCatalog(ROOT/'assets/resource/base')
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
-                floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog,
-                    image=latest_frame(directory)[0] or getattr(self.observer,'last_image',None),
-                    select_box=self.controls.get('gift_pick.select_button'))
+                def _observe_gifts(texts, size, record):
+                    """The gift layout, with one fresh read when the picture is missing.
+
+                    The reader needs pixels for the outline, and a run directory can hold
+                    a frame record without its picture.  One bounded re-read asks the
+                    pipeline for a frame again instead of stopping a healthy run on a
+                    wiring gap (D133); the second miss is refused by name.
+                    """
+                    picture = _gift_picture(directory, self.observer)
+                    try:
+                        return floor_gifts.observe(texts, size, self.floor_gift_catalog,
+                                                   image=picture,
+                                                   select_box=self.controls.get('gift_pick.select_button'))
+                    except ValueError as error:
+                        if 'picture_missing' not in str(error):
+                            raise
+                        again = self._observe(phase='gift_picture')
+                        self.note('gift_picture_reread', page=again.get('scene'),
+                                  frame=again.get('frame'))
+                        retry_texts = [Text(t['text'], tuple(t['box']), t['score'])
+                                       for t in again.get('ocr', [])]
+                        return floor_gifts.observe(retry_texts, again.get('size') or size,
+                                                   self.floor_gift_catalog,
+                                                   image=_gift_picture(directory, self.observer),
+                                                   select_box=self.controls.get('gift_pick.select_button'))
+                floor_offers,gift=_observe_gifts(texts, record.get('size') or (1920,1080), record)
                 pending=(self.floor_gift_transaction.data or {}).get('pending')
                 if pending and pending.get('kind')=='pick':
                     self.floor_gift_transaction.recover_pick(self.run_id,floor_offers,gift,
@@ -4759,7 +4795,7 @@ class MirrorRunner:
                 if settled_page!='GIFT_PICK':raise ValueError('floor_gift_selection_left_page')
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
-                    image=latest_frame(directory)[0] or getattr(self.observer,'last_image',None),
+                    image=_gift_picture(directory, self.observer),
                     select_box=self.controls.get('gift_pick.select_button'))
                 self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
             except ValueError as error:

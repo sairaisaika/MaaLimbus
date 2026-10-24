@@ -287,12 +287,19 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     ):
         if len(find(records,'^'+re.escape(title)+'$',(region[0],.245,region[2],.30),size,.9))==1:
             descriptions.update(r.box for r in find(records,'^'+re.escape(clause)+'$',region,size,.9))
-    if image is None:
-        # The reader needs pixels for the outline; a missing picture is a wiring gap,
-        # not an ambiguous screen (D132).  packaged-mirror-20261024-155044 stored
-        # frame-0001.json but no frame-0001.png, and the run was reported as an
-        # ambiguous outline for a card nobody had looked at.
-        raise ValueError('three_free_gift_picture_missing')
+    # A selected card also says so in words: the game prints `Owned` above the card it
+    # has already taken (measured on packaged-mirror-20261024-144625/frame-0011.png and
+    # 154637/frame-0001.png, both with the right card selected).  When the run kept no
+    # picture -- the pipeline can record a frame without its pixels -- the caption is
+    # the honest evidence, and only when it does not name exactly one card is the
+    # selection refused (D133).
+    # The badge hangs *left of and above* the card's top-left corner: measured
+    # [1186, 218, 86, 30] for the card boxed at [1235, 238, 240, 200], so a band inside
+    # the card would never see it (D133).
+    owned = [] if image is not None else [
+        index for index, box in enumerate(boxes)
+        if len(find(records, r'^Owned$', ((box[0]-110)/size[0], (box[1]-70)/size[1],
+                  (box[0]+box[2])/size[0], (box[1]+10)/size[1]), size, .9)) == 1]
     select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
     refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
     if len(select)!=1 or len(refuse)!=1:
@@ -330,8 +337,12 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
         title=titles[0].text;canonical=identity_of(catalog,title)
         # The right card's lower edge is partly covered by Refuse Gift. Probe
         # its visible left segment; never count that overlay as an absent edge.
-        edges=single_free_selection_edges(image,box,size,bottom_span=110)
-        state=outline_state(edges)
+        if image is None:
+            state = 1 if index in owned else 0
+            edges = None
+        else:
+            edges=single_free_selection_edges(image,box,size,bottom_span=110)
+            state=outline_state(edges)
         if state is None:
             # The refusal carries its own numbers (D59/D132): the next run says which
             # card and which segments, instead of leaving the failure to be guessed
@@ -353,7 +364,15 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
                 benefit=25  # Bounded survival preference, not predicted healing.
         offers.append(Offer(title,canonical,keywords_of(catalog,canonical),tuple(box),
                             Trial(0,'none',0),False,'three_free_select_button',benefit))
-    mean=button_mean(image,select_box);chosen=sum(states)
+    chosen=sum(states)
+    if image is None:
+        # The caption named exactly one card, and there is no picture to cross-check it
+        # against; the button's brightness is not available, so the caption stands
+        # alone and says so in the count it returns (D133).
+        if owned != [i for i, state in enumerate(states) if state == 1] or len(owned) != 1:
+            raise ValueError('three_free_gift_selection_ambiguous')
+        return offers,dict(chosen=chosen,required=1,evidence='owned_caption')
+    mean=button_mean(image,select_box)
     if mean is None or not ((chosen==0 and mean<=25) or (chosen==1 and mean>=45)):
         raise ValueError('three_free_gift_selection_ambiguous')
     return offers,dict(chosen=chosen,required=1)
