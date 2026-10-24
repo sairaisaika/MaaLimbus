@@ -217,18 +217,24 @@ def outline_state(edges):
     dark.  The old rule demanded every segment be lit and called that card
     ambiguous, which stopped a run whose screen showed the selection plainly.
 
-    The two *side* segments are never covered by a label, so they carry the rule:
-    dark means nothing is lit (max < .05); lit means both sides are lit and at
-    least one horizontal segment is lit too.  One dark side against a lit button is
-    a disagreement, not a covered band -- and a single lit segment is a frame
-    caught mid-sweep, so both land in None.
+    The two *side* segments are never covered by a label, so they carry the rule
+    alone: dark means nothing is lit (max < .05); selected means both sides are lit.
+    The horizontal segments are dropped from the decision on purpose -- one of them
+    sits under `Owned` / `Acquire E.G.O Gift` and the other under the `Refuse Gift` /
+    `Select` row, so both can be covered at once on a card that is clearly selected.
+    `packaged-mirror-20261024-154637` was that frame: sides lit, top 0.149, bottom
+    covered, and the run stopped on the horizontal requirement D130 had half removed
+    (D132).
+
+    One dark side against a lit button is a disagreement, not a covered band, and a
+    single lit segment is a frame caught mid-sweep, so both still land in None.
     """
     if not edges:
         return None
     left, right, top, bottom = edges
     if max(edges) < .05:
         return 0
-    if left >= .25 and right >= .25 and max(top, bottom) >= .25:
+    if left >= .25 and right >= .25:
         return 1
     return None
 
@@ -242,6 +248,14 @@ def single_free_selection_edges(image, box, size, *, bottom_span=350):
     """
     if image is None:return None
     import cv2
+    # `box` and `size` are in the record's coordinate space; the picture may be a
+    # different size (the packaged run captures 1280x720 while the record says
+    # 1920x1080, measured 2026-10-24).  Every probe is placed in the *picture's*
+    # space, or a probe below y=720 fell outside the frame and returned None -- which
+    # the reader could only report as an ambiguous outline (D132).
+    to_image=image.shape[1]/float(size[0]) if size and size[0] else 1.0
+    size=(image.shape[1],image.shape[0])
+    box=[box[0]*to_image,box[1]*to_image,box[2]*to_image,box[3]*to_image]
     scale=size[0]/1920;cx=box[0]+box[2]/2
     # Acquire's OCR box moves upward when selected. The centered card's UI
     # edges stay fixed; do not move the outline probes with that text box.
@@ -273,6 +287,12 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
     ):
         if len(find(records,'^'+re.escape(title)+'$',(region[0],.245,region[2],.30),size,.9))==1:
             descriptions.update(r.box for r in find(records,'^'+re.escape(clause)+'$',region,size,.9))
+    if image is None:
+        # The reader needs pixels for the outline; a missing picture is a wiring gap,
+        # not an ambiguous screen (D132).  packaged-mirror-20261024-155044 stored
+        # frame-0001.json but no frame-0001.png, and the run was reported as an
+        # ambiguous outline for a card nobody had looked at.
+        raise ValueError('three_free_gift_picture_missing')
     select=find(records,r'^Select$',(.84,.77,.94,.84),size,.9)
     refuse=find(records,r'^Refuse Gift$',(.68,.77,.80,.84),size,.9)
     if len(select)!=1 or len(refuse)!=1:
@@ -312,7 +332,13 @@ def observe_three_free(records,size,catalog,boxes,image,select_box):
         # its visible left segment; never count that overlay as an absent edge.
         edges=single_free_selection_edges(image,box,size,bottom_span=110)
         state=outline_state(edges)
-        if state is None:raise ValueError('three_free_gift_outline_ambiguous')
+        if state is None:
+            # The refusal carries its own numbers (D59/D132): the next run says which
+            # card and which segments, instead of leaving the failure to be guessed
+            # from a picture that reads fine offline.
+            raise ValueError('three_free_gift_outline_ambiguous:%d:%s:%s:%s:%s' % (
+                index,[round(v,3) for v in (edges or [])],list(box),list(size),
+                'none' if image is None else list(image.shape)))
         states.append(state)
         # A bounded generic damage benefit, only for the complete visible pair.
         # This is heuristic value; it never replaces title or receipt identity.

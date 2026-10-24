@@ -60,3 +60,32 @@ def test_the_retained_frame_reads_two_dark_and_one_selected():
     states = [outline_state(single_free_selection_edges(image, box, size, bottom_span=110))
               for box in boxes]
     assert states == [0, 0, 1], states
+
+
+def test_the_same_card_reads_the_same_at_a_smaller_picture_size():
+    """D132: the packaged run captures 1280x720 while the record says 1920x1080.
+
+    A probe placed at y=835 in the record's space falls outside a 720-high picture, so
+    every card came back with no segments at all and the reader could only call it
+    ambiguous.  The probes belong to the picture, not to the record.
+    """
+    import cv2
+    import json as _json
+    import pathlib as _pathlib
+
+    from maalimbus.reward_vision import gift_cards
+    from maalimbus.vision import Text
+
+    path = (_pathlib.Path(__file__).resolve().parents[1]
+            / "evidence/runtime/packaged-mirror-20261024-154637/frame-0001")
+    data = _json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+    image = cv2.imread(str(path.with_suffix(".png")))
+    records = [Text(r["text"], tuple(r["box"]), r["score"]) for r in data["ocr"]]
+    boxes = gift_cards(records, (1920, 1080))
+    big = [outline_state(single_free_selection_edges(image, b, (1920, 1080), bottom_span=110))
+           for b in boxes]
+    small_image = cv2.resize(image, (1280, 720))
+    small = [outline_state(single_free_selection_edges(small_image, b, (1920, 1080), bottom_span=110))
+             for b in boxes]
+    assert big == [0, 0, 1]
+    assert small == big

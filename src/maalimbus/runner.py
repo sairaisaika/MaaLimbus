@@ -1408,6 +1408,10 @@ class MaaObserver:
         self.pipeline = pipeline
         self.battle_pipeline = battle_pipeline
         self.read_tries = read_tries
+        # The picture this observer last read, for a reader that needs pixels and
+        # cannot get them from the run directory (D132: packaged-mirror-20261024-155044
+        # wrote frame-0001.json and no frame-0001.png).
+        self.last_image = None
 
     @property
     def tasker(self):
@@ -3687,7 +3691,8 @@ class MirrorRunner:
                     self.floor_gift_catalog=GiftCatalog(ROOT/'assets/resource/base')
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record.get('ocr',[])]
                 floor_offers,gift=floor_gifts.observe(texts,record.get('size') or (1920,1080),self.floor_gift_catalog,
-                    image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
+                    image=latest_frame(directory)[0] or getattr(self.observer,'last_image',None),
+                    select_box=self.controls.get('gift_pick.select_button'))
                 pending=(self.floor_gift_transaction.data or {}).get('pending')
                 if pending and pending.get('kind')=='pick':
                     self.floor_gift_transaction.recover_pick(self.run_id,floor_offers,gift,
@@ -4754,7 +4759,8 @@ class MirrorRunner:
                 if settled_page!='GIFT_PICK':raise ValueError('floor_gift_selection_left_page')
                 post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
                 post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
-                    image=latest_frame(directory)[0],select_box=self.controls.get('gift_pick.select_button'))
+                    image=latest_frame(directory)[0] or getattr(self.observer,'last_image',None),
+                    select_box=self.controls.get('gift_pick.select_button'))
                 self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_selection')
