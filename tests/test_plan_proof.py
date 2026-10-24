@@ -30,7 +30,10 @@ from maalimbus.runner import FakeDevice, MirrorRunner
 import maalimbus.runner as runner
 
 
-DISMISSAL_ONLY_BASELINE = 28
+# 28 until D57 taught the index to read the `or` fallback a plan uses to pick its word
+# at runtime ("state.get('reason') or '<word>'"); the twenty-ninth was always there, the
+# reader could not see it.  The ratchet still only shrinks from here.
+DISMISSAL_ONLY_BASELINE = 29
 
 
 def test_no_acting_word_is_unjudgeable():

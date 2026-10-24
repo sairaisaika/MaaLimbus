@@ -758,6 +758,10 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
     'the_suspended_exploration_is_left_for_the_entry': 'page_must_change',
     'the_suspended_exploration_is_resumed_from_the_entry': 'page_must_change',
     'the_unexpected_dialog_is_dismissed_with_its_own_close': 'page_must_change',
+    # Reached through `state.get('reason') or '<this word>'` in the window layer; the
+    # `or` fallback (D57) is what made it visible here, and the same plan is an `advance`
+    # plan, so its click is also judged by the frame.
+    'the_starting_gift_is_picked_from_the_rotation_keyword': 'page_must_change',
     'the_way_back_to_the_entry_is_confirmed': 'page_must_change',
     'the_weekly_reset_notice_is_declined_and_the_run_stays': 'page_must_change',
     'the_wiped_run_is_accepted_and_the_stage_select_comes_back': 'page_must_change',
@@ -768,22 +772,33 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
 }
 
 
-# The dismissal is not merely weak for these words, it is *wrong*: the retained archive
-# shows their input never moved the page -- the two starting-gift picks stayed 6 and 8
-# times out of 6 and 8 sends, because picking a gift changes state, not page.  They need
-# a proof of the state they change (which row is taken, which keyword is lit), which the
-# loop does not have.  `maalimbus.plan_outcomes` derives this from the archive and the
-# gate fails when a declared word is not classified that way.
+# The dismissal is the *only* proof these words carry: `expect=(ANY,)` says "the page
+# must change" and nothing about where it changed to.  That is weaker than a named
+# successor, but it is a proof, and D49's count of it (zero, because `_elements` drops
+# symbols) was the instrument's error, not the code's -- see D56.
+# `maalimbus.plan_outcomes` derives the population from the source and fails when a
+# declared word is not one the chain really sends with only a dismissal.
+
+
+# Words the archive proves were sent, but which no static read of the plan source can
+# name.  The reach of `plan_reasons` has three shapes, measured 2026-10-23:
 #
-# Two words the archive also never saw move are deliberately NOT here, because the page
-# was never their proof: an `advance` plan accepts a changed frame, so
-# team_card_joins_the_next_unpicked_identity (107 stays in 109) and the floor-gift card
-# are judged by pixels.  Reading only the page label would call them defects -- the exact
-# mistake this distinction exists to prevent.  The value is the number of sends that
-# stayed on the same page, so the evidence travels with the declaration.
-PLANS_AWAITING_A_STATE_PROOF = {
+#   * a concatenation of a parameter's default -- the battle page builds its reason as
+#     `battle_assignment + '_is_the_proven_auto_assign_control'`, so the word depends on
+#     a default argument and not on a literal;
+#   * a reason that travels through a state dictionary -- the runner chooses the starting
+#     gift row and hands the word over in `initial['reason']`, so the plan that sends it
+#     lives in the window layer and its word in the runner's locals;
+#   * a word the *archive* shows the loop logging that the source does not contain at
+#     all, which this constant must not silently absorb.
+#
+# Being unnameable is not the same as being unjudged: the plan behind the starting-gift
+# row carries `expect=(ANY,), advance=True`, i.e. a pixel proof.  So this table declares
+# the index's reach, not the plan's proof, and the value is the number of sends the
+# archive retained, so the size of the blind spot travels with it.
+PLANS_THE_INDEX_CANNOT_NAME = {
+    'win_rate_is_the_proven_auto_assign_control': 152,
     'the_starting_gift_row_is_taken_from_the_tray': 8,
-    'the_starting_gift_is_picked_from_the_rotation_keyword': 6,
 }
 
 

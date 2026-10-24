@@ -14,6 +14,11 @@ evidence the repository already has instead of from a guess: every packaged run 
 and the pages it read afterwards, so for each word the archive can say whether the input
 moved the screen and where to.  The answer is not uniform:
 
+A successor set is *names*, and the plan may name the page it acts from: a shelf
+refresh stays in the shop, a team-list scroll stays on the team page.  Judging a landing
+by "the page changed" alone reads those as failures (D56's two "suspects", D57), so the
+verdict here compares the observed page with what the plan itself said would be right.
+
 * ten words always changed the page (3+ observations, none staying),
 * five changed it sometimes,
 * seven **never** changed it -- ``team_card_joins_the_next_unpicked_identity`` sent 109
@@ -109,18 +114,19 @@ def classify(landed, stayed):
 
 
 def _entry():
-    return {'intents': 0, 'landed': 0, 'same': 0, 'no_evidence': 0,
-            'successors': {}, 'from_pages': {}}
+    return {'intents': 0, 'landed': 0, 'declared_same': 0, 'same': 0, 'unexpected': 0,
+            'no_evidence': 0, 'successors': {}, 'from_pages': {}}
 
 
 def outcomes(words=None, directory=None):
-    """``{word: {intents, landed, same, no_evidence, successors, from_pages, class}}``.
+    """``{word: {intents, landed, declared_same, same, unexpected, ...}}``.
 
     ``words`` restricts the reading to the words asked about; every word the archive
     recorded is returned when it is None.
     """
     wanted = None if words is None else set(words)
     found = {}
+    declared = _declared()
     for path in _archives(directory):
         rows = _rows(path)
         for index, row in enumerate(rows):
@@ -139,14 +145,37 @@ def outcomes(words=None, directory=None):
             page = after_page(rows, index)
             if page is None:
                 entry['no_evidence'] += 1
-            elif page != was:
-                entry['landed'] += 1
+                continue
+            names = declared.get(word, set())
+            if page != was:
+                if names and page not in names:
+                    entry['unexpected'] += 1
+                else:
+                    entry['landed'] += 1
                 entry['successors'][page] = entry['successors'].get(page, 0) + 1
+            elif names and was in names:
+                # The plan named the page it acted from as a legitimate successor -- a
+                # shelf refresh stays in the shop, a team-list scroll stays on the team
+                # page.  Judging that as "did not move" was D56's error, not a defect.
+                entry['declared_same'] += 1
             else:
                 entry['same'] += 1
     for entry in found.values():
-        entry['class'] = classify(entry['landed'], entry['same'])
+        entry['class'] = classify(entry['landed'] + entry['declared_same'], entry['same'])
     return found
+
+
+def _declared():
+    """``{word: successor names}`` for every acting plan, read once.
+
+    ``plan_reasons.acting_plans`` parses two source files.  Asking it per intent made a
+    read of the whole archive take minutes (D57: the tool was killed at 120 s), so the
+    vocabulary is read once and looked up per row.
+    """
+    from maalimbus import plan_reasons
+
+    return {word: set((facts or {}).get('expect_names') or ())
+            for word, facts in plan_reasons.acting_plans().items()}
 
 
 def needs_state_proof(found=None, directory=None):
@@ -194,8 +223,8 @@ def proof_kind(word):
 
 
 def main(argv=None):
-    """Print the classification, the owed words and the suspects."""
-    from maalimbus import pages
+    """Print the classification, and the words the static index cannot name."""
+    from maalimbus import pages, plan_reasons
 
     argv = list(argv or [])
     directory = None
@@ -205,36 +234,35 @@ def main(argv=None):
     if not found:
         print('no retained run carries a plan word yet')
         return 0
+    plans = plan_reasons.acting_plans()
     counts = {name: 0 for name in CLASSES}
     for entry in found.values():
         counts[entry['class']] += 1
     print('words the archive observed: %d' % len(found))
     for name in CLASSES:
         print('  %-14s %d' % (name, counts[name]))
-    print('intents: %d  moved the page: %d  stayed: %d  no evidence: %d'
+    print('intents: %d  said where it went: %d  named the page it acted from: %d'
+          '  moved where it did not say: %d  stayed: %d  no evidence: %d'
           % (sum(entry['intents'] for entry in found.values()),
              sum(entry['landed'] for entry in found.values()),
+             sum(entry['declared_same'] for entry in found.values()),
+             sum(entry['unexpected'] for entry in found.values()),
              sum(entry['same'] for entry in found.values()),
              sum(entry['no_evidence'] for entry in found.values())))
-    declared = set(pages.PLANS_AWAITING_A_STATE_PROOF)
-    state = needs_state_proof(found)
-    owed, judged, suspect = {}, {}, {}
-    for word, stayed in state.items():
-        kind = proof_kind(word)
-        if kind == 'pixel':
-            judged[word] = (stayed, kind)
-        elif kind == 'named':
-            suspect[word] = stayed
-        else:
-            owed[word] = stayed
-    print('never moved the page: %d  owed a state proof: %d  judged by the pixels: %d'
-          '  named a successor the archive never saw: %d'
-          % (len(state), len(owed), len(judged), len(suspect)))
-    for word, stayed in owed.items():
+    kept = sum(entry['landed'] + entry['declared_same']
+               for entry in found.values())
+    sent = sum(entry['landed'] + entry['declared_same'] + entry['unexpected']
+               + entry['same'] for entry in found.values())
+    print('inputs whose outcome the archive can name: %d of %d (%.0f%%)'
+          % (kept, sent, 100.0 * kept / sent if sent else 0.0))
+    declared = dict(pages.PLANS_THE_INDEX_CANNOT_NAME)
+    unnamed = {word: entry['intents'] for word, entry in found.items() if word not in plans}
+    print('words the index cannot name: %d  declared: %d'
+          % (len(unnamed), len(declared)))
+    for word, count in sorted(unnamed.items()):
         mark = 'declared' if word in declared else 'NOT DECLARED'
-        print('  %-58s stayed %3d  %s' % (word, stayed, mark))
-    for word, count in suspect.items():
-        print('  %-58s stayed %3d  expected a named page it never reached' % (word, count))
-    for word in sorted(declared - owed.keys()):
-        print('  %-58s declared but the archive does not say so' % word)
-    return 1 if owed.keys() - declared or declared - owed.keys() else 0
+        print('  %-58s sent %3d  %s' % (word, count, mark))
+    for word in sorted(set(declared) - set(unnamed)):
+        print('  %-58s declared but the archive never shows it' % word)
+    stale = sorted(set(unnamed) - set(declared))
+    return 1 if stale or set(declared) - set(unnamed) else 0

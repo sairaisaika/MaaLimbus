@@ -51,17 +51,30 @@ def _constant(node):
     return None
 
 
-def _elements(node):
+def _elements(node, local=None):
     """Every string constant a literal can hold.
 
-    Covers the tuple/list/set a membership test uses, the single constant, and the
-    ``'a' if flag else 'b'`` choice the shelf's two purchase rules use -- a word
-    picked at runtime between two literals is still two words that can be produced.
+    Covers the tuple/list/set a membership test uses, the single constant, the
+    ``'a' if flag else 'b'`` choice the shelf's two purchase rules use, and the
+    ``state.get('reason') or 'the_default_word'`` fallback the initial-gift plan uses
+    (D57: without the ``or`` the fallback word was invisible, so a plan that is a pixel
+    proof looked like a plan with no proof at all).
     """
+    if node is None:
+        return []
     if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
         return [v for v in (_constant(e) for e in node.elts) if v is not None]
     if isinstance(node, ast.IfExp):
         return _elements(node.body) + _elements(node.orelse)
+    if isinstance(node, ast.BoolOp):
+        found = []
+        for value in node.values:
+            found.extend(_elements(value))
+        return found
+    if isinstance(node, ast.Name) and local:
+        # ``name, reason = ('a', 'b')`` then ``reason=reason``: a word chosen at runtime
+        # between two literals is still a word the plan can produce (D57).
+        return list(local.get(node.id) or ())
     value = _constant(node)
     return [] if value is None else [value]
 
@@ -222,27 +235,75 @@ def unmatched(source=None):
 REFUSAL_ACTION = 'record'
 
 
-def _plan_index(node):
-    """The reason, action and expectation count of one ``_plan``/``_refuse`` call."""
+def _locals(scope):
+    """String constants bound to local names inside one scope (not its functions).
+
+    ``name, reason = ('gift_search.refuse_button', 'the_player_asked...')`` is how two
+    words reach one ``_plan`` call; without this the plan looked nameless to the index
+    while the archive recorded it sending input (D57).  The map must be per scope: a
+    module-wide map lets a name reused in three branches collect three words, which made
+    a refusal's word look like a click's.
+    """
+    found = {}
+
+    def take(target, value):
+        if isinstance(target, ast.Name):
+            values = _elements(value)
+            if values and values != [target.id]:
+                found.setdefault(target.id, []).extend(values)
+        elif isinstance(target, (ast.Tuple, ast.List)) and isinstance(value, (ast.Tuple, ast.List)):
+            if len(target.elts) != len(value.elts):
+                return
+            for name, element in zip(target.elts, value.elts):
+                if isinstance(name, ast.Name):
+                    word = _constant(element)
+                    if word is not None:
+                        found.setdefault(name.id, []).append(word)
+
+    def walk(statements):
+        for statement in statements:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+                take(statement.targets[0], statement.value)
+            for field in ('body', 'orelse', 'finalbody'):
+                inner = getattr(statement, field, None)
+                if isinstance(inner, list):
+                    walk([node for node in inner if isinstance(node, ast.stmt)])
+            for handler in getattr(statement, 'handlers', []) or []:
+                walk(handler.body)
+
+    walk(getattr(scope, 'body', []))
+    return found
+
+
+def _plan_index(node, local=None):
+    """The reason, action and named successors of one ``_plan``/``_refuse`` call.
+
+    The successor set is kept as *names*, not as a count: whether an observed page
+    satisfies a plan depends on which names the plan stated (D57), and a count cannot
+    answer that -- ``expect=('SHOP', 'SHOP_PURCHASE', 'UNKNOWN')`` accepts the page the
+    plan acted from, while ``expect=('SHOP_PURCHASE',)`` does not.
+    """
     if not isinstance(node, ast.Call):
         return []
     name = getattr(node.func, 'id', None) or getattr(node.func, 'attr', None)
     if name == '_refuse' and len(node.args) >= 2:
         words = _elements(node.args[1])
-        return [(word, REFUSAL_ACTION, 0, False, False) for word in words]
+        return [(word, REFUSAL_ACTION, [], False, False) for word in words]
     if name != '_plan':
         return []
     keywords = {keyword.arg: keyword.value for keyword in node.keywords}
-    words = _elements(keywords['reason']) if 'reason' in keywords else []
+    words = _elements(keywords['reason'], local) if 'reason' in keywords else []
     if not words:
         return []
     action = None
     if len(node.args) >= 2:
         action = _constant(node.args[1]) or getattr(node.args[1], 'id', None)
-    count = len(_elements(keywords['expect'])) if 'expect' in keywords else 0
+    names = _elements(keywords['expect'], local) if 'expect' in keywords else []
     dismissal = _dismissal(keywords['expect']) if 'expect' in keywords else False
     advance = _advances(keywords.get('advance'))
-    return [(word, action or '?', count, dismissal, advance) for word in words]
+    return [(word, action or '?', names, dismissal, advance) for word in words]
 
 
 def _row_facts(node):
@@ -262,10 +323,10 @@ def _row_facts(node):
     if not word:
         return []
     action = _constant(fields.get('action')) or 'click'
-    count = len(_elements(fields['expect'])) if 'expect' in fields else 0
+    names = _elements(fields['expect']) if 'expect' in fields else []
     dismissal = _dismissal(fields['expect']) if 'expect' in fields else False
     advance = _advances(fields.get('advance'))
-    return [(word, action, count, dismissal, advance)]
+    return [(word, action, names, dismissal, advance)]
 
 
 def acting_plans(source=None):
@@ -282,27 +343,44 @@ def acting_plans(source=None):
     tree = ast.parse(window_source)
     found = {}
 
-    def take(word, action, expects, hooked, dismissal=False, advance=False):
+    def take(word, action, names, hooked, dismissal=False, advance=False):
         entry = found.setdefault(
-            word, {'actions': set(), 'expects': 0, 'dismissal': False,
+            word, {'actions': set(), 'sync': set(), 'dismissal': False,
                    'advance': False, 'hooked': False})
         if action:
             entry['actions'].add(action)
-        entry['expects'] = max(entry['expects'], expects)
+        entry['sync'].update(names or ())
         entry['dismissal'] = entry['dismissal'] or dismissal
         entry['advance'] = entry['advance'] or advance
         entry['hooked'] = entry['hooked'] or hooked
 
     read = set(consumers())
+    parents = {}
     for node in ast.walk(tree):
-        for word, action, expects, dismissal, advance in _row_facts(node) + _plan_index(node):
-            take(word, action, expects, word in read, dismissal, advance)
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+
+    def scope_of(node):
+        parent = parents.get(node)
+        while parent is not None and not isinstance(
+                parent, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Module)):
+            parent = parents.get(parent)
+        return parent
+
+    scoped = {}
+    for node in ast.walk(tree):
+        scope = scope_of(node)
+        local = scoped.get(id(scope))
+        if local is None:
+            local = scoped[id(scope)] = _locals(scope)
+        for word, action, names, dismissal, advance in _row_facts(node) + _plan_index(node, local):
+            take(word, action, names, word in read, dismissal, advance)
         if isinstance(node, ast.Assign) and any(
                 getattr(target, 'id', None) == 'STEP_ROWS' for target in node.targets):
             if isinstance(node.value, ast.Dict):
                 for row in node.value.values:
-                    for word, action, expects, dismissal, advance in _row_facts(row):
-                        take(word, action, expects, word in read, dismissal, advance)
+                    for word, action, names, dismissal, advance in _row_facts(row):
+                        take(word, action, names, word in read, dismissal, advance)
 
     for name in _runner_plans(source=source):
         # A hand-built plan names its own action and expectation, and no caller can add
@@ -316,12 +394,13 @@ def acting_plans(source=None):
                 continue
             if _dict_reason(node.value) != name:
                 continue
-            action, expects, dismissal = _hand_plan_facts(node.value)
-            take(name, action, expects, name in read, dismissal)
+            action, names, dismissal = _hand_plan_facts(node.value)
+            take(name, action, names, name in read, dismissal)
 
     return {
         word: {'actions': sorted(entry['actions']),
-               'expects': entry['expects'],
+               'expects': len(entry['sync']),
+               'expect_names': sorted(entry['sync']),
                'dismissal': entry['dismissal'],
                'advance': entry['advance'],
                'hooked': entry['hooked']}
@@ -331,17 +410,17 @@ def acting_plans(source=None):
 
 
 def _hand_plan_facts(node):
-    """``(action, expectation count, dismissal)`` of a plan the runner builds itself."""
+    """``(action, named successors, dismissal)`` of a plan the runner builds itself."""
     if isinstance(node, ast.Call) and getattr(node.func, 'id', None) == 'dict':
         fields = {keyword.arg: keyword.value for keyword in node.keywords}
     elif isinstance(node, ast.Dict):
         fields = {_constant(key): value for key, value in zip(node.keys, node.values)}
     else:
-        return (None, 0, False)
+        return (None, [], False)
     action = _constant(fields.get('action'))
-    count = len(_elements(fields['expect'])) if 'expect' in fields else 0
+    names = _elements(fields['expect']) if 'expect' in fields else []
     dismissal = _dismissal(fields['expect']) if 'expect' in fields else False
-    return (action, count, dismissal)
+    return (action, names, dismissal)
 
 
 def unproven(source=None):

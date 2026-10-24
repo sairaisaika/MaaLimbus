@@ -139,18 +139,74 @@ def test_the_counter_example_a_dismissal_is_not_unproven():
     assert 'a_word_that_must_move' not in plan_reasons.unproven(source=source)
 
 
-def test_every_declared_word_is_one_the_archive_owes():
+def test_every_declared_word_is_one_the_index_cannot_name():
+    """The declaration describes the index's reach, and nothing else may be in it."""
     found = plan_outcomes.outcomes()
     if not found:
         pytest.skip('no retained run carries a plan word')
-    owed = {word for word, _ in plan_outcomes.needs_state_proof(found).items()
-            if plan_outcomes.proof_kind(word) in (None, 'dismissal')}
-    assert owed == set(pages.PLANS_AWAITING_A_STATE_PROOF)
+    plans = plan_reasons.acting_plans()
+    unnamed = {word for word in found if word not in plans}
+    assert unnamed == set(pages.PLANS_THE_INDEX_CANNOT_NAME)
+    assert not set(pages.PLANS_THE_INDEX_CANNOT_NAME) & set(plans)
+
+
+def test_a_declaration_the_plan_source_can_fulfil_is_stale():
+    """Counter-example: a word the chain names may not be declared unnameable."""
+    plans = plan_reasons.acting_plans()
+    word = 'refreshing_the_shelf_for_the_gift_the_plan_wants'
+    assert word in plans
+    stale = {word: 5}  # a declaration the index can satisfy
+    assert set(stale) & set(plans)
+
+
+def test_a_plan_that_names_the_page_it_acts_from_has_landed(tmp_path):
+    """A shelf refresh stays in the shop, and its plan said so."""
+    word = 'refreshing_the_shelf_for_the_gift_the_plan_wants'
+    assert 'SHOP' in plan_reasons.acting_plans()[word]['expect_names']
+    _archive(tmp_path, 'shop', [_intent(word, 'SHOP'), _scene('SHOP')])
+    entry = plan_outcomes.outcomes([word], directory=tmp_path)[word]
+    assert entry['declared_same'] == 1
+    assert entry['same'] == 0
+    assert entry['landed'] == 0
+    assert entry['class'] == 'few'
+
+
+def test_a_page_the_plan_did_not_name_is_unexpected(tmp_path):
+    word = 'refreshing_the_shelf_for_the_gift_the_plan_wants'
+    _archive(tmp_path, 'map', [_intent(word, 'SHOP'), _scene('MAP')])
+    entry = plan_outcomes.outcomes([word], directory=tmp_path)[word]
+    assert entry['unexpected'] == 1
+    assert entry['landed'] == 0
+
+
+def test_the_page_moving_where_the_plan_said_is_a_landing(tmp_path):
+    word = 'leaving_the_shop_is_the_only_budget_safe_input'
+    assert 'SHOP_LEAVE' in plan_reasons.acting_plans()[word]['expect_names']
+    _archive(tmp_path, 'leave', [_intent(word, 'SHOP'), _scene('SHOP_LEAVE')])
+    entry = plan_outcomes.outcomes([word], directory=tmp_path)[word]
+    assert entry['landed'] == 1
+    assert entry['unexpected'] == 0
+
+
+def test_the_two_words_d56_called_suspects_landed_where_their_plans_said():
+    """The correction this round exists for: both were declared, and both landed."""
+    found = plan_outcomes.outcomes()
+    if not found:
+        pytest.skip('no retained run carries a plan word')
+    for word in ('refreshing_the_shelf_for_the_gift_the_plan_wants',
+                 'scrolling_visible_team_list_for_saved_slot'):
+        entry = found.get(word)
+        if entry is None:
+            continue
+        assert entry['class'] in ('unanimous', 'few'), entry
+        assert entry['declared_same'] == entry['intents']
+        assert entry['same'] == 0
 
 
 def test_a_declared_word_that_starts_moving_is_new_evidence_not_a_silent_pass():
-    """The gate is self-correcting: a landing by a declared word fails it."""
-    found = {'a_declared_word': {'intents': 4, 'landed': 2, 'same': 2, 'no_evidence': 0,
+    """The gate is self-correcting: a landing by a never-moving word fails it."""
+    found = {'a_declared_word': {'intents': 4, 'landed': 2, 'declared_same': 0, 'same': 2,
+                                 'unexpected': 0, 'no_evidence': 0,
                                  'successors': {'SHOP': 2}, 'from_pages': {'MAP': 4},
                                  'class': 'mixed'}}
     owed = {word for word, _ in plan_outcomes.needs_state_proof(found).items()}
