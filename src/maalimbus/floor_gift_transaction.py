@@ -21,6 +21,11 @@ class FloorGiftTransaction:
         self.data = read_json(path) if path.exists() else None
 
     @staticmethod
+    def _picks(d):
+        """How many of `selected` this run picked itself (an adopted card is not a pick)."""
+        return len(d['selected'])-(1 if d.get('adopted') else 0)
+
+    @staticmethod
     def signature(offers):
         value = [o.identity() for o in offers]
         return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
@@ -43,8 +48,17 @@ class FloorGiftTransaction:
             # Owned and outlined, so the *screen's* count and the *run's* picks are two
             # different counters (D136): measured 2026-10-24, a fresh ledger with
             # selected=[] met a page showing chosen=1 and stopped the run on a mismatch.
+            # A page that arrives with the required cards already selected has no pick
+            # to make, but the receipt stage still needs a name to match against the
+            # notice.  The card the game marked Owned is the only name the screen gives,
+            # so it is recorded as *adopted* rather than chosen (D137/D138): measured
+            # 2026-10-24, an adopted selection with selected=[] made the receipt stage
+            # refuse with floor_gift_receipt_unknown_repeated_or_pending.
+            owned_titles=[o.title for o in offers if getattr(o,'owned',False)]
+            adopted_titles=owned_titles[:count['required']] if count['chosen']>=count['required'] else []
             d = dict(scope=scope,offer=signature,required=count['required'],
-                     screen_before=count['chosen'],selected=[],picked_owned={},pending=None,commit_sent=False,receipts=[],
+                     screen_before=count['chosen'],selected=list(adopted_titles),
+                     adopted=bool(adopted_titles),picked_owned={},pending=None,commit_sent=False,receipts=[],
                      substitutions=[],completed=False,proofs=[str(proof)],history=history)
             self.data=d
             write_json(self.path,d)
@@ -56,14 +70,14 @@ class FloorGiftTransaction:
             d['screen_before']=count['chosen']
             write_json(self.path,d)
         if (d['pending'] or d['commit_sent'] or d['completed'] or count['required']!=d['required']
-                or count['chosen']-int(d.get('screen_before') or 0)!=len(d['selected'])):
+                or count['chosen']-int(d.get('screen_before') or 0)!=self._picks(d)):
             raise ValueError('floor_gift_pending_commit_or_counter_mismatch')
         return d
 
     def intent(self, title, count, proof, *, owned=False):
         d=self.data
         if (d['pending'] or d['commit_sent'] or title in d['selected']
-                or count['chosen']-int(d.get('screen_before') or 0)!=len(d['selected'])):
+                or count['chosen']-int(d.get('screen_before') or 0)!=self._picks(d)):
             raise ValueError('floor_gift_selection_would_repeat')
         d['pending']=dict(kind='pick',title=title,before=count['chosen'],proof=str(proof))
         # A gift the run already owns cannot be granted twice: the game answers such a
@@ -158,7 +172,8 @@ class FloorGiftTransaction:
 
     def commit(self, proof):
         d=self.data
-        adopted = (not d['selected'] and int(d.get('screen_before') or 0) >= d['required'])
+        adopted = bool(d.get('adopted')) or (not d['selected']
+                                            and int(d.get('screen_before') or 0) >= d['required'])
         if d['pending'] or d['commit_sent'] or (len(d['selected'])!=d['required'] and not adopted):
             raise ValueError('floor_gift_commit_not_ready')
         # A page that arrived with enough cards already selected needs no pick at all:

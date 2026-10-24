@@ -72,9 +72,9 @@ def test_a_page_that_arrived_satisfied_commits_without_a_pick(tmp_path):
     """D137: screen_before 1, selected [], required 1 -> the screen is the selection."""
     tx = _fresh(tmp_path)
     tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    assert tx.data["selected"] == ["Melted Eyeball"] and tx.data["adopted"] is True
     tx.commit("frame-0002")
-    data = tx.data
-    assert data["pending"]["adopted"] is True and data["commit_sent"] is True
+    assert tx.data["pending"]["adopted"] is True and tx.data["commit_sent"] is True
 
 
 def test_an_unsatisfied_page_still_cannot_commit(tmp_path):
