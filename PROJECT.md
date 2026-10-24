@@ -5625,3 +5625,34 @@ D101：战斗 HUD 已能认出，但 `START`/`dial_control`/`auto_assign_buttons
 **D101 的局限（2026-10-24）**：`packaged-mirror-20261024-070705` 对
 `the_skill_detail_popup_is_dismissed_off_the_board` 连发 43 次同样点击、页面未变；该理由在
 `LOOP_GUARD_EXEMPT` 中。下一个单元：用画面变化给这条豁免设界。
+
+## DSH continuation: 豁免有预算，浮层靠开关，冻结的画面要说话（2026-10-24）
+
+本轮三件事，全部由实机证据倒逼，并且每一件都先测量再改。
+
+**一、豁免有预算（D102，commit `f0e2f4f`）。** 实机 `packaged-mirror-20261024-070705`
+把同一个豁免点击连发 43 次；现在 `exempt_rounds`（默认 6）用满后先走恢复阶梯，再以
+`the_exempt_input_repeated_without_progress` 结束。计数抽成 `_exempt_step` 以便离线验证。
+
+**二、浮层用开关关（D103）。** 档案里 52 次"点空地关浮层"**0 次成功**；浮层是技能卡上的
+开关，点开它的那张卡再点一次才关。`state['battle_tip_from']` 记录那次点击，
+`_battle_tip_control(page, state)` 在 `BATTLE_TIP` 上把它交回计划。
+
+**三、冻结的画面要说话（D104）。** 实机 `packaged-mirror-20261024-072236`：**97 次读取
+只有 1 个不同帧**，48 次点击打在同一画面上，最后由调用方时钟结束。现在读层自己数
+`still_frames`（默认 10），达到就用
+`the_screen_never_changed_and_no_input_was_sent` 结束——**冻结的画面只花读取，不花输入**。
+
+| 之前 | 之后 |
+| --- | --- |
+| 同一豁免连发 43 次（88 帧不变） | 6 次后走阶梯，阶梯不动就带理由结束 |
+| 关闭浮层点空地，52 次 0 成功 | 点开它的那张卡（开关），拿不到卡就交给冻结判据 |
+| 97 次读取 1 个帧，48 次点击照打 | 连续 10 个相同帧即命名冻结并停止输入 |
+
+测试：`tests/test_exempt_repeats.py`（4）、`tests/test_battle_tip_toggle.py`（5）、
+`tests/test_still_frame.py`（4），紧邻套件 112 passed，全量 `2574 passed in 287.19 s`，
+pytest 退出码 0。D44 的棘轮两次拦下我：`page == 'BATTLE_TIP'` 与 `page == 'BATTLE_HUD'`
+两处页面比较都被计数，最后改成 `pages.is_battle_tip` / `pages.is_battle_hud` 两个归属页表的问题。
+
+下一步：`BATTLE_TIP` 上没有"那张卡"时的正规出法（一次受控的返回键），以及战斗固定控件
+（Win Rate 开关、提交转盘）改用测量得到的常量点，而不是每回合重新识别。

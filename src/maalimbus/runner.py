@@ -179,6 +179,11 @@ def _defaults():
         # back.  Bounded, not a loop: after these the run ends with the read's own
         # reason, which is the ending it used to reach on the first failure.
         'read_retries': 2,
+        # D104: how many consecutive reads may hand back the *same picture* before the
+        # device is called frozen.  Measured on `packaged-mirror-20261024-072236`: 97
+        # reads, **one distinct frame**, 48 clicks sent at it, and the run ended on the
+        # caller's clock -- the loop was pressing a screen that never changed.
+        'still_frames': 10,
         # D60: how many *consecutive* live settle reads may fail before the step stops
         # asking.  The page budget below bounds rounds that produced a frame and did
         # not change it; a read that never came back is a different event -- a device
@@ -203,6 +208,7 @@ def _defaults():
         'shop_policy': 'manual', 'shop_reserve_coins': 500,
         'shop_carry_cap_coins': CARRY_CAP_COINS,
         'battle_assignment':'win_rate', 'loop_guard': 3, 'claim_tries': 6,
+        'exempt_rounds': 6,
         'observe_only': False, 'stop_page': None, 'grace_budget': 60, 'grace_auto': False,
         'observe_page': False, 'defeat_tries': 2, 'defeat_accept': False,
         'graces': '1,3,5,6,8', 'map_points': '', 'flow': None, 'flow_timeout': None,
@@ -235,6 +241,14 @@ class Settings:
         if (type(self._values['unreadable_rounds']) is not int
                 or not 0 <= self._values['unreadable_rounds'] <= 30):
             raise ValueError('Invalid bounded unreadable round count')
+        # D102: an exemption may repeat, but not forever on one page.
+        if (type(self._values['exempt_rounds']) is not int
+                or not 1 <= self._values['exempt_rounds'] <= 30):
+            raise ValueError('Invalid exempt round count')
+        # D104: the frozen-screen budget has to be a real count.
+        if (type(self._values['still_frames']) is not int
+                or not 1 <= self._values['still_frames'] <= 200):
+            raise ValueError('Invalid still frame count')
         # D79: a page the reader cannot name gets its own pacing, and it has to be a real
         # wait (zero would busy-loop the recogniser) inside one step's worth of time.
         if (not isinstance(self._values['unknown_interval'], (int, float))
@@ -756,6 +770,10 @@ def _is_transition_blocker(name):
     owner, _, key = text.partition('.')
     return owner == 'deployment_transaction' and key in TRANSITION_KEYS
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
+# D104: the picture never changed across the whole read budget, so the app (not the
+# page, and not the plan) is what stopped.  Naming it separately is what lets the next
+# attempt tell a frozen device from a page the loop does not know.
+STILL_FRAME_REASON = 'the_screen_never_changed_and_no_input_was_sent'
 #: D84: a task that finished -- successfully or not -- takes the controller route with it.
 #: Live `packaged-mirror-20261024-014706`: the entry task ended *successfully* on MAP at
 #: 05:49:20 (D83), and the click the loop sent at 05:49:27 was answered
@@ -2737,6 +2755,23 @@ class MirrorRunner:
         state = self.state
         directory = self.directory
         record = self._observe()
+        frame_sha = record.get('image_sha256')
+        # D104: the same picture, read again and again, is the one fault no page rule can
+        # repair -- the device is frozen.  Counted here, before a plan exists, so a frozen
+        # screen costs reads and never inputs.
+        if frame_sha and frame_sha == state.get('last_frame_sha'):
+            state['same_frames'] = state.get('same_frames', 0) + 1
+        else:
+            state['same_frames'] = 0
+            if frame_sha:
+                state['last_frame_sha'] = frame_sha
+        if state.get('same_frames', 0) >= settings.still_frames:
+            self.note('screen_frozen', reads=state['same_frames'], budget=settings.still_frames,
+                      page=state.get('last_named_page'), reason=STILL_FRAME_REASON)
+            self._end_session(STILL_FRAME_REASON, reads=state['same_frames'],
+                              budget=settings.still_frames)
+            return {'page': state.get('last_named_page'), 'stopped': STILL_FRAME_REASON,
+                    'reason': STILL_FRAME_REASON}
         page = resolve_scene(self.registry, directory, record)
         if not page_vocabulary.is_unreadable(page):
             # D81: the last page the reader could name, kept so that an unknown page can
@@ -3538,6 +3573,9 @@ class MirrorRunner:
                     return self._result(page,None,False,stopped,done=True)
                 receipt_booked=True
         plan_controls=dict(self.controls)
+        _tip_box = self._battle_tip_control(page, state)
+        if _tip_box is not None:
+            plan_controls['battle_tip.dismiss_point'] = _tip_box
         # One refused click is enough: the streak counts every click the game did not
         # take, and a map that refuses one node is the map that refuses them all.
         if page=='MAP' and map_escape_wanted(state):
@@ -4241,6 +4279,12 @@ class MirrorRunner:
             _bracket('begin')
             self.device.click(*point)
             _bracket('end')
+        if page_vocabulary.is_battle_hud(page) and point is not None:
+            # D103: the skill-detail overlay is opened by clicking a skill card and
+            # closed by clicking the same card again. Measured over the retained
+            # archive: 52 of 52 dismissals at the anchored empty-board point left the
+            # page on `BATTLE_TIP`, so the toggle -- not the board -- is the way out.
+            state['battle_tip_from'] = [int(point[0]), int(point[1])]
         self.artifacts['clicks_sent'] += 1
         # When the input left, for the pause that follows a step: `interval` is the
         # spacing between the loop's own actions, and the settle reads after the
@@ -4917,6 +4961,27 @@ class MirrorRunner:
                           repeats=state['repeated_plans'][key])
                 return self._result(page, plan.get('target'), True, entry['stopped'],
                                     done=True)
+        else:
+            # D102: an exemption says "this input may repeat", not "this input may
+            # repeat forever on the same page".  Live
+            # `packaged-mirror-20261024-070705` sent 43 identical dismissals on
+            # `BATTLE_TIP` with every frame different (the overlay animates), so a
+            # frame test cannot see it; the repeat count can.  Over the budget the
+            # ladder gets its turn, and only when it has nothing left does the run end.
+            if self._exempt_step(page, plan.get('reason')) == 'exhausted':
+                waiter = dict(reason='the_exempt_input_repeated_without_progress')
+                recovered = self._recover(page, state, waiter, plan)
+                self.state['exempt_steps'].pop((page, plan.get('reason')), None)
+                if recovered is not None:
+                    self.note('exempt_repeat_recovered', page=page,
+                              reason=plan.get('reason'))
+                    return recovered
+                entry['passed'] = False
+                entry['stopped'] = 'the_exempt_input_repeated_without_progress'
+                self.note('window_exempt_guard', page=page, reason=plan.get('reason'),
+                          repeats=max(1, settings.exempt_rounds))
+                return self._result(page, plan.get('target'), True, entry['stopped'],
+                                    done=True)
         state['step'] += 1
         return self._result(page, plan.get('target'), True, None)
 
@@ -5313,6 +5378,37 @@ class MirrorRunner:
         self._recovery_gesture('pinch_out')
         time.sleep(self.settings.interval)
         return self._result(page, plan.get('target'), True, None, waiting=True)
+
+    def _battle_tip_control(self, page, state):
+        """The box that closes the skill-detail overlay, or ``None`` (D103).
+
+        The overlay has no close control of its own and is a toggle on the skill card
+        that opened it.  The anchored point -- the empty board under the toggles -- was
+        measured over the retained archive and **closed the overlay 0 times in 52
+        attempts** (`packaged-mirror-20261024-070705` sent 43 of them at one frame per
+        click), so the loop now answers the same card instead.
+        """
+        if not page_vocabulary.is_battle_tip(page):
+            return None
+        point = state.get('battle_tip_from')
+        if not point:
+            return None
+        return [int(point[0]) - 2, int(point[1]) - 2, 4, 4]
+
+    def _exempt_step(self, page, reason):
+        """Count one use of one exemption; ``'allow'`` or ``'exhausted'`` (D102).
+
+        Only the current ``(page, reason)`` is kept, so leaving a page forgets it: an
+        exemption is per page and per wording, and a popup that repeats on `BATTLE_TIP`
+        says nothing about the same wording somewhere else.
+        """
+        key = (page, reason)
+        steps = self.state.setdefault('exempt_steps', {})
+        steps[key] = steps.get(key, 0) + 1
+        if steps[key] > max(1, self.settings.exempt_rounds):
+            return 'exhausted'
+        self.state['exempt_steps'] = {key: steps[key]}
+        return 'allow'
 
     def _recovery_fields(self, entry, plan):
         """Every field a `window_recovery` event carries, computed in one place.
@@ -5804,6 +5900,7 @@ def _fresh_state(settings, store=None):
             'swallowed_attempts': 0, 'grace_read_attempts': 0, 'deployment_read_attempts': 0,
             'shop_bought': [], 'shop_refreshes': 0,
             'repeated_plans': {}, 'guard_page': None, 'claim_steps': 0,
+            'exempt_steps': {},
             'team_slot_picked': None, 'defeat_row_sent': False, 'defeat_attempts': 0,
             'identity_sha': None, 'session_ended': None,
             'tutorial_cards': set(), 'grace_wanted': grace_wanted, 'grace_bought': set(),
@@ -6005,6 +6102,8 @@ def build_parser(defaults=None):
                         help='minimum run coins preserved after purchases and refreshes')
     parser.add_argument('--loop-guard', type=int, default=defaults['loop_guard'],
                         help='how many times one plan may repeat before stopping')
+    parser.add_argument('--exempt-rounds', type=int, default=defaults['exempt_rounds'],
+                        help='how often one exempt input may repeat on one page before the ladder')
     parser.add_argument('--claim-tries', type=int, default=defaults['claim_tries'],
                         help='how many claim steps may repeat across the family')
     parser.add_argument('--observe-page', action='store_true',

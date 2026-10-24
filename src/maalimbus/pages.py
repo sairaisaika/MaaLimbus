@@ -538,6 +538,20 @@ DISPATCH_FACTS = {
 }
 
 UNREADABLE_PAGE = 'UNKNOWN'
+# D103: the battle screen and its skill-detail overlay are named here so the runner can
+# ask about them without a page comparison of its own (D44's ratchet counts literals).
+BATTLE_HUD_PAGE = 'BATTLE_HUD'
+BATTLE_TIP_PAGE = 'BATTLE_TIP'
+
+
+def is_battle_hud(name):
+    """Is this the battle screen the plan acts on? (named here, per D44's ratchet)"""
+    return name == BATTLE_HUD_PAGE
+
+
+def is_battle_tip(name):
+    """Is this the skill-detail overlay that covers the battle screen?"""
+    return name == BATTLE_TIP_PAGE
 
 
 def is_unreadable(name):
@@ -742,6 +756,8 @@ STOP_KINDS = {
     # A submitted turn that never showed a page is a transition the run cannot
     # complete from here: the only honest action is to stop (D97/D98).
     'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
+    'the_screen_never_changed_and_no_input_was_sent': 'unreadable_text',
+    'the_exempt_input_repeated_without_progress': 'attempts_exhausted',
     'the_controller_route_was_lost_and_rebinding_did_not_help': 'refused_by_policy',
     # D84: a task that finished releases the controller route, so a loop that is about to
     # send input with no task running can only stop -- it cannot rebuild the task.
