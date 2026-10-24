@@ -6010,3 +6010,20 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 **证据。** `tests/test_theme_identity.py` 7 个用例；主题相关 46 passed；全量见 `build/full-r70b.log`。
 
 **附带。** 新实机运行让 `pages.SUCCESSORS_THE_ARCHIVE_SAW` 的计数按 D58 的规矩移动（`the_cutscene… → EVENT_CHECK` 9→10、`→ EVENT_CHECK_READY` 4→5，新增 `the_check_outcome… → CUTSCENE` 3），**规则不变、计数随语料**。
+
+## DSH continuation: 只改仓库不改打包物，等于没改（2026-10-24，D125）
+
+**问题。** D124 修好主题身份之后，下一次 420 秒运行 **36.9 秒**就以同一个 `Selected theme successor map floor/name is not proven` 结束、0 点击。冻结 agent 读的是 `dist/MaaLimbus/assets/resource/base/theme-catalog.json`，而别名只写进了 `assets/resource/base/`；`build/refreeze_agent.py` 只拷 agent 与商店价值模型，不拷资源。
+
+**改动。** `tests/test_packaged_assets.py`：`theme-catalog.json`、`pipeline/mirror.json` 与 `dist/MaaLimbus` 副本逐字节相同（无打包物则跳过），并断言打包目录带 D124 别名；打包副本一并对齐。
+
+**实测对照。**
+
+| 运行 | 用时 | 点击 | 事件 | 层数 | 结束原因 |
+| --- | --- | --- | --- | --- | --- |
+| `…-134524`（对齐前） | 36.9 秒 | 0 | 28 | [4] | `Selected theme successor map floor/name is not proven` |
+| `…-134708`（对齐后） | **429.7 秒** | 35 | 580 | [4] | `loop_deadline_exceeded`（自己的预算） |
+
+**结论。** 误停消失，运行把 420 秒预算花在推进上（到第 4 层），而不是花在一条只存在于仓库里的修复上。
+
+**下一处。** 420 秒还没到第 5 层：需要看第 4 层内部的分块（D122 的尺子）在哪一段最慢。

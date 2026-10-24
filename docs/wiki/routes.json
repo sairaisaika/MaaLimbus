@@ -291,7 +291,11 @@
         "aliases",
         "theme catalog",
         "Vield",
-        "truncated header"
+        "truncated header",
+        "packaged assets",
+        "打包资源",
+        "dist drift",
+        "theme alias"
       ],
       "sources": [
         {
@@ -317,17 +321,24 @@
         {
           "path": "src/maalimbus/theme_transaction.py",
           "needle": "    def matches(self,scope,header,catalog):"
+        },
+        {
+          "path": "tests/test_packaged_assets.py",
+          "needle": "def test_the_packaged_copy_says_what_the_repository_says("
         }
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d124-two-spellings-of-one-pack-are-one-identity-not-a-mismatch",
+        "docs/wiki/en_us/2.3-decisions.md#d125-a-fix-in-the-repository-is-not-a-fix-in-the-packaged-application",
         "docs/wiki/en_us/2.3-decisions.md#d77-a-page-named-by-one-of-its-two-titles-is-named-by-luck",
         "docs/wiki/en_us/4-business-flows.md#feature-4-3-8",
         "docs/wiki/zh_cn/2.3-decisions.md#d124-同一个主题包的两种拼写是同一个身份不是不一致",
+        "docs/wiki/zh_cn/2.3-decisions.md#d125-只改仓库不改打包物等于没改",
         "docs/wiki/zh_cn/2.3-decisions.md#d77-只有两个名字里一个被记住的页面等于靠运气命名",
         "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8"
       ],
       "tests": [
+        "tests/test_packaged_assets.py",
         "tests/test_shop_actual_purchase.py",
         "tests/test_shop_super_shop.py",
         "tests/test_shop_transaction.py",

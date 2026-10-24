@@ -192,7 +192,7 @@
           "path": "src/maalimbus/pages.py",
           "needle": "def is_loading(name):",
           "line": 574,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         }
       ]
     },
@@ -455,7 +455,11 @@
         "aliases",
         "theme catalog",
         "Vield",
-        "truncated header"
+        "truncated header",
+        "packaged assets",
+        "打包资源",
+        "dist drift",
+        "theme alias"
       ],
       "sources": [
         {
@@ -481,17 +485,24 @@
         {
           "path": "src/maalimbus/theme_transaction.py",
           "needle": "    def matches(self,scope,header,catalog):"
+        },
+        {
+          "path": "tests/test_packaged_assets.py",
+          "needle": "def test_the_packaged_copy_says_what_the_repository_says("
         }
       ],
       "docs": [
         "docs/wiki/en_us/2.3-decisions.md#d124-two-spellings-of-one-pack-are-one-identity-not-a-mismatch",
+        "docs/wiki/en_us/2.3-decisions.md#d125-a-fix-in-the-repository-is-not-a-fix-in-the-packaged-application",
         "docs/wiki/en_us/2.3-decisions.md#d77-a-page-named-by-one-of-its-two-titles-is-named-by-luck",
         "docs/wiki/en_us/4-business-flows.md#feature-4-3-8",
         "docs/wiki/zh_cn/2.3-decisions.md#d124-同一个主题包的两种拼写是同一个身份不是不一致",
+        "docs/wiki/zh_cn/2.3-decisions.md#d125-只改仓库不改打包物等于没改",
         "docs/wiki/zh_cn/2.3-decisions.md#d77-只有两个名字里一个被记住的页面等于靠运气命名",
         "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-8"
       ],
       "tests": [
+        "tests/test_packaged_assets.py",
         "tests/test_shop_actual_purchase.py",
         "tests/test_shop_super_shop.py",
         "tests/test_shop_transaction.py",
@@ -537,6 +548,12 @@
           "needle": "    def matches(self,scope,header,catalog):",
           "line": 35,
           "sha256": "cc66ce7ecd355cdb8d257de05a40d1a8dd9a8b0b244121bb57a5918a4bf724b5"
+        },
+        {
+          "path": "tests/test_packaged_assets.py",
+          "needle": "def test_the_packaged_copy_says_what_the_repository_says(",
+          "line": 20,
+          "sha256": "8a91679542531b9f4b5bf349d5713380c1079bd910d00bd9a9003253955c5d4b"
         }
       ]
     },
@@ -1225,20 +1242,20 @@
         {
           "path": "src/maalimbus/pages.py",
           "needle": "LADDER_VIEW_EVIDENCE = {",
-          "line": 939,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "line": 942,
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "ladder_order_problems",
-          "line": 976,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "line": 979,
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "ladder_view_class",
-          "line": 956,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "line": 959,
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1416,19 +1433,19 @@
           "path": "src/maalimbus/pages.py",
           "needle": "DISPATCH_FACTS = {",
           "line": 342,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "unsafe_wait_branches",
           "line": 620,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "dispatch_sites",
           "line": 200,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         }
       ]
     },
@@ -1607,13 +1624,13 @@
           "path": "src/maalimbus/pages.py",
           "needle": "PLANNED_REASONS = {",
           "line": 816,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "kind_of",
-          "line": 1002,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "line": 1005,
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/plan_reasons.py",
@@ -1631,13 +1648,13 @@
           "path": "src/maalimbus/pages.py",
           "needle": "PLANS_WITH_ONLY_A_DISMISSAL = {",
           "line": 830,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/pages.py",
           "needle": "PLANS_THE_INDEX_CANNOT_NAME = {",
           "line": 900,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/plan_outcomes.py",
@@ -1673,7 +1690,7 @@
           "path": "src/maalimbus/pages.py",
           "needle": "SUCCESSORS_THE_ARCHIVE_SAW = {",
           "line": 916,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/plan_outcomes.py",
@@ -1691,7 +1708,7 @@
           "path": "src/maalimbus/pages.py",
           "needle": "PLANS_THE_INDEX_CANNOT_NAME = {}",
           "line": 900,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         }
       ]
     },
@@ -2178,7 +2195,7 @@
           "path": "src/maalimbus/pages.py",
           "needle": "STOP_PATHS = {",
           "line": 702,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -2334,7 +2351,7 @@
           "path": "src/maalimbus/pages.py",
           "symbol": "is_unreadable",
           "line": 584,
-          "sha256": "57ade49ecf335c39cb2b6b229dde873e78bb5a438fbbbe0c41eb978b75468187"
+          "sha256": "b3f6de073ffac46001af2ade2be1490b861cfa91a45b665c6c6c8066f4473b25"
         },
         {
           "path": "src/maalimbus/runner.py",
