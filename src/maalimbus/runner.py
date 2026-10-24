@@ -4404,6 +4404,11 @@ class MirrorRunner:
         patient = plan.get('reason') == 'the_floor_theme_pack_is_pulled_down_to_be_taken'
         settle_budget = max(1, settings.unknown_rounds if patient else
                             min(6,settings.unknown_rounds) if page=='MAP' else settings.rounds)
+        # A plan may say how much confirmation its input needs.  A mode toggle changes the
+        # board's selection and not the page, so the settle rounds after it read the same
+        # frame; the plan's own bound is a ceiling on the page budget, never a raise
+        # (live `packaged-mirror-20261024-082246`, D108).
+        settle_budget = min(settle_budget, max(1, int(plan.get('settle_rounds') or settle_budget)))
         map_successor_reads=0
         unreadable_rounds=0      # consecutive failed reads: what the small budget counts
         reads_failed=0           # how many this step lost, for the step record

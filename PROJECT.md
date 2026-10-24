@@ -5691,3 +5691,25 @@ D104 的规则保留，现在测的是真实信号。全量 `2575 passed in 291.
 
 **证据。** 战斗相关 6 个套件 105 passed；新增 `tests/test_battle_toggles.py`（8 个用例，含测量区间、
 缩放、回退顺序、非战斗页反例）。
+
+## DSH continuation: 模式切换只要读一次（2026-10-24）
+
+**问题。** 战斗里的自动指派开关切换的是同一块板上的一个模式，但它的计划声明了
+`expect=(BATTLE_HUD, UNKNOWN, …)`，于是 settle 循环用**页面预算**去确认它：
+`evidence/runtime/packaged-mirror-20261024-082246` 里每次开关点击后都跟着两三次读不出页面的
+读取（每次约 0.6 s）再加 4 s 间隔，每回合两次——248 s 的那次运行里约十秒花在确认一个模式上。
+
+**改动。** 计划可以声明自己的确认次数，页面预算只是它的上限（`runner.step` 的
+`settle_budget = min(settle_budget, max(1, int(plan.get('settle_rounds') or settle_budget)))`），
+两个开关计划带 `settle_rounds=1`，**提交计划不带**。
+
+**验收（可复验的）**
+
+| 命令 | 结果 |
+| --- | --- |
+| `python tools/run_tests.py -q` | `2601 passed`，pytest 退出码 0（上一轮 2600） |
+| `python tools/run_tests.py tests/test_battle_toggles.py -q` | 11 passed（含“提交计划没有 settle_rounds”） |
+| `python tools/check_wiki.py` | 24 条路线，0 problems，`snapshot_stale: false` |
+
+**未测量。** 这一次改动只减少每回合的确认读取，没有声称提高通关率；回合间隔由游戏的动画决定
+（同一个运行里 `window_transition_wait` 24 次、共 96 s），这一项本轮没有动。

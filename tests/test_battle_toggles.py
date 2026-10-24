@@ -6,7 +6,7 @@ rediscovering the caption every turn.  These tests pin the measurement, the scal
 the fallback order: a readable caption still wins, an unreadable one gets the fixed box.
 """
 
-from maalimbus import battle_vision
+from maalimbus import battle_vision, window
 
 SIZE = (1920, 1080)   # (width, height), the order `find` uses
 
@@ -89,3 +89,19 @@ def test_a_fixed_point_is_not_evidence_that_a_page_is_the_battle():
     assert clickable is not None and clickable.get('positional') is True
     assert battle_vision.auto_assign_buttons(records, SIZE, positional=False) is None
     assert battle_vision.battle_hud(records, SIZE) is None
+
+
+def test_a_toggle_plan_asks_for_one_confirming_read():
+    # D108: the toggle switches a mode on the same board, so the settle rounds after it
+    # would read the same frame; the plan caps them at one.
+    for reason in ('win_rate_is_the_proven_auto_assign_control',
+                   'damage_is_the_proven_auto_assign_control'):
+        assignment = 'win_rate' if reason.startswith('win_rate') else 'damage'
+        plan = window.plan_step('BATTLE_HUD', auto_assign={'win_rate': [1602, 794, 120, 44],
+                                                          'damage': [1603, 854, 120, 40]},
+                                battle_assignment=assignment)
+        assert plan['reason'] == reason, plan
+        assert plan['settle_rounds'] == 1, plan
+    start = window.plan_step('BATTLE_HUD', start_box=[1340, 795, 77, 78])
+    assert start['reason'] == 'start_button_submits_the_assigned_turn'
+    assert 'settle_rounds' not in start, 'the submit needs its successor read'

@@ -91,7 +91,7 @@ def resolve_overlay(page, *, overlay_hit):
 
 
 def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=None,
-          advance=False, to=None, duration=None):
+          advance=False, to=None, duration=None, settle_rounds=None):
     plan = {'page': page, 'action': action,
             'target': None if target is None else list(target),
             'node': node, 'expect': list(expect), 'reason': reason,
@@ -102,6 +102,8 @@ def _plan(page, action, *, target=None, node=None, expect=(), reason, detail=Non
         plan['duration_ms'] = int(duration)
     if detail is not None:
         plan['detail'] = detail
+    if settle_rounds is not None:
+        plan['settle_rounds'] = int(settle_rounds)
     return plan
 
 
@@ -1238,7 +1240,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason=('win_rate_is_the_proven_auto_assign_control'
                                  if battle_assignment == 'win_rate' else
-                                 'damage_is_the_proven_auto_assign_control'))
+                                 'damage_is_the_proven_auto_assign_control'),
+                         # A mode switch, not a page turn: one read confirms the click
+                         # landed and every further settle round reads the same board
+                         # (live `packaged-mirror-20261024-082246`: two unreadable rounds
+                         # after each toggle, ~10 s per turn spent confirming a mode).
+                         settle_rounds=1)
         if start_box:
             return _plan(page, CLICK, target=start_box,
                          expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'DEFEAT',
@@ -1250,7 +1257,12 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                                  'UNKNOWN'),
                          reason=('win_rate_is_the_proven_auto_assign_control'
                                  if battle_assignment == 'win_rate' else
-                                 'damage_is_the_proven_auto_assign_control'))
+                                 'damage_is_the_proven_auto_assign_control'),
+                         # A mode switch, not a page turn: one read confirms the click
+                         # landed and every further settle round reads the same board
+                         # (live `packaged-mirror-20261024-082246`: two unreadable rounds
+                         # after each toggle, ~10 s per turn spent confirming a mode).
+                         settle_rounds=1)
         return _refuse(page, 'battle_has_no_proven_control')
     if page == 'UNKNOWN_DIALOG':
         # A modal that named no page still shows its own close control, and taking it
