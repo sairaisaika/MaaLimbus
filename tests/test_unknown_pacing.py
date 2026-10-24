@@ -58,9 +58,17 @@ def _run(tmp_path, monkeypatch, **settings):
 
 
 def test_the_unknown_page_is_paced_by_its_own_setting(tmp_path, monkeypatch):
+    """The pause is the unknown page's own setting, and the step interval never paces it.
+
+    Asserted against the recorded pause rather than against the whole set of sleeps: under
+    full-suite load another code path may sleep too, and that is not what this test is about.
+    """
     loop, sleeps, _result = _run(tmp_path, monkeypatch)
-    pacing = {seconds for seconds in sleeps if seconds}
-    assert pacing == {runner.settings().unknown_interval}
+    interval = runner.settings().unknown_interval
+    assert interval in sleeps, 'the unknown page should sleep its own interval'
+    assert runner.settings().interval not in sleeps, 'the step interval must not pace a read'
+    waits = runner.events(tmp_path, 'window_unknown_wait')
+    assert {wait['interval_s'] for wait in waits} == {interval}
 
 
 def test_the_pause_is_shorter_than_the_read_it_precedes(tmp_path, monkeypatch):

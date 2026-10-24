@@ -16,6 +16,39 @@ def wait_job(job, *, timeout=10, deadline=None, clock=time.monotonic, sleep=time
     return job
 
 
+
+def call_with_a_deadline(call, *, timeout, clock=time.monotonic):
+    """Run one native call on a daemon thread and abandon it at the deadline.
+
+    A MaaFW request that is never answered cannot be interrupted from Python: live
+    `packaged-mirror-20261024-032301` logged `unexpected msg [... controller_id=""]` for an
+    input request and then returned nothing for the remaining 740 s of the run, with the
+    interpreter blocked inside `controller.post_click`.  Polling `job.done` does not help
+    when the block happens *before* a job exists, so the call itself gets a thread and a
+    deadline.  The thread is a daemon: an abandoned call cannot keep the process alive, and
+    the caller is told it was abandoned instead of waiting for an answer that may never
+    come.
+
+    Returns `{'answered': bool, 'value': ..., 'error': Exception|None}`; an abandoned call
+    has `answered=False`, and an exception raised by the call is returned rather than
+    propagated so the caller can classify it (a refusal is not a crash).
+    """
+    import threading
+    box = {'answered': False, 'value': None, 'error': None}
+
+    def run():
+        try:
+            box['value'] = call()
+        except BaseException as error:            # noqa: BLE001 - reported, not swallowed
+            box['error'] = error
+        finally:
+            box['answered'] = True
+
+    worker = threading.Thread(target=run, name='maalimbus-call', daemon=True)
+    worker.start()
+    worker.join(max(0.0, float(timeout)))
+    return box
+
 def wait_task(tasker, job, *, deadline, clock=time.monotonic, sleep=time.sleep):
     timed_out = interrupted = False
     stop_error = None

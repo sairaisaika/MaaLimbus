@@ -56,7 +56,7 @@ from .event_vision import (best_check_choice, check_box, check_stage, choice_opt
 from .floor_gift_transaction import RECEIPT_SUCCESSOR_PAGES
 from .gift_plan import load as load_gift_plan, wanted as wanted_gifts
 from .grace_vision import available_starlight, cost_of, plan_purchases, plus_points
-from .jobs import bounded_limit, dispatch, screencap, wait_job, wait_task
+from .jobs import bounded_limit, call_with_a_deadline, dispatch, screencap, wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
 from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, map_clicks, map_header,
@@ -721,6 +721,9 @@ BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_t
 #: harness killed the wrapper.  No task, no route: the door asks the framework, not the id.
 INPUT_NEEDS_A_TASK = 'the_input_door_needs_a_task_that_owns_the_controller'
 ROUTE_LOST = 'the_controller_route_was_lost_and_rebinding_did_not_help'
+# One input request may take this long before it is abandoned.
+INPUT_CALL_SECONDS = 10.0
+ABANDONED_INPUT = 'the_input_request_was_never_answered'
 
 PIPELINE_INPUT_NODES = {'click': 'MirrorPointClick', 'swipe': 'MirrorPointSwipe'}
 '''The two shapes an input can take when a task has to carry it.
@@ -925,15 +928,25 @@ class MaaDevice:
         """
         if getattr(self, 'route_suspect', False) and payload:
             return self.send_through_a_task(what, payload)
-        try:
-            verdict = self._wait(post(), timeout=timeout)
-        except RuntimeError as error:
+        answered = call_with_a_deadline(post, timeout=min(float(timeout), INPUT_CALL_SECONDS))
+        if not answered['answered']:
+            # The request went out and nothing came back (live 20261024-032301: 740 s of
+            # silence inside `post_click`).  The route is treated as gone from here on, and
+            # the input still gets its one carrier attempt before the loop ends by name.
+            self.inputs_abandoned = getattr(self, 'inputs_abandoned', 0) + 1
+            self.route_suspect = True
+            self.last_input_error = ABANDONED_INPUT
+            if payload:
+                return self.send_through_a_task(what, payload)
+            raise RouteLost('%s; %s' % (what, ABANDONED_INPUT))
+        if answered['error'] is not None:
+            error = answered['error']
             if 'controller' not in str(error).lower():
-                raise
+                raise error
             self.last_input_error = str(error)[:200]
             return self.send_through_a_task(what, payload)
         self.last_input_error = None
-        return verdict
+        return self._wait(answered['value'], timeout=timeout)
 
     def click(self, x, y):
         self._refuse_if_ended('click')
@@ -4858,7 +4871,8 @@ class MirrorRunner:
                 self.note('input_withheld', page=page_now, reason=error.reason,
                           target=self.state.get('map_pending'), detail=str(error)[:200],
                           rebinds=getattr(self.device, 'rebinds', None),
-                          pipeline_inputs=getattr(self.device, 'pipeline_inputs', None))
+                          pipeline_inputs=getattr(self.device, 'pipeline_inputs', None),
+                          abandoned=getattr(self.device, 'inputs_abandoned', 0))
                 self._end_session(error.reason, page=page_now, error=str(error)[:300])
                 break
             except (RuntimeError, OSError) as error:
@@ -5194,7 +5208,13 @@ class MirrorRunner:
             length = min(length, 1)
         return length
 
-    PROGRESS_SECONDS = 900.0
+    # How long the loop may go without writing a single journal row before the progress
+    # watch ends the run (D89).  Measured over 25 880 gaps between consecutive rows in the
+    # retained corpus: p50 0.02 s, p90 5.07 s, p99 9.27 s, and every gap over 60 s was one
+    # of the 25 wedges (421-601 s), never a healthy step.  The old 900 s default could not
+    # fire at all for the budgets this project uses -- it was clamped to the remaining
+    # budget, so the live 900 s run's watch fired at 903.6 s, after the harness.
+    PROGRESS_SECONDS = 90.0
     STALL_SECONDS = 300.0
     """How long the loop may go without a new frame before the process ends itself."""
 
