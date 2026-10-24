@@ -380,7 +380,14 @@ class FloorGiftTransaction:
     def observe_receipt(self, page, title, proof, *, next_free_offer=None, next_reward_offer=None):
         from .initial_gifts import same_name
         d=self.data;p=d.get('pending')
-        if not p or p['kind']!='receipt':raise ValueError('floor_gift_receipt_intent_missing')
+        if not p or p['kind']!='receipt':
+            if not receipt_owed(self.data):
+                # D152: a ledger that owes no receipt has no intent to observe.  Measured
+                # 2026-10-24 (`packaged-mirror-20261024-183743`): commit_sent true, no
+                # pending, nothing selected -- the stage stopped on a debt the same file
+                # already said was not owed (D148).
+                return
+            raise ValueError('floor_gift_receipt_intent_missing')
         seen=[r['title'] for r in d['receipts']]+[p['title']]
         remaining=[n for n in d['selected'] if n not in seen]
         granted=(title or '').strip() or None

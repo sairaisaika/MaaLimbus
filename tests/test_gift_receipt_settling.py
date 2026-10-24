@@ -185,7 +185,7 @@ def test_runner_recovers_a_receipt_whose_successor_is_the_reward_page(tmp_path):
     device = FakeDevice([cv2.imread(str(REWARD.with_suffix('.png')))]*3)
     runner = MirrorRunner(device, settings={'rounds': 2, 'interval': 0}, store=store,
                           run_id=scope, directory=evidence, journal=Journal(evidence),
-                          observer=FrameObserver(evidence, [str(page/'frame-0002.png')]*3))
+                          observer=FrameObserver(evidence, [str(page/'frame-0002.png')]*6))
     tx = runner.floor_gift_transaction
     offers, count = offer(BEFORE)
     tx.prepare(scope, offers, count, BEFORE)

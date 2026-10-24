@@ -49,3 +49,23 @@ def test_a_receipt_waits_for_a_page_that_can_print_one():
     assert 'floor_receipt_awaits_a_printing_page' in source
     # and the stop is still reachable from a printing page
     assert "'floor_gift_receipt_unknown_repeated_or_pending')" in source
+
+
+def test_observing_a_receipt_that_is_not_owed_is_a_no_op():
+    """D152: no pending receipt and nothing unbooked -- the stage must not stop."""
+    from maalimbus.floor_gift_transaction import FloorGiftTransaction
+    tx = FloorGiftTransaction.__new__(FloorGiftTransaction)
+    tx.data = {'commit_sent': True, 'selected': [], 'receipts': [], 'pending': None}
+    tx.path = None
+    tx.observe_receipt('GIFT_GET', 'Melted Eyeball', 'p.png')   # no raise
+    assert tx.data.get('pending') is None
+
+
+def test_an_unbooked_selection_still_owes_a_receipt():
+    from maalimbus.floor_gift_transaction import FloorGiftTransaction
+    import pytest
+    tx = FloorGiftTransaction.__new__(FloorGiftTransaction)
+    tx.data = {'commit_sent': True, 'selected': ['Melted Eyeball'], 'receipts': [], 'pending': None}
+    tx.path = None
+    with pytest.raises(ValueError):
+        tx.observe_receipt('GIFT_GET', 'Melted Eyeball', 'p.png')
