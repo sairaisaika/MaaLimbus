@@ -517,6 +517,20 @@ the distribution the next revision of this number needs.
 """
 
 
+class ActionNodeFailed(RuntimeError):
+    """An action node came back and reported failure, so the task is gone (D72).
+
+    Maa torn down the task when the node failed, and the controller behind it stopped
+    accepting input while screenshots still answered: measured live twice on 2026-10-23
+    (packaged-mirror-20261023-221109 x=966 y=591 and -223237 x=958 y=595), where the next
+    click reached the framework as `controller not found [controller_id=]` and the run then
+    sat until its budget killed it.  A failed action is therefore an ending: no input may
+    follow a task that is gone.
+    """
+
+    reason = 'an_action_node_failed_and_the_task_was_torn_down'
+
+
 class ActionNeverReturned(RuntimeError):
     """A node action did not come back inside its window.
 
@@ -871,6 +885,7 @@ class FakeDevice:
 
     def __init__(self, frames=(), foreground=None):
         self.frames = list(frames)
+        self.ended = None
         self.clicks = []
         self.swipes = []
         self.keys = []
@@ -883,13 +898,26 @@ class FakeDevice:
     def screencap(self):
         return self.frames.pop(0) if self.frames else None
 
+    def end_session(self, reason):
+        """Model the real device's refusal: after this, no input is posted (D72)."""
+        if self.ended is None:
+            self.ended = str(reason)
+
+    def _refuse_if_ended(self, what):
+        if self.ended is not None:
+            raise RuntimeError('the session ended (%s); refusing to post a %s'
+                               % (self.ended, what))
+
     def click(self, x, y):
+        self._refuse_if_ended('input')
         self.clicks.append((int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
+        self._refuse_if_ended('input')
         self.swipes.append((int(x1), int(y1), int(x2), int(y2), int(duration_ms)))
 
     def key(self, code):
+        self._refuse_if_ended('input')
         self.keys.append(int(code))
 
     def pinch(self, centre, radius, factor, seconds=0.9):
@@ -2222,6 +2250,15 @@ class MirrorRunner:
                       verdict=verdict.get('verdict'),
                       lasted_seconds=acting['lasted_seconds'],
                       page=acting['page'])
+            # Maa tears the task down when a node fails; the controller stops answering
+            # clicks while screenshots still do (two live runs, 2026-10-23).  Ending here
+            # is what turns "sits until the budget" into a named stop, and it also blocks
+            # any later input through this device (D72).
+            end = getattr(self.device, 'end_session', None)
+            if end is not None:
+                end(ActionNodeFailed.reason)
+            raise ActionNodeFailed('the action node %s reported %s'
+                                   % (node, verdict.get('verdict')))
         return verdict
 
     def _flow(self, deadline, steps, observe_only):

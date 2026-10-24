@@ -55,6 +55,11 @@ class _Finished:
     succeeded = False
 
 
+class _Succeeded:
+    done = True
+    succeeded = True
+
+
 class _Tasker:
     """A tasker whose node never finishes, and which remembers what it was asked."""
 
@@ -128,7 +133,7 @@ def test_the_watchdog_can_name_the_action_it_is_waiting_on(tmp_path):
             during.append(loop._in_flight_report())
             return super().post_task(name)
 
-    loop = _runner(tmp_path, tasker=Watching(job=_Finished()))
+    loop = _runner(tmp_path, tasker=Watching(job=_Succeeded()))
     loop.state["page"] = "DRIVE"
     loop._act(NODE)
     inside, = during
@@ -154,14 +159,23 @@ def test_the_later_of_the_two_stamps_is_the_one_reported(tmp_path):
     assert report["phase"] == "node_action" and report["in_flight"] is True
 
 
-def test_an_action_that_came_back_unconfirmed_is_journalled_not_fatal(tmp_path):
-    """A node that answers "no" is feedback about the page, not a wedge."""
+def test_an_action_that_came_back_unconfirmed_ends_the_run(tmp_path):
+    """A node that answers "no" means Maa tore the task down; no input may follow (D72).
+
+    Live evidence twice on 2026-10-23: packaged-mirror-20261023-221109 posted a click at
+    (966, 591) and -223237 one at (958, 595) right after `node_action_unconfirmed`; both
+    reached the framework as `controller not found [controller_id=]` and both runs then sat
+    until their budget killed them.  The note is kept, and the ending is now named.
+    """
     loop = _runner(tmp_path, tasker=_Tasker(job=_Finished()))
-    verdict = loop._act(NODE)
-    assert verdict["task_succeeded"] is False and verdict["timed_out"] is False
+    with pytest.raises(runner.ActionNodeFailed, match="reported stopped"):
+        loop._act(NODE)
     noted = _events(tmp_path, "node_action_unconfirmed")
     assert noted and noted[-1]["node"] == NODE
     assert noted[-1]["verdict"] == "stopped"
+    assert loop.device.ended == runner.ActionNodeFailed.reason
+    with pytest.raises(RuntimeError, match="the session ended"):
+        loop.device.click(10, 20)
 
 
 def test_a_wedged_action_ends_its_run_with_its_own_reason(tmp_path, monkeypatch):
