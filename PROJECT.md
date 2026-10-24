@@ -5271,3 +5271,24 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 局限：`MAP` 是唯一被观察到「里面」的页面；`BATTLE_HUD`、`DUNGEON_PROGRESS` 需要各自的节点与证据；任务仍
 分不清「玩家在里面」和「玩家在一张他没要的地图上」——这属于调用方的判断。下一轮：把入口任务的「已经在内」
 判定改成由调用方声明（它知道自己从哪一页点进来），而不是让任务盲目接受任何 `MAP`。
+
+## DSH continuation: 任务结束了，门还归它管（D84）
+
+D83 让入口任务能**成功**在 `MAP` 上结束后，本轮 420 秒实机
+（`evidence/runtime/packaged-mirror-20261024-014706`，465.3 秒、157 事件、`floors: [3]`）暴露了下一层：
+05:49:20 任务正常结束，05:49:27 循环的下一次点击被框架回答 `controller not found [controller_id=""]`，
+Python 侧卡在原生调用里直到预算杀掉外层进程。D82 的门只为「被拆掉」的任务关闭，而这里任务**是成功结束的**。
+
+| 项目 | 改前 | 改后 |
+| --- | --- | --- |
+| 门的判据 | 「这个节点是否被拆掉」 | 「此刻有没有任务拥有控制器」（`tasker.running`） |
+| 成功结束后的输入 | 照发 → 框架拒绝 → 原生调用阻塞到预算 | `input_withheld` + 命名结束（`INPUT_NEEDS_A_TASK`） |
+| 类别表 | 新理由无类别（普查会出现 1 个 hold） | `STOP_KINDS` 归为 `refused_by_policy`，hold 仍为 0 |
+| 全量测试 | 2436 passed | **`2442 passed in 309.87 s`，pytest 退出码 0** |
+
+改动：`src/maalimbus/runner.py`（`INPUT_NEEDS_A_TASK`、`MirrorRunner._input_door()`、`step` 在派发输入前先问门、
+被拦下时记 `input_withheld` 并以该理由结束）、`src/maalimbus/pages.py`（`STOP_KINDS` 新条目）、
+`tests/test_input_door_task.py`（6 tests，含「id 仍非空但任务不在跑」这个实机桩形状）。
+
+局限：知道路由没了不等于把路由要回来——起任务属于调用方（`--attempts`）。下一轮：给循环自己的**有界重入**
+（起一次新任务 → 读一帧 → 控制器回来就继续走，否则以命名理由结束）。

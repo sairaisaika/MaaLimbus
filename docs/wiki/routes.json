@@ -1086,7 +1086,13 @@
         "绑定已释放",
         "released binding",
         "torn task input",
-        "harness.json 优先级"
+        "harness.json 优先级",
+        "input_withheld",
+        "INPUT_NEEDS_A_TASK",
+        "_input_door",
+        "输入门判据",
+        "no task no route",
+        "tasker.running"
       ],
       "sources": [
         {
@@ -1204,6 +1210,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "BINDING_GONE_AFTER_A_TORN_TASK = '"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "INPUT_NEEDS_A_TASK = "
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def _input_door(self):"
         }
       ],
       "docs": [
@@ -1236,7 +1250,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d81-an-unknown-page-is-not-one-behaviour",
         "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为",
         "docs/wiki/en_us/2.3-decisions.md#d82-a-torn-down-task-closes-the-input-door-not-the-reading-one",
-        "docs/wiki/zh_cn/2.3-decisions.md#d82-任务被拆掉之后关的是输入门不是读门"
+        "docs/wiki/zh_cn/2.3-decisions.md#d82-任务被拆掉之后关的是输入门不是读门",
+        "docs/wiki/en_us/2.3-decisions.md#d84-a-task-that-finished-still-owns-the-door",
+        "docs/wiki/zh_cn/2.3-decisions.md#d84-任务结束了门还归它管"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1246,7 +1262,8 @@
         "tests/test_time_budget.py",
         "tests/test_read_cost.py",
         "tests/test_unknown_pacing.py",
-        "tests/test_binding_lost.py"
+        "tests/test_binding_lost.py",
+        "tests/test_input_door_task.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",
