@@ -714,6 +714,12 @@ EMPTY_BINDINGS = ('', None)
 # read non-empty, so the door is closed from the inside (D82) rather than guessed from
 # the outside.
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
+#: D84: a task that finished -- successfully or not -- takes the controller route with it.
+#: Live `packaged-mirror-20261024-014706`: the entry task ended *successfully* on MAP at
+#: 05:49:20 (D83), and the click the loop sent at 05:49:27 was answered
+#: `controller not found [controller_id=]` and then blocked inside the native call until the
+#: harness killed the wrapper.  No task, no route: the door asks the framework, not the id.
+INPUT_NEEDS_A_TASK = 'the_input_door_needs_a_task_that_owns_the_controller'
 
 
 def binding_is_empty(controller):
@@ -2366,6 +2372,20 @@ class MirrorRunner:
             return after
         return None
 
+    def _input_door(self):
+        """Why the loop may not send input right now, or ``None`` when it may.
+
+        The controller is owned by the task that is running (D82 removed the *torn down*
+        case; D83 then let an entry task end successfully on MAP, and the click after that
+        success was answered ``controller not found``).  The authoritative question is
+        therefore "is a task running", and it is asked of the framework rather than of the
+        controller id, which kept reporting non-empty after the teardown.
+        """
+        result = getattr(getattr(self, 'tasker', None), 'running', None)
+        if result is False:
+            return INPUT_NEEDS_A_TASK
+        return None
+
     def _act(self, node, *, phase='node_action'):
         """One pipeline node action, bounded and visible while it runs.
 
@@ -3728,6 +3748,13 @@ class MirrorRunner:
                  'check': check, 'defeat': defeat, 'shop': shop,
                  'bonus': {'spend': state['run_settled_itself']},
                  'arrows': arrows, 'candidates': candidates}
+        door = self._input_door()
+        if (door is not None and not settings.observe_only
+                and plan['action'] in ('click', SWIPE, NODE)):
+            self.note('input_withheld', page=page, reason=plan.get('reason'),
+                      target=plan.get('target') or plan.get('node'), detail=door)
+            self._end_session(door)
+            return self._result(page, plan.get('target'), False, door, done=True)
         if plan['action'] not in ('click', SWIPE, NODE) or settings.observe_only:
             entry.update(step_result(plan, sent=False, before=page, after=None, page=page))
             entry['stopped'] = ('observe_only' if settings.observe_only
