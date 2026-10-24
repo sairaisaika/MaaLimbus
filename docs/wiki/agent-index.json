@@ -883,13 +883,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
           "line": 240,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
           "line": 281,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -913,7 +913,7 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "node_view",
           "line": 214,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -1356,7 +1356,15 @@
         "领奖率",
         "有没有领到奖",
         "payout",
-        "claimed"
+        "claimed",
+        "time_budget",
+        "时间预算",
+        "audit_time",
+        "门到门的秒数",
+        "where the seconds go",
+        "time_portfolio",
+        "MAX_GAP_SECONDS",
+        "event cost"
       ],
       "sources": [
         {
@@ -1406,6 +1414,18 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = ("
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "time_budget"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "time_portfolio"
+        },
+        {
+          "path": "tools/audit_time.py",
+          "symbol": "main"
         }
       ],
       "docs": [
@@ -1418,18 +1438,22 @@
         "docs/wiki/en_us/2.3-decisions.md#d61-the-efficiency-figures-have-one-owner-and-a-zero-is-not-a-measurement",
         "docs/wiki/zh_cn/2.3-decisions.md#d61-效率数字只能有一个主人而零不是测量结果",
         "docs/wiki/en_us/2.3-decisions.md#d63-a-run-that-never-says-it-was-paid-cannot-be-measured",
-        "docs/wiki/zh_cn/2.3-decisions.md#d63-说不清有没有领到奖的运行量不出通关率"
+        "docs/wiki/zh_cn/2.3-decisions.md#d63-说不清有没有领到奖的运行量不出通关率",
+        "docs/wiki/en_us/2.3-decisions.md#d66-a-duration-without-a-budget-is-a-stopwatch-not-a-measurement",
+        "docs/wiki/zh_cn/2.3-decisions.md#d66-只有总时长没有预算是秒表不是测量"
       ],
       "tests": [
         "tests/test_run_endings.py",
         "tests/test_read_failure.py",
         "tests/test_run_efficiency.py",
-        "tests/test_payout_journal.py"
+        "tests/test_payout_journal.py",
+        "tests/test_time_budget.py"
       ],
       "checks": [
-        "python -m pytest -q tests/test_run_endings.py"
+        "python -m pytest -q tests/test_run_endings.py",
+        "python tools/audit_time.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0. D63: 领奖结果由 reward_task 自己写（executed/stopped/skipped），payout_rate 的分母是\"记录了领奖结果的运行\"；142 局旧日志没有这个事件，所以它是 None 且一直是，放宽语料 glob 必须作为单独一次决定。",
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0. D63: 领奖结果由 reward_task 自己写（executed/stopped/skipped），payout_rate 的分母是\"记录了领奖结果的运行\"；142 局旧日志没有这个事件，所以它是 None 且一直是，放宽语料 glob 必须作为单独一次决定。 D66: 秒数按\"到下一行\"的间隔记在前一行账上，它是预算不是 profile；占比的分母是已归属秒数，解释不了的部分单列。",
       "locations": [
         {
           "path": "src/maalimbus/pages.py",
@@ -1441,13 +1465,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 95,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 120,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "tools/audit_runs.py",
@@ -1477,13 +1501,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
           "line": 342,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
           "line": 473,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
         },
         {
           "path": "tools/audit_efficiency.py",
@@ -1501,7 +1525,25 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = (",
           "line": 314,
-          "sha256": "a1677f6f784ba88ad709d94bb92ae9a8e5556e1fdc32a3fa0aa6a910d0a7f39d"
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "time_budget",
+          "line": 533,
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "time_portfolio",
+          "line": 582,
+          "sha256": "31780f2061c863ec5b9696f12da80b9d2ddf872032cddc19f54e990359ad5637"
+        },
+        {
+          "path": "tools/audit_time.py",
+          "symbol": "main",
+          "line": 18,
+          "sha256": "efc03c8bbbc119f37c66b59786f247ce40c655c1146ff9b55b90000838dd7965"
         }
       ]
     },
