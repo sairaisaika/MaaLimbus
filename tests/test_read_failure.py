@@ -14,6 +14,13 @@ The contract these tests pin:
 * a read that fails at the top of a step is retried ``settings.read_retries`` times and
   then ends the run with the read's own reason -- bounded, never a retry loop;
 * a *plain* ``RuntimeError`` is still somebody else's ending and is not retried.
+
+D60 adds the second bound the settle loop was missing: the *page* budget counts rounds
+that produced a frame and did not change it, while consecutive reads that never came back
+have their own small budget (``settings.unreadable_rounds``), because a device that failed
+once usually fails again and thirty patient rounds at the read window is nine hundred
+seconds of a four hundred second budget.  The note also carries how long the read took, so
+what wedged is retrievable afterwards.
 """
 import json
 from pathlib import Path
@@ -26,6 +33,8 @@ from maalimbus.runner import FakeDevice, MirrorRunner
 PAGE = 'DRIVE'
 PLAN = {'page': PAGE, 'action': 'click', 'target': [880, 520, 160, 48], 'node': None,
         'expect': ('MAP',), 'reason': 'a_word_with_a_successor', 'advance': False}
+# The D60 cases end a step on an unreadable page on purpose, so their plan names it.
+UNKNOWN_PLAN = dict(PLAN, expect=('MAP', 'UNKNOWN'), reason='a_word_that_may_stay_unreadable')
 
 
 class _Journal:
@@ -64,14 +73,17 @@ class _Reads:
         return dict(self.frames[min(self.calls - 1, len(self.frames) - 1)])
 
 
-def _run(tmp_path, reads, monkeypatch, *, read_retries=None, steps=1, plan=None):
+def _run(tmp_path, reads, monkeypatch, *, read_retries=None, steps=1, plan=None,
+         unreadable_rounds=None, rounds=1):
     plan = dict(PLAN if plan is None else plan)
     monkeypatch.setattr(runner, 'plan_step', lambda *args, **kwargs: dict(plan))
     monkeypatch.setattr(runner, 'observe', reads)
-    settings = {'rounds': 1, 'interval': 0, 'steps': steps,
+    settings = {'rounds': rounds, 'interval': 0, 'steps': steps,
                 'stall_seconds': 0, 'progress_seconds': 0}
     if read_retries is not None:
         settings['read_retries'] = read_retries
+    if unreadable_rounds is not None:
+        settings['unreadable_rounds'] = unreadable_rounds
     loop = MirrorRunner(FakeDevice(), settings=settings,
                         directory=tmp_path, journal=_Journal(tmp_path))
     result = loop.run(steps=steps, interval=0, round_limit=max(1, steps))
@@ -167,3 +179,82 @@ def test_an_unreadable_frame_is_the_unknown_page():
 
 def test_the_retry_budget_is_a_setting_with_a_small_default():
     assert runner.settings().read_retries == 2
+
+
+# --------------------------------------------------------------------- D60: the read budget
+
+
+def _notes(rows):
+    return [row for row in rows if row['event'] == 'settle_read_never_returned']
+
+
+def test_consecutive_unreadable_rounds_stop_at_their_own_budget(tmp_path, monkeypatch):
+    # A device that failed once usually fails again: three settle reads in a row fail,
+    # the budget is two, so the step stops asking after the third instead of spending the
+    # remaining page rounds on the same dead call.
+    reads = _Reads(_frame(PAGE), fail_at=(2, 3, 4, 5, 6, 7))
+    loop, _, rows = _run(tmp_path, reads, monkeypatch, plan=UNKNOWN_PLAN,
+                         unreadable_rounds=2, rounds=6)
+    notes = _notes(rows)
+    assert [note['consecutive'] for note in notes] == [1, 2, 3], notes
+    assert [note['reads_failed'] for note in notes] == [1, 2, 3], notes
+    assert reads.calls == 4, reads.calls          # one step read, three settle reads
+    steps = loop.artifacts['steps']
+    assert steps[-1]['page_after'] == 'UNKNOWN'
+    assert steps[-1]['reads_failed'] == 3
+    assert not [row for row in rows if row['event'] == 'mirror_session_ended']
+
+
+def test_a_round_that_read_something_clears_the_read_budget(tmp_path, monkeypatch):
+    # Consecutive, not lifetime: call 2 fails, call 3 reads an unchanged frame, call 4 fails
+    # again -- with a budget of one neither failure may exhaust the loop, so call 5 must
+    # still reach MAP.  A lifetime counter would have ended the step on the second failure.
+    frames = [_frame(PAGE), _frame(PAGE), _frame(PAGE), _frame(PAGE),
+              _frame('MAP', 'later')]
+    reads = _Reads(*frames, fail_at=(2, 4))
+    loop, _, rows = _run(tmp_path, reads, monkeypatch, plan=UNKNOWN_PLAN,
+                         unreadable_rounds=1, rounds=6)
+    assert len(_notes(rows)) == 2
+    assert loop.artifacts['steps'][0]['page_after'] == 'MAP', loop.artifacts['steps'][:1]
+    # Two reads were lost in this step, but never twice in a row, so the budget held.
+    assert loop.artifacts['steps'][0]['reads_failed'] == 2
+
+
+def test_the_note_says_how_long_the_read_took(tmp_path, monkeypatch):
+    reads = _Reads(_frame(PAGE), fail_at=(2,))
+    _, _, rows = _run(tmp_path, reads, monkeypatch, plan=UNKNOWN_PLAN, rounds=3)
+    note = _notes(rows)[0]
+    assert note['seconds'] is not None and note['seconds'] >= 0
+    assert note['limit_seconds'] == runner.ONE_READ_SECONDS
+    assert note['budget'] == runner.settings().unreadable_rounds
+
+
+def test_a_zero_read_budget_stops_asking_immediately(tmp_path, monkeypatch):
+    reads = _Reads(_frame(PAGE), _frame(PAGE), _frame(PAGE), fail_at=(2, 3, 4))
+    loop, _, rows = _run(tmp_path, reads, monkeypatch, plan=UNKNOWN_PLAN,
+                         unreadable_rounds=0, rounds=6)
+    assert len(_notes(rows)) == 1
+    assert loop.artifacts['steps'][0]['reads_failed'] == 1
+    assert loop.artifacts['steps'][0]['page_after'] == 'UNKNOWN'
+    assert not [row for row in rows if row['event'] == 'mirror_session_ended']
+
+
+def test_the_page_budget_still_governs_rounds_that_did_read(tmp_path, monkeypatch):
+    # The two bounds are separate: the map arrives on the fourth settle round, so a read
+    # budget that shortened successful rounds would have ended this step on UNKNOWN.
+    frames = [_frame(PAGE)] + [_frame(PAGE)] * 3 + [_frame('MAP', 'later')] * 4
+    reads = _Reads(*frames)
+    loop, _, rows = _run(tmp_path, reads, monkeypatch, plan=UNKNOWN_PLAN, rounds=4)
+    assert _notes(rows) == []
+    assert loop.artifacts['steps'][0]['page_after'] == 'MAP', loop.artifacts['steps'][:1]
+    assert loop.artifacts['steps'][0]['reads_failed'] == 0
+
+
+def test_the_read_budget_is_a_setting_with_a_small_default():
+    assert runner.settings().unreadable_rounds == 2
+
+
+def test_a_negative_read_budget_is_refused():
+    with pytest.raises(ValueError):
+        MirrorRunner(FakeDevice(), settings={'unreadable_rounds': -1})
+    assert runner.settings({'unreadable_rounds': 30}).unreadable_rounds == 30

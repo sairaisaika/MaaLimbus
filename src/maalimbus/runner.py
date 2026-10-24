@@ -18,8 +18,9 @@ The loop itself is one observe -> plan -> act iteration:
   the same observation record the window has always written into
   ``build/window-debug``, resolves the scene, asks :func:`maalimbus.window.plan_step`
   for the single input it may send (the ``FORBIDDEN_CONTROLS`` refusal, the loop
-  guard, ``unknown_rounds``, ``map_tries``, ``claim_tries``, ``defeat_tries`` and
-  the retry-reading logic all live on that path), sends it through the injected
+  guard, ``unknown_rounds``, ``unreadable_rounds``, ``read_retries``, ``map_tries``,
+  ``claim_tries``, ``defeat_tries`` and the retry-reading logic all live on that path),
+  sends it through the injected
   :class:`Device`, and records the same events;
 * :meth:`MirrorRunner.run` reproduces the outer loop: the step cap, the interval
   sleep, the same stop conditions, the same receipt/ledger side effects through
@@ -168,6 +169,13 @@ def _defaults():
         # back.  Bounded, not a loop: after these the run ends with the read's own
         # reason, which is the ending it used to reach on the first failure.
         'read_retries': 2,
+        # D60: how many *consecutive* live settle reads may fail before the step stops
+        # asking.  The page budget below bounds rounds that produced a frame and did
+        # not change it; a read that never came back is a different event -- a device
+        # that failed once usually fails again, and thirty of them at the read window
+        # is nine hundred seconds of a four hundred second budget.  A frame that is
+        # merely loading recovers within a round or two, which is what this covers.
+        'unreadable_rounds': 2,
         # A wedged recognition never returns, so the loop is watched from outside it:
         # with no new frame for this many seconds the process ends itself loudly
         # instead of sitting silent (live run pi-20261015-191205, 19:16:07).
@@ -207,6 +215,11 @@ class Settings:
             raise ValueError('Invalid bounded shop settings')
         if type(self._values['run_count']) is not int or not 0 <= self._values['run_count'] <= 50:
             raise ValueError('Invalid bounded mirror run count')
+        # D60: a read budget is a small number of consecutive losses, never a way to keep
+        # asking a dead device; a negative budget would stop the loop before its first read.
+        if (type(self._values['unreadable_rounds']) is not int
+                or not 0 <= self._values['unreadable_rounds'] <= 30):
+            raise ValueError('Invalid bounded unreadable round count')
 
     def __getattr__(self, name):
         try:
@@ -3754,6 +3767,8 @@ class MirrorRunner:
         settle_budget = max(1, settings.unknown_rounds if patient else
                             min(6,settings.unknown_rounds) if page=='MAP' else settings.rounds)
         map_successor_reads=0
+        unreadable_rounds=0      # consecutive failed reads: what the small budget counts
+        reads_failed=0           # how many this step lost, for the step record
         for index in range(settle_budget):
             if index:
                 time.sleep(settings.interval)
@@ -3766,11 +3781,31 @@ class MirrorRunner:
                 # run whose click has landed.  This round produced no frame; the page is
                 # unreadable for this round only, and both the settle budget and the run
                 # deadline still bound how many rounds that can happen.
+                #
+                # D60: they are not the same bound.  The page budget counts rounds that
+                # produced a frame and did not change it; a read that never came back is
+                # a device event, and a device that failed once usually fails again -- at
+                # the read window, thirty patient rounds is nine hundred seconds of a
+                # four hundred second budget.  A frame that is only still loading answers
+                # within a round or two, so this budget stays small and counts *consecutive*
+                # failures: a round that read something clears it.
+                unreadable_rounds=unreadable_rounds+1
+                reads_failed=reads_failed+1
+                reading=self.artifacts.get('reading') or {}
                 self.note('settle_read_never_returned', page=page, round=index + 1,
-                          reason=error.reason, detail=str(error)[:160])
+                          reason=error.reason, detail=str(error)[:160],
+                          seconds=reading.get('lasted_seconds'),
+                          limit_seconds=reading.get('limit_seconds'),
+                          consecutive=unreadable_rounds, reads_failed=reads_failed,
+                          budget=settings.unreadable_rounds)
                 settled = self._unreadable_frame(before_sha)
                 settled_page = 'UNKNOWN'
+                if unreadable_rounds > settings.unreadable_rounds:
+                    # The step stops asking and leaves the page unreadable, which the
+                    # unknown budget already owns; this is not an ending.
+                    break
                 continue
+            unreadable_rounds=0
             settled_page = resolve_scene(self.registry, directory, settled)
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
@@ -3802,7 +3837,8 @@ class MirrorRunner:
                 break
         if page=='DUNGEON_TEAM' and settled_page!='DUNGEON_TEAM':state['entry_reconciled']=False
         entry.update(page_after=settled_page, settled=settled,
-                     scene_after=settled['scene'])
+                     scene_after=settled['scene'],
+                     reads_failed=reads_failed)
         if settled_page not in (None, 'MAP', 'UNKNOWN'):
             # The step landed off the map, so this map visit is over and its spots may
             # be walked again when the page comes back: live window build/
@@ -5198,6 +5234,10 @@ def build_parser(defaults=None):
                         help='how many steps to walk (default: one)')
     parser.add_argument('--rounds', type=int, default=defaults['rounds'],
                         help='settle rounds after each input')
+    parser.add_argument('--unreadable-rounds', type=int,
+                        default=defaults['unreadable_rounds'],
+                        help='how many consecutive settle reads may fail before the step '
+                             'stops asking (default: 2)')
     parser.add_argument('--unknown-rounds', type=int, default=defaults['unknown_rounds'],
                         help='how many turns an unreadable page may hold the run '
                              '(default: 30)')
