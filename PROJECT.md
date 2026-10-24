@@ -4214,3 +4214,55 @@ deployment/gift/home/native/star/team 保留 `click`，real-theme-drag/team/them
    归档里没有）——只能等一次被授权的运行带上 `input_without_a_proof` 与帧。
 2. 171 次"落在未点名的页面"：抽查前几名，区分"计划漏写了这个后继"与"识别错了页面"。
 3. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）。
+## DSH continuation: a landing the archive saw every time is a missing line (2026-10-23)
+
+D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"页面变没变"换成了"计划自己点名的后继集"，
+这一轮才发现**计划点名的集合本身可能是漏的**——而漏写的代价由循环在运行时支付。
+
+**三个原因（本轮的证据形态）**
+
+1. **计划的后继集合从不与归档对照**：142 个留存运行里 171 次落到了计划从未点名的页面；
+   其中 55/55 与 35/58 两次发生在进入镜牢的路上，误判在任何游戏操作前就触发恢复阶梯。
+2. **"意外的后继"被当成状态错误**：`unexpected_successor → bad_saved_state → escalate_ladder`，
+   于是一次漏写变成一串与页面无关的手势，还消耗预算。
+3. **同一个测量里藏着下一个缺口的证据**：输入之后有 11 个词落到 `UNKNOWN`，其中
+   `start_button_submits_the_assigned_turn` 是 121/166（73%）——那不是后继问题，是感知问题，
+   本轮只报告、不处理。
+
+**本轮改动**
+
+* `plan_outcomes.unnamed_landings()`：按计划词导出归档里 ≥3 次落到、而计划没点名的页面；只读归档。
+* `plan_outcomes.unreadable_landings()`：落在 `UNKNOWN` 的落点单独报告，永不当作后继。
+* `src/maalimbus/window.py`：MAP 的恢复计划点名 `DUNGEON_PROGRESS`（55/55），DRIVE 行点名
+  `RESUME_DIALOG`（35/58，即 15:33–16:32 五局卡住的页面）；两处都写了测量注释。
+* `src/maalimbus/pages.py`：`SUCCESSORS_THE_ARCHIVE_SAW` 声明剩下 10 个落点（带计数）；
+  `DISPATCH_FACTS` 同步更新（漂移门先红后绿，D45 正常工作）。
+* `tests/test_plan_successors.py`：10 个离线用例，含"接受新页但不接受任意页""用驳回证明的计划没有可遗漏
+  的页面""读不出的落点单独报告""新落点让门失败"四个反例方向。
+
+**前后对比**
+
+| 指标 | 之前 | 现在 |
+|---|---|---|
+| 落在未点名页面的输入 | 171 | **81** |
+| 归档能命名的输入占比 | 692/1588 = 44% | **782/1588 = 49%** |
+| 未声明的落点 | 10（未声明） | 10（全部声明，10/10 与归档一致） |
+| 全套测试 | 2219 passed | **2227 passed, 2 skipped, exit 0** |
+| pipeline 规格 | ok | ok — 0 problem(s)（805 节点 / 16 agent 名 / 6 入口） |
+| 实机 | — | 只读一帧：`map-live-20261023-201027`，`input_sent: false`，`RESUME_DIALOG` |
+
+**下一个单位**
+
+1. `start_button_submits_the_assigned_turn` 的 121/166 次 `UNKNOWN`：动画过渡被读成不可读页面，
+   每次多花一轮重读；这是感知层的可测缺口。
+2. 事件流的 10 个已声明落点：逐个用它们自己的证据把页面写进计划（本轮只声明，不改事件流的后继语义）。
+3. `MirrorRunner.step` 的 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。
+
+**可迁移的工程经验**
+
+* 判据换对了，数据才会告诉你**计划**也可能是错的；上一轮把"页面变没变"换成"计划点名的集合"，
+  这一轮才知道那个集合会漏。
+* 一个落点出现 N 次而计划没写，是**计划**的缺陷，不是游戏的意外：修法是补一行，不是加一个特例。
+* 别用读不出的页面当"合法落点"：那会把感知失败伪装成正常。
+* 修复要能反过来失败：接受新页的测试必须同时证明它**不接受任意页**。
+* 声明要带计数：`SUCCESSORS_THE_ARCHIVE_SAW` 里每个数字都是"这个缺口有多大"，它们一起构成下一轮的分母。
