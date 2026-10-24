@@ -4881,3 +4881,38 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 
 **下一个单元**：一次有授权的实机入场运行（预算内），看那一局 F2 是否真的往前走；
 窗口层 `the_suspended_exploration_is_left_for_the_entry` 仍会在"没过期的一局"上丢弃进度。
+
+## DSH continuation: 任务的判决说的是路线，屏幕才是证据 (2026-10-23)
+
+**三条根因（这一轮落到"谁说了算"）**
+
+1. **入场任务的失败判决被当成屏幕状态。** 任务把 DRIVE → MIRROR_ENTRY → RESUME_DIALOG → MAP 走通后，
+   在地图这一页"无节点可匹配"而以 `LimbusUnknown` 结束——这是对**它自己的路线**的陈述，不是对屏幕的陈述。
+2. **D72 的停止规则用了一个代理量。** `wait_task` 的 `succeeded: False` 被直接翻译成"任务被拆、结束运行"，
+   于是一局刚被交回活地图的运行，被交接者的返回码结束（128 秒）。
+3. **同一个知识仍有两个所有者。** 窗口层知道 RESUME_DIALOG 该点 Resume，打包任务直到 D73 才有一个节点；
+   而且第一次只挂到了 `MirrorHard`/`MirrorDrive`，`MirrorEnter` 落进同一对话框时仍然死路——第二次实机运行证明了这一点。
+
+**改动（三次实机运行逐次逼出下一步）**
+
+| 运行 | 结果 |
+| --- | --- |
+| `…-230250`（D73 前） | `MirrorEnter` → `RESUME_DIALOG` 无节点 → `terminal` |
+| `…-230804`（D73 后） | `MirrorResume` 识别并点了 Resume → 到 MAP → 任务以失败结束 → 循环 128 秒停 |
+| `…-231231`（D74 后） | 同上但**页面移动**被承认 → 循环继续到预算结束（215 秒，`exit 124`） |
+
+- `assets/resource/base/pipeline/mirror.json`：`MirrorEnter.next` 补 `MirrorResume`/`MirrorEntryConfirm`
+  （`tools/prepare_resources.py` 同步）。
+- `tests/test_entry_task_resume.py`：门禁改成"**每一个会落到该对话框的节点**都必须能回到 resume 节点"，
+  并加一条用本轮实机数据构造的反例（10 例）。
+- `src/maalimbus/runner.py`：`_page_after_a_failed_node()`（失败节点之后做一次有界读取）+ `_act` 里
+  先问屏幕再决定是否以 `ActionNodeFailed` 结束；新增事件 `the_task_ended_but_the_page_moved`。
+- `tests/test_native_action.py`：同页仍结束、`UNKNOWN` 不算移动、移动后会话保持存活（10 例）。
+
+**证据**：全量套件 **2373 passed, 2 skipped in 229.94 s，pytest 退出码 0**（D73 时 2371）；
+`build/verify_resume_replay.py` 用本轮实机帧回放出 `MirrorEnter → MirrorResume`（点击 `[956,600]`，
+正是 Resume 框 `[902,579,114,34]` 的中心）；`verify_pipeline_spec` → `ok — 0 problem(s)`。
+
+**下一个单元（下一次实机运行已经指出）**：地图上的节点点击推不动页面
+（`the_page_stayed_on_the_map_after_the_click`，两次运行都一样），窗口随即判定
+`the_exploration_must_be_resumed_before_a_node_click` 并去"离开探索"——这才是那局 F2 一直不前进的原因。

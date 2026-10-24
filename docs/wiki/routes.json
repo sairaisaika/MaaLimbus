@@ -17,7 +17,11 @@
         "resume token",
         "unknown_or_bounded_transition_exhausted",
         "任务续不上一局",
-        "cannot resume the run"
+        "cannot resume the run",
+        "the_task_ended_but_the_page_moved",
+        "page decides",
+        "屏幕说了算",
+        "任务判决不等于屏幕"
       ],
       "sources": [
         {
@@ -47,6 +51,10 @@
         {
           "path": "tests/test_entry_task_resume.py",
           "symbol": "_problems"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def _page_after_a_failed_node(self, page):"
         }
       ],
       "docs": [
@@ -54,7 +62,9 @@
         "docs/wiki/en_us/9-execution-plan.md#feature-9-3-1",
         "docs/wiki/zh_cn/4-business-flows.md#feature-4-3-2",
         "docs/wiki/en_us/2.3-decisions.md#d73-a-task-that-cannot-resume-the-run-it-was-asked-to-continue",
-        "docs/wiki/zh_cn/2.3-decisions.md#d73-一个无法继续它被要求继续的那一局的任务"
+        "docs/wiki/zh_cn/2.3-decisions.md#d73-一个无法继续它被要求继续的那一局的任务",
+        "docs/wiki/en_us/2.3-decisions.md#d74-the-tasks-verdict-is-a-statement-about-its-route-not-about-the-screen",
+        "docs/wiki/zh_cn/2.3-decisions.md#d74-任务的判决说的是它自己的路线不是屏幕"
       ],
       "tests": [
         "tests/test_main_task_dispatch.py",
