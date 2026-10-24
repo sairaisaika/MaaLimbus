@@ -1062,7 +1062,14 @@
         "what came before",
         "is_unreadable",
         "UNREADABLE_PAGE",
-        "wait cause"
+        "wait cause",
+        "binding_lost",
+        "note_binding_lost",
+        "BINDING_GONE_AFTER_A_TORN_TASK",
+        "绑定已释放",
+        "released binding",
+        "torn task input",
+        "harness.json 优先级"
       ],
       "sources": [
         {
@@ -1172,6 +1179,14 @@
         {
           "path": "src/maalimbus/pages.py",
           "symbol": "is_unreadable"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "    def note_binding_lost(self, reason):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "BINDING_GONE_AFTER_A_TORN_TASK = '"
         }
       ],
       "docs": [
@@ -1202,7 +1217,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d80-a-clear-rate-over-runs-nobody-gave-time-to-clear-is-a-statement-about-the-budget",
         "docs/wiki/zh_cn/2.3-decisions.md#d80-用一群没给够时间的人算通关率量到的是预算",
         "docs/wiki/en_us/2.3-decisions.md#d81-an-unknown-page-is-not-one-behaviour",
-        "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为"
+        "docs/wiki/zh_cn/2.3-decisions.md#d81-无法命名的页面不是一种行为",
+        "docs/wiki/en_us/2.3-decisions.md#d82-a-torn-down-task-closes-the-input-door-not-the-reading-one",
+        "docs/wiki/zh_cn/2.3-decisions.md#d82-任务被拆掉之后关的是输入门不是读门"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1211,7 +1228,8 @@
         "tests/test_payout_journal.py",
         "tests/test_time_budget.py",
         "tests/test_read_cost.py",
-        "tests/test_unknown_pacing.py"
+        "tests/test_unknown_pacing.py",
+        "tests/test_binding_lost.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",

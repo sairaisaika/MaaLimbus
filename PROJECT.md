@@ -5225,3 +5225,27 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 3. 「这一页是不是不可读页」属于页面词汇表——把它放到 runner 里，棘轮会（并且应该）拦住。
 4. 归属要按行而不是按名：丢掉行就等于丢掉解释。
 5. 新字段一上线就用真实运行验证一次，让工具打印出来，而不是只写进测试。
+
+## DSH continuation: 被拆掉的任务关的是输入门（D82）
+
+本轮实机（获授权、600 秒预算）跑到第 3 层，`evidence/runtime/packaged-mirror-20261024-010918`：
+645.4 秒、298 事件、15 次输入、`floors: [3]`。它在 `05:13:08` 被入口任务拆掉（`MirrorDrive` → `terminal: unknown_or_bounded_transition_exhausted`），D74 让循环继续读了三帧
+（`map_observed seconds 0.74 / 0.78 / 0.77`），`05:13:19.200` 决定点地图节点，框架同一秒回答
+`controller not found [req.controller_id=]`，随后日志空到 `05:23:20` 才由进展监视收尾——而测试台在
+`05:20:02` 已经杀掉外层进程。
+
+| 项目 | 改前 | 改后 |
+| --- | --- | --- |
+| 被拆任务之后的一次输入 | 交给框架，原生调用阻塞（本次约 6 分钟，最后靠监视收尾） | 输入门拒绝并命名，下一次输入即结束 |
+| 读 | 允许（实机证明仍可用） | 仍然允许 |
+| 结束归属 | `harness.json` 优先，明明自己结束的运行被算成被预算杀 | 日志里的结束优先，`harness.json` 只解释没有结束的运行 |
+| 类别表 | 新原因无类别（`audit_hold_gap` 会红） | `STOP_KINDS` 记为 `refused_by_policy`，`hold` 仍为 0 |
+| 全量测试 | 2422 passed | **`2430 passed in 313.78 s`，pytest 退出码 0** |
+
+改动：`src/maalimbus/runner.py`（`MaaDevice.binding_lost` / `note_binding_lost` / `_refuse_binding_lost`，`_act` 的 D74 继续路径在页面前进之后记下绑定已失效；模块级常量 `BINDING_GONE_AFTER_A_TORN_TASK`）、
+`src/maalimbus/pages.py`（`STOP_KINDS` 新条目）、`src/maalimbus/run_metrics.py`（`ending()` 先读日志再看
+`harness.json`）、`tests/test_binding_lost.py`（6 tests）、`tests/test_run_endings.py`（+1 优先级测试）。
+
+反例：存活的绑定照常发送；拒绝只在 `note_binding_lost` 之后生效且保留第一个原因；三个输入门都拒绝；D74 的继续路径仍然能读。
+
+局限：循环无法自己修复被释放的绑定——只有「拥有控制器的新任务」可以，把它接上属于另一项决定；原生调用阻塞时任何 Python 看门狗都拦不住，预防是唯一的防御。下一轮：把「新任务重新获得输入权」做成显式的重入路径（有界、一次）。
