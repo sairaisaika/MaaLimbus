@@ -103,12 +103,38 @@ class FloorGiftTransaction:
             d.setdefault('history',[]).append({'event':'ledger_before_count_refreshed',
                                               'scope':scope,'now':pending['before']})
             write_json(self.path,d)
+        if (count.get('chosen'),count.get('required'))==(pending['before'],d['required']):
+            # The reservation is still on the books but the screen did not move: the
+            # pick never landed.  Release it and let the loop plan again -- a
+            # reservation that cannot be observed must not end the run (D135).  Measured
+            # 2026-10-24 (`packaged-mirror-20261024-160525`): 0 clicks, one read, the
+            # same one selected card on the frame.
+            d['pending']=None
+            d.setdefault('history',[]).append({'event':'ledger_pick_did_not_land','scope':scope})
+            write_json(self.path,d)
+            return False
         self.observe_pick(offers,count,proof)
+        return True
 
     def observe_pick(self, offers, count, proof):
         d=self.data; p=d['pending']
         if (not p or p['kind']!='pick' or self.signature(offers)!=d['offer']
                 or (count.get('chosen'),count.get('required'))!=(p['before']+1,d['required'])):
+            raise ValueError('floor_gift_selection_postcondition_not_proven')
+        d['selected'].append(p['title']);d['pending']=None
+        d['proofs'].append(str(proof));write_json(self.path,d)
+
+    # The screen a taken pick lands on.  Measured 2026-10-24 over every archived
+    # `select_takes_the_picked_floor_gifts` click that had a later read: 13 of 13 left
+    # GIFT_PICK, and the successor was GIFT_GET (the received-gift screen).  So "one more
+    # selected card on the same page" was never the normal evidence; the normal evidence
+    # is that the page carried the pick away.
+    POST_PICK_PAGES = ('GIFT_GET',)
+
+    def observe_pick_left(self, page, proof):
+        """A pick whose screen changed: the successor page is the receipt (D135)."""
+        d=self.data; p=d['pending']
+        if not p or p['kind']!='pick' or page not in self.POST_PICK_PAGES:
             raise ValueError('floor_gift_selection_postcondition_not_proven')
         d['selected'].append(p['title']);d['pending']=None
         d['proofs'].append(str(proof));write_json(self.path,d)

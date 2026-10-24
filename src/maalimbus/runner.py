@@ -4792,12 +4792,20 @@ class MirrorRunner:
         if page=='GIFT_PICK' and (gift or {}).get('title'):
             try:
                 from . import floor_gifts
-                if settled_page!='GIFT_PICK':raise ValueError('floor_gift_selection_left_page')
-                post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
-                post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
-                    image=_gift_picture(directory, self.observer),
-                    select_box=self.controls.get('gift_pick.select_button'))
-                self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
+                if settled_page not in ('GIFT_PICK',)+self.floor_gift_transaction.POST_PICK_PAGES:
+                    raise ValueError('floor_gift_selection_left_page')
+                if settled_page!='GIFT_PICK':
+                    # The pick took the page with it, which is what a taken pick does
+                    # (13 of 13 archived selects end on GIFT_GET); the successor page is
+                    # the receipt, so the count on a page that no longer exists cannot be
+                    # the evidence (D135).
+                    self.floor_gift_transaction.observe_pick_left(settled_page,frame_file(directory))
+                else:
+                    post_records=[Text(t['text'],tuple(t['box']),t['score']) for t in settled.get('ocr',[])]
+                    post_offers,post_count=floor_gifts.observe(post_records,settled.get('size') or (1920,1080),self.floor_gift_catalog,
+                        image=_gift_picture(directory, self.observer),
+                        select_box=self.controls.get('gift_pick.select_button'))
+                    self.floor_gift_transaction.observe_pick(post_offers,post_count,frame_file(directory))
             except ValueError as error:
                 entry.update(passed=False,reason=str(error),stopped='unverified_floor_gift_selection')
         if plan.get('reason')=='select_takes_the_picked_floor_gifts':
