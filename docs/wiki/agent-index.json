@@ -51,14 +51,14 @@
         {
           "path": "agent/recognition.py",
           "symbol": "MainTaskAction.run",
-          "line": 1721,
-          "sha256": "3473ec586d50fd8e537195fb193dc130393d2d50844d11a47430b197e3b83464"
+          "line": 1775,
+          "sha256": "61e3b8c78dff1246bcb6e6b7e7c9f890434b0521c5f58f50b86501f55c00604e"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "MirrorLoopAction.run",
-          "line": 1634,
-          "sha256": "3473ec586d50fd8e537195fb193dc130393d2d50844d11a47430b197e3b83464"
+          "line": 1688,
+          "sha256": "61e3b8c78dff1246bcb6e6b7e7c9f890434b0521c5f58f50b86501f55c00604e"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -75,8 +75,8 @@
         {
           "path": "agent/recognition.py",
           "symbol": "AgentTasker.post_task",
-          "line": 1563,
-          "sha256": "3473ec586d50fd8e537195fb193dc130393d2d50844d11a47430b197e3b83464"
+          "line": 1617,
+          "sha256": "61e3b8c78dff1246bcb6e6b7e7c9f890434b0521c5f58f50b86501f55c00604e"
         }
       ]
     },
@@ -883,13 +883,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
           "line": 240,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
           "line": 281,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -913,7 +913,7 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "node_view",
           "line": 214,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/runner.py",
@@ -1379,7 +1379,16 @@
         "节点 vs 包装",
         "node versus wrapper",
         "seconds field",
-        "TIMED_READ_EVENTS"
+        "TIMED_READ_EVENTS",
+        "read_phases",
+        "phases",
+        "分段耗时",
+        "phase split",
+        "ocr_seconds",
+        "roi_seconds",
+        "classify_seconds",
+        "timing_fields",
+        "缓存不报时间"
       ],
       "sources": [
         {
@@ -1457,6 +1466,14 @@
         {
           "path": "agent/recognition.py",
           "symbol": "MapObservation"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "read_phases"
+        },
+        {
+          "path": "agent/recognition.py",
+          "needle": "    def timing_fields(self):"
         }
       ],
       "docs": [
@@ -1475,7 +1492,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d67-a-rate-over-a-proxy-is-not-a-rate",
         "docs/wiki/zh_cn/2.3-decisions.md#d67-用代理量算出的比率不是比率",
         "docs/wiki/en_us/2.3-decisions.md#d68-a-read-that-does-not-time-itself-cannot-be-split",
-        "docs/wiki/zh_cn/2.3-decisions.md#d68-不会计时的读取拆不开"
+        "docs/wiki/zh_cn/2.3-decisions.md#d68-不会计时的读取拆不开",
+        "docs/wiki/en_us/2.3-decisions.md#d70-the-reads-cost-is-the-full-frame-ocr-and-now-the-row-says-so",
+        "docs/wiki/zh_cn/2.3-decisions.md#d70-一次读取的成本就是整帧-ocr现在这一行自己会说了"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1489,7 +1508,7 @@
         "python -m pytest -q tests/test_run_endings.py",
         "python tools/audit_time.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0. D63: 领奖结果由 reward_task 自己写（executed/stopped/skipped），payout_rate 的分母是\"记录了领奖结果的运行\"；142 局旧日志没有这个事件，所以它是 None 且一直是，放宽语料 glob 必须作为单独一次决定。 D66: 秒数按\"到下一行\"的间隔记在前一行账上，它是预算不是 profile；占比的分母是已归属秒数，解释不了的部分单列。 D67: 步进比率的分母是各局声明的步数，心跳条数只作记录说明；分子只取声明过步数的那批局。 D68: 每次读取现在自述时长，于是\"读取组\"可以被拆成节点自己与包装；旧语料没有这个字段，必须读成未测量。",
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0. D63: 领奖结果由 reward_task 自己写（executed/stopped/skipped），payout_rate 的分母是\"记录了领奖结果的运行\"；142 局旧日志没有这个事件，所以它是 None 且一直是，放宽语料 glob 必须作为单独一次决定。 D66: 秒数按\"到下一行\"的间隔记在前一行账上，它是预算不是 profile；占比的分母是已归属秒数，解释不了的部分单列。 D67: 步进比率的分母是各局声明的步数，心跳条数只作记录说明；分子只取声明过步数的那批局。 D68: 每次读取现在自述时长，于是\"读取组\"可以被拆成节点自己与包装；旧语料没有这个字段，必须读成未测量。 D70: 读取的 `seconds` 现在带三段（整帧 OCR / ROI 重读 / 分类）；缓存命中不报时间，旧语料报\"分段未测量\"，且回放帧不含设备截图。",
       "locations": [
         {
           "path": "src/maalimbus/pages.py",
@@ -1501,13 +1520,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 95,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 120,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "tools/audit_runs.py",
@@ -1537,13 +1556,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
           "line": 345,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
           "line": 494,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "tools/audit_efficiency.py",
@@ -1561,49 +1580,61 @@
           "path": "src/maalimbus/run_metrics.py",
           "needle": "PAYOUT_EVENTS = (",
           "line": 317,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_budget",
           "line": 560,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "time_portfolio",
-          "line": 707,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "line": 735,
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "tools/audit_time.py",
           "symbol": "main",
           "line": 16,
-          "sha256": "90e9d53ddc852a6b89fc85050849e8e6c4837958256cc957217d70ce113e170a"
+          "sha256": "dd82e60fb337e433a3b88d93602d88178c1b480d541ba26c8001c5a965f2b0b7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "needle": "        'heartbeats': heartbeats,",
           "line": 385,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_cost",
           "line": 609,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "read_split",
-          "line": 679,
-          "sha256": "7a79455ef5ffd05e7808df8db846bb9c3b0b26bf1c41660c32af3d48fe1463a7"
+          "line": 707,
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
         },
         {
           "path": "agent/recognition.py",
           "symbol": "MapObservation",
-          "line": 1238,
-          "sha256": "3473ec586d50fd8e537195fb193dc130393d2d50844d11a47430b197e3b83464"
+          "line": 1290,
+          "sha256": "61e3b8c78dff1246bcb6e6b7e7c9f890434b0521c5f58f50b86501f55c00604e"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "symbol": "read_phases",
+          "line": 654,
+          "sha256": "c92f13eedf54f058b023d06653efa546a424edaf5ac46951bb3faf678c1024c7"
+        },
+        {
+          "path": "agent/recognition.py",
+          "needle": "    def timing_fields(self):",
+          "line": 171,
+          "sha256": "61e3b8c78dff1246bcb6e6b7e7c9f890434b0521c5f58f50b86501f55c00604e"
         }
       ]
     },
