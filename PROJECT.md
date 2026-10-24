@@ -4953,3 +4953,52 @@ MuMu 12 `127.0.0.1:16416`，`evidence/runtime/screencap-20261023-215900/screenca
 
 **下一步**：节点点击的判决在页面随后进入 `NODE_PANEL` 时仍写 `the_map_stayed_with_the_party_in_place`
 （它比较队伍像素，不比较下一次读取命名的页面）；`controller not found` 说明任务被拆后句柄仍报非空 id（D71 的已知局限）。
+
+## DSH continuation: 点击的判决属于下一次读取（D76）
+
+**三条根因（本轮结论）**
+
+1. **判决发生在唯一无法验证它的时刻。** 地图点击的成败在 settle 窗口内定死；而打开节点
+   面板的点击不动队伍、面板动画可能晚于窗口完成。两次实机运行（`…-233928`、`…-235553`）
+   都是"当时判拒绝、下一次读取命名 `NODE_PANEL`"。
+2. **一次错判决触发一条自我强化的回路。** `map_refused_streak ≥ 1` 把
+   `map.progress_button` 逃生口交给 window，于是循环离开探索、回到入口、重新进图 ——
+   `packaged-mirror-20261023-231231` 上这个循环约 90 秒，且从不尝试下一个节点。
+3. **"页面没变"被当成"点击失败"。** 这句话在语义上是关于*观测*的断言，而在代码里被当成
+   关于*输入*的判决。
+
+**改动**
+
+- `src/maalimbus/runner.py`：两个"页面没变"站点（无候选分支、队伍分支）改记
+  `outcome='unjudged'`，并把 `target`/`kind`/`frame` 存进 `state['map_unjudged']`；
+  新增 `MirrorRunner._resolve_map_click(page)`，在 `step` 的第一次读取之后清算：
+  非地图页面 → `accepted`（`the_click_was_taken_after_the_verdict`，连击清零）；仍是地图
+  → `rejected`（`the_click_was_not_taken_and_the_page_stayed`），此时才计连击。
+- 清算用 `map_dispatch.is_map(page)`，不新增页面字面量 —— D44 的棘轮把第一版判红，判得对。
+- `src/maalimbus/run_metrics.py`：`CLICK_VERDICTS` 增加 `unjudged`，
+  `tools/audit_map_clicks.py` 打印 `unjudged` 列，表不再声称尚未发生的落地。
+- `tests/test_map_verdict_late.py`（7 个）：晚到被接受、真没动被升级为拒绝、无待判决不写、
+  不可读页面不算失败、`unjudged` 不花连击、队伍分支同样临时、表里有第五种判决。
+
+**证据**
+
+| 项目 | 结果 |
+| --- | --- |
+| 实机（获授权） | `packaged-mirror-20261023-235553`，162.3 s，9 次点击，`stop: loop_deadline_exceeded`，floors `[2]` |
+| 该运行走到的最远页面 | `NODE_PANEL` → 点进入 → 识别器叫不出名字的界面（E.G.O 遗物获得 + `Check Passed` + `SKIP`） |
+| 该运行写下的判决 | `superseded`、`the_map_stayed_with_the_party_in_place`（旧终局）—— 正是把第二处站点也改成临时判决的证据 |
+| 守卫 | `tests/test_pages.py::test_the_runner_does_not_accumulate_new_page_specific_checks` 判红（新页面字面量）→ 改用 `is_map`；`tests/test_plan_successors.py` 判红（新运行新增落点）→ 计数 +1（D58 规则：移动计数，不动规则） |
+| 全量测试 | `2394 passed in 236.28 s`（见 `build/full-r34b.log`），pytest 退出码 0 |
+| 冷启动/效率 | 151 → 152 个运行；`clear_rate 0.0`、`payout_rate 未测量`、`mean_seconds ≈273`（新运行 162 s） |
+
+**下一轮的第一优先项（本轮实机直接指出）**：`NODE_PANEL` 点进入之后，界面是
+"E.G.O Gift … obtained!" + `Check Passed` + `SKIP`，识别器连续 11 次读成 `UNKNOWN`，
+预算就在那里耗尽。这是**感知缺口**（有明确文本锚点），而不是流程死锁：加一条场景规则
+就能让它继续推进。
+
+**可迁移的经验**
+
+1. 判决必须属于那个还能推翻它的观测；settle 窗口内的"没变"是关于观测的陈述。
+2. 一次错判决的代价由**下游回路**决定（这里是一整个 90 秒的重新进图），所以先算代价再决定临时化。
+3. 让守卫替你数类别：新增页面字面量被判红，改用既有谓词而不是改基线。
+4. 写文档时回头核对证据：本轮草稿曾写"两次点击被 D76 接受"，核对日志后改成了"那次运行仍写旧终局"。

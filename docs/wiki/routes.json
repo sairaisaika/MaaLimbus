@@ -601,7 +601,16 @@
         "bright_lit_icon",
         "gold_badge_node",
         "audit_map_clicks",
-        "box_key"
+        "box_key",
+        "map_unjudged",
+        "unjudged",
+        "_resolve_map_click",
+        "the_click_was_taken_after_the_verdict",
+        "the_click_was_not_taken_and_the_page_stayed",
+        "临时判决",
+        "provisional verdict",
+        "晚开的面板",
+        "late panel"
       ],
       "sources": [
         {
@@ -655,6 +664,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "def _kind_rank(kind):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def _resolve_map_click(self, page):"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "CLICK_VERDICTS = ('accepted', 'rejected', 'superseded', 'unjudged')"
         }
       ],
       "docs": [
@@ -665,13 +682,16 @@
         "docs/wiki/en_us/2.3-decisions.md#d65-an-effect-the-journal-cannot-see-is-not-a-verdict",
         "docs/wiki/zh_cn/2.3-decisions.md#d65-日志看不见的效果不能当成判决",
         "docs/wiki/en_us/2.3-decisions.md#d75-the-click-boxs-kind-is-a-fact-the-reader-already-had",
-        "docs/wiki/zh_cn/2.3-decisions.md#d75-点击框的种类识别器早就知道"
+        "docs/wiki/zh_cn/2.3-decisions.md#d75-点击框的种类识别器早就知道",
+        "docs/wiki/en_us/2.3-decisions.md#d76-a-clicks-verdict-belongs-to-the-read-that-can-still-contradict-it",
+        "docs/wiki/zh_cn/2.3-decisions.md#d76-一次点击的判决属于那个还能推翻它的读取"
       ],
       "tests": [
         "tests/test_recovery_ladder.py",
         "tests/test_ladder_evidence.py",
         "tests/test_map_nodes_journal.py",
-        "tests/test_map_click_kinds.py"
+        "tests/test_map_click_kinds.py",
+        "tests/test_map_verdict_late.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_recovery_ladder.py tests/test_ladder_evidence.py",
