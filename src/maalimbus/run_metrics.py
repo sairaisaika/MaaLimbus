@@ -473,6 +473,7 @@ def metrics(runs):
 def portfolio(directories=None):
     """Every run plus the six figures, so a report is one command, not a recount."""
     runs = []
+    budgets = []
     for directory in _archives(directories):
         rows = _rows_of(directory)
         if not rows:
@@ -480,4 +481,151 @@ def portfolio(directories=None):
         entry = {'run': directory.name}
         entry.update(efficiency(rows))
         runs.append(entry)
-    return {'runs': runs, 'measures': metrics(runs)}
+        budgets.append(time_budget(rows))
+    return {'runs': runs, 'measures': metrics(runs), 'time': time_portfolio(budgets)}
+
+
+# ------------------------------------------------------------------------ time (D66)
+
+
+# Phase 6 asked for a mean duration and `mean_seconds` supplied one.  The question the
+# next sentence always asks is *which event owns that time*, and the journal can answer
+# it without any new instrumentation, because every row already carries its own `utc`:
+# the gap from a row to the next stamped row is the time that row cost.  Measured on the
+# 142 retained runs on 2026-10-23: 29 538 s attributable, of which `map_observed` held
+# 13 650 s (46.2%, 2.45 s per read) and `window_unknown_wait` 4 434 s (15.0%, 8.9 s per
+# round).  That is the number a speed claim has to move, and it was not on any report.
+#
+# A gap is only attributed when it is a step and not a stall: a run that was paused by the
+# host, or one whose clock jumped, would otherwise hand one event minutes it did not cost.
+MAX_GAP_SECONDS = 120.0
+TIME_GROUPS = (
+    ('reads', ('map_observed', 'battle_observed', 'scene_mismatch')),
+    ('waits', ('window_unknown_wait', 'window_transition_wait', 'loop_heartbeat',
+               'pi_controller', 'window_unknown_probe', 'window_page_wait')),
+    ('inputs', ('window_intent', 'map_click_result')),
+    ('recovery', ('window_recovery',)),
+)
+GROUP_OF = {event: group for group, events in TIME_GROUPS for event in events}
+OTHER_GROUP = 'other'
+
+
+def group_of(event):
+    """Which budget line an event belongs to; an unknown event is `other`, never dropped."""
+    return GROUP_OF.get(str(event), OTHER_GROUP)
+
+
+def stamped(rows):
+    """[(event, stamp)] for the rows whose `utc` really parses, in journal order."""
+    from datetime import datetime
+    out = []
+    for row in rows:
+        value = row.get('utc')
+        if not isinstance(value, str):
+            continue
+        try:
+            out.append((str(row.get('event')), datetime.fromisoformat(value)))
+        except ValueError:
+            continue
+    return out
+
+
+def time_budget(rows, *, cap=MAX_GAP_SECONDS):
+    """One run's seconds attributed to the event that cost them.
+
+    `attributed_seconds` is what the journal can explain; `unattributed_seconds` is the
+    rest (no stamps, a single stamp, or a gap beyond `cap`).  Both are reported, because
+    a budget that silently drops the unexplained part is a share of nothing.
+    """
+    pairs = stamped(rows)
+    per_event = {}
+    attributed = 0.0
+    capped = 0
+    for (event, when), (_, then) in zip(pairs, pairs[1:]):
+        gap = (then - when).total_seconds()
+        if gap < 0:
+            continue
+        if gap > cap:
+            capped += 1
+            continue
+        attributed += gap
+        entry = per_event.setdefault(event, {'seconds': 0.0, 'n': 0})
+        entry['seconds'] += gap
+        entry['n'] += 1
+    total = (pairs[-1][1] - pairs[0][1]).total_seconds() if len(pairs) >= 2 else None
+    events = {}
+    for event, entry in per_event.items():
+        events[event] = {'seconds': round(entry['seconds'], 1), 'n': entry['n'],
+                         'mean': round(entry['seconds'] / entry['n'], 2),
+                         'group': group_of(event)}
+    groups = {}
+    for event, entry in events.items():
+        bucket = groups.setdefault(entry['group'], {'seconds': 0.0, 'n': 0, 'events': []})
+        bucket['seconds'] += entry['seconds']
+        bucket['n'] += entry['n']
+        bucket['events'].append(event)
+    for bucket in groups.values():
+        bucket['seconds'] = round(bucket['seconds'], 1)
+        bucket['events'] = sorted(bucket['events'],
+                                  key=lambda name: -events[name]['seconds'])
+    return {
+        'total_seconds': None if total is None else round(total, 1),
+        'attributed_seconds': round(attributed, 1),
+        'unattributed_seconds': (None if total is None
+                                 else round(max(0.0, total - attributed), 1)),
+        'capped_gaps': capped,
+        'events': events,
+        'groups': groups,
+    }
+
+
+def time_portfolio(budgets):
+    """Many runs' budgets folded into one, with the share each group owns.
+
+    `None` when no run carried two parseable timestamps: a mean duration over an empty
+    corpus is not zero seconds, it is not a duration.
+    """
+    timed = [budget for budget in budgets if budget['total_seconds'] is not None]
+    attributed = round(sum(budget['attributed_seconds'] for budget in timed), 1)
+    total = round(sum(budget['total_seconds'] for budget in timed), 1)
+    groups = {}
+    events = {}
+    for budget in timed:
+        for group, bucket in budget['groups'].items():
+            entry = groups.setdefault(group, {'seconds': 0.0, 'n': 0, 'events': {}})
+            entry['seconds'] += bucket['seconds']
+            entry['n'] += bucket['n']
+            for event in bucket['events']:
+                detail = budget['events'][event]
+                kept = entry['events'].setdefault(event, {'seconds': 0.0, 'n': 0})
+                kept['seconds'] += detail['seconds']
+                kept['n'] += detail['n']
+        for event, detail in budget['events'].items():
+            merged = events.setdefault(event, {'seconds': 0.0, 'n': 0,
+                                               'group': detail['group']})
+            merged['seconds'] += detail['seconds']
+            merged['n'] += detail['n']
+    for entry in groups.values():
+        entry['seconds'] = round(entry['seconds'], 1)
+        entry['share'] = round(entry['seconds'] / attributed, 3) if attributed else None
+        entry['events'] = sorted(entry['events'],
+                                 key=lambda name: -entry['events'][name]['seconds'])
+    for entry in events.values():
+        entry['seconds'] = round(entry['seconds'], 1)
+        entry['mean'] = round(entry['seconds'] / entry['n'], 2) if entry['n'] else None
+        entry['share'] = round(entry['seconds'] / attributed, 3) if attributed else None
+    return {
+        'value': None if not timed else {
+            'attributed_seconds': attributed,
+            'total_seconds': total,
+            'per_event': dict(sorted(events.items(),
+                                     key=lambda pair: -pair[1]['seconds'])[:10]),
+            'groups': dict(sorted(groups.items(),
+                                  key=lambda pair: -pair[1]['seconds'])),
+        },
+        'basis': f'{len(timed)} of {len(budgets)} runs carry two or more timestamps, '
+                 f'{round(sum(b["capped_gaps"] for b in timed))} gap(s) beyond '
+                 f'{MAX_GAP_SECONDS:.0f} s excluded',
+        'note': (None if timed else
+                 'no run carries two parseable timestamps, so no time was attributed'),
+    }
