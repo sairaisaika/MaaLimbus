@@ -5367,3 +5367,28 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 
 局限：每个输入只承载一次、十秒上限；承载失败仍以 `RouteLost` 命名结束，因为「起一个新任务」属于调用方。
 这次是**类别修复**：它把「预测/要回路由」这一整类尝试换成「走已知可用的那条路（任务）」。
+
+## DSH continuation: 一个永远不回答的请求，不能占据整次运行（D88/D89）
+
+900 秒实机 `evidence/runtime/packaged-mirror-20261024-032301` 在 07:23:07–07:25:48 写了 185 行，此后
+**903.6 秒**没有任何记录，最后被测试台杀掉（`floors: [3]`）。卡住的位置是恢复动作的一次原生调用
+（MaaFW 日志：`unexpected msg [_ControllerPostTouchDownReverseRequest controller_id=""]`），而它前后的两次
+`map_observed` 都正常完成。
+
+| 项目 | 改前 | 改后 |
+| --- | --- | --- |
+| 一次输入请求是否可能永占运行 | 是（阻塞在 `post_click`/`post_swipe` 内部） | 否：`jobs.call_with_a_deadline()` 放守护线程，`INPUT_CALL_SECONDS` = 10 秒 |
+| 被放弃的请求 | 无概念 | `inputs_abandoned` 计数、路由标记可疑、仍走一次承载（D87）再按名结束 |
+| 无进展看门狗的默认窗口 | `PROGRESS_SECONDS = 900.0`（对 420 s 预算会被夹到预算，对 900 s 预算等于没有） | **90.0**（p99 = 9.27 秒的十倍；观察到的最短卡死 421 秒） |
+| 实机 900 秒运行的看门狗开火时间 | 903.6 秒（预算点，晚于测试台） | 理论 90 秒 |
+
+改动：`src/maalimbus/jobs.py`（`call_with_a_deadline`）、`src/maalimbus/runner.py`
+（`INPUT_CALL_SECONDS`、`ABANDONED_INPUT`、`_send` 改用期限调用、`input_withheld` 增记 `abandoned`、
+`PROGRESS_SECONDS` 90 秒并写明测量）、`tests/test_input_call_deadline.py`（8）、
+`tests/test_progress_window.py`（4）、`tests/test_unknown_pacing.py`（一处断言改为与负载无关）。
+
+测量：语料 25 880 个相邻日志行间隔——p50 0.02 秒、p90 5.07 秒、p99 9.27 秒；超过 60 秒的 25 个间隔**全部**
+是卡死。
+
+局限：被放弃的线程会留到进程结束；它发出的请求可能仍在框架内飞行，所以循环把此类路由当作已失去直接结束，
+而不是往同一个洞里重试。
