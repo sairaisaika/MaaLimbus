@@ -119,6 +119,24 @@ def frame_identity(directory, name):
         return None
 
 
+
+def frame_identity(directory, name):
+    """The picture's own name, read from the frame record the recorder just wrote (D105).
+
+    The journal row used to carry `frame` (a fresh file name per read, so it names the
+    *file*, not the picture) and no hash, which is why D104's frozen-screen rule could
+    never fire: over `packaged-mirror-20261024-072236` all 97 `map_observed` rows had
+    `image_sha256` absent. The frame JSON already holds the hash, so the row copies it.
+    """
+    if not name or directory is None:
+        return None
+    path = Path(directory) / (str(name) + '.json')
+    try:
+        return json.loads(path.read_text(encoding='utf-8')).get('image_sha256')
+    except (OSError, ValueError):
+        return None
+
+
 def in_roi(record, roi, size):
     """Whether a record's centre sits inside ``roi`` (normalised 0..1 corners)."""
     x, y, w, h = record.box
@@ -1228,6 +1246,7 @@ class ThemeObservation(CustomAction):
         if header is not None:
             self.recognition.journal.record('map_observed',frame=frame,floor=header.floor,
                 pack=header.pack,route=route_decision(header,size),
+                image_sha256=frame_identity(getattr(self.recognition.journal,'directory',None),frame),
                 image_sha256=frame_identity(self.directory,frame),
                 **self.recognition.timing_fields(),
                 # This writer sees a fresh map page before the main observation does. It used
@@ -1299,6 +1318,7 @@ class MapObservation(CustomAction):
         team=pre_battle_team_page(records,size) if scene=='PRE_BATTLE_TEAM' else None
         self.recognition.journal.record('map_observed',frame=frame,scene=scene,
             seconds=round(time.monotonic()-started,2),
+            image_sha256=frame_identity(getattr(self.recognition.journal,'directory',None),frame),
             image_sha256=frame_identity(self.directory,frame),
             **self.recognition.timing_fields(),
             floor=None if header is None else header.floor,
