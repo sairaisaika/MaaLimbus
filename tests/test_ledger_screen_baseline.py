@@ -126,3 +126,14 @@ def test_a_ledger_written_before_adoption_still_attributes_its_commit(tmp_path):
     tx.path.write_text(__import__("json").dumps(data), encoding="utf-8")
     tx.receipt_intent("Some Other Gift", "frame-0003", on_notice_page=True)
     assert tx.data["pending"]["title"] == "Melted Eyeball"
+
+
+def test_a_ledger_says_which_reader_wrote_it(tmp_path):
+    """D141: the generation is recorded, so 'older' is a fact instead of an inference."""
+    tx = _fresh(tmp_path)
+    tx.prepare("s", _offers(owned=True), {"chosen": 1, "required": 1}, "frame-0001")
+    on_disk = __import__("json").loads(tx.path.read_text(encoding="utf-8"))
+    assert on_disk["schema"] == __import__("maalimbus.floor_gift_transaction", fromlist=["x"]).SCHEMA
+    legacy = FloorGiftTransaction(tmp_path / "old.json")
+    legacy.path.write_text(__import__("json").dumps({"scope": "s", "selected": [], "pending": None}), encoding="utf-8")
+    assert FloorGiftTransaction(tmp_path / "old.json").schema == 1

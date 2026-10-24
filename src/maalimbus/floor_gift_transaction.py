@@ -5,6 +5,11 @@ from pathlib import Path
 
 from .storage import read_json, write_json
 
+#: What this reader writes today.  A ledger without it was written by an older reader,
+#: and "older" is the only thing that can explain a field the current rules need but the
+#: record does not carry (measured: `selected` empty on a ledger written before D138).
+SCHEMA = 2
+
 #: The page families that end a floor gift's pick sequence without another pick:
 #: the theme-pack shelf and the map both mean this floor's gift step is over.
 FINAL_SUCCESSOR_PAGES = ('THEME_PACKS', 'MAP')
@@ -19,6 +24,8 @@ class FloorGiftTransaction:
     def __init__(self, path):
         self.path = path
         self.data = read_json(path) if path.exists() else None
+        # D141: the reader's generation is a fact about the record, not a guess.
+        self.schema = int((self.data or {}).get('schema') or 1) if self.data else SCHEMA
 
     @staticmethod
     def _picks(d):
@@ -56,7 +63,7 @@ class FloorGiftTransaction:
             # refuse with floor_gift_receipt_unknown_repeated_or_pending.
             owned_titles=[o.title for o in offers if getattr(o,'owned',False)]
             adopted_titles=owned_titles[:count['required']] if count['chosen']>=count['required'] else []
-            d = dict(scope=scope,offer=signature,required=count['required'],
+            d = dict(schema=SCHEMA,scope=scope,offer=signature,required=count['required'],
                      screen_before=count['chosen'],selected=list(adopted_titles),
                      adopted=bool(adopted_titles),picked_owned={},pending=None,commit_sent=False,receipts=[],
                      substitutions=[],completed=False,proofs=[str(proof)],history=history)
