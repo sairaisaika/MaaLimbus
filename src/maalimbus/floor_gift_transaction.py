@@ -83,14 +83,32 @@ class FloorGiftTransaction:
         fresh=read_json(Path(proof)); fresh_hash=hashlib.sha256(Path(proof).with_suffix('.png').read_bytes()).hexdigest()
         if fresh_hash!=fresh.get('image_sha256') or fresh_hash==old_hash or fresh.get('scene')!='GIFT_PICK':
             raise ValueError('floor_gift_fresh_pick_successor_not_proven')
-        if (self.signature(old_offers)!=d['offer'] or old_count!={'chosen':pending['before'],'required':d['required']}
+        # The count may carry a third key naming which evidence it used (`evidence:
+        # owned_caption`, D133); this check is about the two numbers, so it compares
+        # those and not the whole dict.
+        if (self.signature(old_offers)!=d['offer']
+                or old_count.get('required')!=d['required']
                 or pending['title'] not in [o.title for o in old_offers if not o.unpriced]):
             raise ValueError('floor_gift_original_pick_offer_not_proven')
+        # The ledger can be older than this reader: `before` was written by whichever
+        # build reserved the pick, and a reader that can now see the `Owned` caption
+        # (D133) reads one more selected card on the very same retained frame.  The
+        # offers and the title are what prove the pick; when they agree and only the
+        # count moved, the count is refreshed instead of the run being stopped
+        # (measured 2026-10-24: stored before=0, re-read chosen=1 on
+        # packaged-mirror-20261024-144625/frame-0010).
+        if old_count.get('chosen')!=pending['before']:
+            pending['before']=old_count.get('chosen')
+            d['pending']=pending
+            d.setdefault('history',[]).append({'event':'ledger_before_count_refreshed',
+                                              'scope':scope,'now':pending['before']})
+            write_json(self.path,d)
         self.observe_pick(offers,count,proof)
 
     def observe_pick(self, offers, count, proof):
         d=self.data; p=d['pending']
-        if not p or p['kind']!='pick' or self.signature(offers)!=d['offer'] or count!={'chosen':p['before']+1,'required':d['required']}:
+        if (not p or p['kind']!='pick' or self.signature(offers)!=d['offer']
+                or (count.get('chosen'),count.get('required'))!=(p['before']+1,d['required'])):
             raise ValueError('floor_gift_selection_postcondition_not_proven')
         d['selected'].append(p['title']);d['pending']=None
         d['proofs'].append(str(proof));write_json(self.path,d)
