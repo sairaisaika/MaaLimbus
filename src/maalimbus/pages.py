@@ -946,7 +946,10 @@ SUCCESSORS_THE_ARCHIVE_SAW = {
     'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8, 'EVENT_RESULT_READY': 8},
     'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 10, 'GIFT_GET': 3},
     'the_check_outcome_is_tapped_through_until_its_control_lights_up': {'CUTSCENE': 3, 'EVENT_CHECK_READY': 7},
-    'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},
+    'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},    # Measured 2026-10-24 (`packaged-mirror-20261024-181536`): a battle the loop started
+    # from the pre-battle page goes through the loader before its HUD.
+    'battle_button_submits_the_team': {'LOADING': 3},
+
 }
 
 # What each rung of `runner.RECOVERY_LADDER` was observed to do to the *view*, per page.

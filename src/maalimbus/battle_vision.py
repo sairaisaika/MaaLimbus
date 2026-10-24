@@ -261,6 +261,22 @@ def start_button(records, size, image=None):
         # gates: a missing `Damage` there still means the reading is not trusted.
         if hud.get('turn') is None:
             return submit_dial(image)
+        # D151: a readable `TURN` is not evidence that the dial can be found by its
+        # captions.  Measured 2026-10-24 (operator screenshot, TURN 7, MAX, every slot
+        # assigned, `Win Rate` ticked): the board reads its turn, the captions resolve,
+        # and the dial's band was still empty -- `moving` and `captured` both refused, so
+        # the loop never pressed START and re-planned the turn until the run ended.
+        # The ring is the control; a caption is only how it was located, so the ring gets
+        # a last look -- but only inside the band its own captions define, because a free
+        # ring would accept any other lit disc (the guard that keeps a shifted dial from
+        # being blessed still applies).
+        ring = submit_dial(image)
+        if ring is not None and buttons is not None:
+            width,height=size;sx,sy=width/1920,height/1080
+            x,y,w,h=buttons['win_rate']
+            cx,cy=ring[0]+ring[2]/2,ring[1]+ring[3]/2
+            if (x-230*sx)<=cx<=(x-10*sx) and (y-75*sy)<=cy<=(y+165*sy):
+                return ring
         return None
     label = matches[0].box
     if image is None:

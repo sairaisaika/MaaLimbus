@@ -27,3 +27,12 @@ def test_shifted_lit_dial_is_bound_to_the_actual_assignment_captions():
 def test_unassigned_dim_dial_stays_unavailable():
     rows,size,image=data(109)
     assert start_button(rows,size,image) is None
+
+
+def test_a_readable_turn_still_gets_the_ring_as_a_last_look():
+    """D151: captions locate the dial, they do not decide it exists."""
+    import inspect
+    import maalimbus.battle_vision as vision
+    source = inspect.getsource(vision.start_button)
+    tail = source.split("if hud.get('turn') is None:")[-1]
+    assert 'submit_dial(image)' in tail, 'the ring is never tried on a turn-readable board'
