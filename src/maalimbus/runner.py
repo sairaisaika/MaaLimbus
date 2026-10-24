@@ -1766,7 +1766,8 @@ def team_state(record, controls):
             # (2026-10-24: gifts planned for slot 2's Charge/Tremor while the game had
             # slot 1's Bleed in play).
             'saved_team': selected_saved_team(records, size),
-            'saved_team_word': (saved_team_header(records, size) or {}).get('word')}
+            'saved_team_word': (saved_team_header(records, size) or {}).get('word'),
+            'saved_team_box': (saved_team_header(records, size) or {}).get('box')}
 
 
 def team_verdict(seen, wanted):
@@ -3217,8 +3218,11 @@ class MirrorRunner:
             if (verdict or {}).get('kind') == 'mismatch':
                 # The board's own preset number is the only fact that says *which* team
                 # would be deployed; a plan that acts on this page would deploy the
-                # operator's other team (D117).
+                # operator's other team (D117).  The header is also the control, so the
+                # plan may select the right one first -- bounded, because a header that
+                # will not cycle is a page that cannot be fixed from here.
                 team['preset_mismatch'] = True
+                team['tries'] = int(state.get('preset_tries') or 0)
         if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team
@@ -4321,6 +4325,11 @@ class MirrorRunner:
             point = (random.randint(x, x + max(1, w)), random.randint(y, y + max(1, h)))
             self.note('window_intent', page=page, target=list(plan['target']),
                       reason=plan['reason'], point=list(point), delay_ms=delay)
+            if plan.get('reason') == 'the_saved_team_is_selected_on_the_board':
+                # Bounded: a header that has not cycled in SELECT_TEAM_TRIES presses is a
+                # page the loop cannot fix from here, and the window refuses it instead
+                # (D117).  The count lives beside the page so leaving it forgets it.
+                state['preset_tries'] = int(state.get('preset_tries') or 0) + 1
             # Inert: when the click went out, and how many events preceded it. A later
             # round can ask `click_trace.classify` with these two numbers; nothing here
             # changes what gets clicked or when the run stops.

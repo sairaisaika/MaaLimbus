@@ -38,10 +38,16 @@ def saved_team_header(records, size):
     """
     hits = find(records, TEAM_HEADER_PATTERN, TEAM_HEADER_ROI, size, TEAM_HEADER_SCORE)
     parsed = []
+    boxes = {}
     for hit in hits:
         match = re.fullmatch(TEAM_HEADER_PATTERN, hit.text, re.I)
         if match is not None:
-            parsed.append((match.group(1).lower(), int(match.group(2))))
+            word = match.group(1).lower()
+            parsed.append((word, int(match.group(2))))
+            # The header is also the control: pressing it opens the preset column, so a
+            # run whose board shows another saved team can pick the right one instead of
+            # stopping (D117's first live effect was a stop at 14 s with 0 clicks).
+            boxes[word] = tuple(int(value) for value in hit.box)
     teams = [slot for word, slot in parsed if word.startswith('team')]
     presets = [slot for word, slot in parsed if word == 'preset']
     # A page that shows any TEAMS header at all speaks that language: its
@@ -51,9 +57,9 @@ def saved_team_header(records, size):
     if not teams and find(records, TEAMS_ONLY_PATTERN, (0.0, 0.0, 1.0, 1.0), size, TEAM_HEADER_SCORE):
         return None
     if len(teams) == 1:
-        return {'slot': teams[0], 'word': 'teams'}
+        return {'slot': teams[0], 'word': 'teams', 'box': boxes.get('team')}
     if not teams and len(presets) == 1:
-        return {'slot': presets[0], 'word': 'preset'}
+        return {'slot': presets[0], 'word': 'preset', 'box': boxes.get('preset')}
     return None
 
 

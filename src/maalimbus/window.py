@@ -1182,9 +1182,17 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if (team or {}).get('preset_mismatch'):
             # The board is showing a different saved team than the one this run deploys
             # (live `packaged-mirror-20261024-111024`: 'Preset #1' on the board, preset 2
-            # in the ledger).  Every action from here -- clear the inherited order, assign
-            # cards, submit -- would deploy the operator's other team, so the page is
-            # refused by name instead (D117).
+            # in the ledger).  The header is also the control, so the first answer is to
+            # press it and read again -- a stop at 14 s with no click is worse than four
+            # bounded attempts (live `…-113756`).  When the column will not cycle the page
+            # is refused by name: every other action here would deploy the wrong team.
+            box = (team or {}).get('saved_box') or (team or {}).get('saved_team_box')
+            tries = int((team or {}).get('tries') or 0)
+            from .pages import SELECT_TEAM_TRIES
+
+            if box is not None and tries < SELECT_TEAM_TRIES:
+                return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
+                             reason='the_saved_team_is_selected_on_the_board')
             return _refuse(page, 'the_board_shows_a_different_saved_team_than_the_plan_deploys')
         if (team or {}).get('reset_required'):
             box=controls.get('pre_battle.clear_selection')

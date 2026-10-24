@@ -538,6 +538,13 @@ DISPATCH_FACTS = {
     'WINDOW_RESET': {'actions': ('CLICK',), 'expects': ('*',), 'refusals': ('weekly_reset_cancel_not_anchored',)},
 }
 
+#: How many times a pre-battle page may be asked to show the saved team this run
+#: deploys before the page is refused (D117).  The header is also the control, so the
+#: first answer to a mismatch is to press it.  Two attempts, because the measurement
+#: said so: live `packaged-mirror-20261024-114050` pressed the header four times and the
+#: page did not change once, so the header is a label on this build and the real preset
+#: column still has to be found.  The bound stays small while that is open.
+SELECT_TEAM_TRIES = 2
 UNREADABLE_PAGE = 'UNKNOWN'
 # D103: the battle screen and its skill-detail overlay are named here so the runner can
 # ask about them without a page comparison of its own (D44's ratchet counts literals).
