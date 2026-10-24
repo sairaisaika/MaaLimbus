@@ -5317,3 +5317,26 @@ click/swipe、`_walk` 捕获 `RouteLost` 写 `input_withheld` 并以该理由结
 | 全量测试（改后） | — | **`2442 passed in 380.72 s`，pytest 退出码 0** |
 
 范围说明：本轮是**类别修复**——它同时改掉了 D71（预先拒绝）与 D84（预测任务）两处判据，而不是再加一个特例。
+
+## DSH continuation: 任务结束时把路由交回去（D86）
+
+900 秒实机 `evidence/runtime/packaged-mirror-20261024-022543` 只写了 152 秒的日志：06:28:21 之后
+781 秒无任何记录（无结局、无看门狗行），最后被测试台按预算杀掉。MaaFW 日志显示最后一次点击是
+`unexpected msg [_ControllerPostClickReverseRequest controller_id=""]`——紧跟在循环**自己发起**的入口任务之后，
+而解释器再没从那次原生调用返回。
+
+| 项目 | 改前 | 改后 |
+| --- | --- | --- |
+| 入口任务结束后的第一次输入 | 直接发出 → 框架拒绝 → 原生调用内阻塞 781 秒 | 先 `post_connection` 再发（不发游戏输入） |
+| 判据 | 无（D71/D84 的两种判据都已被证伪） | 「这个任务是不是循环自己起的」（`_act` 打的标记） |
+| 代价 | 一次运行直接废掉 | 一次重绑调用，只在动作之后的首个输入付 |
+| 全量测试 | 2442 passed | **`2448 passed in 311.47 s`，pytest 退出码 0** |
+
+改动：`src/maalimbus/runner.py`（`MaaDevice.route_suspect`/`mark_action_ended()`、`_send` 里的「先重绑」、
+`_act` 在动作返回时打标记）、`tests/test_input_route_after_action.py`（6 tests）。D85 的被拒修复保留为第二道
+防线；D82 的「拆除后永久关门」保持不变（那是另一条判据，针对失败的节点）。
+
+局限：只移除已知原因；若原生调用仍阻塞，进程内看门狗无法运行，仍由测试台预算兜底（结局有名字，D78）。
+
+本轮 Efficiency：本轮回合计 2 次实机（150 s 与 900 s）与 1 次全量；900 秒运行因这次卡死没有产生有效推进
+（`floors: [3]`，无新楼层），定位成本 = 1 次运行。
