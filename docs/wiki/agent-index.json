@@ -666,8 +666,8 @@
         {
           "path": "src/maalimbus/reward_task.py",
           "symbol": "finish",
-          "line": 27,
-          "sha256": "6f15519028640b621ee4c21e54fc177f8ab36b68ea0466912217f42ac1d60d1e"
+          "line": 41,
+          "sha256": "9d6a292614e0c329c8b389fbe6ee80c2ec1b95fea7a85aacf58adaf8b847fb43"
         },
         {
           "path": "src/maalimbus/storage.py",
@@ -865,13 +865,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "rung_effect",
           "line": 211,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ladder_effect",
           "line": 250,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "src/maalimbus/pages.py",
@@ -1298,7 +1298,16 @@
         "reads_per_step",
         "no_progress_stop_rate",
         "unconfirmed_purchases",
-        "None 与 0"
+        "None 与 0",
+        "payout_rate",
+        "reward_task_executed",
+        "reward_task_stopped",
+        "reward_task_skipped",
+        "PAYOUT_EVENTS",
+        "领奖率",
+        "有没有领到奖",
+        "payout",
+        "claimed"
       ],
       "sources": [
         {
@@ -1340,6 +1349,14 @@
         {
           "path": "tools/audit_efficiency.py",
           "symbol": "main"
+        },
+        {
+          "path": "src/maalimbus/reward_task.py",
+          "needle": "def _note("
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "PAYOUT_EVENTS = ("
         }
       ],
       "docs": [
@@ -1350,17 +1367,20 @@
         "docs/wiki/en_us/2.3-decisions.md#d60-one-budget-cannot-count-two-different-events",
         "docs/wiki/zh_cn/2.3-decisions.md#d60-一个预算不能同时数两件事",
         "docs/wiki/en_us/2.3-decisions.md#d61-the-efficiency-figures-have-one-owner-and-a-zero-is-not-a-measurement",
-        "docs/wiki/zh_cn/2.3-decisions.md#d61-效率数字只能有一个主人而零不是测量结果"
+        "docs/wiki/zh_cn/2.3-decisions.md#d61-效率数字只能有一个主人而零不是测量结果",
+        "docs/wiki/en_us/2.3-decisions.md#d63-a-run-that-never-says-it-was-paid-cannot-be-measured",
+        "docs/wiki/zh_cn/2.3-decisions.md#d63-说不清有没有领到奖的运行量不出通关率"
       ],
       "tests": [
         "tests/test_run_endings.py",
         "tests/test_read_failure.py",
-        "tests/test_run_efficiency.py"
+        "tests/test_run_efficiency.py",
+        "tests/test_payout_journal.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0.",
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure. D60: a failed read is bounded twice -- consecutively inside one settle loop (unreadable_rounds, default 2) and by steps at the top (read_retries); the two are independent numbers and the step record carries reads_failed. D61: the six phase-6 figures come from run_metrics.efficiency/metrics/portfolio; a figure the journal cannot supply is None with a reason, never 0. D63: 领奖结果由 reward_task 自己写（executed/stopped/skipped），payout_rate 的分母是\"记录了领奖结果的运行\"；142 局旧日志没有这个事件，所以它是 None 且一直是，放宽语料 glob 必须作为单独一次决定。",
       "locations": [
         {
           "path": "src/maalimbus/pages.py",
@@ -1372,13 +1392,13 @@
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "ending",
           "line": 95,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "unknown_stop_paths",
           "line": 120,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "tools/audit_runs.py",
@@ -1407,20 +1427,32 @@
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "efficiency",
-          "line": 307,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "line": 311,
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
           "symbol": "portfolio",
-          "line": 420,
-          "sha256": "64dcc16d54ae50991eb3d3b9d9271bd1fc3701470bb4cbb43dee4a0f9884be3c"
+          "line": 442,
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         },
         {
           "path": "tools/audit_efficiency.py",
           "symbol": "main",
           "line": 20,
           "sha256": "de8b5f8b909d4201bbb278a9b3fd1f3e237e3009ed0c2540e7dec43341dd0de2"
+        },
+        {
+          "path": "src/maalimbus/reward_task.py",
+          "needle": "def _note(",
+          "line": 15,
+          "sha256": "9d6a292614e0c329c8b389fbe6ee80c2ec1b95fea7a85aacf58adaf8b847fb43"
+        },
+        {
+          "path": "src/maalimbus/run_metrics.py",
+          "needle": "PAYOUT_EVENTS = (",
+          "line": 283,
+          "sha256": "aae6a7636bdad5b3039595c83e52db44d178faf73b7e0038b00130824fe3b720"
         }
       ]
     },

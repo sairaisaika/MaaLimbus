@@ -4413,3 +4413,55 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 
 **下一单位**：框不等于节点——把节点几何纳入 `map_observed`（或在 MAP 恢复后记录候选集），
 才能把 `rarely` 从"下界"变成"判决"；以及 30 个 post-input `plan['reason']` 块。
+
+## DSH continuation: 说不清有没有领到奖的运行，量不出通关率 (2026-10-23)
+
+本阶段（第 24 轮）只读审计后落地的唯一改动：**把"领奖"这件事写进日志，并让通关率有一个能被测量的分母**。
+
+### 三个最关键的原因（本轮证据）
+
+1. **循环存在的唯一目的没有记录。** `agent/recognition.py` 的奖励分支在
+   `journal.record('main_task_stopped', **result)` 那一行之前就 `return`，而其它每个任务动作都会
+   写这行；`reward_task.py` 只在失败时写一个 `reward_task_stopped`。于是 `clear_rate` 只能量探索
+   那一半，D61 的报表在自己的 note 里承认了这一点。
+2. **"没领到"与"没走到"被同一个数字表示。** 旧报表没有领奖事件时只能印 0 或干脆不印，两者都不是
+   事实。
+3. **指标的分母没有在代码里成为一句话。** `payout_rate` 必须是"记录了领奖结果的运行"的比率，
+   而不是全部运行的比率，否则死在二层的运行会被算成"没领到奖"。
+
+### 改动
+
+- `src/maalimbus/reward_task.py`：新增 `_note(journal, event, **fields)`（journal 可为 None 或替身，
+  不新增调用方要求）；三条提前返回各写 `reward_task_skipped`，两条成功路径写
+  `reward_task_executed`（`scope/passed/reason/reward_received/inputs_sent`，补账路径另带 `resumed`），
+  失败路径的 `reward_task_stopped` 补 `passed: False`、`reward_received: False`。
+- `src/maalimbus/run_metrics.py`：`PAYOUT_EVENTS`、`efficiency()['payout']`（无事件即 `None`，
+  停下的领奖 `claimed: False` 并带原因）、`MEASURES` 增加 `payout_rate`，`basis` 为
+  `N of M runs that recorded a payout outcome claimed it`，无事件时 `note` 直说"未测量"并指出
+  奖励分支曾经提前 return。
+- `tests/test_payout_journal.py`：10 例，覆盖跳过/停下/已验证领取、无 journal 的调用方、
+  三种 `payout` 形状、只对有记录的运行求比率、以及"未测量"。
+
+### 前后对比
+
+| 指标 | 改动前 | 改动后 |
+| --- | --- | --- |
+| 通关率 | 只能量探索（`clear_rate`），领奖不可见 | `payout_rate`：分母为"记录了领奖结果的运行" |
+| 无事件的语料 | 只能印 0 或空白 | `None` + 一句"未测量" |
+| 停下的领奖 | 与"没走到"无法区分 | `claimed: False` + error 作为原因 |
+| 测试 | — | 新增 10 例；全套 `2289 passed in 200.79 s`，pytest 退出码 0 |
+
+### 就地说明的失败
+
+`tools/verify_reward_task_offline.py` 退出 1（`assert 'not authorized' in blocked['reason']`）。
+用 `git stash` 把本改动的两个文件退回 `HEAD` 后同样失败，证明是那条离线审计自己的过期期望，
+不是本轮引入；在这里点名而不是悄悄吸收。
+
+### 未做（明确留给下一阶段）
+
+- 142 局留存的 `packaged-mirror-*` 永远不会补上领奖事件，所以它们的 `payout_rate` 是 `None` 且
+  一直是；第一个带该事件的 `packaged-reward-*` 日志才会填上它。放宽 `run_metrics._archives` 的
+  glob 会让七个数字同时改口径（D61 的唯一定义），必须单独一次决定。
+- `map_observed` 不记录它找到的节点，所以"某级手势是否把节点移进视野"量不出来，D62 的 `rarely`
+  仍是下界。
+- `MirrorRunner.step` 的 30 个输入后 `plan['reason']` 分支（约 450 行）仍未成表。
