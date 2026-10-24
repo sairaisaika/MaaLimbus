@@ -585,7 +585,13 @@ def turn_signature(image, box=None):
     crop = image[y:y + h, x:x + w]
     if crop.size == 0:
         return None
-    small = cv2.resize(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), (8, 8), interpolation=cv2.INTER_AREA)
+    grey = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    # D156: the crop sits inside a badge whose border glows, so raw pixels moved on 23 of
+    # 26 consecutive reads of one live fight and `turn_changed` almost never fired.  A
+    # two-level picture keeps the glyph and drops the glow: over 52 archived battle frames
+    # the raw signature was 45 distinct values and the thresholded one 9 -- one per turn.
+    _, grey = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    small = cv2.resize(grey, (8, 8), interpolation=cv2.INTER_AREA)
     return [int(v) for v in small.reshape(-1)]
 
 
