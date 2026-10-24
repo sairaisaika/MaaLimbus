@@ -275,12 +275,16 @@ def ladder_effect(directories=None):
 READ_EVENTS = ('map_observed', 'battle_observed', 'scene_mismatch')
 
 # Five verified floors is the dungeon's own definition of a finished exploration.  A
-# complete *run* also claims the payout, which no journal event records, so this counts
-# the exploration half and the report says so rather than calling it "clear rate".
+# complete *run* also claims the payout -- and until D63 no journal event recorded it, so
+# this counted the exploration half and the report said so.  `reward_task` now writes
+# `reward_task_executed` / `reward_task_stopped` / `reward_task_skipped`, so `payout_rate`
+# can ask the other half instead of guessing at it.
 CLEAR_FLOORS = 5
+PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_skipped')
 
 MEASURES = (
     'clear_rate',
+    'payout_rate',
     'mean_seconds',
     'reads_per_step',
     'recovery_advanced_rate',
@@ -321,9 +325,18 @@ def efficiency(rows):
               if row.get('event') == 'map_observed' and isinstance(row.get('floor'), int)]
     sent = sum(1 for row in rows if row.get('event') == 'shop_purchase_sent')
     confirmed = sum(1 for row in rows if row.get('event') == 'shop_purchase_confirmed')
+    payouts = [row for row in rows if row.get('event') in PAYOUT_EVENTS]
+    payout = None
+    if payouts:
+        claimed = [row for row in payouts if row.get('event') == 'reward_task_executed'
+                   and row.get('passed') is not False]
+        payout = {'claimed': bool(claimed), 'events': len(payouts),
+                  'reason': (claimed[-1].get('reason') if claimed
+                             else (payouts[-1].get('reason') or payouts[-1].get('error')))}
     return {
         'seconds': None if seconds is None else round(seconds, 1),
         'reads': reads,
+        'payout': payout,
         'steps': steps,
         'reads_per_step': round(reads / steps, 2) if steps else None,
         'reached_floor': max(floors) if floors else None,
@@ -373,12 +386,21 @@ def metrics(runs):
     died = sum(1 for run in runs if run['ending']['kind'] == 'died')
     errored = sum(1 for run in runs if run['ending']['kind'] == 'error')
     explored = sum(1 for run in runs if run['explored'])
+    paid = [run['payout'] for run in runs if run['payout'] is not None]
+    claimed = sum(1 for payout in paid if payout['claimed'])
     return {
         'clear_rate': {
             'value': round(explored / total, 3) if total else None,
             'basis': f'{explored} of {total} runs reached floor {CLEAR_FLOORS}',
-            'note': 'exploration half only: a complete run also claims the payout, '
-                    'which no journal event records'},
+            'note': 'exploration half only: a complete run also claims the payout, which '
+                    '`payout_rate` reports; before D63 no journal event recorded the claim'},
+        'payout_rate': {
+            'value': round(claimed / len(paid), 3) if paid else None,
+            'basis': f'{claimed} of {len(paid)} runs that recorded a payout outcome claimed it',
+            'note': (None if paid else
+                     'no run wrote a reward-task outcome, so no payout was measured: the '
+                     'reward branch used to return before the journal line every other '
+                     'task action writes (D63)')},
         'mean_seconds': {
             'value': round(sum(timed) / len(timed), 1) if timed else None,
             'basis': f'{len(timed)} of {total} runs carry two or more timestamps',

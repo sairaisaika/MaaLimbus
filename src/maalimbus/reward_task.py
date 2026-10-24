@@ -12,6 +12,20 @@ ACTIONS={'RUN_REWARD_DIALOG':'claim','RUN_REWARD_CONFIRM':'confirm',
          'RUN_REWARD_PASS':'pass'}
 
 
+def _note(journal, event, **fields):
+    """Write one decision to the run's journal, when there is a journal to write to.
+
+    Every other task action ends with `main_task_stopped` (`agent/recognition.py`), but the
+    reward branch returns before that line: the payout -- the reason a run exists at all --
+    was the one outcome the journal never held, which is why `clear_rate` could only ever
+    measure the exploration half.  The journal is optional here because several callers
+    (and the offline audits) pass a stand-in or nothing at all.
+    """
+    if journal is None or not hasattr(journal, 'record'):
+        return
+    journal.record(event, **fields)
+
+
 def action_for(record):
     # Receipt recognizers differ from page registry names; independent captions
     # are still required by prepare(), never inferred from this dispatch alone.
@@ -81,6 +95,7 @@ def execute(config,directory,observer,device,journal,*,deadline=None):
     try:
         ledger=read_json(config/'user-run-ledger.json')
     except (ValueError,OSError) as error:
+        _note(journal,'reward_task_skipped',scope=None,reason=str(error),inputs_sent=False)
         return dict(passed=False,reason=str(error),task='rewards',input_sent=False,
                     reward_received=False,mail_daily_verified=False)
     active=ledger.get('active') or {}
@@ -96,11 +111,18 @@ def execute(config,directory,observer,device,journal,*,deadline=None):
             try:
                 result=finish(config,tx.get('scope'),Path(tx['bookkeeping_home']))
                 result['input_sent']=False
+                _note(journal,'reward_task_executed',scope=tx.get('scope'),passed=True,
+                      reason=result.get('reason'),reward_received=True,inputs_sent=False,
+                      resumed=True)
                 return result
             except (ValueError,KeyError,OSError,RuntimeError) as error:
+                _note(journal,'reward_task_skipped',scope=tx.get('scope'),reason=str(error),
+                      inputs_sent=False,resumed=True)
                 return dict(passed=False,reason=str(error),task='rewards',input_sent=False,
                             reward_received=False,mail_daily_verified=False)
     if not scope or not active.get('victory') or active.get('floors')!=[1,2,3,4,5]:
+        _note(journal,'reward_task_skipped',scope=scope,
+              reason='completed_mirror_run_required',inputs_sent=False)
         return dict(passed=False,reason='completed_mirror_run_required',task='rewards',input_sent=False,
                     mail_daily_verified=False,reward_received=False)
     sent=0
@@ -116,6 +138,9 @@ def execute(config,directory,observer,device,journal,*,deadline=None):
             if record.get('scene')=='HOME':
                 result=finish(config,scope,runner.frame_file(directory))
                 result['input_sent']=sent>0
+                _note(journal,'reward_task_executed',scope=scope,passed=True,
+                      reason=result.get('reason'),reward_received=True,
+                      inputs_sent=sent>0,resumed=False)
                 return result
             action=action_for(record)
             if action is None:raise ValueError('Reward page or successor not proven')
@@ -134,6 +159,7 @@ def execute(config,directory,observer,device,journal,*,deadline=None):
             if not entry['passed']:raise ValueError('Reward successor did not settle')
         raise ValueError('Reward task input bound reached')
     except (ValueError,KeyError,OSError,RuntimeError) as error:
-        journal.record('reward_task_stopped',scope=scope,error=str(error),inputs_sent=sent)
+        _note(journal,'reward_task_stopped',scope=scope,error=str(error),inputs_sent=sent,
+              passed=False,reward_received=False)
         return dict(passed=False,reason=str(error),task='rewards',input_sent=sent>0,
                     reward_received=False,mail_daily_verified=False,verified_clear=False)
