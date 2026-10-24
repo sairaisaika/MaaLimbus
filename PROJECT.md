@@ -4266,3 +4266,38 @@ D58. 只读审计的结论这轮落在**判据与数据**之间：上一轮把"�
 * 别用读不出的页面当"合法落点"：那会把感知失败伪装成正常。
 * 修复要能反过来失败：接受新页的测试必须同时证明它**不接受任意页**。
 * 声明要带计数：`SUCCESSORS_THE_ARCHIVE_SAW` 里每个数字都是"这个缺口有多大"，它们一起构成下一轮的分母。
+
+## DSH continuation: 一次读不回来，不等于这一局该结束 (2026-10-23)
+
+这一轮把"输入已经发出、读却回不来"这件事，从结局改成一个可以计数、可以重试、可以继续的观测失败。
+
+### 三个最关键原因（同一族，落在失败路径层）
+
+1. **上限被当成了结局。** D43 让每一次读都有 30 秒上限，但一次超时的读抛出普通 `RuntimeError`，整步展开、循环结束这一局：一次 30 秒抖动换掉一整局 420 秒预算。
+2. **settle 读失败没有"这一轮没有帧"的状态。** 留存归档中 51 个沉默结束的运行里 16 个以 `window_no_progress` 收尾，最后一条事件正是 settle 读；点击已发出，却没有任何地方能把它记成"这一轮没有产出"。
+3. **"重试"在一处存在、在另一处不存在。** `map_tries`/`page_tries`/`rounds` 都为页面级重试而存在，读失败却是零重试、第一次就致命。
+
+### 改动
+
+- `src/maalimbus/runner.py` 新增 `ReadNeverReturned`（`reason = 'the_page_read_did_not_come_back_inside_its_window'`），在 `MaaObserver.observe`（含战斗观测）真正失败处抛出。
+- `_unreadable_frame(before_sha)`：`scene='UNKNOWN'`、沿用旧图像哈希、无 OCR；读不出来的页就是未知页。
+- settle 循环：读失败记一条 `settle_read_never_returned`（页、轮次、原因），用不可读帧继续下一轮——由 settle 预算与运行截止时间双重有界。
+- `_walk`：步开头的读失败记 `loop_read_failed`（failures/retries），最多重试 `settings.read_retries`（默认 2）次，之后以读自己的原因结束；读成功的步把计数清零。
+- 普通 `RuntimeError` 仍然是别人的结局：不重试、原样结束（有测试钉住）。
+
+### 证据
+
+| 项目 | 之前 | 现在 |
+|---|---|---|
+| 一次 30 秒超时的读 | 整局结束（`the_task_raised_before_the_next_input`） | settle 内：一轮无产出，继续；步开头：重试 2 次后以 `the_page_read_did_not_come_back_inside_its_window` 结束 |
+| 新增测试 | — | `tests/test_read_failure.py` **9 passed**；`tests/test_settle_deadline.py` 改为断言重试后的结局 |
+| 相关套件 | — | 14 个 runner/计划/页面套件 **312 passed in 58.06 s** |
+| 全套测试 | 2227 passed, 2 skipped | ****2236 passed, 2 skipped in 200.00 s, exit 0**** |
+| pipeline | ok | `ok — 0 problem(s)`（805 节点 / 16 agent 名 / 6 入口） |
+| 实机只读 | — | `evidence/runtime/map-live-20261023-201908`：19 帧、`input_sent: false`、`RESUME_DIALOG`；**F2 `2/6 [HARD]` 未动** |
+
+### 下一单位
+
+1. settle 预算与"读不出来的轮"是否该共享一个上限：现在 30 轮 × 30 秒靠运行截止时间兜底，值得用一条独立计数（`unreadable_rounds`）显式有界。
+2. 那次 30 秒超时本身：把 `settle_read_never_returned` 的 `lasted_seconds` 与页名做成后续可检索的证据，判断是动画、OCR 还是原生调用卡住。
+3. `MirrorRunner.step` 里 30 个 post-input `plan['reason']` 块（约 450 行）仍未抽取。

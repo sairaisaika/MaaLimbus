@@ -812,7 +812,14 @@
         "audit_runs",
         "audit_silent",
         "进程死亡",
-        "unrecorded"
+        "unrecorded",
+        "ReadNeverReturned",
+        "读不回来",
+        "read failure",
+        "settle_read_never_returned",
+        "loop_read_failed",
+        "read_retries",
+        "_unreadable_frame"
       ],
       "sources": [
         {
@@ -830,19 +837,30 @@
         {
           "path": "tools/audit_runs.py",
           "symbol": "census"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "class ReadNeverReturned("
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def _unreadable_frame("
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
-        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator"
+        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator",
+        "docs/wiki/en_us/2.3-decisions.md#d59-a-read-that-does-not-come-back-is-not-a-verdict",
+        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定"
       ],
       "tests": [
-        "tests/test_run_endings.py"
+        "tests/test_run_endings.py",
+        "tests/test_read_failure.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。"
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure."
     },
     {
       "id": "transactions",

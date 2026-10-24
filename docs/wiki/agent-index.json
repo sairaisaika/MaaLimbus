@@ -63,14 +63,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MaaDevice.__init__",
-          "line": 648,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 669,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "run_node",
-          "line": 1621,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 1642,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         },
         {
           "path": "agent/recognition.py",
@@ -625,8 +625,8 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "Settings",
-          "line": 188,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 192,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         }
       ]
     },
@@ -810,20 +810,20 @@
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "pinch_out",
-          "line": 560,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 581,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "MirrorRunner._recover",
-          "line": 4575,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 4637,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         },
         {
           "path": "src/maalimbus/runner.py",
           "symbol": "stall_watchdog",
-          "line": 587,
-          "sha256": "a746f6361e7226622713809d9a10402ca1dbf49a6212ab086cc339e0df47bf9b"
+          "line": 608,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         }
       ]
     },
@@ -1209,7 +1209,14 @@
         "audit_runs",
         "audit_silent",
         "进程死亡",
-        "unrecorded"
+        "unrecorded",
+        "ReadNeverReturned",
+        "读不回来",
+        "read failure",
+        "settle_read_never_returned",
+        "loop_read_failed",
+        "read_retries",
+        "_unreadable_frame"
       ],
       "sources": [
         {
@@ -1227,19 +1234,30 @@
         {
           "path": "tools/audit_runs.py",
           "symbol": "census"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "class ReadNeverReturned("
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def _unreadable_frame("
         }
       ],
       "docs": [
         "docs/wiki/zh_cn/2.3-decisions.md#d50-分桶不覆盖全体的普查不是分母",
-        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator"
+        "docs/wiki/en_us/2.3-decisions.md#d50-a-census-whose-buckets-do-not-partition-the-corpus-is-not-a-denominator",
+        "docs/wiki/en_us/2.3-decisions.md#d59-a-read-that-does-not-come-back-is-not-a-verdict",
+        "docs/wiki/zh_cn/2.3-decisions.md#d59-读不回来的一次读不是一次判定"
       ],
       "tests": [
-        "tests/test_run_endings.py"
+        "tests/test_run_endings.py",
+        "tests/test_read_failure.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py"
       ],
-      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。",
+      "boundary": "静态：只给出写方名字，不给原因；历史 91 条结束永远 unrecorded。 D59: an ending may follow a bounded retry of a failed read, so the reason can be the read's own (the_page_read_did_not_come_back_inside_its_window) rather than the loop's generic task failure.",
       "locations": [
         {
           "path": "src/maalimbus/pages.py",
@@ -1264,6 +1282,18 @@
           "symbol": "census",
           "line": 45,
           "sha256": "d81ffe8307982f42d0c5f100f084d5f16769729060d9ebbc5c2a0eb8b42029b3"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "class ReadNeverReturned(",
+          "line": 520,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def _unreadable_frame(",
+          "line": 2129,
+          "sha256": "16cb1cb80aa2727331894b392a3453d6b4038f29e8582575376a650ac7ff5c97"
         }
       ]
     },
