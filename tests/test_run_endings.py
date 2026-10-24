@@ -191,6 +191,19 @@ def test_a_run_the_harness_killed_at_its_budget_is_not_a_death(tmp_path):
     assert 'budget' in run_metrics.ENDING_KINDS
 
 
+def test_a_journal_that_ended_itself_outranks_the_harness(tmp_path):
+    """A blocked native read can outlive the harness (live `packaged-mirror-20261024-010918`:
+    killed 05:20:02, stopped itself 05:23:20).  Both are true; the journal says what the
+    run did, so it decides, and `harness.json` only explains a run with no ending."""
+    _harness(tmp_path)
+    rows = [{'event': 'map_observed'},
+            {'event': 'mirror_loop_stopped', 'reason': 'the_run_kept_observing_without_writing_anything',
+             'stop_path': 'no_progress_watchdog'}]
+    end = run_metrics.ending(rows, tmp_path)
+    assert end['kind'] == 'stop'
+    assert end['path'] == 'no_progress_watchdog'
+
+
 def test_the_same_rows_without_the_harness_file_are_a_death(tmp_path):
     end = run_metrics.ending([{'event': 'map_observed'}], tmp_path)
     assert end == {'kind': 'died', 'path': 'process_died', 'reason': None}

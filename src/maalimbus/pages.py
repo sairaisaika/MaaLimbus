@@ -733,6 +733,9 @@ STOP_KINDS = {
     # run -- a fresh task is a new run, not a recovery of this one, and the viewport
     # ladder cannot reach a session that no longer exists.
     'an_action_node_failed_and_the_task_was_torn_down': 'refused_by_policy',
+    # D82: the task was torn down but the page moved, so the loop kept reading; the
+    # binding it would need to send input was released with the task.
+    'the_controller_binding_was_released_when_the_task_was_torn_down': 'refused_by_policy',
 }
 
 # Words a plan the *runner* assembles carries.  These plans do not pass through

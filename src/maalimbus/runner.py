@@ -707,6 +707,13 @@ def stall_watchdog(heartbeat_of, *, limit, on_stall, every=5.0, rounds=None,
 
 
 EMPTY_BINDINGS = ('', None)
+# A task torn down mid-run releases the controller binding it owned.  MaaFW then
+# answers a click with `controller not found [req.controller_id=]` and the Python side
+# blocks inside the native call -- live run `packaged-mirror-20261024-010918` froze
+# there for six minutes, with no journal line and no watchdog.  ``controller.id`` still
+# read non-empty, so the door is closed from the inside (D82) rather than guessed from
+# the outside.
+BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 
 
 def binding_is_empty(controller):
@@ -739,6 +746,9 @@ class MaaDevice:
         self.controller = controller
         self.tasker = tasker
         self.ended = None
+        # Why this device may not post input any more even though the handle looks
+        # alive: the task that owned the controller was torn down (D82).
+        self.binding_lost = None
         self.wait = wait
         self.deadline = deadline
         # None means "the configured default"; 0 means "ask the controller for nothing".
@@ -779,6 +789,21 @@ class MaaDevice:
             raise RuntimeError('the session ended (%s); refusing to post a %s'
                                % (self.ended, what))
 
+    def note_binding_lost(self, reason):
+        """Record that the controller behind this device may not route input again.
+
+        Reads stay allowed: the framework runs a screenshot node through the tasker,
+        and that kept answering after the tear-down in the live run that motivated
+        this.  Input is what got stuck, so input is what this closes.
+        """
+        if self.binding_lost is None:
+            self.binding_lost = str(reason)
+
+    def _refuse_binding_lost(self, what):
+        if self.binding_lost is not None:
+            raise RuntimeError('%s; refusing to post a %s'
+                               % (self.binding_lost, what))
+
     def binding_is_empty(self):
         return binding_is_empty(self.controller)
 
@@ -788,17 +813,20 @@ class MaaDevice:
 
     def click(self, x, y):
         self._refuse_if_ended('click')
+        self._refuse_binding_lost('click')
         self._refuse_empty_binding('click')
         self._wait(self.controller.post_click(int(x), int(y)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
         self._refuse_if_ended('swipe')
+        self._refuse_binding_lost('swipe')
         self._refuse_empty_binding('swipe')
         self._wait(self.controller.post_swipe(int(x1), int(y1), int(x2), int(y2),
                                               int(duration_ms)), timeout=15)
 
     def key(self, code):
         self._refuse_if_ended('key')
+        self._refuse_binding_lost('key')
         self._refuse_empty_binding('key')
         post = getattr(self.controller, 'post_key', None)
         if post is None:
@@ -2384,6 +2412,19 @@ class MirrorRunner:
             if moved is not None:
                 self.note('the_task_ended_but_the_page_moved', node=node,
                           page=acting['page'], now=moved)
+                # The page moved, so the loop may keep *reading* (D74) -- but the task
+                # that owned this controller was torn down, and MaaFW answers the next
+                # click with `controller not found [req.controller_id=]` while the
+                # Python side blocks inside the native call.  Live run
+                # `packaged-mirror-20261024-010918` froze exactly there: the journal
+                # stopped at that intent and the harness had to kill the process six
+                # minutes later, with no watchdog line and no ending.  ``controller.id``
+                # still read non-empty, which is the limit D71 could not close from the
+                # outside, so the door closes from the inside instead: reads stay open,
+                # input does not, and the next input names the ending.
+                lost = getattr(self.device, 'note_binding_lost', None)
+                if lost is not None:
+                    lost(BINDING_GONE_AFTER_A_TORN_TASK)
                 return verdict
             # Maa tears the task down when a node fails; the controller stops answering
             # clicks while screenshots still do (two live runs, 2026-10-23).  Ending here

@@ -110,9 +110,12 @@ def ending(rows, directory=None):
     """
     if not rows:
         return {'kind': 'no_events', 'path': None, 'reason': None}
-    killed = _harness_kill(directory)
-    if killed is not None:
-        return killed
+    # A read that blocks inside a native call cannot be interrupted from Python, so the
+    # harness may give up long before the loop finds out (live run
+    # `packaged-mirror-20261024-010918`: the wrap-up killed the process at 05:20:02 and
+    # the progress watch only wrote its stop at 05:23:20).  Both records are true; the
+    # journal's own ending is the one that says what the *run* did, and `harness.json`
+    # only explains a run that wrote no ending of its own (D82).
     for row in rows:
         if row.get('event') == 'mirror_loop_stopped':
             return {'kind': 'stop', 'path': str(row.get('stop_path') or 'unrecorded'),
@@ -122,6 +125,9 @@ def ending(rows, directory=None):
             return {'kind': 'error', 'path': str(row.get('stop_path') or 'unrecorded'),
                     'reason': row.get('reason') or row.get('error_type')
                     or 'an_error_was_recorded_without_a_reason'}
+    killed = _harness_kill(directory)
+    if killed is not None:
+        return killed
     return {'kind': 'died', 'path': 'process_died', 'reason': None}
 
 
