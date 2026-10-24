@@ -5890,6 +5890,18 @@ class MirrorRunner:
         `the_submitted_turn_never_showed_a_page`.  Retiring it writes the abandonment
         into the ledger and sends nothing.
         """
+        gift = getattr(self, 'floor_gift_transaction', None)
+        retire = getattr(gift, 'retire_from_another_run', None)
+        if retire is not None:
+            try:
+                retired = retire(self.directory, 'a_previous_run_left_it_open')
+            except (OSError, ValueError) as error:
+                self.note('stale_card_not_retired', transaction='FloorGiftTransaction',
+                          error=str(error)[:200])
+            else:
+                if retired:
+                    self.note('stale_card_retired', transaction='FloorGiftTransaction',
+                              **retired)
         for tx in (getattr(self, 'deployment_transaction', None),
                    getattr(self, 'theme_transaction', None),
                    getattr(self, 'initial_transaction', None),

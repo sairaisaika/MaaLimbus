@@ -1,6 +1,7 @@
 """Durable floor gift intents. Unknown postconditions never permit another input."""
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from .storage import read_json, write_json
@@ -289,6 +290,40 @@ class FloorGiftTransaction:
         if not title:return False
         seen=[r['title'] for r in d.get('receipts',[])]
         return bool([n for n in d.get('selected',[]) if n not in seen])
+
+    def retire_from_another_run(self, run_directory, reason='a_previous_run_left_it_open'):
+        """D143: a pending commit whose proof belongs to another run can never be seen.
+
+        The gift ledger is keyed by the scope of the *game* run, so a process that
+        resumed the same exploration inherits the previous process's pending commit.
+        Its receipt was printed to that process, not this one: measured on
+        `evidence/runtime/packaged-mirror-20261024-163315`, which started on GIFT_GET
+        with `pending {kind: commit, adopted: True, title: 'Melted Eyeball'}` and could
+        never book it.  The proof the commit was judged on sits in the producing run's
+        own directory, so the directory -- not a clock -- is the evidence.  A pending
+        whose proof cannot be placed is kept: an unreadable path is not proof of
+        another run.
+        """
+        d = self.data or {}
+        pending = d.get('pending')
+        if not isinstance(pending, dict) or not pending:
+            return None
+        proof = str(pending.get('proof') or '')
+        if not proof:
+            return None
+        try:
+            here = os.path.dirname(os.path.abspath(proof))
+            mine = os.path.abspath(str(run_directory))
+        except (OSError, ValueError):
+            return None
+        if not mine or here == mine:
+            return None
+        retired = dict(kind=pending.get('kind'), title=pending.get('title'),
+                       proof=proof, reason=reason)
+        d.setdefault('abandoned', []).append(dict(intent='retire', **retired))
+        d['pending'] = None
+        write_json(self.path, d)
+        return retired
 
     def receipt_intent(self, title, proof, *, on_notice_page=False):
         from .initial_gifts import same_name
