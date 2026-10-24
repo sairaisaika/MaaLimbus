@@ -60,6 +60,7 @@ NON_ANCHOR = {
     'page_is_observe_only': HELD,
     'saved_deployment_order_invalid': HELD,
     'saved_deployment_sequence_not_proven': HELD,
+    'the_board_shows_a_different_saved_team_than_the_plan_deploys': HELD,
     'starlight_conversion_off_and_cost_zero_not_proven': HELD,
     'the_lost_summary_has_no_button_to_open_its_rewards': HELD,
     'the_picker_asked_for_a_sinner_no_proven_loss_names': HELD,

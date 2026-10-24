@@ -491,7 +491,8 @@ DISPATCH_FACTS = {
                         'refusals': ('battle_button_not_anchored',
                                      'deployment_clear_selection_not_anchored',
                                      'saved_deployment_order_invalid',
-                                     'saved_deployment_sequence_not_proven')},
+                                     'saved_deployment_sequence_not_proven',
+                                                                          'the_board_shows_a_different_saved_team_than_the_plan_deploys')},
     'RESUME_DIALOG': {'actions': ('CLICK',),
                       'expects': ('INITIAL_GIFTS', 'MAP', 'STAR_GRACES', 'THEME_PACKS', 'UNKNOWN'),
                       'refusals': ('resume_button_not_anchored',)},
@@ -1054,6 +1055,9 @@ REFUSALS = {
     'run_reward_confirm_not_anchored': 'missing_control',
     'saved_deployment_order_invalid': 'bad_saved_state',
     'saved_deployment_sequence_not_proven': 'missing_control',
+    # The team on the board is not the team this run deploys: nothing on this page can be
+    # verified against the ledger, so it waits (D117).
+    'the_board_shows_a_different_saved_team_than_the_plan_deploys': 'bad_saved_state',
     'shop_leave_button_not_anchored': 'missing_control',
     'shop_leave_confirm_not_anchored': 'missing_control',
     'star_cancel_not_anchored': 'missing_control',

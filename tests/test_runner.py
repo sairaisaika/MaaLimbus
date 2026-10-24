@@ -21,6 +21,7 @@ is `tests/test_window.py`):
 import ast
 import json
 import shutil
+import shutil
 import sys
 from pathlib import Path
 
@@ -295,14 +296,18 @@ def test_battle_submission_intent_survives_device_failure(tmp_path,monkeypatch):
     from maalimbus.policies import Team
     from maalimbus.deployment_transaction import DeploymentTransaction
     order=[3,4,9,1,7,2,12,5,8,10,11,6]
-    ProfileStore(tmp_path/'user-team-profiles.json').save([Team(2,frozenset({'Charge','Tremor'}),
+    ProfileStore(tmp_path/'user-team-profiles.json').save([Team(1,frozenset({'Charge','Tremor'}),
         deployment=tuple(SINNERS[n-1] for n in order))])
     installed = tmp_path/'installed-config'
     installed.mkdir()
     (installed/'user-data-root.json').write_text(json.dumps({'version':1,'directory':str(tmp_path)}))
     monkeypatch.setenv('MAALIMBUS_DATA_PATH',str(installed))
     frame=ROOT/'evidence/runtime/window-20261008-045214/frame-0008.json'
-    runner,device=window(tmp_path,[frame],{'team':2,'rounds':1})
+    # The retained frame prints ``Preset #1``, and since D117 a page that prints another
+    # preset is refused by name before any deployment action, so this fixture deploys the
+    # team its page shows (1).  The subject here is the submit intent surviving a device
+    # failure, not the team check.
+    runner,device=window(tmp_path,[frame],{'team':1,'rounds':1})
     runner.run_id='test';t=DeploymentTransaction(tmp_path/'deployment.json')
     t.prepare('test',order,(0,12))
     for i,card in enumerate(order):t.intent('card',(i,12),card);t.observe((i+1,12))
@@ -691,6 +696,12 @@ def inherited_page(numbers, counter=(12, 12)):
         cx, cy = token['box'][0] + token['box'][2] / 2, token['box'][1] + token['box'][3] / 2
         return x <= cx <= x + w and y <= cy <= y + h
 
+    # The ledger this fixture deploys is team 2, so the page must *print* team 2: a page
+    # that prints another preset is refused by name before any deployment action (D117),
+    # and these tests are about the order and the battle button, not about that refusal.
+    for token in record['ocr']:
+        if 'preset' in str(token.get('text', '')).lower():
+            token['text'] = 'Preset #2'
     ocr = [token for token in record['ocr']
            if not any(band and inside(token, band) for band in bands)
            and not inside(token, counter_roi)]

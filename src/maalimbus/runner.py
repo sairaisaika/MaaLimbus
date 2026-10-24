@@ -3213,7 +3213,12 @@ class MirrorRunner:
             # Any page that produced a team reading is asked which saved team it
             # shows; only the pre-battle page and the deployment-reset stand-in ever
             # do, and the stand-in carries no header, so it writes nothing (D90).
-            self._check_team(team, page=page)
+            verdict = self._check_team(team, page=page)
+            if (verdict or {}).get('kind') == 'mismatch':
+                # The board's own preset number is the only fact that says *which* team
+                # would be deployed; a plan that acts on this page would deploy the
+                # operator's other team (D117).
+                team['preset_mismatch'] = True
         if team is not None:
             from .storage import ProfileStore, SINNERS
             slot = self.store.team_slot if self.store is not None else settings.team

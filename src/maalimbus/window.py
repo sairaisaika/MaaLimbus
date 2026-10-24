@@ -1179,6 +1179,13 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         states = list((team or {}).get('states') or [])
         picked, capacity = (list((team or {}).get('participants') or []) + [None, None])[:2]
         full = bool(picked) and bool(capacity) and picked >= capacity
+        if (team or {}).get('preset_mismatch'):
+            # The board is showing a different saved team than the one this run deploys
+            # (live `packaged-mirror-20261024-111024`: 'Preset #1' on the board, preset 2
+            # in the ledger).  Every action from here -- clear the inherited order, assign
+            # cards, submit -- would deploy the operator's other team, so the page is
+            # refused by name instead (D117).
+            return _refuse(page, 'the_board_shows_a_different_saved_team_than_the_plan_deploys')
         if (team or {}).get('reset_required'):
             box=controls.get('pre_battle.clear_selection')
             if box is None:return _refuse(page,'deployment_clear_selection_not_anchored')
