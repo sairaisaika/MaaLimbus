@@ -2212,6 +2212,26 @@ class MirrorRunner:
                 'ocr': [], 'local_ocr': [], 'unreadable': True,
                 'reason': ReadNeverReturned.reason}
 
+    def _page_after_a_failed_node(self, page):
+        """What the screen says after the framework ended the task it was handed.
+
+        A pipeline task ends on ``LimbusUnknown`` when it reaches a page outside its own
+        ``next`` lists -- which is a failure verdict for a task whose job was exactly
+        that transition (the entry task drives DRIVE -> MIRROR_ENTRY -> RESUME_DIALOG ->
+        MAP and then has nothing left to match).  The page is evidence; the return code
+        is a proxy.  One bounded read here, and ``None`` means the screen did not move.
+        """
+        if self.observer is None:
+            return None
+        try:
+            record = self._observe(phase='after_failed_node')
+        except (ReadNeverReturned, RuntimeError, OSError):
+            return None
+        after = (record or {}).get('scene')
+        if after and after not in (page, 'UNKNOWN'):
+            return after
+        return None
+
     def _act(self, node, *, phase='node_action'):
         """One pipeline node action, bounded and visible while it runs.
 
@@ -2223,9 +2243,13 @@ class MirrorRunner:
         step to repeat silently.
 
         A node that *did* come back and reported failure is different: the screen still
-        answers, nothing is stuck, and the page is re-read next step.  That case is
-        journalled as ``node_action_unconfirmed`` so it stops being invisible, but it
-        does not end a run that may simply be a frame late.
+        answers and nothing is stuck.  That case is journalled as
+        ``node_action_unconfirmed`` and then **the page decides** (D74): the entry task
+        ends on ``LimbusUnknown`` whenever it reaches a page outside its own ``next``
+        lists, so its failure verdict is a statement about the task's route, not about
+        the screen.  One bounded read is taken in the page the action was sent from; if
+        the screen moved, the action did its job and the loop carries on.  If it did not
+        move, the task really is torn and the run ends with a named reason (D72).
         """
         if self.tasker is None:
             raise RuntimeError('a node plan needs a Maa tasker')
@@ -2250,6 +2274,11 @@ class MirrorRunner:
                       verdict=verdict.get('verdict'),
                       lasted_seconds=acting['lasted_seconds'],
                       page=acting['page'])
+            moved = self._page_after_a_failed_node(acting['page'])
+            if moved is not None:
+                self.note('the_task_ended_but_the_page_moved', node=node,
+                          page=acting['page'], now=moved)
+                return verdict
             # Maa tears the task down when a node fails; the controller stops answering
             # clicks while screenshots still do (two live runs, 2026-10-23).  Ending here
             # is what turns "sits until the budget" into a named stop, and it also blocks

@@ -196,3 +196,54 @@ def test_a_wedged_action_ends_its_run_with_its_own_reason(tmp_path, monkeypatch)
     assert spent < 10.0, f"one wedged action may not spend the run (took {spent:.1f}s)"
     ended = runner.events(tmp_path, "mirror_session_ended")
     assert ended and "did not come back" in ended[-1]["error"]
+
+
+class _Scene:
+    """An observer whose answer is whatever the test says the screen showed."""
+
+    def __init__(self, record, directory=None):
+        self.record = record
+        self.calls = 0
+        self.directory = directory
+
+    def observe(self, deadline=None):
+        self.calls += 1
+        return dict(self.record)
+
+
+def test_a_task_that_ended_on_a_page_it_does_not_know_is_not_a_frozen_loop(tmp_path):
+    """D74: the entry task ends on LimbusUnknown after driving the page to MAP.
+
+    The task's own verdict is a statement about its route; the screen is the evidence.
+    """
+    loop = _runner(tmp_path, tasker=_Tasker(job=_Finished()))
+    loop.observer = _Scene({'scene': 'MAP', 'image_sha256': 'x', 'size': [1920, 1080], 'ocr': []},
+                            directory=tmp_path)
+    loop.state['page'] = 'DRIVE'
+    verdict = loop._act('MirrorDrive')
+    assert verdict['task_succeeded'] is False
+    names = [row['event'] for row in _events(tmp_path, 'node_action_unconfirmed')]
+    assert names == ['node_action_unconfirmed']
+    moved = _events(tmp_path, 'the_task_ended_but_the_page_moved')
+    assert [row['now'] for row in moved] == ['MAP']
+    assert moved[0]['page'] == 'DRIVE'
+    assert loop.device.ended is None, 'the session must not be ended when the page moved'
+
+
+def test_a_task_that_ended_on_the_same_page_is_still_a_torn_task(tmp_path):
+    loop = _runner(tmp_path, tasker=_Tasker(job=_Finished()))
+    loop.observer = _Scene({'scene': 'DRIVE', 'image_sha256': 'x', 'size': [1920, 1080], 'ocr': []},
+                            directory=tmp_path)
+    loop.state['page'] = 'DRIVE'
+    with pytest.raises(runner.ActionNodeFailed):
+        loop._act('MirrorDrive')
+    assert loop.device.ended == runner.ActionNodeFailed.reason
+
+
+def test_an_unreadable_page_after_the_failed_node_is_not_movement(tmp_path):
+    loop = _runner(tmp_path, tasker=_Tasker(job=_Finished()))
+    loop.observer = _Scene({'scene': 'UNKNOWN', 'image_sha256': 'x', 'size': None, 'ocr': []},
+                            directory=tmp_path)
+    loop.state['page'] = 'DRIVE'
+    with pytest.raises(runner.ActionNodeFailed):
+        loop._act('MirrorDrive')
