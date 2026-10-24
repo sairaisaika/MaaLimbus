@@ -5836,3 +5836,42 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 `pages.STOP_KINDS` 按规则补上这条结束原因（守卫 `test_hold_gap` 先红后绿，说明规则在起作用）。
 
 **下一步。** 在实机上确认这条路径：布阵点击之后应看到 `deployment_input_awaiting_verification`，而不是立刻结束。
+
+## DSH continuation: 页面印的队不对，就不许部署（2026-10-24）
+
+本次把「部署前先确认这是哪一队」从**顺序**扩展到了**队本身**，并修掉了它的第一个实证现场。
+
+### 三处根因
+
+1. **战前页面只核对了顺序，没有核对队。** D90 把页面印出的卡序与存档卡序比较；`Preset #N` 从未被读，
+   于是账本写着第 2 队、页面印着第 1 队时，计划照样按 `battle_button` 提交，记为干净部署。
+2. **一个被跳过的核对会以「等待」的形式复发。** 实机 `…-111024` 把四次输入全花在
+   `deployment_input_awaiting_verification` 上：上一张卡未被观测，`prepare` 拒绝开新卡，
+   而页面永远给不出那个观测——表面是等待，根因是提交了一个页面并不显示的队。
+3. **测试夹具与它们读的帧不一致，且没人发现。** 两个战前夹具在印着 `Preset #1` 的帧上部署第 2 队；
+   它们在 D117 之前一直是绿的，说明这条链上从来没有核对。
+
+### 改动
+
+- `src/maalimbus/battle_vision.py`：新增 `pre_battle_preset(records)`，从标题带读 `Preset #N`。
+- `src/maalimbus/windows.py`：`pre_battle(...)` 带出 `preset`。
+- `src/maalimbus/window.py`：`PRE_BATTLE_TEAM` 分支在 `pre_battle.preset` 存在且不等于要部署的队时按名字拒绝
+  `the_board_shows_a_different_saved_team_than_the_plan_deploys`（无预设不拒绝——读不到的字幕不是判决，D100）。
+- `src/maalimbus/pages.py`：`DISPATCH_FACTS['PRE_BATTLE_TEAM'].refusals` 补入新名字（D45 的漂移闸门先红后绿）。
+- `tests/test_deployment_preset.py`（新）、`tests/test_runner.py`（两个夹具改成部署帧上真正印着的队）。
+
+### 证据
+
+| 项 | 结果 |
+| --- | --- |
+| 新测试 | `tests/test_deployment_preset.py` 4 例：本队通过、别队按名拒绝、无预设不拒绝、拒绝落到 `bad_saved_state`/`escalate_ladder` |
+| 被改写的夹具 | `tests/test_runner.py` 65 例全绿（原 3 例红） |
+| 漂移闸门 | `pages.fact_drift() == {}` |
+| 相邻套件 | `test_page_contracts` / `test_step_rows` / `test_deployment_preset` / `test_runner` 全绿 |
+| 全量 | `python tools/run_tests.py -q` → 见下（本轮记录） |
+| 实机 | `packaged-mirror-20261024-111024`：36.7 秒、47 事件、4 次输入全被上一张未观测的卡挡住 |
+
+### 局限
+
+读的是字幕，不是棋盘：棋盘上站着哪些罪人，仍然只在印出存档顺序时才比较（D90）；
+一个印着同样预设却悄悄换人的棋盘，目前检测不到。
