@@ -1183,7 +1183,13 @@
         "PROGRESS_SECONDS",
         "不回答的请求",
         "never answered",
-        "abandoned call"
+        "abandoned call",
+        "step pacing",
+        "步骤间隔",
+        "_pause_between_steps",
+        "input_at",
+        "间隔付两遍",
+        "pause"
       ],
       "sources": [
         {
@@ -1349,6 +1355,14 @@
         {
           "path": "src/maalimbus/runner.py",
           "needle": "    PROGRESS_SECONDS = 90.0"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "def _pause_between_steps(self, interval):"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "needle": "self.artifacts['input_at'] = time.monotonic()"
         }
       ],
       "docs": [
@@ -1393,7 +1407,9 @@
         "docs/wiki/en_us/2.3-decisions.md#d88-a-request-that-is-never-answered-must-not-own-the-run",
         "docs/wiki/zh_cn/2.3-decisions.md#d88-一个永远不回答的请求不能占据整次运行",
         "docs/wiki/en_us/2.3-decisions.md#d89-a-watchdog-that-cannot-fire-inside-the-budget-is-not-a-watchdog",
-        "docs/wiki/zh_cn/2.3-decisions.md#d89-在预算内开不了火的看门狗不算看门狗"
+        "docs/wiki/zh_cn/2.3-decisions.md#d89-在预算内开不了火的看门狗不算看门狗",
+        "docs/wiki/en_us/2.3-decisions.md#d93-a-spacer-between-inputs-is-not-a-sleep-the-clock-is-owed",
+        "docs/wiki/zh_cn/2.3-decisions.md#d93-点击之间的间隔不是一个欠给时钟的睡眠"
       ],
       "tests": [
         "tests/test_run_endings.py",
@@ -1407,7 +1423,8 @@
         "tests/test_input_route.py",
         "tests/test_input_route_after_action.py",
         "tests/test_input_call_deadline.py",
-        "tests/test_progress_window.py"
+        "tests/test_progress_window.py",
+        "tests/test_step_pacing.py"
       ],
       "checks": [
         "python -m pytest -q tests/test_run_endings.py",
