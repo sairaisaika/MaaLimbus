@@ -54,9 +54,40 @@ def walk(rows):
     return {'hops': hops, 'gaps': gaps, 'floors': dict(floors)}
 
 
+def hop_legs(rows):
+    """The click -> next map read leg, and the events between two hops (D202).
+
+    A hop's cost is not the animation: after a node click the next MAP read arrives in
+    about a second and a half, so whatever a hop costs is spent between that read and the
+    next plan.  Counting the events in the interval says which half to attack.
+    """
+    readings, fills, legs = 0, collections.Counter(), []
+    hops = [index for index, row in enumerate(rows)
+            if row['event'] == 'window_intent' and NODE_REASON in str(row.get('reason') or '')]
+    for first, second in zip(hops, hops[1:]):
+        for row in rows[first + 1:second]:
+            fills[row['event']] += 1
+            if row['event'] == 'map_observed':
+                readings += 1
+    for index in hops:
+        started = _when(rows[index])
+        if not started:
+            continue
+        for row in rows[index + 1:index + 40]:
+            if row['event'] == 'map_observed' and row.get('scene') == 'MAP':
+                arrived = _when(row)
+                if arrived:
+                    legs.append((arrived - started).total_seconds())
+                break
+            if row['event'] == 'window_intent':
+                break
+    return {'legs': legs, 'fills': fills, 'readings': readings}
+
+
 def report(directory=None):
     runs = current_era(directory)
     hops, gaps, floors = 0, [], collections.Counter()
+    legs, fills, readings = [], collections.Counter(), 0
     measured = 0
     for _, rows in runs:
         found = walk(rows)
@@ -66,6 +97,10 @@ def report(directory=None):
         hops += found['hops']
         gaps += found['gaps']
         floors.update(found['floors'])
+        extra = hop_legs(rows)
+        legs += extra['legs']
+        fills.update(extra['fills'])
+        readings += extra['readings']
     return {
         'runs': len(runs),
         'runs_with_a_hop': measured,
@@ -75,6 +110,9 @@ def report(directory=None):
         'hop_seconds': (statistics.median(gaps) if gaps else None),
         'hop_seconds_mean': (sum(gaps) / len(gaps) if gaps else None),
         'gaps': len(gaps),
+        'click_to_read': (statistics.median(legs) if legs else None),
+        'reads_per_hop': (readings / hops if hops else None),
+        'between_hops': dict(fills.most_common(6)),
     }
 
 
@@ -93,6 +131,10 @@ def main(argv=None):
     print('hops by floor: %s' % data['hops_per_floor'])
     print('gap between two node hops: median %.1fs mean %.1fs over %d gaps'
           % (data['hop_seconds'], data['hop_seconds_mean'], data['gaps']))
+    if data['click_to_read'] is not None:
+        print('node click -> next map read: median %.2fs' % data['click_to_read'])
+        print('reads inside one hop: %.1f' % data['reads_per_hop'])
+        print('events between two hops: %s' % data['between_hops'])
     return 0
 
 

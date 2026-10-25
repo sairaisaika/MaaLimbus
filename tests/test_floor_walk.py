@@ -46,3 +46,21 @@ def test_a_corpus_without_a_hop_reports_no_cost():
     rows.append(dict(event='mirror_loop_stopped', stop_path='agent_loop'))
     data = walk.report(pathlib.Path('build/none-such-corpus'))
     assert data['runs'] == 0 and data['hop_seconds'] is None
+
+
+def test_a_leg_is_measured_and_reads_are_counted_inside_a_hop():
+    rows = [_seen(3, '2026-10-25T00:00:00Z'),
+            _intent('2026-10-25T00:00:01Z'),
+            _seen(3, '2026-10-25T00:00:02Z'),
+            _seen(3, '2026-10-25T00:00:03Z'),
+            _intent('2026-10-25T00:00:10Z')]
+    found = walk.hop_legs(rows)
+    assert found['legs'] == [1.0]
+    assert found['readings'] == 2 and found['fills']['map_observed'] == 2
+
+
+def test_an_input_ends_the_leg_lookahead():
+    rows = [_intent('2026-10-25T00:00:00Z'),
+            dict(event='window_intent', reason='something_else', utc='2026-10-25T00:00:01Z'),
+            _seen(3, '2026-10-25T00:00:02Z')]
+    assert walk.hop_legs(rows)['legs'] == []
