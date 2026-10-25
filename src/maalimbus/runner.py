@@ -665,6 +665,11 @@ def bounded_action(deadline, *, limit=None, clock=time.monotonic):
 
 
 MIN_SETTLE = 1.5
+# D166: the whole attempt is bounded, not each rung.  Measured 2026-10-24 22:07: three
+# recovery rows took 100.7 s of 251.5 attributed seconds, and the last attempt ran 91 s
+# with no journal line before the no-progress watch ended the run.
+RECOVERY_SECONDS = 45.0
+
 RECOVERY_LADDER = (
     ('pinch_out', 'the_view_is_pinched_out_so_the_page_shows_all_of_itself'),
     # Order is evidence, not taste.  A stop spends the rungs in order and most stops never
@@ -6001,6 +6006,21 @@ class MirrorRunner:
             self.note('window_recovery_exhausted', page=page, reason=entry.get('reason'),
                       rungs=[name for name, _ in ladder],
                       input_helpers=self.input_helper_line(),
+                      **self._recovery_fields(entry, plan))
+            return None
+        # D166: a ladder is a budget, not a queue.  Three `window_recovery` rows of the
+        # 2026-10-24 22:07 run held 100.7 s of its 251.5 attributed seconds (33.6 s each),
+        # and the last one sat silent for 91 s before the no-progress watch ended the run.
+        # Each rung is cheap; the *attempt* is what costs a third of a run, so the clock
+        # belongs to the episode and not to the gesture.
+        now = time.monotonic()
+        since = state.get('recovery_since')
+        if since is None or state.get('recovery_episode') != signature:
+            state['recovery_episode'] = signature
+            state['recovery_since'] = now
+        elif now - since > RECOVERY_SECONDS:
+            self.note('window_recovery_out_of_time', page=page, reason=entry.get('reason'),
+                      spent_seconds=round(now - since, 1), rungs=rung,
                       **self._recovery_fields(entry, plan))
             return None
         name, why = ladder[rung]
