@@ -2202,7 +2202,27 @@ def party_point(image):
         return None
     swapped = cv2.cvtColor(image, cv2.COLOR_RGB2BGR if image.shape[2] == 3
                            else cv2.COLOR_RGBA2BGR)
-    return _bgr_party_point(swapped)
+    found = _bgr_party_point(swapped)
+    if found is not None:
+        return found
+    # Two independent readers locate the party: the stacked-torch pair above, and
+    # `player_marker`'s own flame.  A board can show one flame and not the pair
+    # (`packaged-mirror-20261025-083025/frame-0001`: the torch reads at (1012,595)
+    # while the pair never forms), and a missing anchor silently empties the whole
+    # candidate list -- the run then stops as `no_candidate_node_observed` with no
+    # hint that the party was the missing fact.  So the second reader is a fallback,
+    # kept inside the board band: the HUD's own flames sit above it or in the right
+    # chrome, and a marker read there is not the party.
+    marker = player_marker(image)
+    if marker is None:
+        marker = player_marker(swapped)
+    if marker is None:
+        return None
+    height, width = image.shape[:2]
+    x, y = int(marker[0]), int(marker[1])
+    if not (0 <= x < int(.95 * width)) or not (int(.10 * height) <= y < int(.86 * height)):
+        return None
+    return x, y
 
 def selection_bracket(image):
     """The bracket the game draws around the step it has selected (D205).
