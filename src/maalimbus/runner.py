@@ -737,6 +737,25 @@ def map_stop_reason(*, tried, attempts):
             else 'map_candidates_not_observed_yet')
 
 
+def centre_plan(party, size, *, tolerance=8):
+    """How far, and which way, to drag the map so the party sits at the centre.
+
+    The operator asked for a centred view so the lattice stops moving between frames
+    (m17926: the party stood right of centre and the boss room ran off the edge).  A
+    drag moves the *content* with the finger, so a party left of centre needs the
+    content pushed right, which is a finger travelling right.  The answer is therefore
+    the offset itself, and it is empty once the party is within ``tolerance`` pixels:
+    the caller loops on this until it returns None instead of counting drags.
+    """
+    if not party or not size:
+        return None
+    dx = int(round(size[0] / 2.0 - float(party[0])))
+    dy = int(round(size[1] / 2.0 - float(party[1])))
+    if abs(dx) <= tolerance and abs(dy) <= tolerance:
+        return None
+    return dx, dy
+
+
 def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
               radius=MAP_ZOOM_OUT['radius'], factor=MAP_ZOOM_OUT['factor'],
               seconds=MAP_ZOOM_OUT['seconds'], steps=12, guard=None):
