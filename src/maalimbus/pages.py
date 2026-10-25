@@ -816,6 +816,11 @@ STOP_KINDS = {
     # complete from here: the only honest action is to stop (D97/D98).
     'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
     'the_battle_stayed_unreadable': 'unreadable_text',
+    'the_battle_animation_never_returned_to_the_board': 'unreadable_text',
+    # A run that ended on a bare exception class (archived: 7 rows named
+    # `ValueError` from in-process tools whose exception reached the journal)
+    # is a state the run itself produced, not the screen's fault.
+    'ValueError': 'bad_saved_state',
     'the_budget_could_not_pay_for_another_step': 'refused_by_policy',
     # A deployment input went out and the page never confirmed it: the transaction is
     # unfinished, so the loop stops rather than guess (D116).
@@ -979,6 +984,10 @@ SUCCESSORS_THE_ARCHIVE_SAW = {
 #   moves_the_view   the rung changed what the reader could see in most of its spends
 #   rarely           it changed something, but most spends left the frame identical
 LADDER_VIEW_EVIDENCE = {
+    # Measured after the 2026-10-25 in-process runs: a pinch on the loading
+    # screen moved the reader's view 3 of 3 (the loader animates), so it is
+    # declared like any other rung rather than left undeclared.
+    ('pinch_out', 'LOADING'): 'moves_the_view',
     ('pinch_out', 'MAP'): 'moves_the_view',
     ('drag_up', 'MAP'): 'moves_the_view',
     ('pan_left', 'MAP'): 'moves_the_view',

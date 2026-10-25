@@ -195,6 +195,7 @@ def _defaults():
         # bounds (D163); this is the transition's second one, high enough to never fire
         # before the clock in practice: at the 4 s ceiling 40 rounds is 160 s.
         'transition_rounds': 40,
+        'cutscene_seconds': 90,
         'unknown_seconds': 20.0,
         # D59: how many times one step may be retried after a read did not come
         # back.  Bounded, not a loop: after these the run ends with the read's own
@@ -1659,6 +1660,8 @@ CONTROLS = ('enter', 'battle', 'start', 'confirm', 'cancel', 'select', 'proceed'
 
 
 BATTLE_UNREADABLE = 'the_battle_stayed_unreadable'
+# D217: a fight whose animation never gives the board back is its own ending.
+CUTSCENE_UNREADABLE = 'the_battle_animation_never_returned_to_the_board'
 
 
 def looks_like_transition(record):
@@ -3370,10 +3373,18 @@ class MirrorRunner:
                 # it is handed to the ordinary unknown budget instead.
                 captions = {str(item.get('text') or '').strip().lower()
                             for item in (record.get('ocr') or []) if isinstance(item, dict)}
-                if in_battle and not captions & {'max', 'win', 'rate', 'damage'}:
-                    in_battle = False
+                # D217: a caption-less frame *inside* a battle is the fight's own
+                # animation, not a different page.  D216 handed these to the unknown
+                # budget, and the budget then ended healthy runs: measured on
+                # `packaged-mirror-20261025-015256`, 14 frames of a skill cutscene
+                # (`frame-0035.png`: red/black effect, `TOTAL 27`, the party bar, no
+                # board, no `MAX`) were read as an unreadable *page* and the run
+                # stopped on `the_battle_stayed_unreadable` after 30 s.  The
+                # animation keeps the battle treatment, with its own longer clock.
+                cutscene = in_battle and not captions & {'max', 'win', 'rate', 'damage'}
+                if cutscene:
                     state.pop('battle_unknown_since', None)
-                    self.note('battle_frame_without_its_controls', page=page,
+                    self.note('battle_cutscene_frame', page=page,
                               after=state.get('last_named_page'))
                 if in_battle and not state.get('battle_unreadable_noted'):
                     state['battle_unreadable_noted'] = True
@@ -3399,15 +3410,21 @@ class MirrorRunner:
                         # named (`_named_page` below), so a second stall measures
                         # from its own first unreadable frame and not from the
                         # first one of the run.
-                        state.setdefault('battle_unknown_since', time.monotonic())
-                        stuck = time.monotonic() - float(state['battle_unknown_since'])
-                        limit = float(getattr(settings, 'battle_unreadable_seconds', 30.0))
+                        key = 'battle_cutscene_since' if cutscene else 'battle_unknown_since'
+                        state.setdefault(key, time.monotonic())
+                        stuck = time.monotonic() - float(state[key])
+                        if cutscene:
+                            limit = float(getattr(settings, 'cutscene_seconds', 90.0))
+                            ending = CUTSCENE_UNREADABLE
+                        else:
+                            limit = float(getattr(settings, 'battle_unreadable_seconds', 30.0))
+                            ending = BATTLE_UNREADABLE
                         if stuck >= limit:
-                            self.note('battle_stayed_unreadable', page=page,
+                            self.note('battle_stayed_unreadable', page=page, cutscene=cutscene,
                                       waited=round(stuck, 1), limit_seconds=limit,
                                       rounds=state['transition_seen'])
-                            self._end_session(BATTLE_UNREADABLE, waited=round(stuck, 1))
-                            return self._result(page, None, False, BATTLE_UNREADABLE, done=True)
+                            self._end_session(ending, waited=round(stuck, 1))
+                            return self._result(page, None, False, ending, done=True)
                     if (waited < float(settings.transition_seconds)
                             and state['transition_seen'] <= rounds_cap):
                         # The pace this round actually takes, so the journal stops
