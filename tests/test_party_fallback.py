@@ -56,6 +56,10 @@ def test_two_readers_that_disagree_are_not_the_party(monkeypatch):
 
 
 def test_the_pair_still_wins_and_the_fallback_is_not_consulted(monkeypatch):
+    # The pair is the strongest colour reading, but its own mask can pair two node rings on
+    # the red theme, so the shape reader is the tie-breaker and must be silenced here for the
+    # case to be about the pair alone (D293).
+    monkeypatch.setattr(map_vision, 'flame_point', lambda image: None)
     calls = _stub(monkeypatch, (830, 450), (1012, 595))
     assert map_vision.party_point(_frame()) == (830, 450)
     assert calls == []
@@ -87,3 +91,14 @@ def test_the_flame_answers_only_where_the_colour_readers_cannot(monkeypatch):
     assert found is not None
     assert abs(found[0] - 670) <= 20 and abs(found[1] - 467) <= 20, found
     assert map_vision.flame_point(empty) is None
+
+@needs_frame
+def test_a_flame_that_disagrees_overrules_the_colour_pair(monkeypatch):
+    """D293: live `-133918` anchored on (498,221) for nine clicks -- a node ring, not the party.
+
+    A colour reading inside the board band is not automatically the party; when the flame's
+    filled shape is answered far from it, the flame is the fact and the pair is the noise.
+    """
+    monkeypatch.setattr(map_vision, 'flame_point', lambda image: (900, 800))
+    _stub(monkeypatch, (830, 450), None)
+    assert map_vision.party_point(_frame()) == (900, 800)

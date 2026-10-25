@@ -2302,6 +2302,16 @@ def party_point(image):
 
     found = _bgr_party_point(image)
     if found is not None and _on_the_board(found, image):
+        flame = flame_point(image)
+        if (flame is not None
+                and abs(int(found[0]) - flame[0]) + abs(int(found[1]) - flame[1]) > 200):
+            # Being inside the board band is not enough: on the red theme the same colour
+            # mask answers a node's gold ring (`-101647` reads (498,221) where no flame
+            # exists at all), and live `-133918` spent nine clicks from that anchor.  The
+            # flame's filled shape is the only reading with a counter-example behind it, so
+            # a flame that disagrees by more than a card's width overrules the colour
+            # reading instead of being consulted only when colour is silent (D293).
+            return flame
         return found
     import cv2
     if image is None or getattr(image, 'ndim', 0) != 3 or image.shape[2] not in (3, 4):
