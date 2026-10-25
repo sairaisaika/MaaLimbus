@@ -565,6 +565,7 @@ so it may be walked at this spacing while every other page keeps the caller's.
 """
 DEEP_STEP_SECONDS = 60.0
 MIN_STEP_SECONDS = 20.0   # D165: below this tail the loop ends itself
+REUSE_LIMIT = 1   # one re-send of a refused target, not `tries` (D204)
 ONE_READ_SECONDS = 30.0
 # A read taken right after a viewport gesture may not spend the whole window: on a
 # static page an eight-second silence is the device, not the page.  Measured on
@@ -1736,11 +1737,15 @@ def pending_target(state, plan, *, tries=3):
     candidate list that had moved on.  A click that has not been answered is not evidence
     that another target is better: while one is pending, click it again (bounded by
     `tries`) and let the page answer before the offer is re-read.
+
+    Measured again on 592 settled clicks (2026-10-25): the first attempt at a target is
+    accepted 22% of the time and the **second only 3%** (2 of 74), so a re-send is almost
+    always a wasted input.  D197's reuse is therefore capped at one extra attempt (D204).
     """
     pending = (state or {}).get('map_pending')
     if not pending:
         return plan.get('target'), False
-    budget = int(tries)
+    budget = min(int(tries), REUSE_LIMIT)
     if budget <= 0:           # an explicit zero means never reuse
         return plan.get('target'), False
     used = int((state or {}).get('map_retries') or 0)
