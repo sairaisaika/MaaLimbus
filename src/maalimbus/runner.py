@@ -1441,7 +1441,7 @@ class MaaObserver:
         """The tasker whose pipeline nodes are run (a runner or a context has one)."""
         return getattr(self.context, 'tasker', None)
 
-    def observe(self, *, deadline=None):
+    def observe(self, *, deadline=None, battle_hint=False):
         """This frame's page, never the previous frame's event.
 
         A node whose own screencap fails records nothing and still returns a finished
@@ -1453,6 +1453,17 @@ class MaaObserver:
         counter. A node that records nothing is re-run, and one that never records
         stops the run with that as the reason instead of a page it did not read.
         """
+        if battle_hint:
+            # A battle page reads half its cost from the map node it does not need
+            # (D159: `map_observed` 1.43 s per read, 54 of them in 180 s of a battle
+            # run).  The battle node names the page on its own, so it is tried first
+            # and the map node is only run when it records nothing.
+            battle = events(self.directory, 'battle_observed')
+            seen = len(battle)
+            run_node(self.tasker, self.battle_pipeline, bounded_read(deadline))
+            battle = events(self.directory, 'battle_observed')
+            if len(battle) > seen and battle[-1].get('scene'):
+                return battle[-1]
         recorded = events(self.directory, 'map_observed')
         before = len(recorded)
         for attempt in range(max(1, self.read_tries)):
@@ -1492,7 +1503,16 @@ class MaaObserver:
         return record
 
 
-def observe(observer, deadline=None):
+def _params(func):
+    """The keyword names a callable accepts, so an older reader can be called as it is."""
+    import inspect
+    try:
+        return set(inspect.signature(func).parameters)
+    except (TypeError, ValueError):
+        return set()
+
+
+def observe(observer, deadline=None, *, battle_hint=False):
     """Read the live page once and return its journal record.
 
     The analyze event itself carries no frame hash, tokens or size, so they are
@@ -1509,7 +1529,11 @@ def observe(observer, deadline=None):
     proof, ``unavailable: [6]``). Replayed frames keep working: a frame record
     already carries its own local reads, and only a missing list is filled in.
     """
-    record = observer.observe(deadline=bounded_read(deadline))
+    window = bounded_read(deadline)
+    if battle_hint and 'battle_hint' in _params(observer.observe):
+        record = observer.observe(deadline=window, battle_hint=True)
+    else:
+        record = observer.observe(deadline=window)
     if not record.get('image_sha256'):
         record['image_sha256'] = frame_sha(observer.directory)
     details = frame_details(observer.directory)
@@ -2732,7 +2756,7 @@ class MirrorRunner:
                       page=page, word=(team or {}).get('saved_team_word'), **verdict)
         return verdict
 
-    def _observe(self, deadline=None, *, phase='observe'):
+    def _observe(self, deadline=None, *, phase='observe', battle_hint=None):
         """One page, from the injected observer, with the journal details attached.
 
         The frame that comes back is the stall watch's heartbeat: a loop that cannot
@@ -2758,7 +2782,11 @@ class MirrorRunner:
         reading = {'phase': phase, 'since': now, 'page': self.state.get('page'),
                    'limit_seconds': round(deadline - now, 1)}
         self.artifacts['reading'] = reading
+        if battle_hint is None:
+            battle_hint = str((self.state or {}).get('last_named_page') or '').startswith('BATTLE')
         try:
+            if battle_hint and 'battle_hint' in _params(observe):
+                return observe(self.observer, deadline, battle_hint=True)
             return observe(self.observer, deadline)
         finally:
             reading['lasted_seconds'] = round(time.monotonic() - now, 1)
