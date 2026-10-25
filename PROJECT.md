@@ -6146,3 +6146,24 @@ Two consequences for the next unit:
 2. `evidence/runtime` now holds both 1280x720 and 1920x1080 frames, so any pixel constant
    taken from one is wrong for the other -- the device size belongs on the observation row
    so a future reader can tell which space a box is in.
+
+## DSH continuation: this map variant splits its own header (2026-10-25)
+
+Round 250-253 chased why D242 promotes the archived fixture to `MAP` but not a live frame.
+The last measurement is decisive and closes the question:
+
+`evidence/runtime/packaged-mirror-20261025-045045/frame-0009.json` (27 rows) contains
+`('Floor', (246,135,120,35), 0.99)` and **no `'Exploring'`** -- the caption arrives in two
+pieces, so `map_vision.floor_label` (which needs `Exploring Floor`) returns None, and both
+`map_header` and the promotion above it are unreachable no matter how well the faint pack
+line is resolved.  On the 1920x1080 archive the same caption reads `'Exploring Floor5'` in
+one box (60,127,338,49) at 0.95, which is why D242's evidence held there.
+
+So the order of causes on this map variant is:
+1. the caption is split (header identity fails first),
+2. the pack line is faint (score 0.55-0.60, below the .8 gate),
+3. only then would an identity have to survive a 1280x720 reading (`'6loom'`).
+
+Next unit: make `floor_label` accept a two-box header (same line, adjacent, 'Exploring' +
+'Floor N') with a counter-example that a stray `Floor` label elsewhere is not accepted, and
+re-measure both frames before touching the pack gate again.
