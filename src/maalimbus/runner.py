@@ -1921,6 +1921,18 @@ def rank_by_distance(boxes, party):
     return sorted(boxes, key=_gap)
 
 
+
+def party_anchor_gap(party, candidates):
+    """Why this frame offers no reachable node, or None when it does (D285).
+
+    A frame whose party cannot be read produces an empty candidate list, and the run
+    then stops as `no_candidate_node_observed` -- a message about nodes for a failure
+    about the party.  Naming the gap where it happens keeps the two apart.
+    """
+    if party is not None:
+        return None
+    return 'no_candidate' if not (candidates or ()) else 'no_party'
+
 def party_anchor_source(record):
     """Where the geometry anchor came from, as one of three words.
 
@@ -3458,6 +3470,14 @@ class MirrorRunner:
         frame, candidates = candidates_of(directory, record, fallback_party=fallback)
         self.note('map_party_anchor', source=party_anchor_source(record),
                   party=record.get('map_party'), candidates=len(candidates or ()))
+        gap = party_anchor_gap(record.get('map_party'), candidates)
+        if gap:
+            # Live `packaged-mirror-20261025-083025` stopped as `no_candidate_node_observed`
+            # with three frames whose party read as null: the missing fact was the party,
+            # not the nodes (D285).
+            self.note('map_party_unread', page=page, scene=record.get('scene'),
+                      source=party_anchor_source(record), cached=fallback is not None,
+                      candidates=len(candidates or ()), reason=gap)
         if record.get('map_party_from_cache'):
             self.note('map_party_from_cache', floor=floor,
                       age_s=round(now - float(cached.get('at', now)), 1))
