@@ -2125,9 +2125,10 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # pixels along the segment is the only reading that separates a connected tile from a bare
     # one on this screen (median grey 4, p90 22), so it is measured here and kept next to the
     # party the step already records.
-    if party is not None:
+    _party_for_line = party if party is not None else fallback_party
+    if _party_for_line is not None:
         record.setdefault('map_lattice', {})['line_step'] = map_vision.neighbour_by_line(
-            image, party, [list(item['box']) for item in clicks])
+            image, _party_for_line, [list(item['box']) for item in clicks])
     chrome = header_chrome(record)
     if chrome:
         clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
