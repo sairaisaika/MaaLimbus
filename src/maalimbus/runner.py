@@ -3696,6 +3696,12 @@ class MirrorRunner:
                           size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party)
+        # The record knows which picture and which size this process read; that fact has to
+        # reach the journal explicitly, because a field written into `record` is only
+        # serialised by a `note(...)` that names it (D310 shipped the field and no wire).
+        seen = (record or {}).get('map_frame_seen')
+        if seen:
+            self.note('map_frame_seen', **seen)
         # Drop the nodes this party has already been refused on (see the refused_targets note
         # below); the set is keyed by box *and* party so moving the party clears the verdict.
         refused = self.state.get('refused_targets')
