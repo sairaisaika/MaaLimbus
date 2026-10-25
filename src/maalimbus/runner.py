@@ -1663,6 +1663,8 @@ BATTLE_UNREADABLE = 'the_battle_stayed_unreadable'
 # D217: a fight whose animation never gives the board back is its own ending.
 # D218: a screen that repeats its pixels is the emulator, not a phase of the game.
 FROZEN_PICTURE = 'the_emulator_stopped_producing_new_frames'
+# D219: how many windows a frozen picture may have before the run ends.
+FROZEN_WINDOWS = 1
 CUTSCENE_UNREADABLE = 'the_battle_animation_never_returned_to_the_board'
 
 
@@ -3399,15 +3401,32 @@ class MirrorRunner:
                     if state.get('frozen_shot') != shot:
                         state['frozen_shot'] = shot
                         state.pop('frozen_since', None)
+                        state['frozen_windows'] = 0
                     state.setdefault('frozen_since', time.monotonic())
                     frozen = time.monotonic() - float(state['frozen_since'])
                     limit = float(getattr(settings, 'frozen_seconds', 30.0))
                     if frozen >= limit:
-                        self.note('the_picture_stopped_changing', page=page,
-                                  after=state.get('last_named_page'),
-                                  seconds=round(frozen, 1))
-                        self._end_session(FROZEN_PICTURE, seconds=round(frozen, 1))
-                        return self._result(page, None, False, FROZEN_PICTURE, done=True)
+                        # D219: a frozen picture gets one more window before the run
+                        # gives up.  Measured 2026-10-25: a render stall of 93 s hit a
+                        # window of 30 and would have ended a run that was still on a
+                        # battle frame (`frame-0034.png`: damage numbers, `Stormcloud`),
+                        # so the honest first answer is "wait again", not "the game is
+                        # over" -- but only once, so a dead emulator cannot hold the
+                        # budget hostage.
+                        if int(state.get('frozen_windows', 0)) < FROZEN_WINDOWS:
+                            state['frozen_windows'] = int(state.get('frozen_windows', 0)) + 1
+                            state['frozen_since'] = time.monotonic()
+                            self.note('the_picture_was_frozen_and_got_one_more_window',
+                                      page=page, after=state.get('last_named_page'),
+                                      seconds=round(frozen, 1),
+                                      window=state['frozen_windows'])
+                        else:
+                            self.note('the_picture_stopped_changing', page=page,
+                                      after=state.get('last_named_page'),
+                                      seconds=round(frozen, 1),
+                                      windows=state['frozen_windows'])
+                            self._end_session(FROZEN_PICTURE, seconds=round(frozen, 1))
+                            return self._result(page, None, False, FROZEN_PICTURE, done=True)
                 if in_battle and not state.get('battle_unreadable_noted'):
                     state['battle_unreadable_noted'] = True
                     self.note('battle_frame_unreadable', page=page,
