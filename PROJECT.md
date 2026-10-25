@@ -6380,3 +6380,15 @@ tests/test_config_provenance.py` → 109 passed；编队/部署相关 22 个套�
 
 可迁移经验：当一条路“调参数能过两帧”时，先把它放到整个归档上量召回与误检；
 召回 0/1 与 21/31 这两个数字，比任何一次“看起来对了”更有说服力。
+
+## DSH continuation: 全量套件第一次全绿（2026-10-25）
+
+第 128–134 轮把 main 从「前后半各自红十几条」修到全绿，并第一次跑完整个套件：
+
+- 结果：`3049 passed in 1851.82s (0:30:51)`，pytest 退出码 **0**，`FAILED` 计数 0。
+- 归因修正：此前「全量在 89% 卡住」不是死锁，而是**大量慢用例叠加**（例：`test_battle_unreadable_clock` 单条 175 s，`test_ladder_evidence` 整组 3 min 56 s）。分块全绿 + 全量 30 分钟，是同一个事实的两面。
+- 修的 18 条红按原因聚成四类：① D280 之后 fixture 的我方不站在节点上（`candidates_of` 按设计返回空）；② `candidates_of` 新增 `fallback_party` 后桩签名过期；③ `__new__` 桩缺 `store`/`run_id`/`artifacts`/`journal`；④ 声明类数据（`PLANS_WITH_ONLY_A_DISMISSAL`、`SUCCESSORS_THE_ARCHIVE_SAW`、`LADDER_VIEW_EVIDENCE`）手抄过期，改为**由判定它们的工具现场重算**。
+- 词表红的两条按语义登记而非抬基线：`floor_gift_previous_transaction_unresolved → bad_saved_state`（REFUSALS），`an_intent_was_sent_and_the_page_never_answered` / `a_reread_produced_new_pixels → unreadable_text`（STOP_KINDS）。
+- 实现侧只有三处改动：`note()` 对 journal 防御性读取、`reason_provenance.DECIDED_NAMES`（按构造已决的名字不计失败）、`RETIRED_KEYS`。
+
+**下轮起点**：`pytest --durations=20` 列出慢测试并治理（目标：全量回到 5 分钟内），然后回到主线（节点中心模板库、我方=站在节点上、五层稳定）。
