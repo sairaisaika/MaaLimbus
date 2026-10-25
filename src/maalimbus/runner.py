@@ -3764,6 +3764,16 @@ class MirrorRunner:
                           size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party)
+
+        # A record field is not a log line (D310 shipped one and no wire): `party_snap_failed`
+        # and `map_party_in_candidates` were written onto the record and never appeared in the
+        # journal, so an earlier round read "the key never appeared" as "the branch never ran".
+        _debug = {name: record[name] for name in
+                  ('map_party_in_candidates', 'party_snap_failed',
+                   'map_edge_overrules_adjacency', 'party_snapped', 'map_party_rejected')
+                  if record.get(name) is not None}
+        if _debug:
+            self.note('map_candidates_debug', **_debug)
         # The record knows which picture and which size this process read; that fact has to
         # reach the journal explicitly, because a field written into `record` is only
         # serialised by a `note(...)` that names it (D310 shipped the field and no wire).
