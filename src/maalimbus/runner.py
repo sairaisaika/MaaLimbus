@@ -1714,18 +1714,17 @@ def overlaps(box, other):
 # lit_node 3/31, badge_mark 1/9, lit_ring 0/6, lattice_step 0/3 -- so the bright glyph
 # still leads, but a ring or a lattice tile has never once moved the party and may not be
 # spent while anything else is on offer.
-CLICK_KIND_ORDER = ('lit_icon', 'bright_lit_icon', 'gold_badge_node', 'lit_node',
+# `path_node` first: it is the cyan step the page lights up between the party and the next
+# node (measured on evidence/runtime/window-20261007-174525/frame-0002.png: hue 94, sat 161,
+# fully lit), i.e. the game's own answer to "which node may I take next".
+CLICK_KIND_ORDER = ('path_node', 'lit_icon', 'bright_lit_icon', 'gold_badge_node', 'lit_node',
                     'relaxed_node',
                     'badge_mark', 'neutral_outline_candidate', 'node_away_from_player',
-                    'lit_ring', 'lattice_step', 'path_node')
+                    'lit_ring', 'lattice_step')
 # Kinds with no accepted click in the whole archive.  They stay in the ranking (an
 # unknown kind must not outrank them) and are dropped before the click when any other
 # kind is offered: clicking a tile's centre is clicking the empty floor between nodes.
-CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step', 'path_node')
-# `path_node` is the chevron the page draws between nodes: measured 2026-10-25 on
-# `evidence/runtime/pi-20261021-185251/frame-0119.png`, `map_clicks` emits it first while
-# the five gold node marks are the only clickable head of the list.  It joins the two
-# kinds that may never be clicked, and it sorts last so an unknown kind cannot outrank it.
+CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step')
 
 
 def box_key(box):
