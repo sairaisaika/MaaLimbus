@@ -3886,6 +3886,9 @@ class MirrorRunner:
         lattice = (record or {}).get('map_lattice')
         if lattice:
             self.note('map_lattice', **lattice)
+            # D333: the line reading is its own event, so a MAP frame says what it pointed at
+            if (record.get('map_lattice') or {}).get('line_step'):
+                self.note('map_line_step', **(record['map_lattice']['line_step']))
         self.note('map_party_anchor',
                   source=(party_anchor_source(record) if record.get('map_party')
                           else ('probe' if probe_party is not None else 'none')),
