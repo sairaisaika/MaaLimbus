@@ -6200,3 +6200,21 @@ So the order of causes on this map variant is:
 Next unit: make `floor_label` accept a two-box header (same line, adjacent, 'Exploring' +
 'Floor N') with a counter-example that a stray `Floor` label elsewhere is not accepted, and
 re-measure both frames before touching the pack gate again.
+
+## DSH continuation: 探针必须复用生产里的动作定义（2026-10-25）
+
+这一轮的两次返工都是同一类错误：**动作发了，效果没验**。
+
+1. **归一化视角（图1 与图2）**：我在 `build/probe_lattice.py` 里用 `drag_up` 三次去“拖到底部限位”，方向反了——`src/maalimbus/runner.py:711` 的阶梯里写得很清楚：
+   - `drag_up` = `the_page_is_dragged_on_towards_its_later_rows`（内容推向**后几行**）
+   - `drag_down` = `the_page_is_dragged_back_towards_its_first_rows`（推回**前几行**，才是操作者截图里的正确构图）
+   而且手势没有独立函数，`drag_up/drag_down/pan_left/pan_right` 只是阶梯里的**字符串档位**，由 `_recover` 内部执行。探针自行拼坐标，等于**发明**了一套与生产不一致的手势。
+
+2. **固定次数 ≠ 效果发生**：三次 `pinch_out` + 三次拖动是写死的次数，画面是否真的移动/缩放到位从未判定。这与 D153（暂停值算出来又被吃掉）同类。
+
+规则（供后续实现遵循）：
+- 探针与归一化**必须复用 `runner` 里的动作定义**（先抽出 `gesture(hands, name)` 供 `_recover` 与探针共用），不得复制坐标；
+- 任何手势序列的终止条件是**画面差分收敛**（例如 64×36 缩略图平均差 < 1.0），不是次数；
+- 归一化顺序：`pinch_out` 收敛 → `drag_down` 收敛（必要时 `pan_right`）→ 我方吸附居中 → 才计算候选。
+
+现状：本轮无代码提交（探针未跟踪、且已被证伪一半），HEAD `959a290`；地图侧已解决“红色 Boss 房被 `adjacent_to` far=430 丢弃”（`boss_node` 实测已进候选 1 次），未解决的是**点击判决节奏**（18 次点击 0 accepted，其中 `unjudged` 7 + `superseded` 4，说明判决未落地就被重新规划）。
