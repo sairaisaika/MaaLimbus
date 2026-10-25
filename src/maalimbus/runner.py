@@ -1936,7 +1936,7 @@ def blind_map_boxes(directory, record):
     could not be read in the first place -- and keeps only the page's own chrome out.
     The order is the reader's own kind rank, which is all the frame can say.
     """
-    image, name = latest_frame(directory)
+    image, name = frame_for(directory, record)
     if image is None:
         return []
     clicks = map_clicks(image, template=node_badge_template())
@@ -2281,7 +2281,7 @@ def check_of(directory, record, *, page=None):
     stage = check_stage(record.get('ocr') or ())
     if stage:
         return {'stage': stage}
-    image, name = latest_frame(directory)
+    image, name = frame_for(directory, record)
     if image is None:
         return None
     scores = odds_scores(image)
@@ -2304,7 +2304,7 @@ def overlay_hit(registry, directory, record):
     in live run window-20261006-034009 that turned twelve team page observations
     into "tutorial" clicks on the Details button.
     """
-    image, name = latest_frame(directory)
+    image, name = frame_for(directory, record)
     if image is None:
         return None
     size = tuple(record.get('size') or ())
@@ -2426,7 +2426,7 @@ def pre_battle_identity_evidence(directory, record, saved_order=(), order_badges
     from .storage import read_json
     if record.get('scene') != 'PRE_BATTLE_TEAM' or list(record.get('size') or []) != [1920, 1080]:
         return None
-    image, name = latest_frame(directory)
+    image, name = frame_for(directory, record)
     if image is None or list(image.shape[:2]) != [1080, 1920]:
         return None
     # The reading must be about the frame in hand, not about whatever the newest
@@ -3320,7 +3320,7 @@ class MirrorRunner:
         # Which party readings exist at this instant is a fact worth journalling before the
         # normalisation decides anything: five live rounds were spent guessing whether the
         # record, the stored frame or neither carried one (2026-10-25).
-        image_now, _ = latest_frame(self.directory)
+        image_now, _ = frame_for(self.directory, record)
         self.note('map_view_probe', input_sent=False,
                   keys=sorted((record or {}).keys())[:12],
                   record_party=(record or {}).get('map_party'),
@@ -3337,7 +3337,7 @@ class MirrorRunner:
             # None on every live frame while the record carried `[1458,221]`, and the
             # normalisation gave up (`steps:0`) with a reading in hand.  Either answer is a
             # measurement; having neither still means "do not drag".
-            image, name = latest_frame(self.directory)
+            image, name = frame_for(self.directory, record)
             if image is None:
                 try:
                     self._observe(phase='view_normalise')
