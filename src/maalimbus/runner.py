@@ -3823,8 +3823,10 @@ class MirrorRunner:
         # and `map_party_in_candidates` were written onto the record and never appeared in the
         # journal, so an earlier round read "the key never appeared" as "the branch never ran".
         _debug = {name: record[name] for name in
-                  ('map_party_in_candidates', 'party_snap_failed',
-                   'map_edge_overrules_adjacency', 'party_snapped', 'map_party_rejected')
+                  ('map_party_in_candidates', 'party_snap_failed', 'map_click_shift',
+                   'map_edge_only', 'map_edge_step', 'map_edge_without_history',
+                   'map_edge_overrules_adjacency', 'party_snapped',
+                   'map_party_rejected')
                   if record.get(name) is not None}
         if _debug:
             self.note('map_candidates_debug', **_debug)
