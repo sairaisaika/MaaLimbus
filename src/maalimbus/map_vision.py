@@ -2405,9 +2405,40 @@ def _flame_corroborated(image, marker, ring):
     return None
 
 
+REFERENCE_WIDTH = 1920.0
+
+
+def _at_reference_width(image, read):
+    """Run a reader at the reference width, then map its answer back.
+
+    Every reader below is written in absolute pixels measured on 1920x1080 frames, and the
+    device itself renders 1280x720: `party_point` answered (1091,252) on the archived frame
+    of `-150446` and `None` on the same picture scaled to 720p, so the agent (which reads
+    the device frame) fell back to the probe while the repository (which reads the archived
+    png) looked healthy -- six rounds of "the fix is in but nothing changes" (D309).  The
+    readers meet one scale: the reference width.
+    """
+    import cv2  # imported here: this module keeps the heavy import out of module load
+    height, width = image.shape[:2]
+    if width >= REFERENCE_WIDTH - 1:
+        return read(image)
+    scale = REFERENCE_WIDTH / float(width)
+    bigger = cv2.resize(image, (int(round(width * scale)), int(round(height * scale))),
+                        interpolation=cv2.INTER_CUBIC)
+    found = read(bigger)
+    if found is None:
+        return None
+    if isinstance(found, (tuple, list)) and len(found) == 2 and all(
+            isinstance(v, (int, float)) for v in found):
+        return (int(round(found[0] / scale)), int(round(found[1] / scale)))
+    return found
+
+
 def party_point(image):
     """`party_point` for either channel order; BGR first, RGB(A) as the fallback."""
 
+    if image.shape[1] < REFERENCE_WIDTH - 1:
+        return _at_reference_width(image, party_point)
     found = _bgr_party_point(image)
     if found is not None and _on_the_board(found, image):
         flame = flame_point(image)
