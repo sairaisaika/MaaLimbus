@@ -3495,18 +3495,23 @@ class MirrorRunner:
         # null), and an empty candidate list then stops the run for the wrong reason.
         # So the field is a first reading and this is a second; both must fail before
         # the frame is treated as unreadable (D287).
-        from_probe = False
+        probe_party = None
         if record.get('map_party') is None:
             probe = party_probe(directory, record)
             if probe and probe.get('read'):
-                record['map_party'] = tuple(probe['point'])
-                from_probe = True
+                # `candidates_of` re-reads the frame, so handing the reading over as
+                # the fallback party is the only way it is actually used (D288: live
+                # `packaged-mirror-20261025-083843` wrote the point and still produced
+                # zero candidates because the record was rebuilt from disk).
+                probe_party = tuple(probe['point'])
                 self.note('map_party_from_probe', point=list(probe['point']),
                           size=probe.get('size'), channels=probe.get('channels'))
-        frame, candidates = candidates_of(directory, record, fallback_party=fallback)
+        frame, candidates = candidates_of(directory, record,
+                                          fallback_party=fallback or probe_party)
         self.note('map_party_anchor',
-                  source='probe' if from_probe else party_anchor_source(record),
-                  party=record.get('map_party'), candidates=len(candidates or ()))
+                  source='probe' if probe_party is not None else party_anchor_source(record),
+                  party=record.get('map_party') or probe_party,
+                  candidates=len(candidates or ()))
         gap = party_anchor_gap(record.get('map_party'), candidates)
         if gap:
             # Live `packaged-mirror-20261025-083025` stopped as `no_candidate_node_observed`

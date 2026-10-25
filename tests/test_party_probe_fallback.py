@@ -13,7 +13,12 @@ def test_the_second_reading_happens_before_the_candidates_are_asked_for():
 
 def test_the_second_reading_is_journalled_and_names_its_source():
     assert "note('map_party_from_probe'" in SOURCE
-    assert "source='probe' if from_probe else party_anchor_source(record)" in SOURCE
+    assert "source='probe' if probe_party is not None else party_anchor_source(record)" in SOURCE
+
+
+def test_the_second_reading_is_handed_on_as_the_fallback_party():
+    assert "fallback_party=fallback or probe_party" in SOURCE
+    assert "party=record.get('map_party') or probe_party" in SOURCE
 
 
 def test_the_second_reading_is_only_tried_when_the_field_is_null():
