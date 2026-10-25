@@ -17,6 +17,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT / 'agent')]
@@ -31,6 +32,8 @@ from maalimbus.adb_device import build, discover, foreground_of
 from maalimbus.controller_lease import ControllerLease
 from maalimbus.jobs import wait_job
 from maalimbus import runner
+
+import selfrun_finish
 
 from recognition import (Journal, BattleObservation, BattlePlanObservation, DeploymentProof,
                          DifficultyProof, GlobalSettingsAction, InitialGiftProof,
@@ -106,23 +109,36 @@ def main():
             raise RuntimeError('the tasker could not bind the resource and controller')
         inner = runner.MaaDevice(controller, deadline=deadline, tasker=tasker,
                                  target_long_side=runner._TARGET_LONG_SIDE)
-        observer = runner.MaaObserver(tasker, directory)
+        # MaaObserver takes a *context* with tasker/run/journal, not a bare tasker: the
+        # agent passes its custom-action context, this tool passes the same three things.
+        observer = runner.MaaObserver(SimpleNamespace(tasker=tasker, run=None,
+                                                      journal=journal, directory=directory),
+                                      directory)
         settings = runner.settings({'steps': args.steps, 'observe_only': bool(args.observe_only),
                                     'address': args.address})
         journal.record('mirror_loop_start', directory=str(directory), budget=budget,
-                       deadline=deadline, in_process=True, **settings.as_dict())
+                       deadline=deadline, in_process=True, steps=args.steps,
+                       observe_only=bool(args.observe_only), address=args.address)
+        snapping = selfrun_finish.Snapshotting(journal, directory, result)
         loop = runner.MirrorRunner(inner, settings=settings, locale=args.locale,
                                    registry=json.loads(runner.REGISTRY.read_text(encoding='utf-8')),
-                                   directory=directory, journal=journal, observer=observer,
+                                   directory=directory, journal=snapping, observer=observer,
                                    result=result)
         loop.configure(deadline=deadline)
+        # `round_limit` is how many steps one call may walk (the agent passes the same
+        # budget as `steps`), not a cap on unproductive rounds.
         summary = loop.run(steps=args.steps, interval=settings.interval,
-                           round_limit=settings.round_limit, deadline=deadline)
-        result.update(summary=summary)
-        result['passed'] = bool(summary.get('passed'))
+                           round_limit=args.steps, deadline=deadline)
+        # A tool that replaces the agent also writes the stop row the agent used to write,
+        # and the summary goes to disk here because `os._exit` skips `finally` (D195).
+        selfrun_finish.summary(snapping, summary, result, directory)
     except BaseException as error:  # the run must leave a cause, whatever it was
-        journal.record('mirror_loop_error', error=str(error)[:300],
-                       kind=type(error).__name__, in_process=True)
+        result['error'] = str(error)[:300]
+        result['passed'] = False
+        # The error path writes the same stop row and summary the success path does, so a
+        # tool run is readable through `run_metrics.ending` whichever way it ended (D195).
+        selfrun_finish.summary(journal, {'passed': False, 'reason': type(error).__name__},
+                               result, directory)
         result['error'] = str(error)[:300]
         result['passed'] = False
     finally:
@@ -130,17 +146,21 @@ def main():
             lease.close()
         except Exception:
             pass
-        rows = [json.loads(line) for line in (directory / 'events.jsonl').read_text(
-            encoding='utf-8').splitlines() if line.strip()]
-        result['events'] = len(rows)
-        stops = [row for row in rows if row['event'] == 'mirror_loop_stopped']
-        result['stop'] = stops[-1].get('reason') if stops else None
-        floors = [row.get('floor') for row in rows if row['event'] == 'map_observed' and row.get('floor')]
-        result['floors'] = sorted({int(value) for value in floors if str(value).isdigit()})
-        (directory / 'result.json').write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n',
-                                               encoding='utf-8')
-        print(json.dumps({key: result[key] for key in
-                          ('passed', 'events', 'stop', 'floors', 'error') if key in result}))
+        # The summary is written whatever happened above: a run that reached a floor and
+        # then tripped over its own bookkeeping still has to leave the numbers (D195).
+        try:
+            path = directory / 'events.jsonl'
+            rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()
+                    if line.strip()] if path.exists() else []
+            selfrun_finish.tally(rows, result)
+        except Exception as error:
+            result['summary_error'] = str(error)[:200]
+        try:
+            selfrun_finish.Snapshotting(journal, directory, result).snapshot()
+        except Exception as error:
+            result['summary_error'] = str(error)[:200]
+        print(json.dumps({key: result.get(key) for key in
+                          ('passed', 'events', 'stop', 'floors', 'error')}))
     return 0 if result.get('passed') else 1
 
 

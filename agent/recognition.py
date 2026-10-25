@@ -74,6 +74,30 @@ def guarded_callback(failed_result):
     return decorate
 
 
+def _json_or_named(data):
+    """JSON that always writes, naming a field it could not represent (D194/D195).
+
+    A frame row is a diagnostic answer about one frame: a cycle or a framework object in
+    `extra` may not cost the whole answer, and a cycle defeats `default=str` as well, so a
+    value that cannot be represented becomes its own `repr`.
+    """
+    try:
+        return json.dumps(data, ensure_ascii=False, indent=2, default=str)
+    except (TypeError, ValueError):
+        safe, dropped = {}, []
+        for key, value in data.items():
+            try:
+                json.dumps(value, ensure_ascii=False, default=str)
+            except (TypeError, ValueError):
+                safe[key] = repr(value)[:400]
+                dropped.append(key)
+            else:
+                safe[key] = value
+        if dropped:
+            safe['journal_fields_dropped'] = dropped
+        return json.dumps(safe, ensure_ascii=False, indent=2, default=str)
+
+
 class Journal:
     def __init__(self, directory):
         self.directory = Path(directory)
@@ -112,7 +136,7 @@ class Journal:
                 'utc': datetime.now(timezone.utc).isoformat(),
                 'image_sha256': hashlib.sha256((self.directory/(name+'.png')).read_bytes()).hexdigest(),
                 'ocr': [{'text': t.text, 'score': t.score, 'box': t.box} for t in records],**extra}
-        (self.directory / (name + '.json')).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+        (self.directory / (name + '.json')).write_text(_json_or_named(data), encoding='utf-8')
         return name
 
 
