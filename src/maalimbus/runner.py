@@ -2230,6 +2230,15 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     edge = edge_target(image, party, rest or walkable)
     if edge is not None:
         record['map_edge_target'] = [int(v) for v in edge[:4]]
+    # The lattice's own step, measured on this frame (D314).  `adjacent_to` falls back to the
+    # constant STEP_CENTRES when it cannot measure, and a page whose zoom changed then looks
+    # like "no neighbour at all": live `-152830` answered party (1091,252) and candidates 0
+    # on four MAP frames, while the same reader gave four candidates on the previous run's
+    # zoom.  Recording the measurement is what turns that from a mystery into a number.
+    measured = map_vision.pitch_of(party, [box for box in (rest or walkable)])
+    record['map_lattice'] = {'pitch': None if measured is None else [int(v) for v in measured],
+                             'step_fallback': measured is None,
+                             'boxes': len(rest or walkable)}
     # The page draws the step it will accept, so when that reading lands the list is cut to
     # the one box it names (D313).  Measured on `-152516`: the party's own tile centre is
     # (1247,264), and the loop spent 14 clicks on (863,264) -- two steps out -- and
@@ -3734,6 +3743,9 @@ class MirrorRunner:
         # journal claimed the main reader was silent while `map_frame_seen` showed it
         # answering (1091,252) on the same frames (D312).  Eight rounds were spent chasing a
         # fallback that was never used.
+        lattice = (record or {}).get('map_lattice')
+        if lattice:
+            self.note('map_lattice', **lattice)
         self.note('map_party_anchor',
                   source=(party_anchor_source(record) if record.get('map_party')
                           else ('probe' if probe_party is not None else 'none')),
