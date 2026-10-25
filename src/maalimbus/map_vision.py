@@ -2275,3 +2275,59 @@ def one_step(party, boxes, *, pitch=None, ratio=0.45):
         if abs(dist / pitch - 1.0) <= ratio:
             out.append((dist, box))
     return [box for _, box in sorted(out, key=lambda item: item[0])]
+
+
+def edge_target(image, party, boxes, *, reach=260.0, tube=0.28):
+    """The node at the end of the lit edge leaving the party, or None.
+
+    Distance cannot decide adjacency: both retained fixtures leave `pitch_of` at None,
+    so the 150..430 px band kept a two-step box on the 192 px zoom
+    (`packaged-mirror-20261025-073900`: party (1324,487), target (940,456) = 385 px)
+    while the same 385 px is one step on the 384 px zoom
+    (`packaged-mirror-20261022-085428`).  The page draws the reachable edge instead, so
+    the edge is the reference: the brightest segment near the party gives a direction and
+    the node whose centre sits closest to that ray wins.
+    """
+    if image is None or party is None or not boxes:
+        return None
+    import numpy as np
+
+    height, width = image.shape[:2]
+    scale = max(1.0, width / 1920.0)
+    limit = reach * scale
+    px, py = float(party[0]), float(party[1])
+    x0, x1 = int(max(0, px - limit)), int(min(width, px + limit))
+    y0, y1 = int(max(0, py - limit)), int(min(height, py + limit))
+    window = image[y0:y1, x0:x1]
+    if window.size == 0:
+        return None
+    hsv = np.asarray(__import__('cv2').cvtColor(window, __import__('cv2').COLOR_BGR2HSV))
+    # The edge is drawn either as a saturated cyan beam or as a pale white one, so a
+    # bright pixel qualifies when it is either saturated or nearly grey (measured: white
+    # (255,255,255) has S=0 and was excluded by a `S>=40` test that only imagined cyan).
+    lit = (hsv[:, :, 2] >= 200) & ((hsv[:, :, 1] >= 40) | (hsv[:, :, 1] <= 60))
+    ys, xs = np.nonzero(lit)
+    if len(xs) < 12:
+        return None
+    dx, dy = xs + x0 - px, ys + y0 - py
+    far = int(np.argmax(dx * dx + dy * dy))
+    ex, ey = float(dx[far]), float(dy[far])
+    length = (ex * ex + ey * ey) ** 0.5
+    if length < limit * 0.2:
+        return None
+    ux, uy = ex / length, ey / length
+    best, best_miss = None, None
+    for box in boxes:
+        bx, by, bw, bh = [float(v) for v in box[:4]]
+        cx, cy = bx + bw / 2 - px, by + bh / 2 - py
+        along = cx * ux + cy * uy
+        across = abs(-cx * uy + cy * ux)
+        if along <= 0:
+            continue
+        gap = across - tube * along
+        # A perfect hit is 0.0, which is falsy: `if gap:` silently skipped every node
+        # that sat on the ray (found by the synthetic test in tests/test_edge_target.py).
+        gap = 0.0 if gap <= 0 else gap
+        if best_miss is None or gap < best_miss:
+            best, best_miss = box, gap
+    return best
