@@ -3247,7 +3247,14 @@ class MirrorRunner:
                 if image is not None:
                     break
                 if attempt == 0:
-                    time.sleep(SETTLE_READ_SECONDS)
+                    # Sleeping is not enough: the run directory has no frame at all before
+                    # the loop has observed once (measured 2026-10-25: `party:null`,
+                    # `steps:0` persisted after adding a sleep).  Ask the pipeline for a
+                    # frame instead of re-reading a directory that is still empty.
+                    try:
+                        self._observe(phase='view_normalise')
+                    except Exception as error:  # a diagnostic may never end a run
+                        self.note('view_normalisation_read_failed', error=type(error).__name__)
             size = tuple(record.get('size') or (image.shape[1], image.shape[0]))
             width, height = size
             return party_point(image), (width, height)
