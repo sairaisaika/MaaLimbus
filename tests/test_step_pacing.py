@@ -35,8 +35,9 @@ def _pause_with(monkeypatch, *, now, input_at, interval=4.0):
     return loop._pause_between_steps(interval)
 
 
-def test_a_loop_that_never_sent_an_input_pays_the_whole_pause(monkeypatch):
-    assert _pause_with(monkeypatch, now=100.0, input_at=None) == 4.0
+def test_a_step_before_any_input_has_nothing_to_space_out(monkeypatch):
+    # D161: the pause exists to space inputs; before the first input there is none.
+    assert _pause_with(monkeypatch, now=100.0, input_at=None) == 0.0
 
 
 def test_the_settle_reads_after_the_input_are_part_of_the_pause(monkeypatch):

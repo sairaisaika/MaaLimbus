@@ -529,6 +529,15 @@ def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WI
     return str(turn).strip() == str(previous_turn).strip() and float(elapsed) > float(window)
 
 
+SETTLE_READ_SECONDS = 0.5
+"""The least a read-only step may sleep after an input the loop already sent (D161).
+
+A pause spaces *inputs*; a step that only reads does not need the page interval, but
+it must still let the screen move after the click it is reading, so it sleeps until at
+least half a second has passed since that click.  Measured on packaged-mirror-20261024-
+204450: 29 steps, 190 s, 26 reads and 10 clicks, with ~116 s of the run spent in
+pauses paid by steps that sent nothing.
+"""
 BATTLE_INTERVAL = 1.5
 """Spacing between the loop's own steps while a battle is on screen (D158).
 
@@ -2928,6 +2937,7 @@ class MirrorRunner:
         window, whether the window is done, and the observation record itself --
         the same JSON the CLI writes into ``build/window-debug/<label>/frame-*.json``.
         """
+        self.artifacts['last_step_sent'] = False
         settings = self.settings
         state = self.state
         directory = self.directory
@@ -4647,6 +4657,7 @@ class MirrorRunner:
         # spacing between the loop's own actions, and the settle reads after the
         # click are part of that spacing already (D93).
         self.artifacts['input_at'] = time.monotonic()
+        self.artifacts['last_step_sent'] = True
         if plan.get('reason') in ('buying_the_gift_the_gift_plan_asked_for',
                                   'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
             # The price is booked as spent the moment the click goes out: a purchase
@@ -5410,14 +5421,21 @@ class MirrorRunner:
         A run that never sends an input pays the full pause, because it has nothing to
         space out.
         """
+        at = self.artifacts.get('input_at')
+        if at is None:
+            # Nothing has been sent yet, so there is nothing to space out: the pause
+            # exists to keep the loop from clicking a menu twice (D161).  Paying the
+            # whole interval before the first input is what made a read-only step cost
+            # 4 s -- 29 steps of a 190 s run were 116 s of pauses.
+            return 0.0
+        elapsed = max(0.0, time.monotonic() - float(at))
+        if not self.artifacts.get('last_step_sent', True):
+            elapsed = max(elapsed, SETTLE_READ_SECONDS)
         interval = float(interval)
         page = str((getattr(self, 'state', None) or {}).get('last_named_page') or '')
         if page.startswith('BATTLE'):
             interval = min(interval, BATTLE_INTERVAL)
-        at = self.artifacts.get('input_at')
-        if at is None:
-            return interval
-        return max(0.0, interval - max(0.0, time.monotonic() - float(at)))
+        return max(0.0, interval - elapsed)
 
     def _walk(self, *, steps=300, interval=6.0, round_limit=5, deadline=None):
         """The loop itself; `run` owns the watches, this owns the walking."""
