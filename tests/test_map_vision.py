@@ -1422,3 +1422,35 @@ def test_a_real_pack_line_still_maps():
     records, size = _archived(path)
     header = map_header(records, size)
     assert header is not None and header.pack == 'Sunk Gloom'
+
+
+def test_a_split_caption_whose_first_half_was_dropped_is_still_the_floor():
+    """The 1280x720 variant renders 'Exploring' and 'Floor N' in two boxes and OCR can
+    return only the second: frame-0009 of packaged-mirror-20261025-045045 holds
+    ('Floor', (246,135,120,35), 0.99) with no 'Exploring' anywhere, and the page stayed
+    UNKNOWN for a whole 300 s run because of it."""
+    import json
+    from pathlib import Path
+    from maalimbus.vision import Text
+    frame = Path('evidence/runtime/packaged-mirror-20261025-045045/frame-0009.json')
+    if not frame.exists():
+        import pytest
+        pytest.skip('the retained frame is not in this checkout')
+    record = json.loads(frame.read_text(encoding='utf-8'))
+    size = tuple(record.get('size') or (1920, 1080))
+    rows = [Text(r['text'], tuple(r['box']), r.get('score') or 0.0)
+            for r in (record.get('ocr') or []) if r.get('text')]
+    from maalimbus import map_vision
+    label = map_vision.floor_label(rows, size)
+    assert label is not None, 'a bare Floor token in the header band is the label'
+    assert label.text.strip() == 'Floor'
+
+
+def test_a_stray_floor_word_outside_the_band_is_not_a_label():
+    """The bare token is accepted inside the header band only; a panel prints Floor rows
+    mid-screen and those must not make a page look like a map header."""
+    from maalimbus.vision import Text
+    size = (1920, 1080)
+    from maalimbus import map_vision
+    rows = [Text('Floor', (900, 700, 120, 35), .99)]
+    assert map_vision.floor_label(rows, size) is None

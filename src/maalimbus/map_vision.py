@@ -38,6 +38,13 @@ HEADER_PATTERN = r'^' + HEADER_WORD + r'\s*(?:F\w{3,5}?|F\s*\d)\s*([1-5])?\s*$'
 #: and the floor word itself is matched lazily so its letters cannot swallow the digit
 #: ('ExploringFloor5' would otherwise parse as the word "Floor5" with no floor number).
 HEADER_LABEL_PATTERN = r'^' + HEADER_WORD + r'(?:\s*Floor)?$'
+# One map variant splits its caption across two boxes and OCR sometimes returns only the
+# second one: evidence/runtime/packaged-mirror-20261025-045045/frame-0009.json holds
+# ('Floor', (246,135,120,35), 0.99) with no 'Exploring' anywhere, so the label alone kept
+# the page UNKNOWN for a whole 300 s run.  The bare second half is accepted inside the
+# header band only; the pack line is still required by map_header, so a stray 'Floor'
+# elsewhere on a page cannot promote anything.
+HEADER_TAIL_PATTERN = r'^Floor$'
 HEADER_FLOOR_PATTERN = r'^Floor\s*([1-5])?$'
 #: OCR sometimes renders the gap in "Exploring Floor" as a dot instead of a space
 #: (live evidence/runtime/packaged-mirror-20261022-045608/frame-0006.json reads
@@ -1585,7 +1592,10 @@ def floor_label(records, size):
     if len(matches) == 1:
         return matches[0]
     labels = find(folded, HEADER_LABEL_PATTERN, HEADER_ROI, size, .85)
-    return labels[0] if labels else None
+    if labels:
+        return labels[0]
+    tails = find(folded, HEADER_TAIL_PATTERN, HEADER_ROI, size, .85)
+    return tails[0] if len(tails) == 1 else None
 
 
 def map_header(records, size, pack_name=None):
