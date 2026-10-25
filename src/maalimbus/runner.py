@@ -749,11 +749,13 @@ def centre_plan(party, size, *, tolerance=8):
     """
     if not party or not size:
         return None
+    # Only the horizontal axis matters: the operator asked for "centred, height
+    # irrelevant" (m17983) because the lattice is judged by which line the party stands
+    # on, and dragging vertically only risks moving it off that line.
     dx = int(round(size[0] / 2.0 - float(party[0])))
-    dy = int(round(size[1] / 2.0 - float(party[1])))
-    if abs(dx) <= tolerance and abs(dy) <= tolerance:
+    if abs(dx) <= tolerance:
         return None
-    return dx, dy
+    return dx, 0
 
 
 def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
@@ -3051,6 +3053,55 @@ class MirrorRunner:
                       page=page, word=(team or {}).get('saved_team_word'), **verdict)
         return verdict
 
+    def _normalise_view_once(self):
+        """Centre the map once per floor, on measurements, and say whether it worked.
+
+        The operator's screenshots (m17926) show the loop's own view -- the party right of
+        centre and the boss room off the edge -- because nothing ever centred it.  A
+        gesture failure is journalled and never fatal: the walk still works off-centre,
+        just worse, and the event says which of the two happened.
+        """
+        state = self.state
+        if state.get('view_normalised') or self.settings.observe_only:
+            return
+        state['view_normalised'] = True
+        device, controller = self.device, getattr(self.device, 'controller', None)
+        if controller is None:
+            return
+
+        def measure():
+            image, record = self._frame_and_record()
+            if image is None:
+                return (None, None)
+            size = tuple(record.get('size') or (image.shape[1], image.shape[0]))
+            width, height = size
+            return party_point(image), (width, height)
+
+        wait = getattr(device, '_wait', None) or (lambda job, timeout=10: job)
+
+        def zoom():
+            pinch_out(controller, wait)
+
+        def drag(dx, dy):
+            width, height = measure()[1] or (1920, 1080)
+            device.swipe(width // 2, height // 2,
+                         width // 2 + int(dx), height // 2 + int(dy), 350)
+
+        try:
+            result = normalise_view(measure, zoom, drag)
+        except (RuntimeError, OSError) as error:
+            self.note('view_normalisation_failed', error=str(error)[:200])
+            return
+        self.note('view_normalised', centred=result.get('centred'),
+                  steps=len(result.get('steps') or ()))
+
+    def _frame_and_record(self):
+        image, name = latest_frame(self.directory)
+        if image is None:
+            return (None, {})
+        record = {'frame': name, 'size': [image.shape[1], image.shape[0]]}
+        return (image, record)
+
     def _observe(self, deadline=None, *, phase='observe', battle_hint=None):
         """One page, from the injected observer, with the journal details attached.
 
@@ -5129,6 +5180,7 @@ class MirrorRunner:
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
+                self._normalise_view_once()
                 # A click that has not been judged is judged before the loop is allowed to
                 # choose a different target: every `superseded` row in
                 # `evidence/runtime/packaged-mirror-20261025-070108` was written 0.0 s after
