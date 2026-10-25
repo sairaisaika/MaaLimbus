@@ -48,7 +48,7 @@ def _run(tmp_path, monkeypatch, boxes=None):
     (Path(tmp_path) / 'frame-0001.json').write_text(
         json.dumps({'image_sha256': 'a' * 64, 'frame': 1}), encoding='utf-8')
     monkeypatch.setattr(runner, 'candidates_of',
-                        lambda directory, record: (frame, list(BOXES if boxes is None else boxes)))
+                        lambda directory, record, **kw: (frame, list(BOXES if boxes is None else boxes)))
     plan = {'page': 'MAP', 'action': 'click', 'target': [120, 220, 40, 40], 'node': None,
             'expect': ('MAP',), 'reason': 'map_node_click_is_the_only_proven_forward_input',
             'advance': False}
@@ -88,7 +88,7 @@ def test_the_row_carries_the_party_it_was_filtered_against(tmp_path, monkeypatch
 
 
 def test_a_non_map_page_offers_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: (None, None))
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record, **kw: (None, None))
     monkeypatch.setattr(runner, 'plan_step',
                         lambda *args, **kwargs: {'page': 'DRIVE', 'action': 'none',
                                                  'target': None, 'node': None,

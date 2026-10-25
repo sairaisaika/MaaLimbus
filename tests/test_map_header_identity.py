@@ -83,7 +83,7 @@ def test_a_named_map_page_is_not_touched_by_this_rule(tmp_path):
 
 
 def test_a_map_with_no_pack_line_still_offers_a_click(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('MAP', [[100, 200, 40, 40]]))
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record, **kw: ('MAP', [[100, 200, 40, 40]]))
     loop, result, _reads = _run(tmp_path, [_record()])
     notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
     assert len(notes) == 1 and notes[0]['point'] == [120, 220]
@@ -92,7 +92,7 @@ def test_a_map_with_no_pack_line_still_offers_a_click(tmp_path, monkeypatch):
 
 
 def test_a_panel_on_screen_is_never_acted_on_as_a_map(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('MAP', [[100, 200, 40, 40]]))
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record, **kw: ('MAP', [[100, 200, 40, 40]]))
     real = json.loads((pathlib.Path('evidence/runtime/packaged-mirror-20261025-012549')
                        / 'frame-0001.json').read_text(encoding='utf-8'))['ocr']
     loop, _summary, _reads = _run(tmp_path, [_record(ocr=tuple(real))])
@@ -102,8 +102,8 @@ def test_a_panel_on_screen_is_never_acted_on_as_a_map(tmp_path, monkeypatch):
 
 def test_a_map_whose_party_cannot_be_read_still_takes_one_step(tmp_path, monkeypatch):
     """`candidates_of` refuses an unnamed scene, so the blind reader supplies the box."""
-    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: (None, None))
-    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record: [[100, 200, 40, 40]])
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record, **kw: (None, None))
+    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record, **kw: [[100, 200, 40, 40]])
     loop, _summary, _reads = _run(tmp_path, [_record()])
     notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
     assert len(notes) == 1 and notes[0]['point'] == [120, 220]
@@ -125,7 +125,7 @@ def test_the_blind_reader_needs_a_frame(tmp_path):
 
 def test_a_map_may_be_walked_by_its_blind_budget_and_then_it_ends(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, 'blind_map_boxes',
-                        lambda directory, record: [[100, 200, 40, 40], [300, 200, 40, 40]])
+                        lambda directory, record, **kw: [[100, 200, 40, 40], [300, 200, 40, 40]])
     loop = runner.MirrorRunner(runner.FakeDevice(), journal=_Journal(tmp_path),
                                settings={'rounds': 1, 'interval': 0, 'steps': 6,
                                          'stall_seconds': 0, 'progress_seconds': 0},
@@ -142,7 +142,7 @@ def test_a_map_may_be_walked_by_its_blind_budget_and_then_it_ends(tmp_path, monk
 
 
 def test_a_tried_box_is_not_clicked_twice(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record: [[100, 200, 40, 40]])
+    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record, **kw: [[100, 200, 40, 40]])
     loop, _summary, _reads = _run(tmp_path, [_record()])
     assert loop.device.clicks == [(120, 220)]
 
