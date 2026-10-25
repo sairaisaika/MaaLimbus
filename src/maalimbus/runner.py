@@ -2333,7 +2333,11 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
                 record['map_edge_step'] = {'from_edge': [int(v) for v in near[0]],
                                            'step': [int(v) for v in nearest]}
                 ordered = [nearest]
-        ordered = list(near)
+        # D322 set `ordered` to the neighbouring tile; an unconditional `ordered = list(near)`
+        # right after it put the party's own ring back, which is why the step was computed
+        # and then thrown away (offline: `map_edge_step` right, `offered` wrong).
+        if not ordered:
+            ordered = list(near)
     if edge is not None:
         front = [int(v) for v in edge[:4]]
         ordered = [box for box in ordered if [int(v) for v in box[:4]] == front] +                   [box for box in ordered if [int(v) for v in box[:4]] != front]
