@@ -85,3 +85,28 @@ def test_a_guard_probe_is_not_a_read(tmp_path):
     row = m.reads_by_page([tmp_path])['MAP']
     assert row['median'] == 1
     assert row['probes'] == 1
+
+
+def test_the_guard_chain_probes_one_frame_not_four():
+    """A guard chain (LimbusSafety/LimbusExpired/LimbusDefeat/MirrorEntryConfirm) asks about
+    the same picture; the recognition cache is what keeps that to one OCR per frame, so the
+    rows must share a frame id rather than each name a new one (D191)."""
+    import collections
+    import pytest
+    try:
+        archives = m._archives()
+    except Exception:  # pragma: no cover - no corpus on this machine
+        pytest.skip('no archive')
+    rows = 0
+    duplicated = 0
+    for directory in archives:
+        events = m._rows_of(directory)
+        if not m.capability(events, directory)['can_write_a_stop']:
+            continue
+        frames = collections.Counter(row.get('frame') for row in events
+                                     if row.get('event') == 'scene_mismatch')
+        rows += sum(frames.values())
+        duplicated += sum(count - 1 for count in frames.values())
+    if not rows:
+        pytest.skip('no guard probe in the corpus')
+    assert duplicated / rows > 0.5, 'the guard probes stopped sharing a frame'
