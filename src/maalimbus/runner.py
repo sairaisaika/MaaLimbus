@@ -474,6 +474,25 @@ def one_step_from(point, cell, *, col=COL_STEP, row=ROW_STEP, slack=0.30):
 BOARD = (0.0, 0.02, 0.80, 0.88)   # the map is drawn inside these frame fractions
 
 
+def party_in_board(image, size=None, *, board=BOARD, hud_bottom=0.84):
+    """The party reading, refused when it is not on the board.
+
+    `party_point` alone answered (641, 616) on a 1280x720 map frame -- y 616 of 720 is the
+    bottom HUD row -- so every measurement built on it (boss distance, line coverage,
+    candidate ranking) was measured from the wrong origin (rounds 55-62).  A reading that
+    lands in the HUD band or outside the board is not the party; it is a party card.
+    """
+    point = party_point(image, board=board)
+    if not point:
+        return None
+    width, height = (size if size else (image.shape[1], image.shape[0]))[:2]
+    x, y = float(point[0]) / width, float(point[1]) / height
+    left, top, right, bottom = board
+    if not (left <= x <= right and top <= y <= min(bottom, hud_bottom)):
+        return None
+    return point
+
+
 def party_point(image, *, board=BOARD):
     """The party dot inside the board, or None when no reading lands on it.
 
