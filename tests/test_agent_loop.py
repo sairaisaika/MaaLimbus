@@ -329,12 +329,18 @@ def test_a_broken_controller_is_journalled_and_returns_false(tmp_path):
 
 
 def test_a_run_out_of_budget_stops_bounded(tmp_path):
+    """D165: a 0.5 s budget is inside the tail, so the loop names that ending.
+
+    The budget the caller gave cannot pay for a whole step, and starting one anyway is
+    how a run ends up killed by its harness instead of stopping itself.
+    """
     ran = run_loop(tmp_path, {'steps': 1, 'interval': 0.0, 'budget': 0.5, 'run_store': ''},
                    controller=HangingController())
     assert ran.returned is False
     stopped, = runner.events(ran.directory, 'mirror_loop_stopped')
-    assert stopped['reason'] == 'loop_deadline_exceeded'
-    assert read_result(ran.directory)['reason'] == 'loop_deadline_exceeded'
+    assert stopped['reason'] == 'the_budget_could_not_pay_for_another_step'
+    assert read_result(ran.directory)['reason'] == 'the_budget_could_not_pay_for_another_step'
+    assert stopped['stop_path'] == 'agent_loop'
 
 
 def test_each_step_leaves_a_heartbeat_behind(tmp_path):

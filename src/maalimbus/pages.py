@@ -815,6 +815,7 @@ STOP_KINDS = {
     # A submitted turn that never showed a page is a transition the run cannot
     # complete from here: the only honest action is to stop (D97/D98).
     'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
+    'the_budget_could_not_pay_for_another_step': 'refused_by_policy',
     # A deployment input went out and the page never confirmed it: the transaction is
     # unfinished, so the loop stops rather than guess (D116).
     'Unverified deployment input remains pending': 'refused_by_policy',

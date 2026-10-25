@@ -550,6 +550,7 @@ not a page whose controls need care (D106/D114: its controls are at measured poi
 so it may be walked at this spacing while every other page keeps the caller's.
 """
 DEEP_STEP_SECONDS = 60.0
+MIN_STEP_SECONDS = 20.0   # D165: below this tail the loop ends itself
 ONE_READ_SECONDS = 30.0
 RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
 """One page read may not outlive this, whoever asked for it.
@@ -5480,10 +5481,22 @@ class MirrorRunner:
             # minutes inside the recogniser (live 420 s budget kept running to 610 s with
             # one 423.8 s gap between a click and the next event), so check here as well
             # as inside the step.
-            if self.deadline is not None and time.monotonic() >= self.deadline:
-                self._end_session('loop_deadline_exceeded',
-                                  overshoot_s=round(time.monotonic() - self.deadline, 1))
-                break
+            if self.deadline is not None:
+                remaining = self.deadline - time.monotonic()
+                if remaining <= 0.0:
+                    self._end_session('loop_deadline_exceeded',
+                                      overshoot_s=round(-remaining, 1))
+                    break
+                if remaining < MIN_STEP_SECONDS:
+                    self._end_session('the_budget_could_not_pay_for_another_step',
+                                      remaining_s=round(remaining, 1))
+                    break
+            # D165: a budget too short to pay for a whole step is an ending of its
+            # own, not a harness kill.  A step can hold a battle for minutes, so
+            # starting one with a tail shorter than MIN_STEP_SECONDS leaves the loop
+            # unable to write its own stop -- which is exactly what a frozen screen
+            # looks like from the operator's side (live 2026-10-24 21:47, killed at 310 s
+            # while the game sat on floor 6).
             if self.state.get('session_ended'):
                 self.note('mirror_loop_stopped',
                           reason='the_pipeline_node_failed_before_the_next_input',
