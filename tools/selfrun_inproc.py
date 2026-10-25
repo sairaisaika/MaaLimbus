@@ -120,10 +120,19 @@ def main():
                        deadline=deadline, in_process=True, steps=args.steps,
                        observe_only=bool(args.observe_only), address=args.address)
         snapping = selfrun_finish.Snapshotting(journal, directory, result)
+        # The five transaction ledgers only exist when the runner is given a store
+        # (runner.py: every `X_transaction` is `X(...) if self.store is not None else None`),
+        # and a runner without them stops at the first PRE_BATTLE_TEAM page with
+        # `deployment_transaction_or_counter_missing` -- four live runs of 2026-10-25 died
+        # that way in 4 s while the screen offered `To Battle!`.  This tool built no store,
+        # so the agent's own builder decides: observe-only gives (None, None), a real run
+        # gets the ledger the packaged agent would have used.
+        from recognition import loop_store
+        store, run_id = loop_store(settings, journal)
         loop = runner.MirrorRunner(inner, settings=settings, locale=args.locale,
                                    registry=json.loads(runner.REGISTRY.read_text(encoding='utf-8')),
                                    directory=directory, journal=snapping, observer=observer,
-                                   result=result)
+                                   store=store, run_id=run_id, result=result)
         loop.configure(deadline=deadline)
         # `round_limit` is how many steps one call may walk (the agent passes the same
         # budget as `steps`), not a cap on unproductive rounds.
