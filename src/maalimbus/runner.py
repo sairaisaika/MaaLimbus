@@ -1913,6 +1913,26 @@ def rank_by_distance(boxes, party):
     return sorted(boxes, key=_gap)
 
 
+def party_anchor_source(record):
+    """Where the geometry anchor came from, as one of three words.
+
+    Every downstream decision (adjacency, the lattice, centring) starts at the party,
+    and until now the journal could not say whether that point was *read* this frame,
+    *carried* from the last frame that read it (D266), or *absent* -- so two rounds of
+    measurements were taken on an anchor whose provenance was unknown (m18391/m18406).
+    This is the field that makes the question answerable; it is derived from the record
+    that `candidates_of` already writes, so it cannot disagree with it.
+    """
+    source = record.get('map_party_source')
+    if source in ('read', 'carried', 'none'):
+        return source
+    if record.get('map_party_from_cache'):
+        return 'carried'
+    if record.get('map_candidates_refused'):
+        return 'none'
+    return 'read' if record.get('map_party') else 'none'
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -1953,6 +1973,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # (packaged-mirror-20261024-155435): the run ended with "The truth value of an
     # array with more than one element is ambiguous" one event after its first read.
     record['map_party'] = [int(v) for v in party] if party is not None else None
+    record['map_party_source'] = 'read' if party is not None else 'none'
     boxes = [list(item['box']) for item in clicks]
     # The kind the reader gave a box never reached the journal, so a verdict could say
     # which box was refused but not what the reader thought it was -- and `map_clicks`
@@ -1986,6 +2007,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         party = tuple(int(v) for v in fallback_party)
         record['map_party'] = [int(v) for v in party]
         record['map_party_from_cache'] = True
+        record['map_party_source'] = 'carried'
     # Which box the loop tries first is a policy, and the reader has already said what
     # each box is.  `map_clicks` claims in its own docstring that the marked step comes
     # first, but it returns the 190x190 badge tiles before the bright glyph, and a tile's
@@ -3393,6 +3415,8 @@ class MirrorRunner:
                 and now - float(cached.get('at', 0.0)) <= MAP_PARTY_CACHE_SECONDS):
             fallback = tuple(cached['point'])
         frame, candidates = candidates_of(directory, record, fallback_party=fallback)
+        self.note('map_party_anchor', source=party_anchor_source(record),
+                  party=record.get('map_party'), candidates=len(candidates or ()))
         if record.get('map_party_from_cache'):
             self.note('map_party_from_cache', floor=floor,
                       age_s=round(now - float(cached.get('at', now)), 1))
