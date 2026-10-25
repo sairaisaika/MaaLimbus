@@ -2885,11 +2885,34 @@ def arrow_target(image, party, boxes, *, step=None, reach=200):
             'target': [int(v) for v in best[1][:4]], 'gap': round(best[0], 1)}
 
 
-def neighbour_by_line(image, party, boxes, *, reach_ratio=0.25, band=0.45, min_lit=0.02):
+def line_share(image, start, end, *, lit=None, samples=160, skip=0.2):
+    """The share of a segment that is lit, with `lit` derived from the frame itself.
+
+    Measured on `packaged-mirror-20261025-160619/frame-0005.png`: the frame's grey median is
+    4 and p90 is 22, a tile a line connects reads p50 32-54 and carries lit pixels on 54-85%
+    of the segment, while a tile without a line reads p50 3-8 and 9-16%.  So the old
+    `grey > 90` could never fire, and the threshold is taken from this frame's p90 + 8.
+    """
+    import numpy as np
+    if image.ndim == 3:
+        grey = (image[..., 0] * 0.114 + image[..., 1] * 0.587 + image[..., 2] * 0.299)
+    else:
+        grey = image
+    grey = np.asarray(grey, dtype=float)
+    if lit is None:
+        lit = max(26.0, float(np.percentile(grey, 90)) + 8.0)
+    xs = np.linspace(start[0], end[0], samples)
+    ys = np.linspace(start[1], end[1], samples)
+    row = np.array([grey[int(round(y)), int(round(x))] for x, y in zip(xs, ys)], float)
+    core = row[int(len(row) * skip):int(len(row) * (1 - skip))]
+    return round(float((core > lit).mean()), 3)
+
+
+def neighbour_by_line(image, party, boxes, *, reach_ratio=0.10, band=0.55, min_share=0.5):
     """The neighbouring tile that a drawn line actually connects the party to.
 
-    Measured on the live 1280x720 frame: one tile is ~320 px, i.e. a quarter of the frame
-    width, and the four tiles around the party all sit at that distance -- so distance cannot
+    Measured on the 1920x1080 frames: the party's nearest tiles sit 156-228 px away, i.e.
+    0.08-0.12 of the frame width, and the four tiles around the party all sit at that distance -- so distance cannot
     order them, and only the line can.  `line_lit` scores each segment; a tile whose segment
     carries no lit pixels is not offered at all (D329).
     """
@@ -2902,9 +2925,9 @@ def neighbour_by_line(image, party, boxes, *, reach_ratio=0.25, band=0.45, min_l
         distance = ((centre[0] - party[0]) ** 2 + (centre[1] - party[1]) ** 2) ** 0.5
         if not (reach * (1.0 - band) <= distance <= reach * (1.0 + band)):
             continue
-        score = line_lit(image, party, centre)
+        score = line_share(image, party, centre)
         seen.append({'box': [int(v) for v in box[:4]], 'score': score, 'distance': round(distance, 1)})
-        if score < min_lit:
+        if score < min_share:
             continue
         if best is None or score > best[0]:
             best = (score, box, centre, distance)
