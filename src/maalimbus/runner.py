@@ -2810,7 +2810,7 @@ class MirrorRunner:
         now = time.monotonic()
         self.artifacts['heartbeat'] = now
         run_deadline = self.deadline if deadline is None else deadline
-        recovered = float((self.state or {}).get('recovered_at') or 0.0)
+        recovered = float((getattr(self, 'state', None) or {}).get('recovered_at') or 0.0)
         tight = recovered and 0.0 <= now - recovered < RECOVERED_READ_WINDOW
         # One formula for the ceiling: the caller's tighter window wins, and a read may
         # never outlive the run.  `bounded_read` is the same door `MaaObserver` clamps at,

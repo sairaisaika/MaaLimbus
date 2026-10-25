@@ -58,11 +58,18 @@ def test_a_round_without_a_caller_deadline_still_gets_one(monkeypatch):
         assert deadline <= now + runner.RE_SETTLE_LIMIT_S + 1
 
 
-def test_a_caller_deadline_is_forwarded_unchanged(monkeypatch):
+def test_a_caller_deadline_is_a_ceiling_and_a_looser_one_is_capped(monkeypatch):
+    # D110 made the read ceiling part of the door: a caller asking for 12345 s still gets
+    # at most ONE_READ_SECONDS.  The old assertion ("forwarded unchanged") pinned the
+    # absence of that cap, so it is the assertion that was stale, not the rule.
     record = []
     _patch_observe(monkeypatch, record)
+    now = time.monotonic()
     runner._settle(None, {"image_sha256": "same"}, "same", 2, 0, 12345.0)
-    assert record and all(d == 12345.0 for d in record)
+    assert record and all(d <= now + runner.ONE_READ_SECONDS + 1 for d in record)
+    record.clear()
+    runner._settle(None, {"image_sha256": "same"}, "same", 2, 0, now + 5.0)
+    assert record and all(d <= now + 5.0 + 1 for d in record)
 
 
 def test_a_changed_frame_stops_after_one_read(monkeypatch):
