@@ -8,11 +8,12 @@ sys.path[:0] = [str(ROOT / 'src')]
 from maalimbus.runner import pending_target
 
 
-def test_a_pending_click_is_reused_within_its_budget():
+def test_a_pending_click_is_reused_once_and_then_given_up():
+    """D204 把 D197 的复用上限降到**一次**：592 次已判定的点击里，第一次命中 22%、
+    第二次只有 3%（2/74），再发一次几乎总是白给。本测试买断的是这个上限，不是 tries 的
+    字面值。"""
     state = {'map_pending': [10, 20, 30, 40]}
     plan = {'target': [99, 99, 10, 10]}
-    assert pending_target(state, plan, tries=3) == ([10, 20, 30, 40], True)
-    assert pending_target(state, plan, tries=3) == ([10, 20, 30, 40], True)
     assert pending_target(state, plan, tries=3) == ([10, 20, 30, 40], True)
     assert pending_target(state, plan, tries=3) == ([99, 99, 10, 10], False)
     assert state['map_retries'] == 0
