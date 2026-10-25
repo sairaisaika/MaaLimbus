@@ -89,6 +89,38 @@ class FloorGiftTransaction:
         value = [o.identity() for o in offers]
         return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 
+    def retire_stale_commit(self, scope, reason='a_new_run_started_before_the_old_commit_could_be_judged'):
+        """Move a commit that can no longer be judged out of the way (D293).
+
+        A pending ``commit`` means the previous attempt clicked Commit and never saw the
+        result.  Nothing in the record can prove what the game did, so `prepare` keeps
+        refusing -- correctly -- but that refusal is raised on *every* later run of the
+        same ledger, and 2026-10-25 measured exactly that: `packaged-mirror-20261025-085426`
+        stopped on `floor_gift_previous_transaction_unresolved` after four clicks, before
+        the walk had begun.  Retiring it does not replay the input and does not erase the
+        evidence: the record is appended to ``history`` with ``abandoned`` set, so the
+        receipt that never arrived stays readable.
+        """
+        d = self.data or {}
+        pending = d.get('pending') or {}
+        if not pending:
+            return None
+        if d.get('scope') == scope:
+            # The same run asking again is not a stale record: it is the run that owes
+            # the judge.  Only a different run may retire it.
+            return None
+        retired = dict(d)
+        retired.pop('history', None)
+        retired['pending'] = {}
+        retired['abandoned'] = {'kind': pending.get('kind'), 'scope': d.get('scope'), 'reason': reason}
+        history = list(d.get('history') or [])
+        history.append(retired)
+        d['history'] = history
+        d['pending'] = {}
+        d['retired'] = {'kind': pending.get('kind'), 'scope': d.get('scope'), 'reason': reason}
+        write_json(self.path, d)
+        return d['retired']
+
     def prepare(self, scope, offers, count, proof):
         signature = self.signature(offers)
         d = self.data

@@ -4592,6 +4592,15 @@ class MirrorRunner:
                         frame_file(directory),self.floor_gift_catalog)
                     self.note('floor_gift_pending_pick_reconciled',input_sent=False,
                               successor=str(frame_file(directory)),count=gift)
+                elif pending and pending.get('kind')=='commit':
+                    # A commit the old attempt clicked and never judged cannot be replayed,
+                    # and keeping it refused every later run (measured 2026-10-25:
+                    # floor_gift_previous_transaction_unresolved on a fresh page).  Retire
+                    # the record -- no input, evidence kept in history -- and let the
+                    # normal path prepare this page (D293).
+                    retired=self.floor_gift_transaction.retire_stale_commit(self.run_id)
+                    if retired:
+                        self.note('floor_gift_stale_commit_retired',input_sent=False,**retired)
                 elif pending and pending.get('kind')=='receipt':
                     # The notice that pick produced was never booked before the attempt that
                     # made it ended. A fresh floor gift page proves that receipt's successor
