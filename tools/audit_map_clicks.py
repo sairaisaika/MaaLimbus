@@ -7,12 +7,14 @@ vain, 2 when there is nothing to read.
 """
 
 import sys
+import json
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-from maalimbus import run_metrics  # noqa: E402
+from maalimbus import run_metrics
+from maalimbus.run_metrics import settled_clicks  # noqa: E402
 
 
 def main(argv=None):
@@ -36,7 +38,18 @@ def main(argv=None):
     if not kinds['sent']:
         print('nothing to read: no map_click_result row in this corpus')
         return 2
-    print('click verdicts: %d' % kinds['sent'])
+    print('click rows: %d' % kinds['sent'])
+    rows_by_run = {}
+    for directory in (directories or sorted(
+            path.parent for path in
+            pathlib.Path('evidence/runtime').glob('packaged-mirror-*/events.jsonl'))):
+        rows_by_run[directory] = _rows(directory)
+    settled = pending = 0
+    for rows in rows_by_run.values():
+        found = settled_clicks(rows)
+        settled += len(found['settled'])
+        pending += len(found['pending'])
+    print('clicks (one verdict each, D198): %d settled, %d unanswered' % (settled, pending))
     print('%-22s %5s %8s %8s %11s %8s %6s' % ('kind', 'sent', 'accepted', 'rejected',
                                             'superseded', 'unjudged', 'rate'))
     for row in report['rows']:
@@ -48,6 +61,11 @@ def main(argv=None):
     if report['note']:
         print('note: %s' % report['note'])
     return 0
+
+
+def _rows(directory):
+    return [json.loads(line) for line in (directory / 'events.jsonl').read_text(
+        encoding='utf-8').splitlines() if line.strip()]
 
 
 if __name__ == '__main__':
