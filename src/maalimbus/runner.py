@@ -2658,6 +2658,14 @@ class MirrorRunner:
         The party the candidate list was filtered against travels with the verdict.
         """
         fields.setdefault('party', self.state.get('map_party'))
+        # Where inside that box the click actually went (D203).  The verdict carried the
+        # box and nothing else, so "did the click land on the node or on the floor beside
+        # it" could not be asked of 592 settled clicks: 100 accepted of 592 is the question
+        # this field exists to answer.  The centre is what `inset_box` aims at unless the
+        # caller recorded a different point.
+        if fields.get('target') is not None and fields.get('point') is None:
+            x, y, w, h = (list(fields['target']) + [0, 0, 0, 0])[:4]
+            fields['point'] = [int(x + w / 2), int(y + h / 2)]
         # Which kind of thing the reader thought this box was (D75).  Only the offered
         # list knows it, and only the movement verdict needs it.
         if fields.get('target') is not None and not fields.get('kind'):
