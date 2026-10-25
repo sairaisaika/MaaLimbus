@@ -6082,3 +6082,20 @@ NODE_PANEL n=3 亮像素 0.006–0.017；间隙 0.003、面板样本仅 3 帧 �
 
 **下一步**：先跑 3–5 次 90–180 秒实机把面板样本补足；若可分则不碰身份判据、用结构裁决；若不可分则采方案 1，
 并在 `pages` 里登记 `acted_on_a_map_without_a_pack_line` 的语义（行动不等于识别）。
+
+## DSH continuation: the pack line is never read at all (2026-10-25)
+
+Round 244 verified D241 with a 300 s authorised in-process run
+(`evidence/runtime/packaged-mirror-20261025-044012`, 152 events) and the run ended
+`page_unreadable_after_waiting` with **0 map clicks and 0 intents**, although the blind
+path fired three times (`acted_on_a_map_without_a_pack_line` 3, `map_header_without_a_pack_line`
+13).  Measured cause: in the header band of six consecutive frames the OCR emits
+`'Exploring Floor5' [62,129,336,47] 0.96` and then nothing else below y=0.20 -- the pack line
+(`Sunk Gloom`) is **never emitted at all** (no row, not a low score), so no floor gate, ROI
+or size rule can admit this page.  The cyan step reader and the ranking are irrelevant on
+this screen: the loop has nothing to name it with.
+
+Next unit: a dedicated faint-text pass -- one extra ROI OCR over the pack band
+(x .02-.32, y .11-.16) at `threshold=0.1`, feeding `map_header` only, with the existing
+size gate (>96 px wide or >=6 characters) keeping noise out.  Then re-run 300 s and expect
+the page to be named `MAP`, which is what unblocks the walk on this variant.
