@@ -552,6 +552,17 @@ def train_player(image, *, bottom=None, right=None, min_area=60, max_side=32,
     bottom = MARKER_MAP_BOTTOM if bottom is None else bottom
     right = MARKER_MAP_RIGHT if right is None else right
     height, width = image.shape[:2]
+
+    # Every default above was measured on a 1920x1080 frame: the flame is 271 px there and
+    # 45 px on a 1280x720 capture, where an unscaled min_area of 60 discards it (live
+    # `evidence/runtime/lattice-probe/zoomed2.png`, torch blobs 45/27/23 px at
+    # (703,253)/(699,281)/(703,324)).  The thresholds stay 1080p pixels and are scaled by
+    # the frame's own height, so another camera size reads the same locomotive.
+    scale = height / 1080.0
+    min_area = max(8, int(round(min_area * scale * scale)))
+    max_side = max(6, int(round(max_side * scale)))
+    gap = (int(round(gap[0] * scale)), int(round(gap[1] * scale)))
+    drift = max(8, int(round(drift * scale)))
     blue = image[:, :, 0].astype(int)
     green = image[:, :, 1].astype(int)
     red = image[:, :, 2].astype(int)
@@ -560,15 +571,24 @@ def train_player(image, *, bottom=None, right=None, min_area=60, max_side=32,
     mask[:, round(right * width):] = 0
     count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
     blobs = []
+    # A flame is the big yellow blob (271 px on the measured 1080p frame); the lit body
+    # under it is smaller -- 53 px and 50 px on
+    # `evidence/runtime/packaged-mirror-20261025-061838/frame-0001.png` -- so filtering
+    # every blob at the flame's own floor left no body to pair with and the function
+    # answered None on both retained frames.  Flames keep `min_area`; bodies only need to
+    # exist (`body_area`).
+    body_area = max(4, int(round(20 * scale * scale)))
     for index in range(1, count):
         x, y, box_w, box_h, area = (int(value) for value in stats[index])
-        if area < min_area:
+        if area < min(min_area, body_area):
             continue
         blobs.append(dict(x=x, y=y, w=box_w, h=box_h, area=area,
                           cx=int(round(centroids[index][0])),
                           cy=int(round(centroids[index][1]))))
     best = None
     for flame in blobs:
+        if flame['area'] < min_area:
+            continue
         if flame['w'] > max_side or flame['h'] > max_side:
             continue
         for body in blobs:
