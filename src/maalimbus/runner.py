@@ -1661,6 +1661,8 @@ CONTROLS = ('enter', 'battle', 'start', 'confirm', 'cancel', 'select', 'proceed'
 
 BATTLE_UNREADABLE = 'the_battle_stayed_unreadable'
 # D217: a fight whose animation never gives the board back is its own ending.
+# D218: a screen that repeats its pixels is the emulator, not a phase of the game.
+FROZEN_PICTURE = 'the_emulator_stopped_producing_new_frames'
 CUTSCENE_UNREADABLE = 'the_battle_animation_never_returned_to_the_board'
 
 
@@ -3386,6 +3388,26 @@ class MirrorRunner:
                     state.pop('battle_unknown_since', None)
                     self.note('battle_cutscene_frame', page=page,
                               after=state.get('last_named_page'))
+                # D218: a picture that does not change is not a phase.  Measured on
+                # `packaged-mirror-20261025-020815`: 17 caption-less frames over 92.9 s
+                # carried **one** distinct `image_sha256`, i.e. the emulator stopped
+                # producing frames mid-battle and the run waited for a board that could
+                # not arrive.  The frame hash is already on every record, so the loop
+                # can say what happened instead of blaming the board's clock.
+                shot = record.get('image_sha256')
+                if shot:
+                    if state.get('frozen_shot') != shot:
+                        state['frozen_shot'] = shot
+                        state.pop('frozen_since', None)
+                    state.setdefault('frozen_since', time.monotonic())
+                    frozen = time.monotonic() - float(state['frozen_since'])
+                    limit = float(getattr(settings, 'frozen_seconds', 30.0))
+                    if frozen >= limit:
+                        self.note('the_picture_stopped_changing', page=page,
+                                  after=state.get('last_named_page'),
+                                  seconds=round(frozen, 1))
+                        self._end_session(FROZEN_PICTURE, seconds=round(frozen, 1))
+                        return self._result(page, None, False, FROZEN_PICTURE, done=True)
                 if in_battle and not state.get('battle_unreadable_noted'):
                     state['battle_unreadable_noted'] = True
                     self.note('battle_frame_unreadable', page=page,

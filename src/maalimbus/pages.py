@@ -817,6 +817,7 @@ STOP_KINDS = {
     'the_submitted_turn_never_showed_a_page': 'refused_by_policy',
     'the_battle_stayed_unreadable': 'unreadable_text',
     'the_battle_animation_never_returned_to_the_board': 'unreadable_text',
+    'the_emulator_stopped_producing_new_frames': 'unreadable_text',
     # A run that ended on a bare exception class (archived: 7 rows named
     # `ValueError` from in-process tools whose exception reached the journal)
     # is a state the run itself produced, not the screen's fault.
