@@ -5784,6 +5784,14 @@ class MirrorRunner:
                     self._resolve_map_click(page)
                 reused_target, reused = pending_target(
                     state, plan, tries=self.settings.map_tries)
+                if reused and box_key(reused_target) != box_key(plan['target']):
+                    # A pending click may hold the loop back, but it may not rewrite a
+                    # different decision: measured on `-163457`, the intent [578,142] went out
+                    # as [1153,143] -- 575 px, three tiles, (D337).
+                    self.note('map_pending_target_replaced',
+                              intent=[int(v) for v in plan['target']],
+                              pending=[int(v) for v in reused_target])
+                    reused = False
                 if reused:
                     plan = dict(plan, target=reused_target)
                     self.note('map_click_reuses_its_pending_target', target=reused_target,
