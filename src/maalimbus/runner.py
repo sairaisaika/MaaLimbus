@@ -799,24 +799,24 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
     zoom()
     party, size = measure()
     steps = []
-    # The operator does not want the party centred (m18974: some floors cannot be
-    # centred even fully zoomed out, so a centring loop only stalls): what the view
-    # needs is to be *pushed to the bottom edge*, which makes every node of the floor
-    # visible in the frame the reader samples (m18727/m18974).  Dragging stops when the
-    # party stops moving -- the edge is a measurement, not a number of tries -- and the
-    # loop never insists that it arrived.
     last = party[1] if party else None
     dragged = 0
-    # Which way is "down" is a measurement, not a constant: `drag(0, +dy)` moves the finger
-    # down and therefore the picture up, and the live screenshots showed the loop pushing
-    # the view upwards until the party pinned itself to the top of the frame and stopped
-    # moving -- arriving at the wrong edge and calling it "the edge" (m19160).  The sign
-    # starts negative (content down) and flips as soon as a drag answers the other way.
+    # The party must stay inside a band, not merely "stop moving": pushing until it stops
+    # can park it against the top edge, where the train and the nodes above it are cut off
+    # and the floor becomes unwalkable (operator m19189).  The goal is therefore a position
+    # band measured every drag, and the direction follows the side of the band.
+    band = (0.22, 0.88)
     sign = -1
     for _ in range(max(0, int(rounds))):
         if not party or not size:
             break
-        drag(0, sign * max(1, int(size[1] / 6)))
+        height = float(size[1] or 1080)
+        ratio = float(party[1]) / height
+        if ratio < band[0]:
+            sign = -1
+        elif ratio > band[1]:
+            sign = 1
+        drag(0, sign * max(1, int(height / 6)))
         moved_from = last
         party, size = measure()
         dragged += 1
@@ -829,6 +829,8 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
             break
         last = party[1]
         steps.append(party)
+        if band[0] <= float(party[1]) / float(size[1] or 1080) <= band[1]:
+            break
     centred = centre_plan(party, size, tolerance=tolerance) is None if party and size else None
     return {'zoomed': True, 'dragged': dragged, 'centred': centred,
             'party': list(party) if party else None, 'steps': steps}
