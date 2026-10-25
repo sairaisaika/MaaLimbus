@@ -70,7 +70,10 @@ class _Pages:
                 'frame': None}
 
 
-def test_a_frame_without_the_board_captions_is_not_a_battle(tmp_path):
+def test_a_frame_without_the_board_captions_is_not_a_battle(tmp_path, monkeypatch):
+    # 这条用例原本跑 175 s：循环里的 0.5 s settle 等待与看门狗休眠都是真实时间。
+    # 把 sleep 变成 no-op，测的仍是「不可读的战斗帧会被命名」这一行为。
+    monkeypatch.setattr(runner.time, 'sleep', lambda *a, **k: None)
     events = tmp_path / 'events.jsonl'
     loop = runner.MirrorRunner(runner.FakeDevice(),
                                settings={'rounds': 1, 'interval': 0,

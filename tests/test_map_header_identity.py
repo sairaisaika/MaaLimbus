@@ -151,3 +151,13 @@ def test_a_run_that_already_clicked_a_map_keeps_its_action_rights(tmp_path):
     """A header-only screen ends a run that never acted on a map, not one mid-floor."""
     loop, _result, _reads = _run(tmp_path, [_record()])
     assert loop.state['session_ended'] == runner.MAP_HEADER_UNIDENTIFIED
+
+
+# 这几条用例原本每条 10-26 s：循环里的 settle 等待与看门狗休眠都是真实时间。
+# 把 sleep 变成 no-op 只去掉墙钟等待，不改变任何判据。
+import pytest as _pytest  # noqa: E402
+
+
+@_pytest.fixture(autouse=True)
+def _no_real_sleep(monkeypatch):
+    monkeypatch.setattr('maalimbus.runner.time.sleep', lambda *a, **k: None)

@@ -77,3 +77,13 @@ def test_a_row_without_an_identity_is_not_a_frozen_screen(tmp_path):
     loop.run(steps=4, interval=0, round_limit=1)
     assert loop.state.get('session_ended') != runner.STILL_FRAME_REASON
     assert loop.state.get('still_unmeasured') is True
+
+
+# 这几条用例原本每条 10-26 s：循环里的 settle 等待与看门狗休眠都是真实时间。
+# 把 sleep 变成 no-op 只去掉墙钟等待，不改变任何判据。
+import pytest as _pytest  # noqa: E402
+
+
+@_pytest.fixture(autouse=True)
+def _no_real_sleep(monkeypatch):
+    monkeypatch.setattr('maalimbus.runner.time.sleep', lambda *a, **k: None)
