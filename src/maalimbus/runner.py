@@ -4870,6 +4870,11 @@ class MirrorRunner:
             retry_reading = reread_allowed(
                 plan, attempts=state['page_attempts'],
                 tries=settings.page_tries, observe_only=settings.observe_only)
+            if (map_dispatch.is_map(page) and not candidates
+                    and not settings.observe_only
+                    and int(state.get('map_blank_retries', 0)) < 2):
+                state['map_blank_retries'] = int(state.get('map_blank_retries', 0)) + 1
+                retry_reading = True
             self.artifacts['steps'].append(entry)
             if retry_reading:
                 state['page_attempts'] += 1
