@@ -2298,10 +2298,18 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
             holders = [box for box in rest
                        if box[0] <= cx <= box[0] + box[2] and box[1] <= cy <= box[1] + box[3]
                        and box[2] >= edge[2]]
+            promoted = 0
             if holders:
-                near = [min(holders, key=lambda box: box[2] * box[3])]
+                # A drawn edge is one reading, not a verdict on the whole page: it may move a
+                # tile to the front but it may not delete the others (D336).  Measured on
+                # `-163056`: this line cut 12 candidates to 1, the kept tile was refused three
+                # times, and the loop had nothing else to try.
+                best = min(holders, key=lambda box: box[2] * box[3])
+                near = [best] + [box for box in rest if box != best]
+                promoted = 1
             record['map_edge_only'] = {'edge': [int(v) for v in edge[:4]],
-                                       'kept': len(near), 'dropped': len(rest) - len(near)}
+                                       'kept': len(near), 'promoted': promoted,
+                                       'dropped': len(rest) - len(near)}
             picked = near
     near = adjacent_to(party, picked)
     if edge is not None and picked and not near:
