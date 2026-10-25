@@ -5086,6 +5086,12 @@ class MirrorRunner:
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
+                # A click that has not been judged is judged before the loop is allowed to
+                # choose a different target: every `superseded` row in
+                # `evidence/runtime/packaged-mirror-20261025-070108` was written 0.0 s after
+                # the re-plan, so the old click never got its read (18 clicks, 0 accepted).
+                if state.get('map_unjudged'):
+                    self._resolve_map_click(page)
                 reused_target, reused = pending_target(
                     state, plan, tries=self.settings.map_tries)
                 if reused:
