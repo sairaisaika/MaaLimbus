@@ -786,7 +786,7 @@ def centre_plan(party, size, *, tolerance=8):
     return dx, 0
 
 
-def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
+def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4, zooms=3):
     """Zoom out once, then drag until the party is centred -- on measurements, not counts.
 
     ``measure()`` returns ``(party, size)`` for the current frame, ``zoom()`` pinches out
@@ -796,8 +796,26 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
     different facts (the operator's screenshots showed the second one mistaken for the
     first).
     """
-    zoom()
     party, size = measure()
+    # Zooming out is not free: the party marker is small, and a full pinch can make it
+    # unreadable (measured 2026-10-25: `party_point` answered [1458,221] before the pinch
+    # and None after it, so the drag loop never ran).  The zoom is therefore a *search*
+    # that is bounded by the party still being readable -- the smallest zoom that keeps the
+    # party is the one to use, and if none does, the view is left exactly as it was.
+    zoomed = 0
+    for attempt in range(max(1, int(zooms))):
+        try:
+            zoom((zoomed, attempt))
+        except TypeError:
+            # A callable that takes no trial is still a zoom; only the search needs the hint.
+            zoom()
+        party, size = measure()
+        if party and size:
+            zoomed = attempt + 1
+            break
+    else:
+        return {'zoomed': False, 'dragged': 0, 'centred': None, 'party': None,
+                'steps': [], 'scale_lost_party': True}
     steps = []
     last = party[1] if party else None
     dragged = 0
@@ -3269,8 +3287,11 @@ class MirrorRunner:
 
         wait = getattr(device, '_wait', None) or (lambda job, timeout=10: job)
 
-        def zoom():
-            pinch_out(controller, wait)
+        def zoom(trial=None):
+            # A smaller pinch is a smaller zoom: trial 0 walks all 12 steps, later trials
+            # walk fewer, so the search can back off until the party survives the zoom.
+            steps_done = 12 if trial is None else max(3, 12 - 3 * int(trial[1]))
+            pinch_out(controller, wait, steps=steps_done)
 
         def drag(dx, dy):
             width, height = measure()[1] or (1920, 1080)

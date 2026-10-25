@@ -30,7 +30,7 @@ def test_a_party_at_the_top_is_pulled_down_not_pushed_further_up():
 
 
 def test_a_party_at_the_bottom_is_pulled_up():
-    _, drags = _run([(960, 1020), (960, 800), (960, 620), (960, 610)])
+    _, drags = _run([(960, 1020), (960, 1000), (960, 800), (960, 620)])
     assert drags and drags[0][1] > 0, drags
 
 
@@ -48,6 +48,25 @@ def test_the_band_is_never_the_whole_frame():
 
 def test_a_lattice_in_the_left_corner_is_pulled_across_too():
     # x=200/1920 = 0.10, left of the horizontal band: the drag must have a horizontal part.
-    _, drags = _run([(200, 600), (900, 610), (960, 615), (960, 615)])
+    _, drags = _run([(200, 600), (200, 610), (900, 615), (960, 615)])
     # dx<0 moves the finger left, so the picture (and the party) moves right
     assert drags[0][0] < 0, drags
+
+
+def test_a_zoom_that_loses_the_party_is_named_not_silent():
+    series = [None]  # an unreadable party is None, not a pair of Nones
+    cursor = {'i': 0}
+
+    def measure():
+        index = min(cursor['i'], len(series) - 1)
+        cursor['i'] += 1
+        return series[index], (1920, 1080)
+
+    drags = []
+
+    def drag(dx, dy):
+        drags.append((dx, dy))
+
+    out = runner.normalise_view(measure, lambda: None, drag, rounds=4)
+    assert out['scale_lost_party'] is True
+    assert out['dragged'] == 0 and drags == [], 'a lost party must not be dragged on'
