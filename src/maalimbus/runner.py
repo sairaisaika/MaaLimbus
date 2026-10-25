@@ -2132,6 +2132,23 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         # row it belongs to is adopted instead of dropping the anchor altogether.
         snapped = map_vision.nearest_centre(party, [item['box'] for item in clicks])
         if snapped is None:
+            # When the row snap also fails the anchor is dropped, and a dropped anchor is
+            # what empties the candidate list -- `-154148` answered `adjacency {after: 1}`
+            # and `map_nodes_offered {offered: 0}` together, and this branch is the only
+            # place between them.  How far the nearest box actually was decides whether
+            # that drop is right or whether the snap rule is too strict (D318), so the
+            # measurement is written here instead of being inferred later.
+            nearest = None
+            for item in clicks:
+                box = item['box']
+                gap = max(abs(box[0] + box[2] / 2 - party[0]),
+                          abs(box[1] + box[3] / 2 - party[1]))
+                if nearest is None or gap < nearest[0]:
+                    nearest = (gap, [int(v) for v in box])
+            record['party_snap_failed'] = {
+                'read': [int(v) for v in party],
+                'nearest_px': None if nearest is None else int(round(nearest[0])),
+                'nearest_box': None if nearest is None else nearest[1]}
             party = None
         else:
             record['party_snapped'] = {'read': [int(v) for v in party],
