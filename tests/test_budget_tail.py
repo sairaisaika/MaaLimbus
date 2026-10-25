@@ -8,6 +8,8 @@ import maalimbus.runner as runner
 
 def test_the_loop_ends_itself_when_the_tail_cannot_pay_for_a_step():
     loop = runner.MirrorRunner.__new__(runner.MirrorRunner)
+    loop.store = None  # __new__ skips __init__, which sets it
+    loop.run_id = 'test-run'
     loop.observe_only = False
     loop.steps = 5
     loop.interval = 0.0
@@ -37,6 +39,10 @@ def test_a_budget_with_room_still_walks_a_step():
         return {'result': {'passed': True}}
 
     loop = runner.MirrorRunner.__new__(runner.MirrorRunner)
+
+    loop.store = None  # __new__ skips __init__, which sets it
+
+    loop.run_id = 'test-run'
     loop.observe_only = False
     loop.steps = 1
     loop.interval = 0.0
