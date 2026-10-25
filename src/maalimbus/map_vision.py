@@ -1177,8 +1177,12 @@ def is_glow(image, point, *, threshold=GLOW_CONTRAST):
 
 BOSS_RED_LOW = ((0, 180, 140), (8, 255, 255))
 BOSS_RED_HIGH = ((172, 180, 140), (180, 255, 255))
-BOSS_MIN_AREA = 2000
-BOSS_MIN_SIDE = 60
+# Sized in *pixels of the frame itself*, not as constants: the map can be zoomed, and a
+# palmed/zoomed board moves and resizes every box (operator, m16901: "这个会变化的，要考虑
+# 缩放过地图").  The room is ~17% of the frame's width and ~0.9% of its area on the two
+# retained 1920x1080 frames, so both floors are fractions of the frame.
+BOSS_MIN_SIDE_FRACTION = 0.05
+BOSS_MIN_AREA_FRACTION = 0.0018
 
 
 def boss_nodes(image):
@@ -1204,10 +1208,13 @@ def boss_nodes(image):
     mask = (cv2.inRange(hsv, BOSS_RED_LOW[0], BOSS_RED_LOW[1])
             | cv2.inRange(hsv, BOSS_RED_HIGH[0], BOSS_RED_HIGH[1]))
     count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    frame_h, frame_w = image.shape[:2]
+    min_side = BOSS_MIN_SIDE_FRACTION * frame_w
+    min_area = BOSS_MIN_AREA_FRACTION * frame_w * frame_h
     found = []
     for index in range(1, count):
         x, y, w, h, area = [int(v) for v in stats[index]]
-        if area < BOSS_MIN_AREA or w < BOSS_MIN_SIDE or h < BOSS_MIN_SIDE:
+        if area < min_area or w < min_side or h < min_side:
             continue
         found.append(((x, y, w, h), (int(centres[index][0]), int(centres[index][1]))))
     return found

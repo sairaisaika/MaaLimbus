@@ -58,3 +58,24 @@ def test_the_band_still_decides_the_walkable_steps(two_box_record=None):
     boss = (1026, 306, 324, 248)
     kept = map_vision.adjacent_to(party, [near, boss])
     assert list(map(list, kept)) == [list(near)]
+
+
+@pytest.mark.skipif(not BOSS_FRAME.exists(), reason="retained frame is not in this checkout")
+def test_the_room_is_found_at_any_zoom():
+    """The board can be zoomed; the room is a fraction of the frame, not 60 pixels.
+
+    Operator, m16901: "这个会变化的，要考虑如果我们缩放过地图怎么怎么样的位置就会变的".
+    """
+    image = cv2.imread(str(BOSS_FRAME))
+    assert image is not None
+    base = map_vision.boss_nodes(image)
+    assert len(base) == 1
+    base_box = base[0][0]
+    for scale in (0.5, 0.75, 1.25):
+        size = (int(image.shape[1] * scale), int(image.shape[0] * scale))
+        scaled = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
+        found = map_vision.boss_nodes(scaled)
+        assert len(found) == 1, (scale, found)
+        box = found[0][0]
+        for got, want in zip(box, base_box):
+            assert abs(got - want * scale) <= max(4.0, 0.03 * want * scale), (scale, box)
