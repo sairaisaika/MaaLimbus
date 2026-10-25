@@ -807,15 +807,25 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
     # loop never insists that it arrived.
     last = party[1] if party else None
     dragged = 0
+    # Which way is "down" is a measurement, not a constant: `drag(0, +dy)` moves the finger
+    # down and therefore the picture up, and the live screenshots showed the loop pushing
+    # the view upwards until the party pinned itself to the top of the frame and stopped
+    # moving -- arriving at the wrong edge and calling it "the edge" (m19160).  The sign
+    # starts negative (content down) and flips as soon as a drag answers the other way.
+    sign = -1
     for _ in range(max(0, int(rounds))):
         if not party or not size:
             break
-        drag(0, max(1, int(size[1] / 6)))
+        drag(0, sign * max(1, int(size[1] / 6)))
+        moved_from = last
         party, size = measure()
         dragged += 1
         if not party:
             break
-        if last is not None and abs(party[1] - last) <= tolerance:
+        if moved_from is not None and party[1] != moved_from:
+            if (party[1] > moved_from) != (sign < 0):
+                sign = -sign
+        if moved_from is not None and abs(party[1] - moved_from) <= tolerance:
             break
         last = party[1]
         steps.append(party)
