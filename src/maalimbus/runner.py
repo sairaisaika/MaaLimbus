@@ -1922,6 +1922,28 @@ def rank_by_distance(boxes, party):
 
 
 
+
+def party_probe(directory, record):
+    """Read the party from the frame this run just recorded, and say what happened.
+
+    Never raises and never sends input: it exists so "the agent said null" and "the
+    package can read this frame" stop being one sentence (D286).
+    """
+    try:
+        import cv2
+        from .map_vision import party_point
+        path = frame_file(directory).with_suffix('.png')
+        image = cv2.imread(str(path))
+        if image is None:
+            return {'read': False, 'reason': 'the_frame_png_is_not_readable'}
+        point = party_point(image)
+        return {'read': point is not None, 'point': list(point) if point else None,
+                'size': [int(image.shape[1]), int(image.shape[0])],
+                'channels': int(image.shape[2]) if image.ndim == 3 else 1,
+                'reason': 'the_same_frame_read_here'}
+    except Exception as error:  # noqa: BLE001 - a probe must never end a run
+        return {'read': False, 'reason': 'probe_failed:%s' % type(error).__name__}
+
 def party_anchor_gap(party, candidates):
     """Why this frame offers no reachable node, or None when it does (D285).
 
@@ -3478,6 +3500,12 @@ class MirrorRunner:
             self.note('map_party_unread', page=page, scene=record.get('scene'),
                       source=party_anchor_source(record), cached=fallback is not None,
                       candidates=len(candidates or ()), reason=gap)
+            # Same frame, same repository code, read here: if this succeeds while the
+            # agent's own field is null, the agent is running an older copy of the
+            # package -- and that is a release question, not a recognition one (D286).
+            probe = party_probe(directory, record)
+            if probe is not None:
+                self.note('map_party_probe', **probe)
         if record.get('map_party_from_cache'):
             self.note('map_party_from_cache', floor=floor,
                       age_s=round(now - float(cached.get('at', now)), 1))
