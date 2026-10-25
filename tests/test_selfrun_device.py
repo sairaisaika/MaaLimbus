@@ -60,3 +60,42 @@ def test_the_agent_is_told_a_host_port_when_the_toolkit_names_a_serial():
     assert tool.agent_address('127.0.0.1:5556') == '127.0.0.1:5556'
     assert tool.agent_address('2G0YC5ZGCD03H6') == '2G0YC5ZGCD03H6'
     assert tool.agent_address('emulator-') == 'emulator-'
+
+
+def test_an_agent_that_dies_in_start_up_is_reported(monkeypatch):
+    tool = _tool('selfrun_mirror')
+
+    class _Done:
+        returncode = 1073741845
+        stdout = ''
+        stderr = 'OSError: [WinError 1073741845]\nAssertion failed: Socket operation on non-socket'
+
+    monkeypatch.setattr(tool.subprocess, 'run', lambda *a, **k: _Done())
+    verdict = tool.agent_survives_start_up(ROOT / 'dist' / 'MaaLimbus' / 'agent' / 'MaaLimbusAgent.exe')
+    assert verdict['survived'] is False
+    assert verdict['exit'] == 1073741845
+    assert 'non-socket' in verdict['tail']
+
+
+def test_an_agent_still_running_when_the_probe_gives_up_has_passed(monkeypatch):
+    tool = _tool('selfrun_mirror')
+
+    def _timeout(*a, **k):
+        raise tool.subprocess.TimeoutExpired(cmd='agent', timeout=1)
+
+    monkeypatch.setattr(tool.subprocess, 'run', _timeout)
+    verdict = tool.agent_survives_start_up(ROOT / 'dist' / 'MaaLimbus' / 'agent' / 'MaaLimbusAgent.exe')
+    assert verdict['survived'] is True
+    assert verdict['exit'] is None
+
+
+def test_a_missing_agent_binary_is_not_a_crash(monkeypatch):
+    tool = _tool('selfrun_mirror')
+
+    def _oserror(*a, **k):
+        raise OSError('no such file')
+
+    monkeypatch.setattr(tool.subprocess, 'run', _oserror)
+    verdict = tool.agent_survives_start_up(ROOT / 'nope.exe')
+    assert verdict['survived'] is False
+    assert 'no such file' in verdict['tail']
