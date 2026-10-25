@@ -1228,7 +1228,11 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         if box is None:
             return _refuse(page, 'battle_button_not_anchored')
         return _plan(page, CLICK, target=box,
-                     expect=('BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'UNKNOWN'),
+                     # A submitted deployment is followed by the game's own scene
+                     # loader before the battle HUD (D120), so LOADING is a legal
+                     # successor here -- live `packaged-mirror-20261025-082528` was
+                     # judged `unexpected_successor` on exactly that page.
+                     expect=('BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'LOADING', 'UNKNOWN'),
                      reason='battle_button_submits_the_team')
     if page == 'REWARD_CARD':
         # A cleared node hands back a pick-one reward screen ("Selectable 0/1").

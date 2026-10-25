@@ -493,7 +493,7 @@ DISPATCH_FACTS = {
                    'refusals': ('enter_button_not_anchored',)},
     'PASS_LEVEL_UP': {'actions': ('CLICK',), 'expects': ('*',), 'refusals': ('pass_level_up_confirm_not_anchored',)},
     'PRE_BATTLE_TEAM': {'actions': ('CLICK',),
-                        'expects': ('*', 'BATTLE_HUD', 'DEPLOYMENT', 'THEME_PACKS', 'UNKNOWN'),
+                        'expects': ('*', 'BATTLE_HUD', 'DEPLOYMENT', 'LOADING', 'THEME_PACKS', 'UNKNOWN'),
                         'refusals': ('battle_button_not_anchored',
                                      'deployment_clear_selection_not_anchored',
                                      'saved_deployment_order_invalid',
