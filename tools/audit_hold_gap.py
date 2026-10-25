@@ -31,7 +31,7 @@ def _reason(event):
 
 
 def measure(directories):
-    total = literal = classified = unresolved = 0
+    total = literal = classified = unresolved = excluded = 0
     actions = {}
     leave = {}
     for directory in directories:
@@ -53,6 +53,12 @@ def measure(directories):
             # name to classify is the part before it; the census used to count every
             # variant as its own unnamed failure.
             head = name.split(':', 1)[0]
+            # An exception's class name is a diagnostic, not a reason vocabulary entry:
+            # some sites journal `type(error).__name__`, and counting `AttributeError` as
+            # a failure that "holds" asks the kind table about a word it must not know.
+            if head.endswith(('Error', 'Exception')) and ' ' not in head:
+                excluded += 1
+                continue
             literal_kind = REFUSALS.get(head, STOP_KINDS.get(head))
             if literal_kind:
                 literal += 1
@@ -65,7 +71,8 @@ def measure(directories):
             action = recovery_for(kind)
             actions[action] = actions.get(action, 0) + 1
     return dict(total=total, literal=literal, classified=classified,
-                unresolved=unresolved, actions=actions, unresolved_names=leave)
+                unresolved=unresolved, excluded=excluded, actions=actions,
+                unresolved_names=leave)
 
 
 def main():
@@ -76,6 +83,7 @@ def main():
     print(f'  classified by the literal tables: {result["literal"]}')
     print(f'  classified after the fallback   : {result["classified"]}')
     print(f'  still unclassified (hold)       : {result["unresolved"]}')
+    print(f'  exception class names (not reasons): {result["excluded"]}')
     print(f'actions: {dict(sorted(result["actions"].items()))}')
     for name, count in sorted(result['unresolved_names'].items(), key=lambda kv: -kv[1])[:6]:
         print(f'  unresolved x{count}: {name}')
