@@ -3522,8 +3522,11 @@ class MirrorRunner:
                       candidates=len(candidates or ()), reason=gap)
 
         if record.get('map_party_from_cache'):
+            # `candidates_of` may report a cached party while this loop holds no cache
+            # of its own (the probe reading is handed over as `fallback_party`), so the
+            # age is optional rather than assumed (D289: live run 084116 crashed here).
             self.note('map_party_from_cache', floor=floor,
-                      age_s=round(now - float(cached.get('at', now)), 1))
+                      age_s=(round(now - float(cached['at']), 1) if cached else None))
         elif record.get('map_party'):
             self.state['map_party_point'] = {'point': [int(v) for v in record['map_party']],
                                              'at': now}
