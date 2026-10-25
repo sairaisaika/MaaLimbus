@@ -2480,6 +2480,19 @@ def party_point(image):
         flame = _flame_corroborated(image, marker, ring)
         if flame is not None:
             return flame
+        # A lone ring is noise (D291), but a ring reading that lands on a ring the page itself
+        # drew is two independent readings agreeing: live `-143225/frame-0001` answers
+        # `player_by_ring` (1091,252) while `lit_rings` puts its ring at (1056,246) -- 35 px on
+        # a lattice whose step is 192 -- and with the marker absent every other reader was
+        # silent, so `party_point` said None and the run offered no node at all
+        # (`no_candidate_node_observed`, three frames of eight candidates each).  The
+        # tolerance is a quarter of a step: enough for two readers disagreeing about one
+        # ring's centre, far too small to reach a neighbouring node.
+        if ring is not None:
+            for centre in lit_rings(image):
+                if (abs(int(centre[0]) - int(ring[0])) <= 48
+                        and abs(int(centre[1]) - int(ring[1])) <= 48):
+                    return (int(ring[0]), int(ring[1]))
         # Neither colour nor the flame answered: the tile's own glow is the last reading
         # with a shape behind it (D293/D294), and `packaged-mirror-20261025-134415` shows the
         # flame hidden behind the tile icon while the glow is measured at (508,242).
@@ -2487,7 +2500,23 @@ def party_point(image):
     height, width = image.shape[:2]
     x, y = int(marker[0]), int(marker[1])
     if not (0 <= x < int(.95 * width)) or not (int(.10 * height) <= y < int(.86 * height)):
-        return _flame_corroborated(image, marker, ring)
+        flame = _flame_corroborated(image, marker, ring)
+        if flame is not None:
+            return flame
+        # Two independent readings that agree are the party (D291), and a ring reading that
+        # lands on a ring the page itself drew is exactly that: live
+        # `-143225/frame-0001` answers `player_by_ring` (1091,252) while `lit_rings` puts its
+        # ring at (1056,246) -- 35 px apart on a lattice whose step is 192 -- and every other
+        # reader was empty, so the run refused to offer any node at all
+        # (`no_candidate_node_observed` with three frames of eight candidates each).  The
+        # tolerance is a quarter of a step: large enough for two readers disagreeing about
+        # the centre of one ring, far too small to match a neighbouring node.
+        if ring is not None:
+            for centre in lit_rings(image):
+                if (abs(int(centre[0]) - int(ring[0])) <= 48
+                        and abs(int(centre[1]) - int(ring[1])) <= 48):
+                    return (int(ring[0]), int(ring[1]))
+        return None
     return x, y
 
 def selection_bracket(image):
