@@ -2376,6 +2376,21 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
             for step in steps:
                 kinds[box_key(step)] = 'cyan_step'
             ordered = [[int(v) for v in step] for step in steps] + list(ordered)
+    # The 190px node box wraps the badge above the tile and the arrow base below it, so its
+    # centre sits ~34px below the hexagon the game accepts (`-155917` frame-0005: box centre
+    # (1247,264), tile centre about (1236,230)).  Shifting the returned box's centre onto the
+    # tile is a click-point correction, not a re-identification: the kind and size stay (D323).
+    _shifted = []
+    for _box in ordered:
+        _b = [int(v) for v in _box[:4]]
+        if _b[2] >= 100 and _b[3] >= 100:
+            _dy = int(round(_b[3] * 0.18))
+            _b = [_b[0], _b[1] - _dy, _b[2], _b[3]]
+        _shifted.append(_b)
+    if _shifted != [list(map(int, b[:4])) for b in ordered]:
+        record['map_click_shift'] = {'dy': int(round(ordered[0][3] * 0.18)),
+                                      'kept': len(_shifted)}
+    ordered = _shifted
     return name, ordered
 
 
