@@ -1847,7 +1847,7 @@ def rank_by_distance(boxes, party):
     return sorted(boxes, key=_gap)
 
 
-def candidates_of(directory, record, *, header_only=False):
+def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
     Which nodes the run may step to depends on the paths drawn under the dots, and
@@ -1911,8 +1911,15 @@ def candidates_of(directory, record, *, header_only=False):
         # `evidence/runtime/packaged-mirror-20261025-061838/frame-0001.png` read 8
         # candidates (6 gold badges) with the party unreadable, and the run died with
         # `no_candidate_node_observed`, which points at the nodes and not at the party.
-        record['map_candidates_refused'] = {'party': None, 'read': len(clicks)}
-        return name, []
+        if fallback_party is None:
+            record['map_candidates_refused'] = {'party': None, 'read': len(clicks)}
+            return name, []
+        # The party does not teleport inside one floor, so a frame that cannot read it is
+        # not a frame without a party: the last point the same floor produced is the best
+        # evidence there is, and it is journalled as such (D266).
+        party = tuple(int(v) for v in fallback_party)
+        record['map_party'] = [int(v) for v in party]
+        record['map_party_from_cache'] = True
     # Which box the loop tries first is a policy, and the reader has already said what
     # each box is.  `map_clicks` claims in its own docstring that the marked step comes
     # first, but it returns the 190x190 badge tiles before the bright glyph, and a tile's
