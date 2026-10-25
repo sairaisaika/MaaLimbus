@@ -23,8 +23,11 @@ def test_the_second_reading_is_handed_on_as_the_fallback_party():
 
 def test_the_second_reading_is_only_tried_when_the_field_is_null():
     probe = SOURCE.index('probe = party_probe(directory, record)')
-    window = SOURCE[probe - 400:probe + 400]
-    assert "if record.get('map_party') is None:" in window
+    # 判空与探针之间还夹着 D294 的读数诊断，窗口按实际距离放宽（不是放宽契约）。
+    window = SOURCE[probe - 1200:probe + 200]
+    # 实现的可读写法变过（条件可能带 and 子句），判据是“先问 record 里有没有 party”，
+    # 不是某一种拼法。
+    assert "record.get('map_party') is None" in window
 
 
 def test_the_probe_never_raises_and_never_sends_input():
