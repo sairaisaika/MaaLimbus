@@ -21,6 +21,31 @@ KEYWORDS = ('Bleed', 'Blunt', 'Burn', 'Charge', 'Keywordless', 'Pierce', 'Poise'
 INTERFACE_LIMIT = 16 * 1024 * 1024
 
 
+def acknowledge_reward_budget(policy: dict, run_id: str) -> dict | None:
+    """Bind this run's id to a reward budget the operator already authorised.
+
+    The reward screens can commit module costs, so `MirrorRunner.step` stops on them
+    unless the policy says the module budget is settled *for this run*
+    (`reward_module_cost_not_proven` is the fallback).  Requiring the operator to write a
+    per-run id by hand is not a gate, it is a chore: with `module_budget_pending` false
+    and a positive `max_reward_modules`, this run acknowledges the budget and records
+    itself as the scope.  Without that authorisation the caller gets ``None`` and the
+    screen keeps stopping (fail-closed).
+    """
+    if not isinstance(policy, dict):
+        return None
+    if policy.get("module_budget_pending", True):
+        return None
+    maximum = policy.get("max_reward_modules")
+    if type(maximum) is not int or maximum <= 0:
+        return None
+    if policy.get("reward_budget_scope") == run_id:
+        return None
+    out = dict(policy)
+    out["reward_budget_scope"] = run_id
+    return out
+
+
 def write_json(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

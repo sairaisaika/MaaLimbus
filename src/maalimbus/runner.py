@@ -5868,6 +5868,20 @@ class MirrorRunner:
         if deadline is not None:
             self.deadline = deadline
         self._retire_foreign_pending()
+        # A budget the operator already authorised applies to the run it is
+        # acknowledged in: the reward screens need their scope to be this run's id,
+        # and asking a human to pre-write a per-run id is not a gate (D247).
+        try:
+            from .storage import acknowledge_reward_budget, read_json, write_json
+            path = (self.store.path.parent if self.store is not None else ROOT / 'config') / 'user-mirror-settings.json'
+            policy = read_json(path) if path.exists() else {}
+            acknowledged = acknowledge_reward_budget(policy, self.run_id)
+            if acknowledged is not None:
+                write_json(path, acknowledged)
+                self.note('reward_budget_acknowledged', run_id=self.run_id,
+                          max_reward_modules=acknowledged.get('max_reward_modules'))
+        except (OSError, ValueError, RuntimeError):
+            pass
         self._start_stall_watch()
         goal = max(0, int(steps))
         if goal == 0 and not settings.observe_only:
