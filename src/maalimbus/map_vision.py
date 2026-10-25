@@ -2775,3 +2775,34 @@ def line_lit(image, start, end, *, sample=160, skip=0.18, lit=90):
         return 0.0
     core = vals[int(len(vals) * skip):int(len(vals) * (1 - skip))] or vals
     return round(sum(1 for value in core if value > lit) / float(len(core)), 3)
+
+
+def tile_centre(image, box, *, lit=25):
+    """The point inside a node box that the game accepts as that tile.
+
+    A 190px node box wraps a badge and an arrow base, so its geometric centre is not the
+    hexagon's centre -- and the offset differs by row: `-160619` measured the top-row box
+    [1152,169] needing -34px while the bottom-row box [960,329] needed 0 (D326).  A uniform
+    constant is therefore a local observation, not a rule; the lit-edge centroid inside the
+    box is measured per box instead.
+    """
+    import cv2
+    import numpy as np
+
+    x, y, w, h = [int(v) for v in box[:4]]
+    crop = image[max(0, y):y + h, max(0, x):x + w]
+    if crop.size == 0:
+        return (x + w // 2, y + h // 2)
+    grey = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(grey, (9, 9), 0)
+    lit_map = cv2.subtract(grey, blur)
+    cv2.threshold(lit_map, lit, 255, cv2.THRESH_BINARY, lit_map)
+    total = cv2.moments(lit_map)['m00']
+    if total <= 0:
+        return (x + w // 2, y + h // 2)
+    m = cv2.moments(lit_map)
+    cx = int(round(m['m10'] / total))
+    cy = int(round(m['m01'] / total))
+    cx = min(max(cx, int(w * 0.25)), int(w * 0.75))
+    cy = min(max(cy, int(h * 0.20)), int(h * 0.80))
+    return (x + cx, y + cy)
