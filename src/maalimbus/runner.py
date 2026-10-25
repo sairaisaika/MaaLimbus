@@ -1728,6 +1728,29 @@ def order_candidates(boxes, kinds):
     return tried
 
 
+def pending_target(state, plan, *, tries=3):
+    """The target to click on the map, reusing a click that has not settled yet (D197).
+
+    Measured on `packaged-mirror-20261025-005408`: 29 map clicks produced 2 accepted, 10
+    `superseded` and 10 `unjudged`, and every superseded one was the loop chasing a
+    candidate list that had moved on.  A click that has not been answered is not evidence
+    that another target is better: while one is pending, click it again (bounded by
+    `tries`) and let the page answer before the offer is re-read.
+    """
+    pending = (state or {}).get('map_pending')
+    if not pending:
+        return plan.get('target'), False
+    budget = int(tries)
+    if budget <= 0:           # an explicit zero means never reuse
+        return plan.get('target'), False
+    used = int((state or {}).get('map_retries') or 0)
+    if used >= budget:
+        state['map_retries'] = 0
+        return plan.get('target'), False
+    state['map_retries'] = used + 1
+    return list(pending), True
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -4655,7 +4678,13 @@ class MirrorRunner:
             # out. It used to be remembered only on the retry branch, so a run whose
             # clicks all worked recorded no click verdicts at all.
             if page == 'MAP':
-                if superseded_click(state.get('map_pending'), plan['target']):
+                reused_target, reused = pending_target(
+                    state, plan, tries=self.settings.map_tries)
+                if reused:
+                    plan = dict(plan, target=reused_target)
+                    self.note('map_click_reuses_its_pending_target', target=reused_target,
+                              retries=state.get('map_retries'))
+                elif superseded_click(state.get('map_pending'), plan['target']):
                     # Measured: 19 of 19 rejections recorded beside a map recovery were this
                     # branch -- the loop replaced its own click before the page had time to
                     # settle.  Counting that as the game's refusal lets our own re-planning
