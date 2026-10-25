@@ -12,8 +12,11 @@ def test_the_second_reading_happens_before_the_candidates_are_asked_for():
 
 
 def test_the_second_reading_is_journalled_and_names_its_source():
+    # The anchor event names where the anchor came from; the probe is the source only when
+    # there is no anchor of the run's own to name (D312).
     assert "note('map_party_from_probe'" in SOURCE
-    assert "source='probe' if probe_party is not None else party_anchor_source(record)" in SOURCE
+    assert "source=(party_anchor_source(record) if record.get('map_party')" in SOURCE
+    assert "'probe' if probe_party is not None else 'none'" in SOURCE
 
 
 def test_the_second_reading_is_handed_on_as_the_fallback_party():

@@ -3714,8 +3714,15 @@ class MirrorRunner:
                 self.note('map_candidates_refused_before',
                           dropped=len(candidates) - len(kept), left=len(kept))
                 candidates = kept
+        # The source says where the anchor *came from*, not whether a probe also answered.
+        # The old rule (`'probe' if probe_party is not None else ...`) labelled every step
+        # `probe` as soon as the D286 probe answered -- which it almost always does -- so the
+        # journal claimed the main reader was silent while `map_frame_seen` showed it
+        # answering (1091,252) on the same frames (D312).  Eight rounds were spent chasing a
+        # fallback that was never used.
         self.note('map_party_anchor',
-                  source='probe' if probe_party is not None else party_anchor_source(record),
+                  source=(party_anchor_source(record) if record.get('map_party')
+                          else ('probe' if probe_party is not None else 'none')),
                   party=record.get('map_party') or probe_party,
                   candidates=len(candidates or ()))
         gap = party_anchor_gap(record.get('map_party'), candidates)
