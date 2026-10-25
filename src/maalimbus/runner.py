@@ -1909,7 +1909,17 @@ def candidates_of(directory, record):
     # first; the tie inside a rank keeps the reader's order.
     # D127: rank by what the reader called the box and drop the kinds that have never
     # moved the party.  An empty list is a verdict: the window nudges the view instead.
-    ordered = order_candidates(adjacent_to(party, boxes), record['map_candidate_kinds'])
+    boss_boxes = [list(item['box']) for item in clicks if item.get('kind') == 'boss_node']
+    walkable = [box for box in boxes if list(box) not in boss_boxes]
+    ordered = order_candidates(adjacent_to(party, walkable), record['map_candidate_kinds'])
+    # The floor's last node is a red room far outside one pitch, so the band above
+    # cannot keep it: measured 2026-10-25 on
+    # `evidence/runtime/packaged-mirror-20261025-040555/frame-0004.png`, party (482,347),
+    # boss (1026,306,324,248) at 710.9 px while the band keeps 245-406 px.  It is
+    # appended after the walk's own steps and never replaces one (D244).
+    for box in boss_boxes:
+        if box not in ordered:
+            ordered.append(box)
     # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is

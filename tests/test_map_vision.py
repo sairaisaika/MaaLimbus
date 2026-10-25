@@ -218,7 +218,8 @@ def test_the_marked_step_is_offered_before_the_badge_nodes():
     assert abs(point[0] - 1088) <= 25 and abs(point[1] - 115) <= 45, point
     assert all(item['kind'] in ('highlighted_node', 'chevron_target', 'lattice_step',
                                 'node_away_from_player', 'badge_mark', 'lit_node',
-                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node', 'neutral_outline_candidate', 'gold_badge_node')
+                                'lit_ring', 'lit_icon', 'bright_lit_icon', 'cyan_node', 'path_node', 'neutral_outline_candidate', 'gold_badge_node',
+                                    'boss_node')
                for item in clicks)
 
 

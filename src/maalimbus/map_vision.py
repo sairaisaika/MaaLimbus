@@ -1175,6 +1175,72 @@ def is_glow(image, point, *, threshold=GLOW_CONTRAST):
     return saturation_contrast(image, point) > threshold
 
 
+BOSS_RED_LOW = ((0, 180, 140), (8, 255, 255))
+BOSS_RED_HIGH = ((172, 180, 140), (180, 255, 255))
+BOSS_MIN_AREA = 2000
+BOSS_MIN_SIDE = 60
+
+
+def boss_nodes(image):
+    """Red rooms on a MAP page: the floor's last node, drawn as a big red badge.
+
+    Measured 2026-10-25 on `evidence/runtime/packaged-mirror-20261025-040555/frame-0004.png`:
+    the boss sat at box (1026,306,324,248), centre (1188,430), while the party stood at
+    (482,347) -- **710.9 px** away.  `adjacent_to` keeps only one pitch (245-406 px on
+    that frame), so the last node of a floor was dropped from every candidate list, and
+    a scan of 60 runs found **no** run that ever offered a box over a red blob.
+
+    The operator's reading (m16784, paraphrased): the shop's colour changes with the
+    pack but the boss room is red on every floor, and the reward tiles under it are the
+    parts that change.  So the colour is the identity here, and the two small tiles are
+    excluded by the minimum side length.
+
+    Returns ``[(box, centre)]`` with ``box = (x, y, w, h)``.
+    """
+    import cv2
+    if image is None:
+        return []
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = (cv2.inRange(hsv, BOSS_RED_LOW[0], BOSS_RED_LOW[1])
+            | cv2.inRange(hsv, BOSS_RED_HIGH[0], BOSS_RED_HIGH[1]))
+    count, _, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    found = []
+    for index in range(1, count):
+        x, y, w, h, area = [int(v) for v in stats[index]]
+        if area < BOSS_MIN_AREA or w < BOSS_MIN_SIDE or h < BOSS_MIN_SIDE:
+            continue
+        found.append(((x, y, w, h), (int(centres[index][0]), int(centres[index][1]))))
+    return found
+
+
+def _cover(a, b):
+    """How much of the smaller of two boxes the other one covers."""
+    w = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
+    h = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
+    if w <= 0 or h <= 0:
+        return 0.0
+    smaller = min(a[2] * a[3], b[2] * b[3])
+    return (w * h) / smaller if smaller else 0.0
+
+
+def _with_bosses(image, clicks):
+    """Append the red room to a candidate list, deduplicated against it.
+
+    The floor's last node sits far outside one pitch, so the caller's adjacency band
+    drops it; it is appended after the walk's own steps and never replaces one (D244).
+    """
+    taken = [list(item['box']) for item in clicks]
+    for box, centre in boss_nodes(image):
+        box = tuple(int(v) for v in box)
+        # A reward tile or a badge drawn inside the room is a *part* of it, not a
+        # duplicate destination: only a similarly sized box may stand in for it.
+        if any(_cover(box, k) >= .5 and (k[2] * k[3]) >= .5 * (box[2] * box[3])
+               for k in taken):
+            continue
+        clicks.append(dict(box=box, kind='boss_node', point=centre))
+    return clicks
+
+
 def map_clicks(image, *, template=None, node_side=190, player=None):
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
@@ -1480,7 +1546,7 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     clicks = ([c for c in clicks if c['kind'] == 'path_node']
               + marks
               + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
-    return clicks
+    return _with_bosses(image, clicks)
 
 
 # The page's own captions drift between runs: the live frames read the button as
