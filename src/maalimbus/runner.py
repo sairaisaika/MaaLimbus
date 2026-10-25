@@ -3363,7 +3363,14 @@ class MirrorRunner:
                 from .storage import write_json
                 d.update(submitted=True,submit_pending=False,battle_proof=str(frame_file(directory)))
                 write_json(self.deployment_transaction.path,d)
-        if page in ('RUN_REWARD_DIALOG','RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'):
+        # Only the screens that *print a module cost* may be stopped for a budget
+        # proof.  The closing dialog is the claim step -- it prints the floors and
+        # `Last Mirror Complete`, no cost at all -- and gating it stopped every
+        # cleared run at the doorway to its reward (live `packaged-mirror-20261025-052807`:
+        # `RUN_REWARD_DIALOG` frame read `[HARD] Floor1 6/6 ... Last Mirror Complete`
+        # and the run ended `reward_module_cost_not_proven`, 0 clicks).  The claim
+        # button is still anchored by the page's own plan (`run_reward_claim_not_anchored`).
+        if page in ('RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'):
             # These controls can commit module costs. A victory flag is not a
             # spending authorization; retain the cost screen for budget review.
             from .storage import read_json
