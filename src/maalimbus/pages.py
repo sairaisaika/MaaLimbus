@@ -787,6 +787,10 @@ def recovery_for(kind):
 # `REFUSALS`, so the kind stayed null and the audit could never see them.  One table
 # per vocabulary, joined here, instead of quietly growing either one.
 STOP_KINDS = {
+    # Two stopping reasons that arrived after the 26-name baseline: both are the page not
+    # answering readably, so both belong to unreadable_text rather than to a new class.
+    'an_intent_was_sent_and_the_page_never_answered': 'unreadable_text',
+    'a_reread_produced_new_pixels': 'unreadable_text',
     'page_unreadable_after_waiting': 'unreadable_text',
     'unexpected_successor': 'bad_saved_state',
     # A plan that refuses to click until an unresolved exploration is resumed is a
