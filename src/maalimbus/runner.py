@@ -1658,6 +1658,9 @@ CONTROLS = ('enter', 'battle', 'start', 'confirm', 'cancel', 'select', 'proceed'
             'leave', 'continue', 'accept', 'refuse', 'close', 'next', 'skip', 'claim', 'to window')
 
 
+BATTLE_UNREADABLE = 'the_battle_stayed_unreadable'
+
+
 def looks_like_transition(record):
     """Is this frame an animation rather than a page the loop should answer?
 
@@ -3069,6 +3072,7 @@ class MirrorRunner:
                     'reason': STILL_FRAME_REASON}
         page = resolve_scene(self.registry, directory, record)
         if not page_vocabulary.is_unreadable(page):
+            state.pop('battle_unknown_since', None)
             # D81: the last page the reader could name, kept so that an unknown page can
             # say what it followed.  Only a name is stored; the unreadable page is the
             # absence of one, and asking which page it is belongs to the page vocabulary.
@@ -3357,6 +3361,29 @@ class MirrorRunner:
                     state.setdefault('transition_since', time.monotonic())
                     waited = time.monotonic() - float(state['transition_since'])
                     rounds_cap = int(getattr(settings, 'transition_rounds', 40))
+                    # A battle whose frames stop being readable is not a long
+                    # transition: measured on `packaged-mirror-20261025-013933`, 40 of
+                    # 40 waits followed `BATTLE_HUD`, 36 of them were followed by another
+                    # unreadable frame, and 42 of the 71 battle frames carried no turn
+                    # badge at all -- so the badge cannot judge them and the loop spent
+                    # ~144 s of a 300 s budget waiting for a picture that never resolved.
+                    # Thirty seconds is enough for the longest real animation this
+                    # archive contains (D110 measured 1.6-1.9 s to a named board), and
+                    # past it the run says so instead of burning the budget.
+                    if in_battle:
+                        # Contiguous: the stamp is dropped the moment a page is
+                        # named (`_named_page` below), so a second stall measures
+                        # from its own first unreadable frame and not from the
+                        # first one of the run.
+                        state.setdefault('battle_unknown_since', time.monotonic())
+                        stuck = time.monotonic() - float(state['battle_unknown_since'])
+                        limit = float(getattr(settings, 'battle_unreadable_seconds', 30.0))
+                        if stuck >= limit:
+                            self.note('battle_stayed_unreadable', page=page,
+                                      waited=round(stuck, 1), limit_seconds=limit,
+                                      rounds=state['transition_seen'])
+                            self._end_session(BATTLE_UNREADABLE, waited=round(stuck, 1))
+                            return self._result(page, None, False, BATTLE_UNREADABLE, done=True)
                     if (waited < float(settings.transition_seconds)
                             and state['transition_seen'] <= rounds_cap):
                         # The pace this round actually takes, so the journal stops
