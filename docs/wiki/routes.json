@@ -1397,7 +1397,7 @@
         },
         {
           "path": "src/maalimbus/runner.py",
-          "needle": "'unknown_interval': 1.5,"
+          "needle": "'unknown_interval': 3.0,"
         },
         {
           "path": "src/maalimbus/run_metrics.py",
@@ -1831,6 +1831,42 @@
         "python -m pytest -q tests/test_battle_toggles.py tests/test_battle_touch.py"
       ],
       "boundary": "固定点是 2026-10-24 归档实测；提交表盘仍靠搜索，因为随存活人数移动。"
+    },
+    {
+      "id": "map-anchor",
+      "title": "我方在哪：节点上方的火苗，只用灰度几何",
+      "aliases": [
+        "我方标记",
+        "我方位置",
+        "party",
+        "party_point",
+        "火苗",
+        "torch",
+        "player anchor",
+        "party_from_flame",
+        "灰度几何",
+        "颜色退出判定",
+        "party_point returns None",
+        "map_party_anchor"
+      ],
+      "sources": [
+        {
+          "path": "src/maalimbus/map_vision.py",
+          "symbol": "party_from_flame"
+        },
+        {
+          "path": "src/maalimbus/runner.py",
+          "symbol": "party_point"
+        }
+      ],
+      "tests": [
+        "tests/test_party_flame.py",
+        "tests/test_map_party_anchor.py"
+      ],
+      "checks": [
+        "python -m pytest -q tests/test_party_flame.py tests/test_map_party_anchor.py"
+      ],
+      "boundary": "只回答“我方标记在哪”这一件事：灰度局部对比 + 竖直细长亮块 + 正下方必须有已检出节点。不含颜色阈值，也不含屏幕像素常数（全为画面/节点比例）。无节点框时返回 None（不猜）。不负责节点图标分类，也不负责选择路线。"
     }
   ]
 }
