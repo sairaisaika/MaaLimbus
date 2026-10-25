@@ -2278,6 +2278,19 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
                 if abs((box[0] + box[2] / 2) - (edge[0] + edge[2] / 2)) <= edge[2] / 2
                 and abs((box[1] + box[3] / 2) - (edge[1] + edge[3] / 2)) <= edge[3] / 2]
         if near:
+            # The kept box may be the small glyph the edge is drawn from (a 40x40 ring or
+            # badge) rather than the 190px tile it points at.  A glyph's kind sits in
+            # `CLICK_KINDS_WITHOUT_EVIDENCE`, so `order_candidates` drops it and the frame
+            # ends with zero candidates while the page named the step -- measured offline on
+            # `-154855`: edge [1063,227,40,40], kept 1, offered 0 (D321).  The tile holding
+            # the edge's centre is the step the page means.
+            cx = edge[0] + edge[2] / 2
+            cy = edge[1] + edge[3] / 2
+            holders = [box for box in rest
+                       if box[0] <= cx <= box[0] + box[2] and box[1] <= cy <= box[1] + box[3]
+                       and box[2] >= edge[2]]
+            if holders:
+                near = [min(holders, key=lambda box: box[2] * box[3])]
             record['map_edge_only'] = {'edge': [int(v) for v in edge[:4]],
                                        'kept': len(near), 'dropped': len(rest) - len(near)}
             picked = near
@@ -2299,6 +2312,13 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     record['map_lattice']['adjacency'] = {'before': len(picked), 'after': len(near),
                                           'dropped': len(picked) - len(near)}
     ordered = order_candidates(near, kinds) + bosses
+    if not ordered and near:
+        # No rest box holds the edge's centre, so the edge itself is the only reading the
+        # page gave for that step, and its kind has no history in
+        # `CLICK_KINDS_WITHOUT_EVIDENCE`.  A kind with no history may not veto a step the
+        # page drew: the list is kept as read and the window decides (D321, `-154855`).
+        record['map_edge_without_history'] = {'kept': len(near)}
+        ordered = list(near)
     if edge is not None:
         front = [int(v) for v in edge[:4]]
         ordered = [box for box in ordered if [int(v) for v in box[:4]] == front] +                   [box for box in ordered if [int(v) for v in box[:4]] != front]
