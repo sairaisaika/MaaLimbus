@@ -1446,6 +1446,17 @@ def _gift_picture(directory, observer=None):
     return getattr(observer, 'last_image', None)
 
 
+def frame_for(directory, record):
+    """The image `record` was written from, falling back to the newest readable frame."""
+    name = record.get('frame') if record else None
+    if name:
+        path = Path(directory) / ('%s.png' % name)
+        image = cv2.imread(str(path)) if path.is_file() else None
+        if image is not None:
+            return image, path.name
+    return latest_frame(directory)
+
+
 def latest_frame(directory):
     """The newest readable frame image and its name, or ``(None, None)``."""
     for path in sorted(Path(directory).glob('frame-*.png'), reverse=True):
@@ -2074,7 +2085,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """
     if record['scene'] != 'MAP' and not header_only:
         return None, None
-    image, name = latest_frame(directory)
+    # The frame this record describes, not the newest one on disk (D307).  `latest_frame`
+    # answers the last image written, and by the time a replay or a late verdict asks for
+    # the candidates the directory may already hold a later page: measured 2026-10-25 on
+    # `-144303`, whose `frame-0001.json` says `scene: GIFT_PICK` while `latest_frame`
+    # returned `frame-0059.png` -- so every offline reading of "the candidates of that
+    # record" was taken from a different picture, which is why the pool looked like ten
+    # boxes online and six offline.
+    image, name = frame_for(directory, record)
     if image is None:
         return None, None
     party = party_point(image)
@@ -2103,7 +2121,15 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         # Inside the board is not the same as on a node (D280): the live reading
         # (162, 430) passed every fraction gate and then emptied the candidate list.
         record['map_party_rejected'] = [int(v) for v in party]
-        party = None
+        # A refused reading is the node's own marker a constant offset away (D306), so the
+        # row it belongs to is adopted instead of dropping the anchor altogether.
+        snapped = map_vision.nearest_centre(party, [item['box'] for item in clicks])
+        if snapped is None:
+            party = None
+        else:
+            record['party_snapped'] = {'read': [int(v) for v in party],
+                                       'snapped': [int(v) for v in snapped]}
+            party = snapped
     # The verdict that follows this click must carry the same party the candidates
     # were filtered against; nothing else records it (see `_map_verdict`).
     # D147: `party_point` can answer with an array, and `if party` on an array is a
