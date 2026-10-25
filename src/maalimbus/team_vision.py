@@ -93,6 +93,9 @@ def card_states(records, boxes, size):
     return states
 
 
+RIGHT_COLUMN_ROI = (.78, .52, 1.0, .74)
+
+
 def participants(records, size, roi=PARTICIPANT_ROI):
     """The page's participant counter as ``(picked, capacity)``, or ``None``.
 
@@ -104,6 +107,15 @@ def participants(records, size, roi=PARTICIPANT_ROI):
     is what says the team is already complete.
     """
     found = find(records, PARTICIPANT_PATTERN, roi, size, .85)
+    if not found:
+        # The labelled banner ("Total Participants 12/12") sits in the right-hand
+        # column, and its own ROI moved with the layout the operator photographed on
+        # 2026-10-25: the counter band this function used read nothing there and the
+        # run stopped on `deployment_transaction_or_counter_missing` after two cheap
+        # re-reads while the screen plainly said 12/12.  A second band, still narrow
+        # enough to exclude the card rows, reads the same counter wherever the panel
+        # puts it.  A bare `N/M` inside a card is not in this band and never wins.
+        found = find(records, PARTICIPANT_PATTERN, RIGHT_COLUMN_ROI, size, .85)
     if not found:
         return None
     match = re.match(PARTICIPANT_PATTERN, found[-1].text.strip())
