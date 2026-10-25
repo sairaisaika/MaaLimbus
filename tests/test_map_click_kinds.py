@@ -161,7 +161,9 @@ def test_the_marked_step_is_tried_before_a_badge_tile(tmp_path, monkeypatch):
         {'box': [545, 239, 190, 190], 'kind': 'gold_badge_node'},
     ])
     monkeypatch.setattr(runner, 'header_chrome', lambda record: None)
-    monkeypatch.setattr(runner, 'party_point', lambda image: (900, 450))
+    # D280: the party must be standing on a node before any candidate is offered, so the
+    # fixture puts it on the lit_icon box this test is about (centre of 1002,447,40,40).
+    monkeypatch.setattr(runner, 'party_point', lambda image: (1022, 467))
     # Adjacency is not the question here: the ordering is applied to whatever survived it.
     monkeypatch.setattr(runner, 'adjacent_to', lambda party, boxes: list(boxes))
     record = {'scene': 'MAP'}
@@ -181,7 +183,8 @@ def test_an_unknown_kind_is_kept_at_the_end_and_not_dropped(tmp_path, monkeypatc
         {'box': [80, 80, 40, 40], 'kind': 'lit_node'},
     ])
     monkeypatch.setattr(runner, 'header_chrome', lambda record: None)
-    monkeypatch.setattr(runner, 'party_point', lambda image: (50, 50))
+    # D280: the party reads on a node, otherwise no candidate is offered at all.
+    monkeypatch.setattr(runner, 'party_point', lambda image: (21, 21))
     monkeypatch.setattr(runner, 'adjacent_to', lambda party, boxes: list(boxes))
     _, boxes = runner.candidates_of(tmp_path, {'scene': 'MAP'})
     assert boxes == [[80, 80, 40, 40], [1, 1, 40, 40]]
