@@ -1092,6 +1092,10 @@ def kind_of(*, reason=None, stopped_reason=None, plan_reason=None):
 
 
 REFUSALS = {
+    # A previous gift transaction still open is a saved-state disagreement: the
+    # transaction raises it as a ValueError message and five archived runs stopped on
+    # it while the census counted it as never classified (2026-10-25).
+    'floor_gift_previous_transaction_unresolved': 'bad_saved_state',
     'battle_assignment_observe_only': 'refused_by_policy',
     'battle_button_not_anchored': 'missing_control',
     'battle_has_no_proven_control': 'missing_control',

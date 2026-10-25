@@ -28,6 +28,17 @@ EVIDENCE_KEYS = ()            # default: anything else
 DECIDED_KEYS = ('kind', 'verdict')                 # a class, as a string constant
 DECIDED_BOOLS = ('ready', 'passed', 'ok', 'succeeded', 'stop')   # a verdict, as a bool
 
+# A record that says its own state is retired / abandoned has decided itself too: the
+# reason is the label of that decision (floor_gift_transaction retires another run's ledger
+# with 'the_run_that_owned_this_record_ended'), not a failure class it must still earn.
+RETIRED_KEYS = ('abandoned', 'retired', 'retired_transactions')
+
+# Names decided by construction, whatever dict or subscript carries them:
+# `floor_gift_transaction` retires another run's ledger as `retired['abandoned'] = {
+# ... 'reason': 'the_run_that_owned_this_record_ended'}`, and that sentence is a
+# decision, not a failure class it must still earn.
+DECIDED_NAMES = ('the_run_that_owned_this_record_ended',)
+
 # A mapping that names the control it uses, the pages it may reach or the name it
 # refuses under is a *plan*, and its `reason` says which intent the plan carries.  The
 # `_plan`-named function used to be the only place such a reason could be written; D47
@@ -54,6 +65,8 @@ class _Walk(ast.NodeVisitor):
 
     def _record(self, value, role, site):
         if isinstance(value, str) and value:
+            if value in DECIDED_NAMES:
+                role = 'evidence'
             self.found.setdefault(value, set()).add((role, site))
 
     def visit_FunctionDef(self, node):
@@ -75,6 +88,8 @@ class _Walk(ast.NodeVisitor):
             for key, value in zip(node.keys, node.values))
         plan = any(isinstance(key, ast.Constant) and key.value in PLAN_KEYS
                    for key in node.keys)
+        retired = any(isinstance(key, ast.Constant) and key.value in RETIRED_KEYS
+                      for key in node.keys)
         for key, value in zip(node.keys, node.values):
             if isinstance(key, ast.Constant) and isinstance(key.value, str):
                 key_name = key.value
@@ -84,7 +99,7 @@ class _Walk(ast.NodeVisitor):
                     self._record(getattr(value, 'value', None), 'intent', f'dict:{key_name}')
                 elif key_name == 'reason':
                     owner = self.scope[-1] if self.scope else ''
-                    if decided:
+                    if decided or retired:
                         role, site = 'evidence', f'decided@{owner}'
                     elif plan:
                         role, site = 'intent', f'plan@{owner or "module"}'
