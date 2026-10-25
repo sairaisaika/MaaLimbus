@@ -60,7 +60,7 @@ from .grace_vision import available_starlight, cost_of, plan_purchases, plus_poi
 from .jobs import bounded_limit, call_with_a_deadline, dispatch, screencap, wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
-from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, map_clicks, map_header,
+from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, cyan_step_boxes, map_clicks, map_header,
                          party_point, gold_marks, movement_between)
 from .overlay_vision import carousel_dots, page_turn_arrows
 from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_state,
@@ -1922,6 +1922,21 @@ def candidates_of(directory, record):
             if overlaps(bracket, box):
                 record['map_hard_node'] = [int(v) for v in box]
                 break
+    # The step the game is offering is often a plain cyan outline that the badge template
+    # never matches, so it was absent from the list and no ordering could pick it
+    # (D240/D241).  Read after the adjacency filter, because that filter would drop the
+    # arc again, and put it first: it is the only box the game itself marks as reachable.
+    party_read = party_point(image)
+    if party_read is not None:
+        try:
+            steps = [list(box) for box in cyan_step_boxes(image, party_read)]
+        except (ValueError, TypeError):
+            steps = []
+        if steps:
+            kinds = record.setdefault('map_candidate_kinds', {})
+            for step in steps:
+                kinds[box_key(step)] = 'cyan_step'
+            ordered = [[int(v) for v in step] for step in steps] + list(ordered)
     return name, ordered
 
 

@@ -90,6 +90,7 @@ def test_an_archive_that_never_named_a_kind_is_not_measured(tmp_path):
 
 def test_candidates_of_keeps_the_kind_of_the_boxes_it_offers(tmp_path, monkeypatch):
     import numpy as np
+    monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
     monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
@@ -151,6 +152,7 @@ def test_the_marked_step_is_tried_before_a_badge_tile(tmp_path, monkeypatch):
     """D75's live evidence: two `gold_badge_node` clicks were refused while the one
     `bright_lit_icon` box sat fourth in the list and was never reached."""
     import numpy as np
+    monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
     monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
@@ -171,6 +173,7 @@ def test_the_marked_step_is_tried_before_a_badge_tile(tmp_path, monkeypatch):
 
 def test_an_unknown_kind_is_kept_at_the_end_and_not_dropped(tmp_path, monkeypatch):
     import numpy as np
+    monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
     monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
