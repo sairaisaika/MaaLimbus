@@ -5570,6 +5570,39 @@ job 一去不返，修复本身也卡住；而两秒前的两次读取经由同�
 下一步是 `SKIP` 与奖励面板这两条仍可读的收尾路线。
 
 
+## DSH continuation: 每层最后一步是一个红色房间，而缩放会让它跑掉（2026-10-25）
+
+### 根因（实测）
+
+`evidence/runtime/packaged-mirror-20261025-040555/frame-0004.png`：队伍 `(482,347)`，Boss 房
+`(1026,306,324,248)`，距离 **710.9 px**；`adjacent_to` 只保留本帧步距（该帧 245–406 px），
+扫描 60 个历史运行的 `map_nodes_offered`，**没有任何一次**提供过红块上的框。每层最后一步
+从候选里被丢掉，走不到房间，楼层无法收尾。
+
+### 改动
+
+- `a3a5a36` **D244**：`map_vision.boss_nodes` 按颜色读红色房间（两段 HSV 红、面积/边长按比例），
+  `map_clicks` 经 `_with_bosses` 追加，且**只与尺寸相当的框去重**（第一版拿“较小框”比，房内一个
+  190×190 徽章覆盖 94% 就把房间删了）；`runner.candidates_of` 让 Boss 框绕过相邻带、排在普通步之后。
+- `4328f14` **D245**：房间是**帧的比例**而不是 60 px —— `BOSS_MIN_SIDE_FRACTION = 0.05`、
+  `BOSS_MIN_AREA_FRACTION = 0.0018`；同一帧缩放到 0.5/0.75/1.25 仍各找到一个房间，框随帧缩放
+  （操作员 m16901：“这个会变化的，要考虑如果我们缩放过地图怎么怎么样的位置就会变的”）。
+- 测试：`tests/test_boss_node.py` 5 条；`tests/test_map_vision.py` 种类白名单加 `boss_node`。
+  聚焦 75 通过。
+
+### 未证明（诚实的边界）
+
+- `packaged-mirror-20261025-051051`（300 s 实机）**没走到地图**：0 个 `map_nodes_offered`、
+  0 次点击，结束于 `page_unreadable_after_waiting` —— D244/D245 的实机验证**仍未完成**。
+- `clear_rate` 仍为 0；`payout_rate` 未测量；本轮无未授权消费或领奖。
+
+### 下一步
+
+1. 先修“开局就读不出页面”（该运行里 `map_header_without_a_pack_line` 7 次、
+   `acted_on_a_map_without_a_pack_line` 3 次），让实机至少回到地图；
+2. 再跑 300 s，确认 `boss_node` 出现在 `map_nodes_offered`、点击被接受、页面进入 Boss 房；
+3. 若缩放后仍丢房间，回到本帧比例重新量 —— 不要加绝对阈值。
+
 ## DSH continuation: 一个被别的运行留下的卡，和一个读不出的战斗（2026-10-24）
 
 本轮（D97–D99）把三条实机证据变成了三条规则，顺序是"先量，再改，再实机验证"。
