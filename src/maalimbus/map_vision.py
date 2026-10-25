@@ -1946,6 +1946,45 @@ def party_from_flame(image, boxes, *, top=0.10, right=0.80, bottom=0.86):
     return (int(best[1]), int(best[2]))
 
 
+FLAME_THRESHOLD = 170
+
+
+def flame_point(image):
+    """Where the player's flame is, judged by shape rather than brightness.
+
+    Measured 2026-10-25 on two live frames: the flame is a filled blob of about 7x6 px
+    peaking at grey 216, and a node's gold ring peaks at 207 -- nine levels apart, so
+    brightness cannot separate them.  Shape can: the flame is solid (fill ratio well above
+    half), the ring is hollow, and the ring is larger.  The board gate then keeps the
+    answer inside the map, and a reading that is outside it is not the flame.
+    """
+    import cv2
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if getattr(image, 'ndim', 2) == 3 else image
+    height, width = gray.shape[:2]
+    _, mask = cv2.threshold(gray, FLAME_THRESHOLD, 255, cv2.THRESH_BINARY)
+    count, _labels, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        x, y, side_w, side_h, area = (int(v) for v in stats[index][:5])
+        if not (5 <= side_w <= 20 and 5 <= side_h <= 20):
+            continue
+        if area < 20 or area / float(side_w * side_h) < 0.55:
+            continue
+        if y < 0.10 * height or y > 0.90 * height:
+            continue
+        if x < 0.02 * width or x + side_w > 0.95 * width:
+            # the right-hand chrome carries warm icons of its own
+            continue
+        point = (float(centres[index][0]), float(centres[index][1]))
+        distance = abs(point[0] - width / 2.0) + abs(point[1] - height / 2.0)
+        if best is None or distance < best[0]:
+            best = (distance, point)
+    if best is None:
+        return None
+    point = (int(round(best[1][0])), int(round(best[1][1])))
+    return point if _on_the_board(point, image) else None
+
+
 def party_point(image):
     """The locomotive's position, read from its own torch, not from a badge.
 
@@ -2023,7 +2062,15 @@ def party_point(image):
             if abs(mate[1] - top[1]) <= 12 and abs(mate[2] - top[2]) <= 80:
                 x = (top[1] + mate[1]) / 2.0
                 y = (top[2] + mate[2]) / 2.0 + int(.10 * height)
-                return int(x), int(y)
+                point = (int(x), int(y))
+                # The colour channel cannot tell the torch from a node's gold ring
+                # (both are warm and bright: measured 216 vs 207 grey).  When the two
+                # readings disagree, the shape wins -- live
+                # `packaged-mirror-20261025-101647` read (498,221), which is a node.
+                flame = flame_point(image)
+                if flame is not None and abs(point[0] - flame[0]) + abs(point[1] - flame[1]) > 60:
+                    return flame
+                return point
     return None
 
 STEP_CENTRES = tuple(
@@ -2228,6 +2275,28 @@ def _on_the_board(point, image):
     return 0.25 * height <= y <= 0.88 * height
 
 
+def _flame_corroborated(image, marker, ring):
+    """The flame, but only when nothing contradicts it.
+
+    A colour reading that landed in the HUD or in the right chrome still says "something
+    warm is here, just not the party", so a flame far from both of those readings is a
+    different object and is refused.  When neither reader answered at all -- the live
+    1080p case -- there is nothing to contradict, and the shape reading is the only fact
+    (D293).
+    """
+    flame = flame_point(image)
+    if flame is None:
+        return None
+    for other in (marker, ring):
+        if other is None:
+            continue
+        if abs(int(other[0]) - flame[0]) + abs(int(other[1]) - flame[1]) <= 200:
+            return flame
+    if marker is None and ring is None:
+        return flame
+    return None
+
+
 def party_point(image):
     """`party_point` for either channel order; BGR first, RGB(A) as the fallback."""
 
@@ -2260,14 +2329,18 @@ def party_point(image):
     ring = player_by_ring(image)
     if ring is None:
         ring = player_by_ring(swapped)
-    if marker is None or ring is None:
-        return None
-    if abs(int(marker[0]) - int(ring[0])) > 80 or abs(int(marker[1]) - int(ring[1])) > 80:
-        return None
+    if (marker is None or ring is None
+            or abs(int(marker[0]) - int(ring[0])) > 80
+            or abs(int(marker[1]) - int(ring[1])) > 80):
+        # Neither the pair nor the two agreeing readers found the party: the only reading
+        # left is the flame's own shape (D293).  It is measured, not guessed -- live
+        # `packaged-mirror-20261025-075711` answers (670,467) and the board without a flame
+        # answers None, so an empty answer here means the party truly was not on screen.
+        return _flame_corroborated(image, marker, ring)
     height, width = image.shape[:2]
     x, y = int(marker[0]), int(marker[1])
     if not (0 <= x < int(.95 * width)) or not (int(.10 * height) <= y < int(.86 * height)):
-        return None
+        return _flame_corroborated(image, marker, ring)
     return x, y
 
 def selection_bracket(image):
