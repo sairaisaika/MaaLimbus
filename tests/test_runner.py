@@ -175,9 +175,7 @@ def test_a_run_over_the_claim_pages_sends_one_click_per_step(tmp_path):
     assert len(device.clicks) == 2
 
 
-def test_a_run_waits_out_an_unreadable_page_and_then_stops(tmp_path, monkeypatch):
-    # 这条原本 9.7 s：等待是真实墙钟。sleep 变 no-op，测的仍是「等够轮数后带名字停下」。
-    monkeypatch.setattr('maalimbus.runner.time.sleep', lambda *a, **k: None)
+def test_a_run_waits_out_an_unreadable_page_and_then_stops(tmp_path):
     # `recovery_tries: 0` is what makes the wait the whole answer: with a ladder the
     # page first gets its gestures, which the next test covers.
     runner, device = window(tmp_path, [UNREADABLE_FRAME] * 6,
@@ -1612,12 +1610,3 @@ def test_a_click_with_an_empty_binding_is_carried_before_it_gives_up():
     assert controller.bindings == 0
     assert [entry for entry, _ in tasker.posted] == ['MirrorPointClick']
     assert tasker.posted[0][1]['MirrorPointClick']['target'] == [963, 593, 1, 1]
-
-# 整套文件原本 45 s：循环里的 settle 等待与看门狗休眠都是真实时间。只去掉墙钟等待，
-# 不碰 monotonic（时间仍是判据），需要真实节奏的用例在各自的文件里自己控制。
-import pytest as _pytest  # noqa: E402
-
-
-@_pytest.fixture(autouse=True)
-def _no_real_sleep(monkeypatch):
-    monkeypatch.setattr('maalimbus.runner.time.sleep', lambda *a, **k: None)
