@@ -2096,6 +2096,13 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     if image is None:
         return None, None
     party = party_point(image)
+    # Which picture and which size this process read (D310).  Live `-150912` shows
+    # `record_party: None` while the repository, on the same run's archived frame, answers
+    # (1091,252) -- the reader itself has been proven right at 720p and 1080p, so the only
+    # remaining variable is the input: this line names it.
+    record['map_frame_seen'] = {'image': name,
+                                'size': [int(v) for v in image.shape[:2]],
+                                'party': None if party is None else [int(v) for v in party]}
     # The chevron the page draws is its own statement of which step it will accept,
     # and every reading of it needs the party: this caller never passed it, so
     # `chevron_target` was answered None for its whole life and the ranking fell back
