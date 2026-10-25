@@ -2910,6 +2910,10 @@
         "python -m pytest -q tests/test_party_flame.py tests/test_map_party_anchor.py"
       ],
       "boundary": "只回答“我方标记在哪”这一件事：灰度局部对比 + 竖直细长亮块 + 正下方必须有已检出节点。不含颜色阈值，也不含屏幕像素常数（全为画面/节点比例）。无节点框时返回 None（不猜）。不负责节点图标分类，也不负责选择路线。",
+      "docs": [
+        "docs/wiki/en_us/2.3-decisions.md#d281-the-party-mark-is-found-by-grey-geometry",
+        "docs/wiki/zh_cn/2.3-decisions.md#d281-我方标记按灰度几何找颜色退出判定"
+      ],
       "locations": [
         {
           "path": "src/maalimbus/map_vision.py",
