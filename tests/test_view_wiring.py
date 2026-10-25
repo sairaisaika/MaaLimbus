@@ -28,3 +28,9 @@ def test_the_normalisation_journals_what_it_could_read():
     body = SOURCE[SOURCE.index('def _normalise_view_once'):SOURCE.index('def _frame_and_record')]
     assert "note('map_view_probe'" in body
     assert 'record_party' in body and 'image_party' in body
+
+
+def test_the_result_event_names_the_two_paths():
+    body = SOURCE[SOURCE.index('def _normalise_view_once'):SOURCE.index('def _frame_and_record')]
+    assert "scale_lost_party=bool(result.get('scale_lost_party'))" in body
+    assert "zoomed=result.get('zoomed')" in body

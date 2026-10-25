@@ -3304,7 +3304,10 @@ class MirrorRunner:
             self.note('view_normalisation_failed', error=str(error)[:200])
             return
         self.note('view_normalised', centred=result.get('centred'),
-                  steps=len(result.get('steps') or ()))
+                  steps=len(result.get('steps') or ()),
+                  dragged=result.get('dragged'), party=result.get('party'),
+                  zoomed=result.get('zoomed'),
+                  scale_lost_party=bool(result.get('scale_lost_party')))
 
     def _frame_and_record(self):
         image, name = latest_frame(self.directory)
