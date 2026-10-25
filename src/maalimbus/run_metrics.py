@@ -559,6 +559,7 @@ TIMED_READ_EVENTS = ('map_observed', 'battle_observed')
 # `reward_task_executed` / `reward_task_stopped` / `reward_task_skipped`, so `payout_rate`
 # can ask the other half instead of guessing at it.
 CLEAR_FLOORS = 5
+READS_PER_INPUT_FLOOR = 5
 PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_skipped')
 
 MEASURES = (
@@ -569,6 +570,7 @@ MEASURES = (
     'payout_rate',
     'mean_seconds',
     'reads_per_step',
+    'reads_per_input',
     'recovery_advanced_rate',
     'no_progress_stop_rate',
     'unconfirmed_purchases',
@@ -602,6 +604,7 @@ def efficiency(rows, directory=None):
     stamps = _stamps(rows)
     seconds = (stamps[-1] - stamps[0]).total_seconds() if len(stamps) >= 2 else None
     reads = sum(1 for row in rows if row.get('event') in READ_EVENTS)
+    intents = sum(1 for row in rows if row.get('event') == 'window_intent')
     # A heartbeat is not a step.  `loop_heartbeat` is written before each loop iteration
     # only since 2026-10-23 (it was added for the runs that died with no cause), so an
     # archive that spans older builds has far fewer heartbeats than steps -- 303 against
@@ -634,6 +637,8 @@ def efficiency(rows, directory=None):
         'floor_pace': floor_pace(rows),
         'heartbeats': heartbeats,
         'reads_per_step': round(reads / steps, 2) if steps else None,
+        'reads_per_input': round(reads / intents, 2) if intents else None,
+        'inputs': intents,
         'reached_floor': max(floors) if floors else None,
         'explored': bool(floors) and max(floors) >= CLEAR_FLOORS,
         # D80: a run that ended on `loop_deadline_exceeded` was stopped by its caller's
@@ -702,6 +707,9 @@ def metrics(runs):
              for entry in (run.get('dwell') or {}).values() if entry.get('ended_here')]
     paid = [run['payout'] for run in runs if run['payout'] is not None]
     claimed = sum(1 for payout in paid if payout['claimed'])
+    values = [run['reads_per_input'] for run in runs
+              if run.get('reads_per_input') is not None
+              and (run.get('inputs') or 0) >= READS_PER_INPUT_FLOOR]
     return {
         'clear_rate': {
             'value': round(explored / total, 3) if total else None,
@@ -765,6 +773,17 @@ def metrics(runs):
                      'step, and the builds before 2026-10-23 wrote none at all (D67)'
                      if stepped else
                      'no run declares its step count, so there is no per-step rate')},
+        'reads_per_input': {
+            # A run that sent one input and read once has a rate of 1.0 and says nothing;
+            # the median over runs that sent at least READS_PER_INPUT_FLOOR inputs is the
+            # only figure that can be compared with the best observed run.
+            'value': (round(sorted(values)[len(values) // 2], 2) if values else None),
+            'basis': ('median over %d run(s) that sent at least %d input(s); best observed %.2f'
+                      % (len(values), READS_PER_INPUT_FLOOR, min(values)) if values
+                      else 'no run sent %d inputs' % READS_PER_INPUT_FLOOR),
+            'note': ('a read here is one observer call (READ_EVENTS: map, battle and scene_mismatch, '
+                     'retries included); the read that proves the input plus the read that comes '
+                     'next is the floor, and the best observed run spends 2.00 (D182)')},
         'recovery_advanced_rate': {
             'value': round(advanced / recoveries, 3) if recoveries else None,
             'basis': f'{advanced} of {recoveries} recoveries advanced the run',
