@@ -6316,3 +6316,48 @@ re-measure both frames before touching the pack gate again.
 > 我不知道为什么我的prompt应该强调了你需要抽象的去设计和反思你还是需要我做到这个地步仅仅是在nodes之间移动上我现在给你移动到第二层了为了给你截图。
 
 这一轮**没有**实机运行；上一轮 `packaged-mirror-20261025-070108` 的帧里 `candidates_of` 能给出候选（`party [1219,487]`、`map_edge_target [931,681,190,190]`、6 个候选），但 `map_click_result` 历史最高接受率 17%，最近一次 0/5。地图移动仍是当前唯一堵点，Boss 房与楼层推进都排在它后面。
+
+## DSH continuation: 部署顺序是页面的读数，不是文件里的名单（2026-10-25，第 100–101 轮）
+
+**三个根因（本轮实测）**
+
+1. **配置有两份，改一份不生效**：`runtime_paths.data_directory()` 从程序自己的根解析 `config/`，
+   打包运行读的是 `dist/MaaLimbus/config/`，而仓库里改的是 `config/`。实测两边
+   `user-team-profiles.json` 的 slot 1 顺序不同——这就是“我改了配置但脚本没变”的全部原因，
+   此前没有任何事件记录过实际加载路径。
+2. **部署顺序被当成配置而不是读数**：编队界面十二格是固定坐标、每格印 1–12 的编号，
+   编号本身就是部署位次（操作者 m18727），但代码只信配置里的 `deployment` 名单，
+   于是页面印的顺序被清空重排（一次清空 12 次点击），或直接卡在待验证状态。
+3. **身份识别被当成门禁**：`pre_battle_identity` 要解析 12 个身份名才算“已核对”，
+   而身份目录只有 128 条旧数据（缺 La Manchaland / 环指 / 黑云会新皮），
+   实测 12 格里只解析出 2 格（`resolved 2`，`no_catalogue_alias_matches 7`），
+   部署因此停在 `deployment_input_awaiting_verification`。
+
+**改动（提交 `9246624`）**
+
+- `src/maalimbus/team_order.py::order_from_badges` —— 把十二格编号读成部署顺序，
+  缺号/重复/越界/数量不足各自给原因（`badge_missing`/`badge_duplicate`/`badge_range`/`badge_count`），
+  不猜。台前/台后（黄/蓝）不进顺序，仍由 `team_vision.card_states` 与计数器负责。
+- `src/maalimbus/runner.py::step` 在 `PRE_BATTLE_TEAM` 先问页面：合法排列则覆盖配置顺序，
+  记 `deployment_order_from_badges`（带配置顺序以便回溯）；读不成记
+  `deployment_order_badges_unreadable` 并保留配置顺序，`state['deployment_order_source']`
+  说明这次用的是哪一边。
+- `src/maalimbus/runtime_paths.py`：`CONFIG_FILES`/`plan_sync`/`apply_sync` —— 偏好差异可列出、
+  可同步，只碰 `user-team-profiles.json`、`user-mirror-settings.json`、`user-scores.json`，
+  账本与事务不动；`tools/sync_user_config.py` 是它的命令行。
+- `agent/recognition.py`：`mirror_loop_start` 记录 `data_directory` 与 `team_profiles`。
+- 陈旧期望追平契约：`PAYOUT_EVENTS` 补 `reward_claimed`；编队 fixture 的 `candidates_of`
+  桩接受 `fallback_party`；`test_a_page_that_prints_another_order_is_cleared…` 改为
+  “页面印出什么顺序就按什么顺序部署”。
+
+**验证**：`tests/test_runner.py tests/test_team_order.py tests/test_pages.py
+tests/test_config_provenance.py` → 109 passed；编队/部署相关 22 个套件 → 144 passed。
+
+**可迁移经验**
+
+- 一个配置只要存在两个副本，“改了没生效”就不是 bug 报告而是一个可测量的事实：
+  先让运行把**实际加载路径**写进日志，再讨论改哪里。
+- 顺序类事实优先当**读数**：有固定坐标 + 明确编号的界面，读编号比维护名单更稳，
+  也更符合“不写死”的要求；只有在读不成时才回退到配置，并明确标注回退来源。
+- 身份名是**附加信息**，不是门禁：目录不全时把它当作解释性证据（journal），
+  而不是放行条件。
