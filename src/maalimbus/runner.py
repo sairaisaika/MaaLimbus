@@ -188,6 +188,12 @@ def _defaults():
         # (4 s) spends that window asleep, while one read costs ~1.2 s.
         'transition_interval': 1.0,
         'transition_seconds': 90.0,
+        # D186: the clock is the primary bound (D110), but a bound must not depend on a
+        # clock alone -- a starved or jumped monotonic (tests, a suspended process) turns
+        # the same branch into an unbounded loop.  The unknown episode already carries two
+        # bounds (D163); this is the transition's second one, high enough to never fire
+        # before the clock in practice: at the 4 s ceiling 40 rounds is 160 s.
+        'transition_rounds': 40,
         'unknown_seconds': 20.0,
         # D59: how many times one step may be retried after a read did not come
         # back.  Bounded, not a loop: after these the run ends with the read's own
@@ -3293,7 +3299,9 @@ class MirrorRunner:
                     state['transition_seen'] = int(state.get('transition_seen', 0)) + 1
                     state.setdefault('transition_since', time.monotonic())
                     waited = time.monotonic() - float(state['transition_since'])
-                    if waited < float(settings.transition_seconds):
+                    rounds_cap = int(getattr(settings, 'transition_rounds', 40))
+                    if (waited < float(settings.transition_seconds)
+                            and state['transition_seen'] <= rounds_cap):
                         # The pace this round actually takes, so the journal stops
                         # claiming a flat 1.0 s while the backoff ramps (D162).
                         pace = transition_pause(settings.transition_interval,

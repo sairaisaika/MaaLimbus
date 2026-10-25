@@ -187,3 +187,21 @@ def test_a_map_input_costs_one_read_after_it(tmp_path, monkeypatch):
     # (D167 bounds that last one separately).  It was four before D184.
     assert settles == 3, f'the map step reads three times, got {settles}'
     assert _events(tmp_path, 'map_click_result') == [], 'the verdict waits for the next read'
+
+
+def test_a_transition_is_bounded_by_its_clock_and_by_its_rounds(tmp_path):
+    """D186: the clock is the primary bound, and it is not the only one.
+
+    An empty frame takes the transition branch, which is bounded by `transition_seconds`.
+    That bound is a duration, so a starved or jumped monotonic (a suspended process, a
+    test) turns the same branch into an unbounded loop; the round cap is the backstop, and
+    the number is asserted where the loop hands over rather than at a magic count.
+    """
+    loop = _loop(tmp_path, ['UNKNOWN'] * 40)
+    loop.settings._values['transition_rounds'] = 3
+    before = loop.observer.reads
+    for _ in range(6):
+        loop.step()
+    waits = _events(tmp_path, 'window_transition_wait')
+    assert len(waits) == 3, f'the cap is three rounds, saw {len(waits)}'
+    assert loop.observer.reads - before <= 3 + 6
