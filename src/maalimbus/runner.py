@@ -552,6 +552,13 @@ so it may be walked at this spacing while every other page keeps the caller's.
 DEEP_STEP_SECONDS = 60.0
 MIN_STEP_SECONDS = 20.0   # D165: below this tail the loop ends itself
 ONE_READ_SECONDS = 30.0
+# A read taken right after a viewport gesture may not spend the whole window: on a
+# static page an eight-second silence is the device, not the page.  Measured on
+# packaged-mirror-20261024-220736: three `window_recovery` rows held 100.7 s of its
+# 251.5 attributed seconds, each one gesture followed by a read that waited out the
+# full thirty-second window (D167).
+RECOVERED_READ_SECONDS = 8.0
+RECOVERED_READ_WINDOW = 20.0
 RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
 """One page read may not outlive this, whoever asked for it.
 
@@ -2803,10 +2810,13 @@ class MirrorRunner:
         now = time.monotonic()
         self.artifacts['heartbeat'] = now
         run_deadline = self.deadline if deadline is None else deadline
+        recovered = float((self.state or {}).get('recovered_at') or 0.0)
+        tight = recovered and 0.0 <= now - recovered < RECOVERED_READ_WINDOW
         # One formula for the ceiling: the caller's tighter window wins, and a read may
         # never outlive the run.  `bounded_read` is the same door `MaaObserver` clamps at,
         # so this call is the runner's *report* about the read, not its only bound.
-        deadline = bounded_read(run_deadline)
+        deadline = (bounded_read(run_deadline, limit=RECOVERED_READ_SECONDS)
+                   if tight else bounded_read(run_deadline))
         # The watchdog thread reads this while the call is in flight; the journal
         # cannot say afterwards which call the silence belonged to.
         reading = {'phase': phase, 'since': now, 'page': self.state.get('page'),
@@ -6035,6 +6045,8 @@ class MirrorRunner:
                   input_helpers=self.input_helper_line())
         self._recovery_gesture(name)
         time.sleep(self.settings.interval)
+        # The rung goes out, so the read that follows is a read after a gesture.
+        state['recovered_at'] = time.monotonic()
         return self._result(page, plan.get('target'), True, None, waiting=True)
 
     def _ladder_length(self, page):
