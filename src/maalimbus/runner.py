@@ -3875,9 +3875,16 @@ class MirrorRunner:
             kept = [box for box in candidates
                     if (box_key(box), key_party) not in refused]
             if len(kept) != len(candidates):
-                self.note('map_candidates_refused_before',
-                          dropped=len(candidates) - len(kept), left=len(kept))
-                candidates = kept
+                dropped = len(candidates) - len(kept)
+                if kept:
+                    self.note('map_candidates_refused_before', dropped=dropped, left=len(kept))
+                    candidates = kept
+                else:
+                    # Refusing every candidate refuses every input: the memory may narrow the
+                    # list but never empty it (D335).  Measured on `-162808`, where one refused
+                    # target left nothing and the loop answered "no destination" three times.
+                    self.note('map_refused_all_fell_back', dropped=dropped,
+                              reason='refusing_the_last_candidate_would_refuse_every_input')
         # The source says where the anchor *came from*, not whether a probe also answered.
         # The old rule (`'probe' if probe_party is not None else ...`) labelled every step
         # `probe` as soon as the D286 probe answered -- which it almost always does -- so the
