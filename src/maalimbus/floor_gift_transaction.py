@@ -89,7 +89,7 @@ class FloorGiftTransaction:
         value = [o.identity() for o in offers]
         return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 
-    def retire_stale_run(self, scope):
+    def retire_stale_run(self, scope, signature=None):
         """Retire a whole record left by another run, so today's page can be prepared (D295).
 
         `prepare` refuses while the stored record belongs to a different scope and either
@@ -100,7 +100,15 @@ class FloorGiftTransaction:
         The record is kept in ``history`` with ``abandoned`` set; no input is replayed.
         """
         d = self.data or {}
-        if not d or d.get('scope') == scope:
+        if not d:
+            return None
+        # A record can be stale two ways: it belongs to another run, or it belongs to this
+        # run but describes a page that is no longer on screen (a second gift page with a
+        # different offer).  Both make `prepare` refuse for a debt nothing can pay, so both
+        # are retired -- the second only when a signature is supplied (D295).
+        other_run = d.get('scope') != scope
+        other_page = signature is not None and d.get('offer') not in (None, signature)
+        if not (other_run or other_page):
             return None
         if d.get('completed') and not d.get('pending'):
             return None

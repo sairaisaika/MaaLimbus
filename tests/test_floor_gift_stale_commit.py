@@ -66,3 +66,13 @@ def test_a_completed_record_is_not_retired_and_the_owner_is_never_touched(tmp_pa
     assert tx.FloorGiftTransaction(path).retire_stale_run('new-run') is None
     same = _ledger(tmp_path, scope='new-run', pending=False)
     assert tx.FloorGiftTransaction(same).retire_stale_run('new-run') is None
+
+
+def test_a_record_for_a_page_that_is_gone_is_retired_too(tmp_path):
+    path = _ledger(tmp_path, scope='same-run', pending=False)
+    path.write_text(json.dumps({'schema': 1, 'scope': 'same-run', 'offer': 'old-sig',
+                                'selected': ['A'], 'pending': {}, 'completed': False}),
+                    encoding='utf-8')
+    book = tx.FloorGiftTransaction(path)
+    assert book.retire_stale_run('same-run', 'new-sig') is not None
+    assert book.data['pending'] == {}

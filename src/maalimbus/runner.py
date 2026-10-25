@@ -4599,7 +4599,8 @@ class MirrorRunner:
                 # debt: prepare would refuse every new attempt with it (measured
                 # 2026-10-25, `floor_gift_previous_transaction_unresolved` on a fresh
                 # GIFT_PICK page).  Retire it -- no input, evidence kept -- and continue (D295).
-                leased=self.floor_gift_transaction.retire_stale_run(self.run_id)
+                leased=self.floor_gift_transaction.retire_stale_run(
+                    self.run_id,self.floor_gift_transaction.signature(floor_offers))
                 if leased:
                     self.note('floor_gift_stale_record_retired',input_sent=False,**leased)
                 pending=(self.floor_gift_transaction.data or {}).get('pending')
