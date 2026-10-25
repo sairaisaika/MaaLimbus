@@ -1794,8 +1794,29 @@ def blind_map_boxes(directory, record):
     kinds = record.setdefault('map_candidate_kinds', {})
     for item in clicks:
         kinds.setdefault(box_key(item['box']), item.get('kind'))
-    clicks.sort(key=lambda item: _kind_rank(item.get('kind')))
+    # Distance beats kind here: on the frame this reader exists for
+    # (evidence/runtime/packaged-mirror-20261025-035558/frame-0019.png, party read at
+    # (861,209)) the nearest marker is the step the player can take, while the kind
+    # order put a marker two hops away first -- so the run clicked a shop it could not
+    # reach and three empty tiles, and never tried the adjacent node.
+    party = party_point(image)
+    if party is not None:
+        order = {tuple(box): index
+                 for index, box in enumerate(rank_by_distance([list(i['box']) for i in clicks], party))}
+        clicks.sort(key=lambda item: order[tuple(list(item['box']))])
+    else:
+        clicks.sort(key=lambda item: _kind_rank(item.get('kind')))
     return [list(item['box']) for item in clicks]
+
+
+def rank_by_distance(boxes, party):
+    """Nearest first: the step the player can actually take is the closest one."""
+    if party is None:
+        return list(boxes)
+    def _gap(box):
+        return ((box[0] + box[2] / 2 - party[0]) ** 2
+                + (box[1] + box[3] / 2 - party[1]) ** 2)
+    return sorted(boxes, key=_gap)
 
 
 def candidates_of(directory, record):

@@ -110,6 +110,14 @@ def test_a_map_whose_party_cannot_be_read_still_takes_one_step(tmp_path, monkeyp
     assert loop.device.clicks == [(120, 220)]
 
 
+def test_the_blind_reader_prefers_the_nearest_box(tmp_path):
+    """On the frame this reader exists for the party reads at (861,209) and the kind
+    order put a reachable step behind a marker two hops away."""
+    ordered = runner.rank_by_distance([[1227, 236, 40, 40], [1000, 190, 40, 40]], (861, 209))
+    assert ordered[0] == [1000, 190, 40, 40]
+    assert runner.rank_by_distance([[1, 1, 2, 2]], None) == [[1, 1, 2, 2]]
+
+
 def test_the_blind_reader_needs_a_frame(tmp_path):
     record = _record()
     assert runner.blind_map_boxes(tmp_path, record) == []
