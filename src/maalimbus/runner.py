@@ -2676,6 +2676,14 @@ class MirrorRunner:
         The party the candidate list was filtered against travels with the verdict.
         """
         fields.setdefault('party', self.state.get('map_party'))
+        # D209: the refusal streak is documented as *consecutive* refusals, but only an
+        # `accepted` verdict cleared it, so an `unjudged` (D76's late verdict) or a
+        # `superseded` (D197's reuse) left two separate refusals counting as two in a row.
+        # Measured 2026-10-25: 19 escapes in 43 current-era runs and 16 of them reached the
+        # threshold with only two real refusals.  Any verdict that is not a refusal breaks
+        # the sequence, which is what the docstring always said.
+        if fields.get('outcome') != 'rejected':
+            self.state['map_refused_streak'] = 0
         # Where inside that box the click actually went (D203).  The verdict carried the
         # box and nothing else, so "did the click land on the node or on the floor beside
         # it" could not be asked of 592 settled clicks: 100 accepted of 592 is the question
