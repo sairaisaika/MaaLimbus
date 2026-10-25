@@ -2253,7 +2253,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
             record['map_edge_only'] = {'edge': [int(v) for v in edge[:4]],
                                        'kept': len(near), 'dropped': len(rest) - len(near)}
             picked = near
-    ordered = order_candidates(adjacent_to(party, picked), kinds) + bosses
+    near = adjacent_to(party, picked)
+    # How many candidates the *adjacency* step removed, next to how many the page offered
+    # (D316).  `-153050` answered `pitch: None, step_fallback: true` and then `candidates: 0`
+    # on three MAP frames without saying whether the page had nothing to give or the step
+    # filter ate everything; the two numbers answer that in one line.
+    record['map_lattice']['adjacency'] = {'before': len(picked), 'after': len(near),
+                                          'dropped': len(picked) - len(near)}
+    ordered = order_candidates(near, kinds) + bosses
     if edge is not None:
         front = [int(v) for v in edge[:4]]
         ordered = [box for box in ordered if [int(v) for v in box[:4]] == front] +                   [box for box in ordered if [int(v) for v in box[:4]] != front]
