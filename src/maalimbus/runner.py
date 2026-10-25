@@ -3140,6 +3140,15 @@ class MirrorRunner:
                               reason='the_click_was_taken_after_the_verdict')
             self.state['map_refused_streak'] = 0
             return 'accepted'
+        # A refusal is a fact the run must keep: the game does not accept that step from
+        # where the party stands, and clicking it again spends the page budget to learn the
+        # same thing twice -- measured at 76 of 139 rejected clicks (55%) being repeats
+        # (`tools/audit_refused_retries.py`).  It is remembered with the party it was
+        # refused from, so a party that later moves gets a fresh opinion of that node.
+        refused = self.state.setdefault('refused_targets', set())
+        party = self.state.get('map_party')
+        if target:
+            refused.add((box_key(target), tuple(party) if party else None))
         self._map_verdict(target=target, page=page, outcome='rejected',
                           frame=pending.get('frame'), kind=pending.get('kind'),
                           reason='the_click_was_not_taken_and_the_page_stayed')
@@ -3654,6 +3663,18 @@ class MirrorRunner:
                           size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party)
+        # Drop the nodes this party has already been refused on (see the refused_targets note
+        # below); the set is keyed by box *and* party so moving the party clears the verdict.
+        refused = self.state.get('refused_targets')
+        if refused and candidates:
+            party_now = record.get('map_party')
+            key_party = tuple(party_now) if party_now else None
+            kept = [box for box in candidates
+                    if (box_key(box), key_party) not in refused]
+            if len(kept) != len(candidates):
+                self.note('map_candidates_refused_before',
+                          dropped=len(candidates) - len(kept), left=len(kept))
+                candidates = kept
         self.note('map_party_anchor',
                   source='probe' if probe_party is not None else party_anchor_source(record),
                   party=record.get('map_party') or probe_party,
