@@ -950,6 +950,64 @@ def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_
     return boxes
 
 
+CHEVRON_SATURATION_MAX = 70
+CHEVRON_VALUE_BAND = (100, 170)
+CHEVRON_SIDE = ((14, 40), (6, 24))          # glyph width, height in 1080p pixels
+CHEVRON_GAP = (16, 48)                       # centre-to-centre of the two glyphs
+
+
+def chevron_glyph_pairs(image):
+    """Centres of the paired low-saturation glyphs the game draws as a path chevron.
+
+    Measured on `packaged-mirror-20261025-135349/frame-0005` (party (500,244)): the double
+    chevron is two glyphs of about 22x12 at (844,215) and (885,223), HSV about [14,46,124].
+    Brightness gates never see it (V is ~124, not the 175+ a badge carries), a flat-bar rule
+    never sees it either (each glyph is 22x12, ratio 1.8), and both were assumed before this
+    measurement.  What distinguishes it is being a *pair* of small low-saturation glyphs at
+    the same height, side by side, near the party.
+    """
+    import cv2
+    import numpy as np
+    if image is None or getattr(image, 'ndim', 0) != 3:
+        return []
+    height, width = image.shape[:2]
+    scale = width / 1920.0
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    low, high = CHEVRON_VALUE_BAND
+    mask = cv2.inRange(hsv, (0, 0, int(low)), (180, CHEVRON_SATURATION_MAX, int(high)))
+    mask[:int(0.10 * height)] = 0
+    mask[int(0.84 * height):] = 0
+    mask[:, int(0.95 * width):] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    count, _labels, stats, centres = cv2.connectedComponentsWithStats(mask, 8)
+    glyphs = []
+    (width_lo, width_hi), (height_lo, height_hi) = (
+        (int(width_lo * scale), int(width_hi * scale)) for width_lo, width_hi in CHEVRON_SIDE)
+    for index in range(1, count):
+        area = int(stats[index][4])
+        side_w, side_h = int(stats[index][2]), int(stats[index][3])
+        if not (80 * scale * scale <= area <= 900 * scale * scale):
+            continue
+        if not (width_lo <= side_w <= width_hi and height_lo <= side_h <= height_hi):
+            continue
+        glyphs.append((int(centres[index][0]), int(centres[index][1]), side_w, side_h))
+    pairs = []
+    gap_lo, gap_hi = (int(v * scale) for v in CHEVRON_GAP)
+    for first in range(len(glyphs)):
+        for second in range(first + 1, len(glyphs)):
+            ax, ay, aw, _ah = glyphs[first]
+            bx, by, bw, _bh = glyphs[second]
+            dx = abs(bx - ax)
+            if abs(ay - by) > int(8 * scale):
+                continue
+            if not (gap_lo <= dx <= gap_hi):
+                continue
+            if not (0.5 <= aw / float(max(1, bw)) <= 2.0):
+                continue
+            pairs.append(((ax + bx) // 2, (ay + by) // 2))
+    return pairs
+
+
 def chevron_target(player, marker, pitch=LATTICE_PITCH):
     """The lattice node a desaturated glyph on the path points at, or None."""
     if player is None:
@@ -1401,6 +1459,13 @@ def map_clicks(image, *, template=None, node_side=None, player=None):
                 continue
             highlighted.append(centre)
         elif ratio > 3.0:
+            target = chevron_target(player, centre)
+            if target:
+                chevrons.append(target)
+    if not chevrons:
+        # The paired-glyph reader is the one that sees the chevron on the 720p reading; the
+        # flat-bar rule above was calibrated on 1080p captures and never fires here.
+        for centre in chevron_glyph_pairs(image):
             target = chevron_target(player, centre)
             if target:
                 chevrons.append(target)
