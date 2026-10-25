@@ -88,13 +88,14 @@ def test_a_map_with_no_pack_line_still_offers_a_click(tmp_path, monkeypatch):
     notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
     assert len(notes) == 1 and notes[0]['point'] == [120, 220]
     assert loop.state['map_acted_once'] is True
-    assert loop.device.clicks == [[120, 220]]
+    assert loop.device.clicks == [(120, 220)]
 
 
 def test_a_panel_on_screen_is_never_acted_on_as_a_map(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('MAP', [[100, 200, 40, 40]]))
-    panel = {'text': 'Enter', 'box': [1800, 900, 90, 40], 'score': .98}
-    loop, _summary, _reads = _run(tmp_path, [_record(ocr=(HEADER, panel))])
+    real = json.loads((pathlib.Path('evidence/runtime/packaged-mirror-20261025-012549')
+                       / 'frame-0001.json').read_text(encoding='utf-8'))['ocr']
+    loop, _summary, _reads = _run(tmp_path, [_record(ocr=tuple(real))])
     assert _events(tmp_path, 'acted_on_a_map_without_a_pack_line') == []
     assert loop.device.clicks == []
 
