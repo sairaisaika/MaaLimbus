@@ -250,3 +250,19 @@ def test_a_battle_animation_is_not_a_pending_transaction_deadlock():
     assert int(loop.state.get('transaction_waits', 0)) == 0
     names = [row[0] for row in loop.notes]
     assert names.count('pending_transaction_paused_for_a_battle_animation') == 1
+
+
+def test_a_moving_picture_also_pauses_the_counter():
+    # D253: on `packaged-mirror-20261025-055035` only eleven frames were read as cutscenes,
+    # so the other unreadable ones advanced the counter to exhaustion.  A frame that
+    # differs from the previous one is evidence the game is alive, whatever it reads as.
+    loop = _loop()
+    loop.state['unknown_blockers'] = ['Grace_transaction.pending']
+    loop.state['frame_changed'] = True
+    for _ in range(6):
+        assert loop._pending_transaction_wait() is False
+    assert int(loop.state.get('transaction_waits', 0)) == 0
+    loop.state['frame_changed'] = False
+    loop.settings = runner.settings({'transaction_waits': 1})
+    assert loop._pending_transaction_wait() is False      # first still frame counts
+    assert loop._pending_transaction_wait() is True       # second exhausts the budget

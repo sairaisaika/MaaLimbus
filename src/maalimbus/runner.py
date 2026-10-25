@@ -3183,6 +3183,15 @@ class MirrorRunner:
             return {'page': state.get('last_named_page'), 'stopped': STILL_FRAME_REASON,
                     'reason': STILL_FRAME_REASON}
         page = resolve_scene(self.registry, directory, record)
+        # A frame that differs from the last one is the game doing something, not a
+        # deadlock.  Measured on evidence/runtime/packaged-mirror-20261025-055035: eleven
+        # frames were read as battle cutscenes and paused the transaction counter, but the
+        # other unreadable frames still advanced it to exhaustion, so the pause has to be
+        # the moving picture, not one specific kind of frame.
+        sha = record.get('image_sha256')
+        previous = state.get('frame_sha')
+        state['frame_changed'] = bool(sha and previous and sha != previous)
+        state['frame_sha'] = sha or previous
         if not page_vocabulary.is_unreadable(page):
             state.pop('battle_unknown_since', None)
             # D81: the last page the reader could name, kept so that an unknown page can
@@ -6055,7 +6064,7 @@ class MirrorRunner:
             return False
         if any(_is_transition_blocker(name) for name in blockers):
             return self._submit_transition_wait(blockers)
-        if self.state.get('battle_cutscene'):
+        if self.state.get('battle_cutscene') or self.state.get('frame_changed'):
             # The game is animating a battle (D217 read the frame as a cutscene), so an
             # unreadable page is not a deadlock -- the transaction is simply not on screen
             # yet.  Counting these ended a healthy run after 14 clicks on
