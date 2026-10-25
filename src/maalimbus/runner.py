@@ -1717,11 +1717,15 @@ def overlaps(box, other):
 CLICK_KIND_ORDER = ('lit_icon', 'bright_lit_icon', 'gold_badge_node', 'lit_node',
                     'relaxed_node',
                     'badge_mark', 'neutral_outline_candidate', 'node_away_from_player',
-                    'lit_ring', 'lattice_step')
+                    'lit_ring', 'lattice_step', 'path_node')
 # Kinds with no accepted click in the whole archive.  They stay in the ranking (an
 # unknown kind must not outrank them) and are dropped before the click when any other
 # kind is offered: clicking a tile's centre is clicking the empty floor between nodes.
-CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step')
+CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step', 'path_node')
+# `path_node` is the chevron the page draws between nodes: measured 2026-10-25 on
+# `evidence/runtime/pi-20261021-185251/frame-0119.png`, `map_clicks` emits it first while
+# the five gold node marks are the only clickable head of the list.  It joins the two
+# kinds that may never be clicked, and it sorts last so an unknown kind cannot outrank it.
 
 
 def box_key(box):
