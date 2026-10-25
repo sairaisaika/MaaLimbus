@@ -6062,4 +6062,4 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 3. **现成可用**：`map_vision.floor_label(records, size)`（`map_vision.py:1577`）返回楼层头本身、**不要求**主题行；`header_only` 这个名字不存在，别照抄；
 4. 失败实据：`evidence/runtime/packaged-mirror-20261025-022715/frame-0001.json` = `'Exploring Floor5' [60,127,338,49] 0.96`,无主题行,该次 420 秒 **0 点击**。
 
-3. **现成可用**：`map_vision.floor_label(records, size)`（`map_vision.py:1577`）返回楼层头本身、**不要求**主题行；`header_only` 这个名字不存在，别照抄；
+要做的最小改动（不改判据）：`MirrorRunner.step` 的 `UNKNOWN` 分支里，把该帧 OCR 转成 `map_vision.Text` 调 `map_vision.floor_label(records, size)`；返回非空即写事件 `map_header_without_a_pack_line`（带 floor / pack_present=false / page / frame），再由既有阶梯处理。事件名必须同步进 `pages.REFUSALS` 或 `pages.STOP_KINDS`，否则 `audit_hold_gap` 会记成 hold。
