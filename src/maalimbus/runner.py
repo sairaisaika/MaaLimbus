@@ -2502,6 +2502,21 @@ class MirrorRunner:
             return None
         return dict(target=target, completed=seen)
 
+    def _assign_already_sent(self, record):
+        """True when this turn already got its auto-assignment.
+
+        Measured on `packaged-mirror-20261024-195529`: 23 assignments for 12 submitted
+        turns, up to 15 under one turn signature.  The reassignment cannot change
+        anything -- the board's assignment is per turn -- so the second one is spent
+        reading a board that is already assigned.  The turn badge (D113/D156) is what
+        says "this is still the same turn".
+        """
+        signature = (record or {}).get('turn_signature')
+        seen = self.state.get('assign_signature')
+        if not signature or seen is None:
+            return False
+        return list(seen) == list(signature)
+
     def _turn_signal(self, page, record):
         """D113: the battle badge says whether the turn advanced, without any OCR.
 
@@ -2524,6 +2539,7 @@ class MirrorRunner:
                           pairs_cleared=int(self.state.get('battle_pairs') or 0))
             self.state['battle_pairs'] = 0
             self.state['battle_assigns'] = 0
+            self.state['assign_signature'] = None
         self.state['turn_signature'] = signature
 
     def _map_verdict(self, **fields):
@@ -4309,6 +4325,12 @@ class MirrorRunner:
             self.note('map_candidates_empty',scene=record.get('scene'),
                       size=record.get('size'),ocr=len(record.get('ocr') or []),
                       reason='the_map_reader_offered_no_destination')
+        repeat_assignment = (page_vocabulary.is_battle_hud(page)
+                             and self._assign_already_sent(record)
+                             and state.get('battle_previous') == 'assign')
+        if repeat_assignment:
+            self.note('assign_skipped_same_turn', page=page,
+                      reason='this_turn_was_already_assigned')
         if page_vocabulary.is_battle_hud(page) and state.get('battle_speed') != 'on':
             from .battle_vision import speed_toggle
             box = speed_toggle(record.get('ocr') or [], record.get('size') or (1920, 1080))
@@ -4317,7 +4339,8 @@ class MirrorRunner:
         plan = plan_step(page, controls=plan_controls, arrows=arrows,
                          difficulty=difficulty,
                          start_box=record.get('start_box'),
-                         auto_assign=record.get('auto_assign_buttons'),
+                         auto_assign=(None if repeat_assignment
+                                      else record.get('auto_assign_buttons')),
                          battle_assignment=settings.battle_assignment,
                          battle_previous=state.get('battle_previous'),
                          battle_assigns=state.get('battle_assigns') or 0,
@@ -4635,6 +4658,8 @@ class MirrorRunner:
         # Remember which of the two battle intents went out, so a page that comes back
         # with the same turn can be answered with the other one instead of a repeat.
         if page in ('BATTLE_HUD','BATTLE_PLANNING'):
+            if str(plan.get('reason', '')).endswith('_is_the_proven_auto_assign_control'):
+                self.state['assign_signature'] = self.state.get('turn_signature')
             if plan.get('speed'):
                 # Measured 2026-10-24: the loop had never pressed the board's MAX caption,
                 # so every fight ran at the default speed.  Once per battle, and the page
