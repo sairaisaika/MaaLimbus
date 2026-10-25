@@ -3238,23 +3238,30 @@ class MirrorRunner:
             return
 
         def measure():
-            # The first look can land before the frame is written (measured 2026-10-25:
-            # every live run reported `view_normalised steps:0` because this returned None
-            # once and normalisation is skipped when the party is unknown).  One bounded
-            # retry is enough; a frame still missing after it is a real "cannot read".
-            for attempt in range(2):
-                image, record = self._frame_and_record()
-                if image is not None:
-                    break
-                if attempt == 0:
-                    # Sleeping is not enough: the run directory has no frame at all before
-                    # the loop has observed once (measured 2026-10-25: `party:null`,
-                    # `steps:0` persisted after adding a sleep).  Ask the pipeline for a
-                    # frame instead of re-reading a directory that is still empty.
-                    try:
-                        self._observe(phase='view_normalise')
-                    except Exception as error:  # a diagnostic may never end a run
-                        self.note('view_normalisation_read_failed', error=type(error).__name__)
+            # Two readers answer "where is the party": this process's `party_point` and the
+            # one the observation node already wrote into the frame record.  Measured
+            # 2026-10-25: the main process read None on every live frame while the record
+            # carried `[1458,221]`, so the normalisation gave up (`steps:0`) even though a
+            # reading existed.  Either answer is a measurement; no answer still means "do
+            # not drag".
+            image, name = latest_frame(self.directory)
+            record = {}
+            if image is None:
+                # No frame on disk before the loop has observed once: ask for one instead
+                # of re-reading an empty directory.  A failed read may never end a run.
+                try:
+                    self._observe(phase='view_normalise')
+                except Exception as error:
+                    self.note('view_normalisation_read_failed', error=type(error).__name__)
+                image, name = latest_frame(self.directory)
+            if image is None:
+                return (None, None)
+            try:
+                record = json.loads((Path(self.directory) / name.replace('.png', '.json'))
+                                    .read_text(encoding='utf-8'))
+            except Exception:
+                record = {}
+            party = party_point(image) or record.get('map_party')
             size = tuple(record.get('size') or (image.shape[1], image.shape[0]))
             width, height = size
             return party_point(image), (width, height)
