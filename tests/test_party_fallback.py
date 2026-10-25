@@ -35,6 +35,8 @@ def test_the_live_board_the_pair_missed_still_reads_a_party(monkeypatch):
 
 @needs_frame
 def test_a_marker_in_the_hud_is_not_the_party(monkeypatch):
+    monkeypatch.setattr(map_vision, 'flame_point', lambda image: None)
+    monkeypatch.setattr(map_vision, 'glow_point', lambda image: None)
     # The flame is a third, independent reading; this case is about the HUD marker, so
     # the shape reader is silenced instead of being allowed to answer something else.
     monkeypatch.setattr(map_vision, 'flame_point', lambda image: None)
@@ -45,12 +47,15 @@ def test_a_marker_in_the_hud_is_not_the_party(monkeypatch):
 @needs_frame
 def test_a_marker_in_the_right_chrome_is_not_the_party(monkeypatch):
     monkeypatch.setattr(map_vision, 'flame_point', lambda image: None)
+    monkeypatch.setattr(map_vision, 'glow_point', lambda image: None)
     _stub(monkeypatch, None, (1900, 600))
     assert map_vision.party_point(_frame()) is None
 
 
 @needs_frame
 def test_two_readers_that_disagree_are_not_the_party(monkeypatch):
+    monkeypatch.setattr(map_vision, 'flame_point', lambda image: None)
+    monkeypatch.setattr(map_vision, 'glow_point', lambda image: None)
     _stub(monkeypatch, None, (48, 273), ring=(1795, 834))
     assert map_vision.party_point(_frame()) is None
 
@@ -102,3 +107,31 @@ def test_a_flame_that_disagrees_overrules_the_colour_pair(monkeypatch):
     monkeypatch.setattr(map_vision, 'flame_point', lambda image: (900, 800))
     _stub(monkeypatch, (830, 450), None)
     assert map_vision.party_point(_frame()) == (900, 800)
+
+@needs_frame
+def test_the_tile_glow_is_a_reading_of_its_own():
+    """D295: three live frames, three different answers from the same rule.
+
+    `-134415` hides the flame behind the tile icon and still glows at (508,242); `-075711`
+    shows the flame and no large glow; `-101647` glows at (508,242) -- which is also where the
+    colour readers land, so the "gold ring" that earlier runs anchored on was the party's own
+    tile.
+    """
+    import cv2
+    import pathlib as _pathlib
+    root = _pathlib.Path(__file__).resolve().parents[1]
+
+    def frame(run):
+        return cv2.imread(str(root / 'evidence/runtime' / run / 'frame-0002.png'))
+
+    glowing, glowing2, flamed = (frame('packaged-mirror-20261025-134415'),
+                                 frame('packaged-mirror-20261025-101647'),
+                                 frame('packaged-mirror-20261025-075711'))
+    if glowing is None or glowing2 is None or flamed is None:
+        import pytest
+        pytest.skip('archived frames are not available')
+    for image in (glowing, glowing2):
+        point = map_vision.glow_point(image)
+        assert point is not None
+        assert abs(point[0] - 508) <= 40 and abs(point[1] - 242) <= 40, point
+    assert map_vision.glow_point(flamed) is None

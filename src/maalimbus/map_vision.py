@@ -1985,6 +1985,43 @@ def flame_point(image):
     return point if _on_the_board(point, image) else None
 
 
+GLOW_BAND = (0.10, 0.84)
+
+
+def glow_point(image):
+    """The party's own selection glow, as a shape rather than a colour rule.
+
+    Every theme rings the tile the party stands on with a warm glow far larger than the
+    flame's 7x6 blob -- measured 961 px, 508x242 centre, on `packaged-mirror-20261025-134415`
+    -- and no node badge carries it.  Size and place decide: a blot between 60 and 200 px a
+    side, inside the board band, above the HUD.  Colour only says where to look, the accepted
+    answer is the largest such blot, so a theme change moves the hue and not the rule.
+    """
+    import cv2
+    import numpy as np
+    if image is None or getattr(image, 'ndim', 0) != 3:
+        return None
+    height, width = image.shape[:2]
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (5, 120, 140), (32, 255, 255))
+    mask[:int(GLOW_BAND[0] * height)] = 0
+    mask[int(GLOW_BAND[1] * height):] = 0
+    mask[:, int(0.95 * width):] = 0
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    count, _labels, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        area = int(stats[index][4])
+        side_w, side_h = int(stats[index][2]), int(stats[index][3])
+        if area < 400 or area > 20000 or not (40 <= side_w <= 400 and 40 <= side_h <= 400):
+            continue
+        if best is None or area > best[0]:
+            best = (area, int(centroids[index][0]), int(centroids[index][1]))
+    if best is None:
+        return None
+    return (best[1], best[2])
+
+
 def party_point(image):
     """The locomotive's position, read from its own torch, not from a badge.
 
@@ -2346,7 +2383,13 @@ def party_point(image):
         # left is the flame's own shape (D293).  It is measured, not guessed -- live
         # `packaged-mirror-20261025-075711` answers (670,467) and the board without a flame
         # answers None, so an empty answer here means the party truly was not on screen.
-        return _flame_corroborated(image, marker, ring)
+        flame = _flame_corroborated(image, marker, ring)
+        if flame is not None:
+            return flame
+        # Neither colour nor the flame answered: the tile's own glow is the last reading
+        # with a shape behind it (D293/D294), and `packaged-mirror-20261025-134415` shows the
+        # flame hidden behind the tile icon while the glow is measured at (508,242).
+        return glow_point(image)
     height, width = image.shape[:2]
     x, y = int(marker[0]), int(marker[1])
     if not (0 <= x < int(.95 * width)) or not (int(.10 * height) <= y < int(.86 * height)):
