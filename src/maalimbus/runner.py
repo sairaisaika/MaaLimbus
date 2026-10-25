@@ -3281,7 +3281,12 @@ class MirrorRunner:
                 return (None, None)
             party = party_point(image)
             if party is None and record:
-                party = record.get('map_party')
+                candidate = record.get('map_party')
+                # The record's reading earns the same band check: measured 2026-10-25, the
+                # fallback handed the normalisation the very HUD point `party_point` had
+                # just refused, so the drag loop ran on chrome again.
+                if candidate and map_vision._on_the_board(candidate, image):
+                    party = candidate
             size = tuple((record or {}).get('size') or (image.shape[1], image.shape[0]))
             return (party, size)
 
