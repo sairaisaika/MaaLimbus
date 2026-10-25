@@ -18,11 +18,12 @@ def _frame():
     return cv2.imread(str(FRAME))
 
 
-def _stub(monkeypatch, pair, marker):
+def _stub(monkeypatch, pair, marker, ring=(1017, 614)):
     monkeypatch.setattr(map_vision, '_bgr_party_point', lambda image: pair)
     calls = []
     monkeypatch.setattr(map_vision, 'player_marker',
                         lambda image: (calls.append(1), marker)[1])
+    monkeypatch.setattr(map_vision, 'player_by_ring', lambda image: ring)
     return calls
 
 
@@ -45,6 +46,11 @@ def test_a_marker_in_the_right_chrome_is_not_the_party(monkeypatch):
 
 
 @needs_frame
+def test_two_readers_that_disagree_are_not_the_party(monkeypatch):
+    _stub(monkeypatch, None, (48, 273), ring=(1795, 834))
+    assert map_vision.party_point(_frame()) is None
+
+
 def test_the_pair_still_wins_and_the_fallback_is_not_consulted(monkeypatch):
     calls = _stub(monkeypatch, (830, 450), (1012, 595))
     assert map_vision.party_point(_frame()) == (830, 450)

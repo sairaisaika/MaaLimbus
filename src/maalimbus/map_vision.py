@@ -2213,10 +2213,19 @@ def party_point(image):
     # hint that the party was the missing fact.  So the second reader is a fallback,
     # kept inside the board band: the HUD's own flames sit above it or in the right
     # chrome, and a marker read there is not the party.
+    # A single reader is not evidence: live `packaged-mirror-20261025-084828` showed
+    # `player_marker` answering (48,273) on one frame and (1795,834) on the next while
+    # the party had not moved, so a lone marker is noise dressed as a fact.  Two
+    # independent readers that agree to within a card's width are the party (D291).
     marker = player_marker(image)
     if marker is None:
         marker = player_marker(swapped)
-    if marker is None:
+    ring = player_by_ring(image)
+    if ring is None:
+        ring = player_by_ring(swapped)
+    if marker is None or ring is None:
+        return None
+    if abs(int(marker[0]) - int(ring[0])) > 80 or abs(int(marker[1]) - int(ring[1])) > 80:
         return None
     height, width = image.shape[:2]
     x, y = int(marker[0]), int(marker[1])
