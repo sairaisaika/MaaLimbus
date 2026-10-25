@@ -60,7 +60,8 @@ from .grace_vision import available_starlight, cost_of, plan_purchases, plus_poi
 from .jobs import bounded_limit, call_with_a_deadline, dispatch, screencap, wait_job, wait_task
 from .map_progress import MapProgress
 from . import map_vision
-from .map_vision import (NODE_BADGE_TEMPLATE, adjacent_to, cyan_step_boxes, map_clicks, map_header,
+from .map_vision import (
+    edge_target,NODE_BADGE_TEMPLATE, adjacent_to, cyan_step_boxes, map_clicks, map_header,
                          party_point, gold_marks, movement_between)
 from .overlay_vision import carousel_dots, page_turn_arrows
 from .reward_vision import (GIFT_COUNTER_BAND, INITIAL_COUNTER_BAND, counter_state,
@@ -2005,7 +2006,18 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     kinds = record['map_candidate_kinds']
     bosses = [box for box in walkable if kinds.get(box_key(box)) == 'boss_node']
     rest = [box for box in walkable if box not in bosses]
+    # The drawn edge names the step the page will accept (D277): the lit segment leaving
+    # the party is the game's own statement about which node is reachable, and it is the
+    # one adjacency signal that does not depend on the zoom -- `pitch_of` answers None on
+    # both retained fixtures, so the distance band kept a two-step box on the 192 px zoom
+    # while the same 385 px is one step on the 384 px zoom.
+    edge = edge_target(image, party, rest or walkable)
+    if edge is not None:
+        record['map_edge_target'] = [int(v) for v in edge[:4]]
     ordered = order_candidates(adjacent_to(party, rest), kinds) + bosses
+    if edge is not None:
+        front = [int(v) for v in edge[:4]]
+        ordered = [box for box in ordered if [int(v) for v in box[:4]] == front] +                   [box for box in ordered if [int(v) for v in box[:4]] != front]
     # The floor's last node is a red room far outside one pitch, so the band above
     # cannot keep it: measured 2026-10-25 on
     # `evidence/runtime/packaged-mirror-20261025-040555/frame-0004.png`, party (482,347),
