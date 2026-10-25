@@ -27,8 +27,9 @@ def test_a_missing_frame_is_reported_instead_of_raised():
     assert str(probe['reason']).startswith('probe_failed')
 
 
-def test_the_loop_writes_the_probe_next_to_the_gap():
+def test_the_probe_result_is_written_where_it_is_used():
+    """D287 replaced "write the probe" with "use the probe", so the event moved too."""
     source = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
+    assert "note('map_party_from_probe'" in source
     assert "note('map_party_unread'" in source
-    assert "note('map_party_probe', **probe)" in source
-    assert source.index("note('map_party_unread'") < source.index("note('map_party_probe'")
+    assert source.index('probe = party_probe(directory, record)')         < source.index('frame, candidates = candidates_of(directory, record')

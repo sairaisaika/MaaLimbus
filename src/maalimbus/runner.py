@@ -3489,8 +3489,23 @@ class MirrorRunner:
         if (cached and floor is not None and self.state.get('map_party_floor') == floor
                 and now - float(cached.get('at', 0.0)) <= MAP_PARTY_CACHE_SECONDS):
             fallback = tuple(cached['point'])
+        # A party the agent could not read is not the same fact as a frame with no
+        # party: the loop's own process can read the very frame the agent wrote
+        # (`packaged-mirror-20261025-083716`: probe read (1012,595) while the field was
+        # null), and an empty candidate list then stops the run for the wrong reason.
+        # So the field is a first reading and this is a second; both must fail before
+        # the frame is treated as unreadable (D287).
+        from_probe = False
+        if record.get('map_party') is None:
+            probe = party_probe(directory, record)
+            if probe and probe.get('read'):
+                record['map_party'] = tuple(probe['point'])
+                from_probe = True
+                self.note('map_party_from_probe', point=list(probe['point']),
+                          size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record, fallback_party=fallback)
-        self.note('map_party_anchor', source=party_anchor_source(record),
+        self.note('map_party_anchor',
+                  source='probe' if from_probe else party_anchor_source(record),
                   party=record.get('map_party'), candidates=len(candidates or ()))
         gap = party_anchor_gap(record.get('map_party'), candidates)
         if gap:
@@ -3500,12 +3515,7 @@ class MirrorRunner:
             self.note('map_party_unread', page=page, scene=record.get('scene'),
                       source=party_anchor_source(record), cached=fallback is not None,
                       candidates=len(candidates or ()), reason=gap)
-            # Same frame, same repository code, read here: if this succeeds while the
-            # agent's own field is null, the agent is running an older copy of the
-            # package -- and that is a release question, not a recognition one (D286).
-            probe = party_probe(directory, record)
-            if probe is not None:
-                self.note('map_party_probe', **probe)
+
         if record.get('map_party_from_cache'):
             self.note('map_party_from_cache', floor=floor,
                       age_s=round(now - float(cached.get('at', now)), 1))
