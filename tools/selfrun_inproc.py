@@ -115,6 +115,11 @@ def main():
                                                       journal=journal, directory=directory),
                                       directory)
         settings = runner.settings({'steps': args.steps, 'observe_only': bool(args.observe_only),
+                                    # The agent's own default (recognition.py LOOP_DEFAULTS):
+                                    # without a run store the five transaction ledgers are
+                                    # created as None and the loop stops at the first
+                                    # PRE_BATTLE_TEAM page (four runs of 2026-10-25, 4 s each).
+                                    'run_store': str(ROOT / 'config' / 'user-run-ledger.json'),
                                     'address': args.address})
         journal.record('mirror_loop_start', directory=str(directory), budget=budget,
                        deadline=deadline, in_process=True, steps=args.steps,
