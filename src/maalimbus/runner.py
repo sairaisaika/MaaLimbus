@@ -3360,6 +3360,21 @@ class MirrorRunner:
                 # interval while the transition path retired after 1-9 polls, so
                 # the same animation was being paid for twice.
                 in_battle = str(state.get('last_named_page') or '').startswith('BATTLE')
+                # D216: a battle is not a page name, it is a screen that prints its
+                # own controls.  Measured on `packaged-mirror-20261025-015256`: after
+                # the fight the screen kept failing to classify while the name still
+                # said BATTLE_HUD, so the clock below counted twelve rounds of a
+                # page that was no longer a battle and ended the run with
+                # `the_battle_stayed_unreadable`.  A frame that carries none of the
+                # board's captions (`MAX`, `Win Rate`, `Damage`) is not a battle, so
+                # it is handed to the ordinary unknown budget instead.
+                captions = {str(item.get('text') or '').strip().lower()
+                            for item in (record.get('ocr') or []) if isinstance(item, dict)}
+                if in_battle and not captions & {'max', 'win', 'rate', 'damage'}:
+                    in_battle = False
+                    state.pop('battle_unknown_since', None)
+                    self.note('battle_frame_without_its_controls', page=page,
+                              after=state.get('last_named_page'))
                 if in_battle and not state.get('battle_unreadable_noted'):
                     state['battle_unreadable_noted'] = True
                     self.note('battle_frame_unreadable', page=page,
