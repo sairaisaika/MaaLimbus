@@ -1837,7 +1837,7 @@ def rank_by_distance(boxes, party):
     return sorted(boxes, key=_gap)
 
 
-def candidates_of(directory, record):
+def candidates_of(directory, record, *, header_only=False):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
     Which nodes the run may step to depends on the paths drawn under the dots, and
@@ -1848,7 +1848,7 @@ def candidates_of(directory, record):
     game uses to mark the step it will accept, then the crescent-badge nodes away from
     the player.
     """
-    if record['scene'] != 'MAP':
+    if record['scene'] != 'MAP' and not header_only:
         return None, None
     image, name = latest_frame(directory)
     if image is None:
@@ -3261,7 +3261,14 @@ class MirrorRunner:
                 # `candidates_of` refuses an unnamed scene, and the party is often what
                 # could not be read here, so the ranked boxes come from the frame alone.
                 try:
-                    boxes = blind_map_boxes(self.directory, record)
+                    # The floor header was read, so this *is* a map: its nodes are
+                    # readable even though the pack line -- the page's identity -- is
+                    # not, and walking needs the nodes, not the identity (operator,
+                    # m17003: "你要走进boss房和卡包有什么关系").  The ranked list is
+                    # the same one a named map uses, so the boss room and the cyan
+                    # step are offered instead of three blind boxes.
+                    _, ranked = candidates_of(self.directory, record, header_only=True)
+                    boxes = list(ranked or ()) or blind_map_boxes(self.directory, record)
                 except (OSError, ValueError, RuntimeError):
                     boxes = []
             if boxes:

@@ -79,3 +79,29 @@ def test_the_room_is_found_at_any_zoom():
         box = found[0][0]
         for got, want in zip(box, base_box):
             assert abs(got - want * scale) <= max(4.0, 0.03 * want * scale), (scale, box)
+
+
+@pytest.mark.skipif(not BOSS_FRAME.exists(), reason="retained frame is not in this checkout")
+def test_a_header_only_map_offers_the_room_the_band_would_drop(tmp_path):
+    """Walking needs the nodes, not the page's identity (operator, m17003).
+
+    The pack line is what `map_header` refuses to do without; the floor header was read,
+    so the page is a map and its nodes -- the boss room included -- are readable.
+    """
+    import shutil
+
+    shutil.copy(BOSS_FRAME, tmp_path / "frame-0001.png")
+    record = {"scene": "UNKNOWN", "size": [1920, 1080], "ocr": []}
+    original = runner.party_point
+    runner.party_point = lambda image: (482, 347)
+    try:
+        unnamed = runner.candidates_of(tmp_path, dict(record))
+        named = runner.candidates_of(tmp_path, dict(record, scene="MAP"))
+        header_only = runner.candidates_of(tmp_path, dict(record), header_only=True)
+    finally:
+        runner.party_point = original
+    assert unnamed == (None, None), "an unnamed frame still refuses the walk by default"
+    assert [list(box) for box in header_only[1]] == [list(box) for box in named[1]]
+    assert [1026, 306, 324, 248] in [list(box) for box in header_only[1]]
+    dropped = map_vision.adjacent_to((482, 347), [[1026, 306, 324, 248]])
+    assert [list(box) for box in dropped] == [], "the band really would have dropped it"
