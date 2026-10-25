@@ -76,7 +76,11 @@ def test_a_transition_is_paced_faster_than_a_page_wait(tmp_path, monkeypatch):
 def test_the_wait_it_notes_says_which_interval_it_used(tmp_path, monkeypatch):
     _loop, _sleeps, _result = _run(tmp_path, monkeypatch)
     rows = _waits(tmp_path)
-    assert rows and all(row['interval_s'] == 1.0 for row in rows)
+    # D162: the row reports the pace this round actually took, so the backoff is
+    # visible in the journal instead of a flat configured value.
+    assert rows
+    assert rows[0]['interval_s'] >= 1.0
+    assert [row['interval_s'] for row in rows] == sorted(row['interval_s'] for row in rows)
 
 
 def test_the_transition_ends_by_its_clock_not_by_its_rounds(tmp_path, monkeypatch):

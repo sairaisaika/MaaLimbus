@@ -3256,9 +3256,13 @@ class MirrorRunner:
                     state.setdefault('transition_since', time.monotonic())
                     waited = time.monotonic() - float(state['transition_since'])
                     if waited < float(settings.transition_seconds):
+                        # The pace this round actually takes, so the journal stops
+                        # claiming a flat 1.0 s while the backoff ramps (D162).
+                        pace = transition_pause(settings.transition_interval,
+                                                state['transition_seen'])
                         self.note('window_transition_wait', page=page,
                                   round=state['transition_seen'],
-                                  interval_s=settings.transition_interval,
+                                  interval_s=round(pace, 2),
                                   after=state.get('last_named_page'),
                                   battle=in_battle,
                                   waited=round(waited, 1), input_sent=False)
