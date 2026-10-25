@@ -6123,3 +6123,26 @@ Next unit: give `map_header` an explicit `pack_name=None` parameter (or an
 in as a fake high-score OCR row -- then re-verify with
 `tools/verify_map_observe_replay.py --map-frame evidence/runtime/packaged-mirror-20261025-044012/frame-0005.png`
 expecting `scene MAP, pack 'Sunk Gloom'`, and with the panel frame still `NODE_PANEL`.
+
+## DSH continuation: the device is running at 1280x720, and the faint line reads worse there (2026-10-25)
+
+Round 250 verified D242 live: `evidence/runtime/packaged-mirror-20261025-045045` (300 s, 142
+events, 31 `map_observed`, **all UNKNOWN**, 0 map clicks, ended
+`page_unreadable_after_waiting`) -- so the promotion that works on the archived fixture did
+not fire on the device.
+
+Round 251 isolated why, with the replay tool on a *live* frame
+(`...-045045/frame-0009.png`): the run's frames are **1280x720**, not 1920x1080.  The
+faint-band read on that frame returns `'6loom'` at 0.604 where the archived 1920x1080 frame
+returned `'SunkClom'` at 0.551; space-and-case proximity against the catalogue scores
+`'6loom'` below the .82 cutoff, so the identity never resolves and the page stays UNKNOWN.
+The archived fixture that produced `MAP` was 1920x1080, so D242's evidence holds only at
+that resolution.
+
+Two consequences for the next unit:
+1. the pack band ROI must be expressed in **frame-relative terms** and the resolution must
+   accept the 720p spelling (`'6loom'` is the same caption with the first four glyphs lost),
+   i.e. resolution cannot rely on whole-word proximity alone;
+2. `evidence/runtime` now holds both 1280x720 and 1920x1080 frames, so any pixel constant
+   taken from one is wrong for the other -- the device size belongs on the observation row
+   so a future reader can tell which space a box is in.
