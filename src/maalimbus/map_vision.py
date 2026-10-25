@@ -1972,3 +1972,47 @@ def party_point(image):
     swapped = cv2.cvtColor(image, cv2.COLOR_RGB2BGR if image.shape[2] == 3
                            else cv2.COLOR_RGBA2BGR)
     return _bgr_party_point(swapped)
+
+def selection_bracket(image):
+    """The bracket the game draws around the step it has selected (D205).
+
+    Calibrated on the operator's own screenshot of 2026-10-25 (scaled to 1920x1080): two
+    thin saturated warm-orange bars, 18x50 and 18x52, 57 px apart, tops 6 px apart, in the
+    map band.  Bands below are fractions of the picture's height so the same numbers hold
+    at 963x532 and at 1920x1080 -- the device reports 1280x720 while the archive is
+    1920x1080, so a fixed pixel band would be wrong on one of them.
+
+    Returns (x, y, w, h) around the pair, or None.  One bar is not a selection: the map also
+    draws orange capsules, numbers and the two slot pips, and a one-sided "selection" is
+    exactly how a click ends up on empty floor.
+    """
+    import cv2
+
+    height, width = image.shape[:2]
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (5, 170, 180), (32, 255, 255))
+    count, _labels, stats, _centres = cv2.connectedComponentsWithStats(mask, 8)
+    bars = []
+    for x, y, w, h, area in stats[1:]:
+        if not (0.30 * height < y < 0.72 * height):
+            continue
+        if area < 0.00018 * width * height:
+            continue
+        if not (0.007 * height <= w <= 0.028 * height):
+            continue
+        if not (0.036 * height <= h <= 0.075 * height):
+            continue
+        bars.append((int(x), int(y), int(w), int(h)))
+    bars.sort()
+    for left, right in zip(bars, bars[1:]):
+        gap = right[0] - (left[0] + left[2])
+        if not (0.040 * height <= gap <= 0.075 * height):
+            continue
+        if abs(left[1] - right[1]) > 0.014 * height:
+            continue
+        x = left[0]
+        y = min(left[1], right[1])
+        w = right[0] + right[2] - x
+        h = max(left[1] + left[3], right[1] + right[3]) - y
+        return (int(x), int(y), int(w), int(h))
+    return None
