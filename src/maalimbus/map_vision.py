@@ -1248,6 +1248,46 @@ def _with_bosses(image, clicks):
     return clicks
 
 
+def relaxed_nodes(image, *, band=(.18, .78), node_side=190, min_side=12, area_floor=60,
+                  max_area=4000):
+    """Nodes on a page whose ornaments sit below every tuned cut (D257).
+
+    Measured 2026-10-25 on one zoomed-out page: 7 ornaments at grey>=60, 1 at >=90 and
+    none at the tuned >=175, so a page the tuned read cannot see at all is re-read with a
+    cut taken from its own picture.  These are last-resort points: the caller offers them
+    after every proven kind, so a loose read cannot displace a gold badge, a cyan step, a
+    path node or the boss room.
+    """
+    import cv2
+    if image is None:
+        return []
+    height, width = image.shape[:2]
+    gray = image.max(axis=2)
+    band_gray = gray[round(band[0] * height):round(band[1] * height)]
+    if not band_gray.size:
+        return []
+    lit, _ = cv2.threshold(band_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    cut = max(60, int(lit * .55))
+    mask = (gray >= cut).astype('uint8')
+    mask[:round(band[0] * height)] = 0
+    mask[round(band[1] * height):] = 0
+    count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+    out = []
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if (not (area_floor <= area <= max_area) or not (min_side <= box_w <= 95)
+                or not (min_side - 7 <= box_h <= 75)):
+            continue
+        if box_w < box_h * 0.8:
+            continue
+        cx, cy = int(centroids[index][0]), int(centroids[index][1]) + ORNAMENT_LIFT
+        half = node_side // 2
+        nx = min(max(0, cx - half), width - node_side)
+        ny = min(max(0, cy - half), height - node_side)
+        out.append(NodeMarker((int(x), int(y), int(box_w), int(box_h)), (nx, ny, node_side, node_side)))
+    return out
+
+
 def map_clicks(image, *, template=None, node_side=190, player=None):
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
@@ -1553,6 +1593,13 @@ def map_clicks(image, *, template=None, node_side=190, player=None):
     clicks = ([c for c in clicks if c['kind'] == 'path_node']
               + marks
               + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
+    # A page nothing above could read is offered its dim ornaments here (D257): a loose
+    # read only fills gaps, and it is offered before the boss room (which is a destination
+    # the player may not yet be next to) but after every proven kind.
+    if len(clicks) < 3:
+        for marker in relaxed_nodes(image, node_side=node_side):
+            add((marker.node[0] + marker.node[2] // 2,
+                 marker.node[1] + marker.node[3] // 2), 'relaxed_node', CLICK_SIDE)
     return _with_bosses(image, clicks)
 
 

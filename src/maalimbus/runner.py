@@ -1709,6 +1709,7 @@ def overlaps(box, other):
 # still leads, but a ring or a lattice tile has never once moved the party and may not be
 # spent while anything else is on offer.
 CLICK_KIND_ORDER = ('lit_icon', 'bright_lit_icon', 'gold_badge_node', 'lit_node',
+                    'relaxed_node',
                     'badge_mark', 'neutral_outline_candidate', 'node_away_from_player',
                     'lit_ring', 'lattice_step')
 # Kinds with no accepted click in the whole archive.  They stay in the ranking (an
