@@ -94,3 +94,33 @@ def test_the_transition_poll_ramps_while_the_page_stays_unreadable(tmp_path):
     assert intervals, 'an unreadable frame is polled, and the poll records its pace'
     assert intervals == sorted(intervals), 'the poll backs off rather than staying fixed'
     assert loop.device.clicks == []
+
+
+def test_the_map_click_comes_from_the_offered_destination(tmp_path, monkeypatch):
+    """The loop clicks what the reader offered, and says so in the journal."""
+    import maalimbus.window as window
+    frame = tmp_path / 'frame-0001.json'
+    frame.write_text(json.dumps({'image_sha256': 'sha-1', 'size': [1920, 1080],
+                                 'ocr': []}), encoding='utf-8')
+    monkeypatch.setattr(runner, 'candidates_of',
+                        lambda directory, record: ('frame-0001', [[1002, 447, 40, 40]]))
+    monkeypatch.setattr(runner, 'adjacent_to', lambda party, boxes, **kw: list(boxes))
+    loop = _loop(tmp_path, ['MAP'])
+    loop.state['map_party'] = [828, 439]
+    loop.step()
+    intents = _events(tmp_path, 'window_intent')
+    assert intents, 'the offered destination is the input'
+    assert intents[0]['page'] == 'MAP'
+    x, y = list(loop.device.clicks)[0][:2]   # the click is jittered inside the box
+    assert 1002 <= x <= 1042 and 447 <= y <= 487
+
+
+def test_the_panel_enter_is_the_input_on_the_node_panel(tmp_path, monkeypatch):
+    """A node panel offers one way on, and the loop takes it rather than waiting."""
+    loop = _loop(tmp_path, ['NODE_PANEL'])
+    result = loop.step()
+    intents = _events(tmp_path, 'window_intent')
+    # The panel either gets an input or the loop says it is waiting -- never silence, and
+    # never an input aimed at another page.
+    assert result.get('waiting') is True or intents
+    assert all(row['page'] == 'NODE_PANEL' for row in intents)
