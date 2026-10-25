@@ -6027,3 +6027,13 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 **结论。** 误停消失，运行把 420 秒预算花在推进上（到第 4 层），而不是花在一条只存在于仓库里的修复上。
 
 **下一处。** 420 秒还没到第 5 层：需要看第 4 层内部的分块（D122 的尺子）在哪一段最慢。
+
+## DSH continuation: 演出是活的、冻结是死的（2026-10-25）
+
+`packaged-mirror-20261025-021640`（240 秒，自跑）实测 D217–D220 三件事一起生效：
+
+- 5 次 `battle_cutscene_frame`、18 次 `window_transition_wait`，**0** 次冻结记录；
+- 页面序列走过 `BATTLE_HUD 7 → BATTLE_RESULT 4 → LOADING 1 → MAP 40`，即**打完了并回到地图**；
+- 结束原因是自己的预算收尾 `the_budget_could_not_pay_for_another_step`，**不再**是 `the_battle_animation_never_returned_to_the_board`。
+
+同一战斗在 D217 之前的表现是 30 秒判死，D217/D218/D219/D220 之后能跑完整场。诚实边界：`battle_turn_advanced` 本轮为 0（这段战斗主要在演出与结算），所以不能据此声称回合吞吐提高。
