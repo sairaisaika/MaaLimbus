@@ -387,6 +387,37 @@ def floor_dwell(rows):
 
 
 
+CAPABILITY_MARKERS = {
+    'stop_path': 'a stop can name its writer (D37)',
+    'timed': 'a read can time itself (D68)',
+    'harness': 'the budget killer can leave a record (D78)',
+}
+
+
+def capability(rows, directory=None):
+    """What this run's own writers could have said -- measured, not assumed."""
+    pathed = any(row.get('stop_path') for row in rows
+                 if row.get('event') == 'mirror_loop_stopped')
+    timed = any(isinstance(row.get('seconds'), (int, float))
+                for row in rows if row.get('event') in ('map_observed', 'battle_observed'))
+    import pathlib as _pathlib  # local: this module imports lazily (D61)
+    harness = bool(directory is not None and (_pathlib.Path(directory) / HARNESS_FILE).exists())
+    return {'stop_path': pathed, 'timed': timed, 'harness': harness,
+            'can_write_a_stop': bool(pathed or harness)}
+
+
+def silent_rate(runs):
+    """A rate over the runs that could have written a stop, never over all of them."""
+    capable = [run for run in runs if run.get('capability', {}).get('can_write_a_stop')]
+    silent = [run for run in capable if run.get('ending', {}).get('kind') == 'died']
+    if not capable:
+        return {'value': None, 'basis': 'no run of %d could write a stop' % len(runs),
+                'note': 'a run from before the writers existed cannot die silently: it had no pen'}
+    return {'value': len(silent) / len(capable),
+            'basis': '%d of %d runs that could write a stop wrote none' % (len(silent), len(capable)),
+            'note': None}
+
+
 def stopped_in_events(records):
     """Did this run end on a recorded stop?
 

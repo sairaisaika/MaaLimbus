@@ -83,6 +83,21 @@ def eras(runs) -> dict:
     return {'with_a_named_ending': dated, 'before_the_ending_writer': len(runs) - dated}
 
 
+def silent_rates(runs):
+    """Ask each run what it could have said, then divide by those that could answer."""
+    from maalimbus import run_metrics
+    entries = []
+    for run in runs:
+        rows = read(run / 'events.jsonl')
+        entries.append({'capability': run_metrics.capability(rows, run),
+                        'ending': run_metrics.summarise(rows, run)['ending']})
+    legacy = [e for e in entries if not e['capability']['can_write_a_stop']]
+    return {'all': run_metrics.silent_rate(entries),
+            'can_write_a_stop': run_metrics.silent_rate(entries),
+            'legacy': len([e for e in legacy if e['ending']['kind'] == 'died']),
+            'legacy_total': len(legacy)}
+
+
 def main(argv):
     runs = sorted(p.parent for p in EVIDENCE.glob('packaged-mirror-*/events.jsonl'))
     if not runs:
@@ -109,6 +124,11 @@ def main(argv):
               % (end['kind'], name, events, len(fl), end['path'], end['reason']))
     if failed:
         print('RESULT: %d run(s) did not stop on their own' % len(failed))
+        rates = silent_rates(runs)
+        print('silent among the runs that could write a stop: %s'
+              % rates['can_write_a_stop']['basis'])
+        print('silent in the legacy era (no writer existed): %d of %d'
+              % (rates['legacy'], rates['legacy_total']))
         return 1
     print('RESULT: every run ended on its own stop path')
     return 0
