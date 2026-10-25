@@ -1912,7 +1912,14 @@ def candidates_of(directory, record, *, header_only=False):
     # moved the party.  An empty list is a verdict: the window nudges the view instead.
     boss_boxes = [list(item['box']) for item in clicks if item.get('kind') == 'boss_node']
     walkable = [box for box in boxes if list(box) not in boss_boxes]
-    ordered = order_candidates(adjacent_to(party, walkable), record['map_candidate_kinds'])
+    # The room that ends the floor is drawn beside the last node, not on the ring the
+    # player can already reach: the band filter is right for ordinary nodes and wrong for
+    # it (measured 2026-10-25: boss centre 711 px from the player against far=430), so the
+    # boss keeps its place after the ordered walk rather than being dropped with the rest.
+    kinds = record['map_candidate_kinds']
+    bosses = [box for box in walkable if kinds.get(box_key(box)) == 'boss_node']
+    rest = [box for box in walkable if box not in bosses]
+    ordered = order_candidates(adjacent_to(party, rest), kinds) + bosses
     # The floor's last node is a red room far outside one pitch, so the band above
     # cannot keep it: measured 2026-10-25 on
     # `evidence/runtime/packaged-mirror-20261025-040555/frame-0004.png`, party (482,347),
