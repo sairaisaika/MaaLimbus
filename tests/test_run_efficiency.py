@@ -248,7 +248,8 @@ def test_the_two_measurement_tools_count_the_same_archive_the_same_way():
     assert counts['no_events'] == len(corpus) - measurable
     measure = report['measures']['no_progress_stop_rate']
     expected = f'{counts["died"]} died + {counts["error"]} errored of {len(corpus)}'
-    assert measure['basis'] == expected, (measure['basis'], expected)
+    # D176 publishes the eras in the same basis, so the comparison is a prefix, not equality.
+    assert measure['basis'].startswith(expected), (measure['basis'], expected)
 
 
 # --- D80: a rate over runs nobody gave time to clear is a statement about the budget -----
@@ -336,3 +337,12 @@ def test_a_corpus_that_named_no_floor_does_not_claim_a_dwell():
 
 def test_the_dwell_has_a_name_in_the_measure_list():
     assert 'floor_dwell' in run_metrics.MEASURES
+
+
+def test_the_death_rate_publishes_how_many_runs_could_name_their_ending():
+    dead = run_metrics.efficiency([_row('map_observed', _stamp(1))])
+    dead['ending'] = {'kind': 'died', 'path': 'process_died', 'reason': None}
+    named = run_metrics.efficiency([_row('map_observed', _stamp(1))])
+    named['ending'] = {'kind': 'stop', 'path': 'agent_loop', 'reason': 'x'}
+    basis = run_metrics.metrics([dead, named])['no_progress_stop_rate']['basis']
+    assert '1 died' in basis and 'of 2' in basis and '1 of 2 could name' in basis

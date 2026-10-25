@@ -658,6 +658,9 @@ def metrics(runs):
                  if run['unconfirmed_purchases'] is not None]
     died = sum(1 for run in runs if run['ending']['kind'] == 'died')
     errored = sum(1 for run in runs if run['ending']['kind'] == 'error')
+    # How many runs could name their ending at all: `stop_path` only exists since D37, and a
+    # run that wrote nothing is indistinguishable from one that could not write (D176).
+    able = sum(1 for run in runs if (run['ending'].get('path') or '') not in ('', 'process_died'))
     explored = sum(1 for run in runs if run['explored'])
     capped = sum(1 for run in runs if run.get('budget_ended'))
     walked = [run['reached_floor'] for run in runs if run.get('reached_floor')]
@@ -736,8 +739,14 @@ def metrics(runs):
             'basis': f'{advanced} of {recoveries} recoveries advanced the run',
             'note': None if recoveries else 'no recovery was recorded, so there is no rate'},
         'no_progress_stop_rate': {
+            # The corpus mixes two eras: `stop_path` exists since D37, so a run recorded
+            # before it wrote an `unrecorded` stop while a modern one would have named the
+            # path.  The rate stays over every run (a death is a death) and the eras are
+            # published beside it, because the split is what says whether the number
+            # describes the loop or the instrument (D176).
             'value': round((died + errored) / total, 3) if total else None,
-            'basis': f'{died} died + {errored} errored of {total}',
+            'basis': (f'{died} died + {errored} errored of {total}; '
+                      f'{able} of {total} could name their ending'),
             'note': ('a run that ended without a stop record counts here; a run the '
                      'harness killed at its budget does not, because the caller ended it '
                      'and the loop never got to speak (D78)')},
