@@ -348,3 +348,17 @@ def test_the_death_rate_publishes_how_many_runs_could_name_their_ending():
     named['ending'] = {'kind': 'stop', 'path': 'agent_loop', 'reason': 'x'}
     basis = run_metrics.metrics([dead, named])['no_progress_stop_rate']['basis']
     assert '1 died' in basis and 'of 2' in basis and '1 of 2 could name' in basis
+
+
+def test_the_claim_walk_counts_as_a_payout():
+    # D251: the loop's reward claim happens between pages and leaves no other trace; a
+    # finished claim family writes `reward_claimed`, and that is a payout outcome.
+    rows = [_row('loop_heartbeat', _stamp(0)),
+            _row('reward_claimed', _stamp(5), steps=4, from_page='RUN_CLAIM',
+                     reason='the_claim_family_was_walked_to_its_end'),
+            _row('mirror_loop_stopped', _stamp(9), steps=3, stop_path='agent_loop')]
+    run = run_metrics.efficiency(rows)
+    assert run['payout']['claimed'] is True
+    assert run['payout']['events'] == 1
+    assert rows[1]['reason'] == 'the_claim_family_was_walked_to_its_end'
+    assert 'reward_claimed' in run_metrics.PAYOUT_EVENTS

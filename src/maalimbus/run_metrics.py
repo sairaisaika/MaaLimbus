@@ -610,7 +610,8 @@ TIMED_READ_EVENTS = ('map_observed', 'battle_observed')
 # can ask the other half instead of guessing at it.
 CLEAR_FLOORS = 5
 READS_PER_INPUT_FLOOR = 5
-PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_skipped')
+PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_skipped',
+                 'reward_claimed')  # D251: the loop's own claim walk (RUN_CLAIM family)
 
 MEASURES = (
     'clear_rate',
@@ -674,8 +675,10 @@ def efficiency(rows, directory=None):
     payouts = [row for row in rows if row.get('event') in PAYOUT_EVENTS]
     payout = None
     if payouts:
-        claimed = [row for row in payouts if row.get('event') == 'reward_task_executed'
-                   and row.get('passed') is not False]
+        claimed = [row for row in payouts
+                   if (row.get('event') == 'reward_task_executed'
+                       and row.get('passed') is not False)
+                   or row.get('event') == 'reward_claimed']
         payout = {'claimed': bool(claimed), 'events': len(payouts),
                   'reason': (claimed[-1].get('reason') if claimed
                              else (payouts[-1].get('reason') or payouts[-1].get('error')))}

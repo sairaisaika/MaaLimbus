@@ -3370,7 +3370,15 @@ class MirrorRunner:
         # `RUN_REWARD_DIALOG` frame read `[HARD] Floor1 6/6 ... Last Mirror Complete`
         # and the run ended `reward_module_cost_not_proven`, 0 clicks).  The claim
         # button is still anchored by the page's own plan (`run_reward_claim_not_anchored`).
-        if page in ('RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'):
+        # Only the enkephalin-module purchase screen is a cost gate.  The weekly-bonus
+        # question is answered by the ledger (window.plan_step: `bonus.spend` picks
+        # Confirm or Cancel and refuses by name when the control is not anchored), and
+        # the closing dialog prints no cost at all (D248).  Gating the bonus screen on a
+        # module cost stopped a cleared five-floor run at
+        # `reward_module_cost_not_proven` (evidence/runtime/packaged-mirror-20261025-053045:
+        # its frame reads "Spend your 'Weekly Bonuses, to claim the bonus rewards?" with
+        # `Confirm` [1110,718,116,40] and `Claim` [1680,859,86,42]).
+        if page == 'RUN_REWARD_CONFIRM':
             # These controls can commit module costs. A victory flag is not a
             # spending authorization; retain the cost screen for budget review.
             from .storage import read_json
@@ -5768,6 +5776,7 @@ class MirrorRunner:
         # the family resets this counter; staying in it is bounded by --claim-tries.
         if page in CLAIM_FAMILY:
             state['claim_steps'] += 1
+            state['claim_page'] = page
             if state['claim_steps'] > max(1, settings.claim_tries):
                 entry['passed'] = False
                 entry['stopped'] = 'claim_family_made_no_progress'
@@ -5776,6 +5785,15 @@ class MirrorRunner:
                 return self._result(page, plan.get('target'), True, entry['stopped'],
                                     done=True)
         else:
+            if state.get('claim_steps'):
+                # The family was entered and left: the claim walk finished.  This is the
+                # only place the loop can say a payout happened, because the reward is
+                # granted by the game between these pages and nothing else observes it
+                # (live `packaged-mirror-20261025-053423`: RUN_REWARD_BONUS -> RUN_CLAIM
+                # -> HOME with no reward row at all).
+                self.note('reward_claimed', steps=state['claim_steps'],
+                          from_page=state.get('claim_page'),
+                          reason='the_claim_family_was_walked_to_its_end')
             state['claim_steps'] = 0
         if page not in LOOP_GUARD_EXEMPT and plan.get('reason') not in LOOP_GUARD_EXEMPT_REASONS:
             key = (page, plan['action'], plan.get('node'),
