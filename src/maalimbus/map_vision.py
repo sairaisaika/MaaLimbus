@@ -2749,3 +2749,29 @@ def edge_target(image, party, boxes, *, reach=260.0, tube=0.28):
         if best_miss is None or gap < best_miss:
             best, best_miss = box, gap
     return best
+
+
+def line_lit(image, start, end, *, sample=160, skip=0.18, lit=90):
+    """Fraction of the segment between two points whose pixels are lit (a drawn edge).
+
+    Measured on `evidence/runtime/packaged-mirror-20261025-160619/frame-0005.png`:
+    the neighbour we actually clicked (1247,264) scored 0.00 while the two that share a drawn
+    line with the party scored 0.07 and 0.13 -- distance said "nearest", the line said
+    "unreachable".  The ends are skipped so the tile art is not counted as the line (D325).
+    """
+    import cv2
+    import numpy as np
+
+    grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    xs = np.linspace(start[0], end[0], sample)
+    ys = np.linspace(start[1], end[1], sample)
+    h, w = grey.shape[:2]
+    vals = []
+    for x, y in zip(xs, ys):
+        xi, yi = int(round(x)), int(round(y))
+        if 0 <= yi < h and 0 <= xi < w:
+            vals.append(int(grey[yi, xi]))
+    if not vals:
+        return 0.0
+    core = vals[int(len(vals) * skip):int(len(vals) * (1 - skip))] or vals
+    return round(sum(1 for value in core if value > lit) / float(len(core)), 3)

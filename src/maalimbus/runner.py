@@ -2327,6 +2327,17 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
                         and 150 <= max(abs(box[0] + box[2] / 2 - party[0]),
                                        abs(box[1] + box[3] / 2 - party[1])) <= 240]
             if one_step:
+                # A candidate with no drawn line to the party cannot be walked to: measured on
+                # `-160619/frame-0005`, the nearest box scored 0.00 while the other two scored
+                # 0.07 and 0.13, and both clicks on the nearest came back `rejected` (D325).
+                _lit = [(box, map_vision.line_lit(image, party,
+                                                  (box[0] + box[2] / 2, box[1] + box[3] / 2)))
+                        for box in one_step]
+                _lined = [box for box, score in _lit if score > 0.03]
+                record['map_step_line'] = {'scores': [[int(v) for v in box[:4]], score]
+                                           for box, score in _lit[:4]}
+                if _lined:
+                    one_step = _lined
                 nearest = min(one_step, key=lambda box:
                               (box[0] + box[2] / 2 - party[0]) ** 2
                               + (box[1] + box[3] / 2 - party[1]) ** 2)
