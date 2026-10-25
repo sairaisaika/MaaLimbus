@@ -2077,7 +2077,13 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     image, name = latest_frame(directory)
     if image is None:
         return None, None
-    clicks = map_clicks(image, template=node_badge_template())
+    party = party_point(image)
+    # The chevron the page draws is its own statement of which step it will accept,
+    # and every reading of it needs the party: this caller never passed it, so
+    # `chevron_target` was answered None for its whole life and the ranking fell back
+    # to distance (live `-135349`: nine clicks at a node the page never accepted, with
+    # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
+    clicks = map_clicks(image, template=node_badge_template(), player=party)
     chrome = header_chrome(record)
     if chrome:
         clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
@@ -2093,7 +2099,6 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # (evidence/runtime/packaged-mirror-20261022-085428: party (1052,562), targets from
     # (576,361) outward).  If the party cannot be read the list is left whole, because
     # an unread party must not leave the run with nothing to try.
-    party = party_point(image)
     if party is not None and not party_on_a_node(party, [item['box'] for item in clicks]):
         # Inside the board is not the same as on a node (D280): the live reading
         # (162, 430) passed every fraction gate and then emptied the candidate list.

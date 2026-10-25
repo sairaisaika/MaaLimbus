@@ -93,7 +93,7 @@ def test_candidates_of_keeps_the_kind_of_the_boxes_it_offers(tmp_path, monkeypat
     monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
-    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
+    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None, **kw: [
         {'box': [10, 10, 190, 190], 'kind': 'gold_badge_node'},
         {'box': [200, 200, 40, 40], 'kind': 'lit_icon'},
     ])
@@ -155,7 +155,7 @@ def test_the_marked_step_is_tried_before_a_badge_tile(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
-    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
+    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None, **kw: [
         {'box': [755, 238, 190, 190], 'kind': 'gold_badge_node'},
         {'box': [1002, 447, 40, 40], 'kind': 'lit_icon'},
         {'box': [545, 239, 190, 190], 'kind': 'gold_badge_node'},
@@ -178,7 +178,7 @@ def test_an_unknown_kind_is_kept_at_the_end_and_not_dropped(tmp_path, monkeypatc
     monkeypatch.setattr(runner, 'cyan_step_boxes', lambda image, party: [])
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((10, 10, 3), np.uint8),
                                                                   'frame-0001'))
-    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [
+    monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None, **kw: [
         {'box': [1, 1, 40, 40], 'kind': 'something_new'},
         {'box': [80, 80, 40, 40], 'kind': 'lit_node'},
     ])
