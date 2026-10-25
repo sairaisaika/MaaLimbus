@@ -14,13 +14,14 @@ needs.
     python tools/selfrun_mirror.py --attempts 200
 """
 from __future__ import annotations
-import argparse, json, subprocess, sys, time
+import argparse, json, os, subprocess, sys, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'src'))
 from maalimbus import run_record  # noqa: E402  (after the path is in place)
 LOG = ROOT / 'build' / 'selfrun-mirror.jsonl'
+ADDRESS = os.environ.get('MAALIMBUS_ADDRESS') or '127.0.0.1:16416'
 ADB = r'D:\\Program Files\\Netease\\MuMu\\nx_main\\adb.exe'
 
 # The loop's own budget is checked between steps, so its overshoot is one step long.
@@ -96,7 +97,34 @@ def run_bounded(command, *, cwd, timeout, kill=None, reap_seconds=REAP_SECONDS):
                 'killed': True, 'reaped': reaped}
 
 
-def attempt(index: int, seconds: int) -> dict:
+def attached(adb: str, address: str) -> list:
+    """The devices this machine offers, so a requested one can be checked, not assumed."""
+    done = subprocess.run([adb, 'devices'], capture_output=True, text=True, timeout=20)
+    names = []
+    for line in (done.stdout or '').splitlines()[1:]:
+        parts = line.split()
+        if len(parts) >= 2 and parts[1] == 'device':
+            names.append(parts[0])
+    return names
+
+
+def _covered_by_an_emulator(address: str, devices: list) -> bool:
+    """A host:port names the same device adb lists as ``emulator-<console port>``.
+
+    MuMu 12 answers on `127.0.0.1:5556` while adb lists it as `emulator-5556` (the console
+    port is the adb port minus one); the check exists to stop driving the *wrong* device,
+    not to insist on one spelling of the right one.
+    """
+    if ':' not in address:
+        return False
+    try:
+        port = int(address.rsplit(':', 1)[-1])
+    except ValueError:
+        return False
+    return any(name in devices for name in ('emulator-%d' % port, 'emulator-%d' % (port - 1)))
+
+
+def attempt(index: int, seconds: int, address: str = ADDRESS) -> dict:
     record = {'attempt': index, 'utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
               'seconds': seconds}
     started = time.time()
@@ -109,12 +137,24 @@ def attempt(index: int, seconds: int) -> dict:
     # A previous attempt that was killed can still own the controller: the 2026-10-24
     # 04:59 attempt left an agent behind and the next one wrote no event for 481 s.
     record['stale_agents'] = reap_stale_agents()
+    # Two devices were attached on 2026-10-25 and the framework picked the physical phone
+    # by itself: the run wrote zero events and looked like a crash.  The address is asked
+    # for, so it is checked before anything is driven (D168).
+    devices = attached(ADB, address)
+    record['address'] = address
+    record['attached'] = devices
+    if address not in devices and not _covered_by_an_emulator(address, devices):
+        record.update(exit=2, elapsed_s=round(time.time() - started, 1),
+                      stop='the_requested_device_is_not_attached',
+                      events=0, floors=[], reached_floor_5=False,
+                      note='attached: ' + (', '.join(devices) or 'none'))
+        return record
     # The budget is still enforced from outside, because a caller cannot take its own
     # wall clock away.  On overrun the whole process tree is killed (D94), and the kill
     # is recorded in the run's own directory (D78) so it cannot read as a death.
     finished = run_bounded([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
                             '--app', str(ROOT / 'dist' / 'MaaLimbus'),
-                            '--address', '127.0.0.1:16416',
+                            '--address', address,
                             '--adb', ADB,
                             '--authorize', nonce,
                             '--steps', '400', '--seconds', str(seconds)],
@@ -174,13 +214,15 @@ def attempt(index: int, seconds: int) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument('--address', default=ADDRESS,
+                        help='the adb serial or host:port the run must drive')
     parser.add_argument('--attempts', type=int, default=200)
     parser.add_argument('--seconds', type=int, default=1800,
                         help='wall clock per attempt before the driver gives up')
     args = parser.parse_args()
     consecutive_unproductive = 0
     for index in range(1, args.attempts + 1):
-        record = attempt(index, args.seconds)
+        record = attempt(index, args.seconds, args.address)
         with LOG.open('a', encoding='utf-8') as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + '\n')
         print(json.dumps(record, ensure_ascii=False))
