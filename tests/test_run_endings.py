@@ -244,3 +244,17 @@ def test_the_margin_is_wider_than_the_measured_overshoot():
     assert module.MARGIN_SECONDS > max(measured)
     source = (REPO / 'tools' / 'selfrun_mirror.py').read_text(encoding='utf-8')
     assert 'timeout=seconds + MARGIN_SECONDS' in source
+
+
+def test_the_census_says_which_runs_predate_the_ending_writer(tmp_path):
+    tool = _tool()
+    dated = tmp_path / 'packaged-mirror-a'
+    dated.mkdir()
+    (dated / 'events.jsonl').write_text('\n'.join([
+        '{"event":"mirror_loop_stopped","stop_path":"agent_loop","reason":"x"}']), encoding='utf-8')
+    old = tmp_path / 'packaged-mirror-b'
+    old.mkdir()
+    (old / 'events.jsonl').write_text('\n'.join([
+        '{"event":"mirror_loop_stopped","reason":"x"}']), encoding='utf-8')
+    split = tool.eras([dated, old])
+    assert split == {'with_a_named_ending': 1, 'before_the_ending_writer': 1}

@@ -66,6 +66,23 @@ def census(runs):
     return counts, paths, failed, floors
 
 
+def eras(runs) -> dict:
+    """How many runs predate the ending writer.
+
+    Measured 2026-10-25 over 257 runs: 57 wrote no ending at all, yet the six newest all do,
+    because `stop_path` only exists since the writer landed (D37, 2026-10-23).  A rate that
+    mixes the two eras describes the instrument, not the loop, so the split is printed next
+    to it instead of being averaged away.
+    """
+    dated = 0
+    for run in runs:
+        rows = read(run / 'events.jsonl')
+        if any(row.get('event') == 'mirror_loop_stopped' and row.get('stop_path')
+               for row in rows):
+            dated += 1
+    return {'with_a_named_ending': dated, 'before_the_ending_writer': len(runs) - dated}
+
+
 def main(argv):
     runs = sorted(p.parent for p in EVIDENCE.glob('packaged-mirror-*/events.jsonl'))
     if not runs:
@@ -78,6 +95,9 @@ def main(argv):
           % (total, counts['stop'], counts['error'], counts['died'], counts['budget'],
              counts['no_events']))
     print('runs_that_reached_a_floor: %d' % floors)
+    split = eras(runs)
+    print('named endings: %d  runs that predate the ending writer: %d'
+          % (split['with_a_named_ending'], split['before_the_ending_writer']))
     print('endings by path: %s' % dict(paths.most_common()))
     if total != len(runs):
         # Cannot happen by construction; checked anyway, because this number was wrong
