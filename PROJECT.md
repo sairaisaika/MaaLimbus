@@ -6059,7 +6059,7 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 
 1. `map_header` 的 fail-closed 是设计（`tests/test_map_vision.py::test_missing_floor_or_pack_line_fails_closed`）；
 2. 缺主题行的真地图在**文字与粗结构上都不可区分**（四次实测：楼层数字 / 右上计数器 / 格点计数 149 vs 115 / 遮挡面积 0 vs 0）；
-3. **现成可用**：`map_vision.header_only(records, size)` 能回答"头读到了,但主题行没读到"；
+3. **现成可用**：`map_vision.floor_label(records, size)`（`map_vision.py:1577`）返回楼层头本身、**不要求**主题行；`header_only` 这个名字不存在，别照抄；
 4. 失败实据：`evidence/runtime/packaged-mirror-20261025-022715/frame-0001.json` = `'Exploring Floor5' [60,127,338,49] 0.96`,无主题行,该次 420 秒 **0 点击**。
 
-要做的最小改动（不改判据）：`MirrorRunner.step` 的 `UNKNOWN` 分支里,把该帧 OCR 转成 `map_vision.Text` 调 `header_only`;非空即写事件 `map_header_without_a_pack_line`（带 floor / pack_present=false / page / frame）,再由既有阶梯处理。事件名必须同步进 `pages.REFUSALS` 或 `pages.STOP_KINDS`,否则 `audit_hold_gap` 会记成 hold 并让守卫变红。正例用上面那一帧,反例用任意无该头的 UNKNOWN 帧。
+3. **现成可用**：`map_vision.floor_label(records, size)`（`map_vision.py:1577`）返回楼层头本身、**不要求**主题行；`header_only` 这个名字不存在，别照抄；
