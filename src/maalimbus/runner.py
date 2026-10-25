@@ -1767,6 +1767,32 @@ def pending_target(state, plan, *, tries=3):
     return list(pending), True
 
 
+def blind_map_boxes(directory, record):
+    """Ranked click boxes for a page that looks like a map but was not named as one.
+
+    `candidates_of` refuses a scene that is not `MAP`, and the one screen this matters
+    on is the map whose theme pack the reader could not read: the header is there, the
+    destinations are drawn, and nothing is offered because the page has no name
+    (evidence/runtime/packaged-mirror-20261025-033318: 21 map reads, 0 offers, 0 clicks).
+    So this reader skips the name and the adjacency filter -- the party is often what
+    could not be read in the first place -- and keeps only the page's own chrome out.
+    The order is the reader's own kind rank, which is all the frame can say.
+    """
+    image, name = latest_frame(directory)
+    if image is None:
+        return []
+    clicks = map_clicks(image, template=node_badge_template())
+    chrome = header_chrome(record)
+    if chrome:
+        clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
+    clicks = [item for item in clicks if not overlaps(item['box'], MAP_PROGRESS_CONTROL)]
+    kinds = record.setdefault('map_candidate_kinds', {})
+    for item in clicks:
+        kinds.setdefault(box_key(item['box']), item.get('kind'))
+    clicks.sort(key=lambda item: _kind_rank(item.get('kind')))
+    return [list(item['box']) for item in clicks]
+
+
 def candidates_of(directory, record):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -3158,12 +3184,20 @@ class MirrorRunner:
         # panel is on screen and this run has not clicked a map yet, one click goes
         # out; the settle read judges it like any other, and the page stays UNKNOWN
         # (acting on a page is not identifying it -- `map_header` keeps failing closed).
-        if (candidates and not map_dispatch.is_map(page)
+        if (not map_dispatch.is_map(page)
                 and not self.state.get('map_acted_once')
                 and _header_was_read(record)):
             panel = _panel_on_screen(record)
-            if panel is None:
-                box = list(candidates[0])[:4]
+            boxes = list(candidates or ())
+            if panel is None and not boxes:
+                # `candidates_of` refuses an unnamed scene, and the party is often what
+                # could not be read here, so the ranked boxes come from the frame alone.
+                try:
+                    boxes = blind_map_boxes(self.directory, record)
+                except (OSError, ValueError, RuntimeError):
+                    boxes = []
+            if panel is None and boxes:
+                box = list(boxes[0])[:4]
                 point = [int(box[0] + box[2] / 2), int(box[1] + box[3] / 2)]
                 self.note('acted_on_a_map_without_a_pack_line', target=box, point=point,
                           frame=record.get('frame'))

@@ -100,6 +100,21 @@ def test_a_panel_on_screen_is_never_acted_on_as_a_map(tmp_path, monkeypatch):
     assert loop.device.clicks == []
 
 
+def test_a_map_whose_party_cannot_be_read_still_takes_one_step(tmp_path, monkeypatch):
+    """`candidates_of` refuses an unnamed scene, so the blind reader supplies the box."""
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: (None, None))
+    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record: [[100, 200, 40, 40]])
+    loop, _summary, _reads = _run(tmp_path, [_record()])
+    notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
+    assert len(notes) == 1 and notes[0]['point'] == [120, 220]
+    assert loop.device.clicks == [(120, 220)]
+
+
+def test_the_blind_reader_needs_a_frame(tmp_path):
+    record = _record()
+    assert runner.blind_map_boxes(tmp_path, record) == []
+
+
 def test_a_run_that_already_clicked_a_map_keeps_its_action_rights(tmp_path):
     """A header-only screen ends a run that never acted on a map, not one mid-floor."""
     loop, _result, _reads = _run(tmp_path, [_record()])
