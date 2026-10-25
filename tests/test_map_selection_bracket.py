@@ -20,7 +20,9 @@ def _wire(monkeypatch, boxes, bracket):
     monkeypatch.setattr(runner, 'latest_frame', lambda directory: (np.zeros((1080, 1920, 3), np.uint8), 'frame-0001.png'))
     monkeypatch.setattr(runner, 'map_clicks', lambda image, template=None: [{'box': list(b), 'kind': 'lit_icon'} for b in boxes])
     monkeypatch.setattr(runner, 'header_chrome', lambda record: None)
-    monkeypatch.setattr(runner, 'party_point', lambda image: (500, 500))
+    # D280: the party must read on a node before any candidate is offered; the fixtures
+    # below put nodes at (600,500) and (700,500), 40 px a side.
+    monkeypatch.setattr(runner, 'party_point', lambda image: (620, 520))
     monkeypatch.setattr(runner, 'adjacent_to', lambda party, boxes: [list(b) for b in boxes])
     monkeypatch.setattr(runner, 'order_candidates', lambda boxes, kinds: [list(b) for b in boxes])
     monkeypatch.setattr(runner.map_vision, 'selection_bracket', lambda image: bracket)
