@@ -3189,6 +3189,8 @@ class MirrorRunner:
             # say what it followed.  Only a name is stored; the unreadable page is the
             # absence of one, and asking which page it is belongs to the page vocabulary.
             state['last_named_page'] = page
+            state.pop('battle_cutscene', None)
+            state.pop('battle_cutscene_paused', None)
             state.pop('transition_since', None)
             if not page_vocabulary.is_battle(page):
                 # The battle's speed toggle is pressed once per fight; leaving the battle
@@ -3544,6 +3546,7 @@ class MirrorRunner:
                     state.pop('battle_unknown_since', None)
                     self.note('battle_cutscene_frame', page=page,
                               after=state.get('last_named_page'))
+                    self.state['battle_cutscene'] = True
                 # D218: a picture that does not change is not a phase.  Measured on
                 # `packaged-mirror-20261025-020815`: 17 caption-less frames over 92.9 s
                 # carried **one** distinct `image_sha256`, i.e. the emulator stopped
@@ -6052,6 +6055,17 @@ class MirrorRunner:
             return False
         if any(_is_transition_blocker(name) for name in blockers):
             return self._submit_transition_wait(blockers)
+        if self.state.get('battle_cutscene'):
+            # The game is animating a battle (D217 read the frame as a cutscene), so an
+            # unreadable page is not a deadlock -- the transaction is simply not on screen
+            # yet.  Counting these ended a healthy run after 14 clicks on
+            # `the_outcome_of_a_pending_transaction_is_unreadable`
+            # (evidence/runtime/packaged-mirror-20261025-054458).
+            if not self.state.get('battle_cutscene_paused'):
+                self.state['battle_cutscene_paused'] = True
+                self.note('pending_transaction_paused_for_a_battle_animation',
+                          blocked_by=blockers)
+            return False
         self.state.pop('submit_since',None)
         waited=int(self.state.get('transaction_waits',0))+1
         self.state['transaction_waits']=waited

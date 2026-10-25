@@ -160,7 +160,13 @@ def test_the_gate_does_not_grow_a_new_ending_of_its_own():
     start = source.index('def _pending_transaction_wait')
     body = source[start:source.index('def _submit_transition_wait')]
     assert 'unknown_blockers' in body
-    assert body.count('note(') == 1
+    # The rule is one *ending* per cause, not one diagnostic: D252's pause notice is the
+    # only other note and it returns without ending anything (a battle animation is
+    # evidence the game is alive).  The ending itself is still emitted exactly once.
+    assert body.count("note('pending_transaction_wait_exhausted'") == 1
+    assert body.count('note(') == 2
+    pause = body.index("note('pending_transaction_paused_for_a_battle_animation'")
+    assert body[pause:pause + 400].count('return False') >= 1
 
 
 def test_a_submitted_turn_is_bounded_by_the_clock_and_not_by_a_count():
@@ -228,3 +234,19 @@ def test_the_ending_that_belongs_to_a_transition_has_its_own_name():
     start = source.index('def _submit_transition_wait')
     body = source[start:source.index('def _explore_unknown')]
     assert '_end_session' not in body
+
+
+
+def test_a_battle_animation_is_not_a_pending_transaction_deadlock():
+    # D252: live `packaged-mirror-20261025-054458` sent 14 clicks, then sat on UNKNOWN
+    # frames that were battle cutscenes with a transaction open, and ended
+    # `the_outcome_of_a_pending_transaction_is_unreadable`.  A frame the reader named as an
+    # animation is evidence the game is alive, so the counter stands still.
+    loop = _loop()
+    loop.state['unknown_blockers'] = ['Grace_transaction.pending']
+    loop.state['battle_cutscene'] = True
+    for _ in range(6):
+        assert loop._pending_transaction_wait() is False
+    assert int(loop.state.get('transaction_waits', 0)) == 0
+    names = [row[0] for row in loop.notes]
+    assert names.count('pending_transaction_paused_for_a_battle_animation') == 1
