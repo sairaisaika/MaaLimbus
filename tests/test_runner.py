@@ -268,7 +268,7 @@ def test_the_runner_reaches_for_neither_the_framework_nor_the_agent():
 
 # D248: the closing dialog prints the floors and `Last Mirror Complete`, no module
 # cost (live `packaged-mirror-20261025-052807`), so only the cost screens stop.
-@pytest.mark.parametrize('page',['RUN_REWARD_CONFIRM','RUN_REWARD_BONUS'])
+@pytest.mark.parametrize('page',['RUN_REWARD_CONFIRM'])
 def test_paid_reward_controls_stop_with_missing_module_budget(tmp_path,monkeypatch,page):
     import maalimbus.runner as module
     runner,device=window(tmp_path,[CLAIM_FRAME],{'rounds':1})

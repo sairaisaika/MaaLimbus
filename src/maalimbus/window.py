@@ -672,25 +672,20 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='tutorial_overlay_must_be_dismissed_before_enter_is_live')
     if page == 'RUN_REWARD_BONUS':
-        # The second question the reward modal can ask: "Spend your 'Weekly Bonuses, to
-        # claim the / bonus rewards?" (live
-        # evidence/runtime/window-20261007-171228/frame-0003.json, what a run the weekly
-        # reset expired is left with). Only three weekly bonuses exist, and they are worth
-        # most on a run that finished its floors, so this page is answered by the ledger
-        # instead of by taste: a settled run that completed spends one, and a run that was
-        # given up (expired or abandoned) keeps them and cancels the question.
-        spend = bool((bonus or {}).get('spend'))
-        if spend:
-            box = controls.get('run_reward_bonus.confirm_button')
-            if box is None:
-                return _refuse(page, 'run_reward_bonus_confirm_not_anchored')
+        # The game asks this question only when a weekly bonus is there to spend
+        # (operator, 2026-10-25: the dialog appears only after the weekly reset hands a
+        # bonus back), so the anchored Confirm is the answer and the ledger only records
+        # it.  A page that shows the question without a Confirm control is refused by
+        # name instead of being cancelled silently.
+        box = controls.get('run_reward_bonus.confirm_button')
+        if box is not None:
             return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                         reason='a_completed_run_spends_one_weekly_bonus_on_its_rewards')
+                         reason='the_weekly_bonus_question_is_answered_while_it_is_asked')
         box = controls.get('run_reward_bonus.cancel_button')
         if box is None:
-            return _refuse(page, 'run_reward_bonus_cancel_not_anchored')
+            return _refuse(page, 'run_reward_bonus_confirm_not_anchored')
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
-                     reason='a_run_that_was_not_completed_keeps_the_weekly_bonus')
+                     reason='the_weekly_bonus_question_has_no_confirm_control_to_answer')
     if page == 'BATTLE_DEFEAT':
         # A wiped stage asks what happens to the run: live
         # evidence/runtime/window-20261007-044408/frame-0001.json reads the three rows
