@@ -82,6 +82,23 @@ def test_a_named_map_page_is_not_touched_by_this_rule(tmp_path):
     assert _events(tmp_path, 'map_header_without_a_pack_line') == []
 
 
+def test_a_map_with_no_pack_line_still_offers_a_click(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('MAP', [[100, 200, 40, 40]]))
+    loop, result, _reads = _run(tmp_path, [_record()])
+    notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
+    assert len(notes) == 1 and notes[0]['point'] == [120, 220]
+    assert loop.state['map_acted_once'] is True
+    assert loop.device.clicks == [[120, 220]]
+
+
+def test_a_panel_on_screen_is_never_acted_on_as_a_map(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('MAP', [[100, 200, 40, 40]]))
+    panel = {'text': 'Enter', 'box': [1800, 900, 90, 40], 'score': .98}
+    loop, _summary, _reads = _run(tmp_path, [_record(ocr=(HEADER, panel))])
+    assert _events(tmp_path, 'acted_on_a_map_without_a_pack_line') == []
+    assert loop.device.clicks == []
+
+
 def test_a_run_that_already_clicked_a_map_keeps_its_action_rights(tmp_path):
     """A header-only screen ends a run that never acted on a map, not one mid-floor."""
     loop, _result, _reads = _run(tmp_path, [_record()])

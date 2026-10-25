@@ -3152,6 +3152,25 @@ class MirrorRunner:
             self.note('map_candidates_empty',size=[int(frame.shape[1]),int(frame.shape[0])],
                       party=list(here) if here else None,
                       ocr=len(record.get('ocr') or []))
+        # D236: a map whose theme pack the reader could not read still offers
+        # destinations, and the only screen that fakes them is the node panel -- the
+        # page that prints `Enter`.  So when the header says what the page is, no
+        # panel is on screen and this run has not clicked a map yet, one click goes
+        # out; the settle read judges it like any other, and the page stays UNKNOWN
+        # (acting on a page is not identifying it -- `map_header` keeps failing closed).
+        if (candidates and not map_dispatch.is_map(page)
+                and not self.state.get('map_acted_once')
+                and _header_was_read(record)):
+            panel = _panel_on_screen(record)
+            if panel is None:
+                box = list(candidates[0])[:4]
+                point = [int(box[0] + box[2] / 2), int(box[1] + box[3] / 2)]
+                self.note('acted_on_a_map_without_a_pack_line', target=box, point=point,
+                          frame=record.get('frame'))
+                self.state['map_acted_once'] = True
+                self.state['map_pending'] = box
+                self.device.click(*point)
+                return self._result(page, point, True, None)
         # The participant screen (maalimbus/party_vision.py): a node opens it and
         # nothing leaves it until the party is full.  Read here, before the page
         # switch, so a frame the classifier has no name for is still answered --
@@ -6948,3 +6967,28 @@ def _build_id():
         except (OSError, ValueError):
             continue
     return None
+
+def _header_was_read(record):
+    """Does this frame print the floor header the map identity starts from?"""
+    from . import map_vision
+    from .vision import Text
+    try:
+        return map_vision.floor_label([Text(r.get('text', ''), tuple(r.get('box') or ()),
+                                            r.get('score', 0.0))
+                                       for r in record.get('ocr') or ()],
+                                      tuple(record.get('size') or (1920, 1080))) is not None
+    except (TypeError, ValueError):
+        return False
+
+
+def _panel_on_screen(record):
+    """Is the node panel (the one screen that also offers destinations) on screen?"""
+    from . import map_vision
+    from .vision import Text
+    try:
+        return map_vision.node_panel([Text(r.get('text', ''), tuple(r.get('box') or ()),
+                                           r.get('score', 0.0))
+                                      for r in record.get('ocr') or ()],
+                                     tuple(record.get('size') or (1920, 1080)))
+    except (TypeError, ValueError, AttributeError):
+        return None
