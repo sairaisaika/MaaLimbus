@@ -1383,14 +1383,22 @@ def map_clicks(image, *, template=None, node_side=None, player=None):
     for box in marker_boxes(image):
         x, y, box_w, box_h, area = box
         centre = (x + box_w // 2, y + box_h // 2)
-        if player and (centre[0] - player[0]) ** 2 + (centre[1] - player[1]) ** 2 <= 70 * 70:
-            continue
         fill = area / float(max(1, box_w * box_h))
         ratio = box_w / float(max(1, box_h))
+        # The player's own glow sits where the party stands, and a compact bright ring
+        # there is that glow, not a node.  A flat bar is not: the path chevron the game
+        # draws starts right beside the party's tile, so excluding everything within
+        # 70 px of the party also excluded the one mark that says which step the page
+        # will accept -- live `packaged-mirror-20261025-135349` emitted no `chevron_target`
+        # at all while the arrow stood one tile to the party's right.
+        near_player = bool(player) and (
+            (centre[0] - player[0]) ** 2 + (centre[1] - player[1]) ** 2) <= 70 * 70
         # A highlighted hexagon is a compact ring (live fill 0.12-0.21); the path glow
         # that shares this mask is a large sparse wash (fill 0.03) and the chevron is a
         # flat bar (ratio above 3), so neither can pass for the marked node.
         if box_w >= 90 and ratio <= 3.0 and fill >= 0.08:
+            if near_player:
+                continue
             highlighted.append(centre)
         elif ratio > 3.0:
             target = chevron_target(player, centre)
