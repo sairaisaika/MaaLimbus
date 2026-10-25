@@ -2212,11 +2212,27 @@ def party_readings(image):
     return {'pair': pair, 'marker': marker, 'ring': ring, 'chosen': chosen, 'why': why}
 
 
+def _on_the_board(point, image):
+    """A party reading outside the board band is chrome, not the train (D310).
+
+    Measured 2026-10-25: two different drags left the reading at y=221 on a 1080-high
+    frame while x jumped between 498 and 1458.  A moving object cannot keep its y through
+    two drags, so that reading is a HUD icon -- and every downstream decision was built on
+    it.
+    """
+    try:
+        height = float(image.shape[0])
+        y = float(point[1])
+    except Exception:
+        return True
+    return 0.25 * height <= y <= 0.88 * height
+
+
 def party_point(image):
     """`party_point` for either channel order; BGR first, RGB(A) as the fallback."""
 
     found = _bgr_party_point(image)
-    if found is not None:
+    if found is not None and _on_the_board(found, image):
         return found
     import cv2
     if image is None or getattr(image, 'ndim', 0) != 3 or image.shape[2] not in (3, 4):
