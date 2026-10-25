@@ -378,6 +378,10 @@ def test_the_budget_is_checked_between_steps(tmp_path, monkeypatch):
     clock = {'now': 0.0}
     monkeypatch.setattr(_time, 'monotonic', lambda: clock['now'])
     runner = MirrorRunner.__new__(MirrorRunner)
+    runner.store = None  # __new__ skips __init__, which sets it
+    runner.run_id = 'test-run'
+    runner.artifacts = {'steps': [], 'flow_steps': [], 'clicks_sent': 0,
+                        'verified_clear': False, 'flow': None}
     runner.deadline = 10.0
     runner.state = {'step': 0}
     runner._last_page = 'MAP'

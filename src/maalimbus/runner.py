@@ -3162,8 +3162,12 @@ class MirrorRunner:
         self.artifacts['event_heartbeat'] = time.monotonic()
         if fields.get('page'):
             self._last_page = fields['page']
-        if self.journal is not None:
-            self.journal.record(name, **fields)
+        # `note` is reachable from a runner built by `__new__` (fixtures, probes) and from
+        # a runner whose `__init__` has not finished, so the journal is read defensively:
+        # the event is the diagnostic, and losing it must never be the failure.
+        journal = getattr(self, 'journal', None)
+        if journal is not None:
+            journal.record(name, **fields)
         from .decision_log import lines as decision_lines,signature as decision_signature
         rendered=decision_lines(name,fields)
         if rendered:
