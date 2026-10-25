@@ -1688,9 +1688,30 @@ def map_clicks(image, *, template=None, node_side=None, player=None):
 
     marks = sorted((c for c in clicks if c['kind'] == 'gold_badge_node'),
                    key=lambda c: (-distant(c), -strength(c)))
-    clicks = ([c for c in clicks if c['kind'] == 'path_node']
-              + marks
-              + [c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')])
+    # The ranking is one explicit table (D300).  Two retained frames constrain it and they do
+    # not contradict each other once the levels are written down: `-050759` requires the gold
+    # mark ahead of every ring/icon guess while the walked path leads; `-175552` requires the
+    # ring first on a floor that has no gold mark at all, so the two rules only overlap where
+    # neither applies.  The chevron sits between them: the game draws it (so it beats a guess)
+    # but it names a direction, not a node that will open.
+    KIND_WEIGHT = {'path_node': 0, 'cyan_node': 0, 'highlighted_node': 0,
+                   'gold_badge_node': 1,
+                   'chevron_target': 2,
+                   'lit_ring': 3,
+                   'bright_lit_icon': 4, 'lit_icon': 4,
+                   'lit_node': 5,
+                   'neutral_outline_candidate': 6, 'relaxed_node': 6,
+                   'badge_mark': 7, 'lattice_step': 8}
+
+    def by_kind(click):
+        weighted = KIND_WEIGHT.get(click['kind'], 5)
+        if click['kind'] == 'gold_badge_node':
+            return (weighted, -distant(click), -strength(click))
+        return (weighted, 0, 0)
+
+    clicks = [c for c in clicks if c['kind'] == 'path_node'] + marks + [
+        c for c in clicks if c['kind'] not in ('path_node', 'gold_badge_node')]
+    clicks = sorted(clicks, key=by_kind)
     # A page nothing above could read is offered its dim ornaments here (D257): a loose
     # read only fills gaps, and it is offered before the boss room (which is a destination
     # the player may not yet be next to) but after every proven kind.
