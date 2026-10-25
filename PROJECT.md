@@ -6099,3 +6099,27 @@ Next unit: a dedicated faint-text pass -- one extra ROI OCR over the pack band
 (x .02-.32, y .11-.16) at `threshold=0.1`, feeding `map_header` only, with the existing
 size gate (>96 px wide or >=6 characters) keeping noise out.  Then re-run 300 s and expect
 the page to be named `MAP`, which is what unblocks the walk on this variant.
+
+## DSH continuation: the faint pack line resolves, the gate trusts only raw OCR (2026-10-25)
+
+Round 246 measured the faint read that round 245 could not place.  On
+`evidence/runtime/packaged-mirror-20261025-044012/frame-0005.png` a narrow read
+(`roi=[13,115,134,40]` in Maa's 1280x720 reference space, `threshold=.1`) returns
+`'SunkClom'` at **0.551** where the catalogue says `Sunk Gloom`, and on the panel frame the
+same read returns `'SunkGloom'` at 0.913.  Space-and-case-squashed proximity
+(`''.join(name.split()).lower()`, cutoff .82) resolves both to `Sunk Gloom`, so the *name*
+is recoverable.
+
+Two facts that block wiring it:
+1. Maa reports `roi` reads in the 1280x720 reference space while the frame is 1920x1080,
+   so a resolved row has to be scaled back (`x*w/1280`, `y*h/720`) before it joins the
+   frame's records -- unscaled it lands at y .106-.144 and the pack gate (y .15-.23) never
+   sees it.
+2. Even scaled and placed, `map_header` still answers None: it trusts only rows the OCR
+   itself scored, and the resolved row carries the raw 0.551, below its pack threshold.
+
+Next unit: give `map_header` an explicit `pack_name=None` parameter (or an
+`extra_pack` argument) so a *resolved* identity is passed as identity rather than smuggled
+in as a fake high-score OCR row -- then re-verify with
+`tools/verify_map_observe_replay.py --map-frame evidence/runtime/packaged-mirror-20261025-044012/frame-0005.png`
+expecting `scene MAP, pack 'Sunk Gloom'`, and with the panel frame still `NODE_PANEL`.
