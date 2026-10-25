@@ -124,3 +124,45 @@ def test_the_panel_enter_is_the_input_on_the_node_panel(tmp_path, monkeypatch):
     # never an input aimed at another page.
     assert result.get('waiting') is True or intents
     assert all(row['page'] == 'NODE_PANEL' for row in intents)
+
+
+def _hud_ocr(*, turn='5'):
+    """The tokens the battle reader needs, at the boxes measured from live frames."""
+    def token(text, x, y, w, h, score=0.95):
+        return {'text': text, 'box': [x, y, w, h], 'score': score}
+    return [token('WAVE', 40, 10, 70, 26), token('1/1', 120, 10, 60, 26),
+            token('TURN', 40, 80, 70, 26), token(turn, 120, 80, 30, 26),
+            token('MAX', 1648, 45, 60, 26),
+            token('Win', 1704, 792, 40, 24), token('Rate', 1744, 792, 46, 24)]
+
+
+class _HudScript(_Script):
+    def observe(self, deadline=None):
+        record = super().observe(deadline)
+        record['ocr'] = _hud_ocr()
+        return record
+
+
+def _battle_loop(tmp_path, pages):
+    loop = _loop(tmp_path, pages)
+    loop.observer = _HudScript(tmp_path, pages)
+    return loop
+
+
+def test_the_speed_toggle_is_the_battles_first_input(tmp_path):
+    loop = _battle_loop(tmp_path, ['BATTLE_HUD'])
+    loop.step()
+    intents = _events(tmp_path, 'window_intent')
+    assert [row['reason'] for row in intents] == [
+        'the_battles_speed_toggle_is_enabled_once_per_battle']
+    x, y = list(loop.device.clicks)[0][:2]
+    assert 1648 <= x <= 1708 and 45 <= y <= 71, 'the MAX caption is the control'
+
+
+def test_the_speed_toggle_is_pressed_once_and_not_every_step(tmp_path):
+    loop = _battle_loop(tmp_path, ['BATTLE_HUD'])
+    for _ in range(3):
+        loop.step()
+    toggles = [row for row in _events(tmp_path, 'window_intent')
+               if row.get('reason') == 'the_battles_speed_toggle_is_enabled_once_per_battle']
+    assert len(toggles) == 1, 'D155: once per battle, not once per read'
