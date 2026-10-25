@@ -51,3 +51,12 @@ def test_a_host_port_names_the_emulator_adb_lists(monkeypatch):
     assert tool._covered_by_an_emulator('127.0.0.1:5556', ['2G0YC5ZGCD03H6']) is False
     assert tool._covered_by_an_emulator('emulator-5556', ['emulator-5556']) is False
     assert tool._covered_by_an_emulator('127.0.0.1:notaport', ['emulator-5556']) is False
+
+
+def test_the_agent_is_told_a_host_port_when_the_toolkit_names_a_serial():
+    tool = _tool('selfrun_mirror')
+    assert tool.agent_address('emulator-5556') == '127.0.0.1:5556'
+    assert tool.agent_address('emulator-5554') == '127.0.0.1:5554'
+    assert tool.agent_address('127.0.0.1:5556') == '127.0.0.1:5556'
+    assert tool.agent_address('2G0YC5ZGCD03H6') == '2G0YC5ZGCD03H6'
+    assert tool.agent_address('emulator-') == 'emulator-'

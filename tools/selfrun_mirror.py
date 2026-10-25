@@ -78,10 +78,10 @@ def reap_stale_agents(*, list_processes=None, kill=None):
     return {'found': pids, 'killed': killed}
 
 
-def run_bounded(command, *, cwd, timeout, kill=None, reap_seconds=REAP_SECONDS):
+def run_bounded(command, *, cwd, timeout, kill=None, reap_seconds=REAP_SECONDS, env=None):
     """Run a command; on overrun kill the whole tree and still hand back its output."""
     process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True)
+                               stderr=subprocess.PIPE, text=True, env=env)
     try:
         out, err = process.communicate(timeout=timeout)
         return {'returncode': process.returncode, 'stdout': out or '', 'stderr': err or '',
@@ -106,6 +106,22 @@ def attached(adb: str, address: str) -> list:
         if len(parts) >= 2 and parts[1] == 'device':
             names.append(parts[0])
     return names
+
+
+def agent_address(address: str) -> str:
+    """The spelling the packaged agent can take for a device the toolkit names.
+
+    MaaToolkit discovers this machine's emulator as `emulator-5556` while the packaged
+    agent's own server only accepts a `host:port`; handed the bare serial it dies in
+    `agent_server.start_up` with `WinError 1073741845` and a zeromq "Socket operation on
+    non-socket".  The mapping is stated once here so both halves ask the same question.
+    """
+    name = str(address or '')
+    if name.startswith('emulator-'):
+        tail = name.rsplit('-', 1)[-1]
+        if tail.isdigit():
+            return '127.0.0.1:' + tail
+    return name
 
 
 def _covered_by_an_emulator(address: str, devices: list) -> bool:
@@ -142,6 +158,7 @@ def attempt(index: int, seconds: int, address: str = ADDRESS) -> dict:
     # for, so it is checked before anything is driven (D168).
     devices = attached(ADB, address)
     record['address'] = address
+    record['agent_address'] = agent_address(address)
     record['attached'] = devices
     if address not in devices and not _covered_by_an_emulator(address, devices):
         record.update(exit=2, elapsed_s=round(time.time() - started, 1),
@@ -152,13 +169,17 @@ def attempt(index: int, seconds: int, address: str = ADDRESS) -> dict:
     # The budget is still enforced from outside, because a caller cannot take its own
     # wall clock away.  On overrun the whole process tree is killed (D94), and the kill
     # is recorded in the run's own directory (D78) so it cannot read as a death.
+    env = dict(os.environ)
+    # Both halves are told, in their own spelling (D169): the driver discovers by serial,
+    # the packaged agent's server only accepts a host:port.
+    env['MAALIMBUS_AGENT_ADDRESS'] = agent_address(address)
     finished = run_bounded([sys.executable, str(ROOT / 'tools/verify_packaged_mirror_loop.py'),
                             '--app', str(ROOT / 'dist' / 'MaaLimbus'),
                             '--address', address,
                             '--adb', ADB,
                             '--authorize', nonce,
                             '--steps', '400', '--seconds', str(seconds)],
-                           cwd=str(ROOT), timeout=seconds + MARGIN_SECONDS)
+                           cwd=str(ROOT), timeout=seconds + MARGIN_SECONDS, env=env)
     killed_by_budget = bool(finished['killed'])
     record['reaped'] = finished.get('reaped')
     record['exit'] = finished['returncode']
