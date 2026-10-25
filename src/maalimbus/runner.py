@@ -529,6 +529,16 @@ def submit_was_ignored(previous_turn, turn, elapsed, *, window=SUBMIT_IGNORED_WI
     return str(turn).strip() == str(previous_turn).strip() and float(elapsed) > float(window)
 
 
+BATTLE_INTERVAL = 1.5
+"""Spacing between the loop's own steps while a battle is on screen (D158).
+
+Measured per battle turn on `packaged-mirror-20261024-201117`: 20.4-27.4 s carrying
+three steps, six or seven reads (each 0.6-1.4 s) and, after the submit, a readable
+board again in 1.6-1.9 s with **zero** poll rounds.  The rest was the loop's own
+input spacing, applied three times a turn at the page interval.  A battle board is
+not a page whose controls need care (D106/D114: its controls are at measured points),
+so it may be walked at this spacing while every other page keeps the caller's.
+"""
 DEEP_STEP_SECONDS = 60.0
 ONE_READ_SECONDS = 30.0
 RE_SETTLE_LIMIT_S = ONE_READ_SECONDS   # the settle round's own name for the same rule
@@ -5372,10 +5382,14 @@ class MirrorRunner:
         A run that never sends an input pays the full pause, because it has nothing to
         space out.
         """
+        interval = float(interval)
+        page = str((getattr(self, 'state', None) or {}).get('last_named_page') or '')
+        if page.startswith('BATTLE'):
+            interval = min(interval, BATTLE_INTERVAL)
         at = self.artifacts.get('input_at')
         if at is None:
-            return float(interval)
-        return max(0.0, float(interval) - max(0.0, time.monotonic() - float(at)))
+            return interval
+        return max(0.0, interval - max(0.0, time.monotonic() - float(at)))
 
     def _walk(self, *, steps=300, interval=6.0, round_limit=5, deadline=None):
         """The loop itself; `run` owns the watches, this owns the walking."""
