@@ -17,7 +17,7 @@ def _run(series, *, rounds=4):
         return None
 
     def drag(dx, dy):
-        drags.append(dy)
+        drags.append((dx, dy))
 
     out = runner.normalise_view(measure, zoom, drag, rounds=rounds)
     return out, drags
@@ -26,12 +26,12 @@ def _run(series, *, rounds=4):
 def test_a_party_at_the_top_is_pulled_down_not_pushed_further_up():
     # y=120/1080 = 0.11, above the band: content must move down, i.e. dy < 0.
     _, drags = _run([(960, 120), (960, 300), (960, 500), (960, 520)])
-    assert drags and drags[0] < 0, drags
+    assert drags and drags[0][1] < 0, drags
 
 
 def test_a_party_at_the_bottom_is_pulled_up():
     _, drags = _run([(960, 1020), (960, 800), (960, 620), (960, 610)])
-    assert drags and drags[0] > 0, drags
+    assert drags and drags[0][1] > 0, drags
 
 
 def test_it_stops_once_the_party_is_inside_the_band():
@@ -44,3 +44,10 @@ def test_the_band_is_never_the_whole_frame():
     source = (pathlib.Path(runner.__file__)).read_text(encoding='utf-8')
     body = source[source.index('def normalise_view'):source.index('def pinch_out')]
     assert 'band = (0.22, 0.88)' in body
+
+
+def test_a_lattice_in_the_left_corner_is_pulled_across_too():
+    # x=200/1920 = 0.10, left of the horizontal band: the drag must have a horizontal part.
+    _, drags = _run([(200, 600), (900, 610), (960, 615), (960, 615)])
+    # dx<0 moves the finger left, so the picture (and the party) moves right
+    assert drags[0][0] < 0, drags

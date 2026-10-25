@@ -806,17 +806,30 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
     # and the floor becomes unwalkable (operator m19189).  The goal is therefore a position
     # band measured every drag, and the direction follows the side of the band.
     band = (0.22, 0.88)
+    band_x = (0.25, 0.75)
     sign = -1
+    across = 0
     for _ in range(max(0, int(rounds))):
         if not party or not size:
             break
         height = float(size[1] or 1080)
+        width = float(size[0] or 1920)
         ratio = float(party[1]) / height
+        ratio_x = float(party[0]) / width
         if ratio < band[0]:
             sign = -1
         elif ratio > band[1]:
             sign = 1
-        drag(0, sign * max(1, int(height / 6)))
+        # A zoomed-out floor can sit in a corner of the frame (measured 2026-10-25: the
+        # lattice filled the left third), and a vertical drag cannot bring it back -- the
+        # operator saw the picture slide sideways (m19200).  Both axes are bands now.
+        if ratio_x < band_x[0]:
+            across = -1
+        elif ratio_x > band_x[1]:
+            across = 1
+        else:
+            across = 0
+        drag(across * max(1, int(width / 5)), sign * max(1, int(height / 6)))
         moved_from = last
         party, size = measure()
         dragged += 1
@@ -829,7 +842,8 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
             break
         last = party[1]
         steps.append(party)
-        if band[0] <= float(party[1]) / float(size[1] or 1080) <= band[1]:
+        if (band[0] <= float(party[1]) / float(size[1] or 1080) <= band[1]
+                and band_x[0] <= float(party[0]) / float(size[0] or 1920) <= band_x[1]):
             break
     centred = centre_plan(party, size, tolerance=tolerance) is None if party and size else None
     return {'zoomed': True, 'dragged': dragged, 'centred': centred,
