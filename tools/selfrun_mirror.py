@@ -109,24 +109,9 @@ def attached(adb: str, address: str) -> list:
 
 
 def agent_survives_start_up(agent: Path, seconds: float = 8.0) -> dict:
-    """Does the packaged agent stay up, or die before it can serve anything?
-
-    Measured on 2026-10-25: a frozen agent that fails in `agent_server.start_up` exits in
-    well under a second with `WinError 1073741845` and a zeromq "Socket operation on
-    non-socket", and every attempt after it burned its whole wall clock writing no event.
-    A process that is still running when the probe gives up has passed the only thing this
-    probe can prove -- that start_up returned.
-    """
-    command = [str(agent), 'MaaLimbusAgentPreflight']
-    try:
-        done = subprocess.run(command, cwd=str(agent.parent.parent), capture_output=True,
-                              text=True, timeout=seconds)
-    except subprocess.TimeoutExpired:
-        return {'survived': True, 'exit': None, 'tail': 'still running after %.0f s' % seconds}
-    except OSError as error:
-        return {'survived': False, 'exit': None, 'tail': str(error)[:300]}
-    tail = ((done.stdout or '') + (done.stderr or '')).strip().splitlines()[-2:]
-    return {'survived': False, 'exit': done.returncode, 'tail': ' | '.join(tail)[:300]}
+    """Ask `maalimbus.agent_probe`; the harness keeps no second copy of this question."""
+    from maalimbus import agent_probe
+    return agent_probe.probe(agent, seconds)
 
 
 def agent_address(address: str) -> str:

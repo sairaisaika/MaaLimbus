@@ -10,6 +10,13 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
+def _probe():
+    import sys
+    sys.path.insert(0, str(ROOT / 'src'))
+    from maalimbus import agent_probe
+    return agent_probe
+
+
 def _tool(name):
     spec = importlib.util.spec_from_file_location(name, ROOT / 'tools' / (name + '.py'))
     module = importlib.util.module_from_spec(spec)
@@ -99,3 +106,18 @@ def test_a_missing_agent_binary_is_not_a_crash(monkeypatch):
     verdict = tool.agent_survives_start_up(ROOT / 'nope.exe')
     assert verdict['survived'] is False
     assert 'no such file' in verdict['tail']
+
+
+def test_one_owner_answers_whether_the_agent_starts(monkeypatch):
+    probe = _probe()
+    tool = _tool('selfrun_mirror')
+    called = {}
+
+    def _probe_call(agent, seconds=8.0):
+        called['agent'] = str(agent)
+        return {'survived': True, 'exit': None, 'tail': 'ok', 'agent': str(agent)}
+
+    monkeypatch.setattr(probe, 'probe', _probe_call)
+    verdict = tool.agent_survives_start_up(ROOT / 'dist' / 'MaaLimbus' / 'agent' / 'MaaLimbusAgent.exe')
+    assert verdict['survived'] is True
+    assert called['agent'].endswith('MaaLimbusAgent.exe')
