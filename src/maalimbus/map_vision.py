@@ -2260,6 +2260,40 @@ def pitch_of(party, boxes, *, floor=60.0, corroboration=2):
     return across, down
 
 
+def nearest_centre(point, boxes, *, dy_share=0.35, dx_share=1.0):
+    """The node centre a party reading belongs to, or None.
+
+    Measured on 18 live frames of three runs: the reading sits a *constant* (-156, -12) from
+    the nearest 190 px node box -- the marker is drawn inside the node but the reader lands
+    on its upper-left shoulder.  A distance gate of a fraction of the side therefore rejects
+    the true node, and the caller then drops the anchor and falls back to a stale probe
+    (`map_party_anchor source: probe` on every live run).
+
+    The rule is geometric and in the boxes' own units: the reading is aligned by *row*
+    first (|dy| <= `dy_share` of the side), then by *column* (|dx| <= `dx_share` of the
+    side), admitting one node's width of lateral drift.  Smallest |dy| wins, so a reading
+    cannot be pulled onto another row.  Boxes narrower than half the widest are badges.
+    """
+    if point is None or not boxes:
+        return None
+    widest = max(float(box[2]) for box in boxes if len(box) >= 3)
+    px, py = float(point[0]), float(point[1])
+    best, best_score = None, None
+    for box in boxes:
+        w, h = float(box[2]), float(box[3])
+        if widest and w < 0.5 * widest:
+            continue
+        side = max(w, h)
+        cx, cy = float(box[0]) + w / 2, float(box[1]) + h / 2
+        dy, dx = abs(cy - py), abs(cx - px)
+        if dy > dy_share * side or dx > dx_share * side:
+            continue
+        score = dy + 0.25 * dx
+        if best_score is None or score < best_score:
+            best, best_score = (int(cx), int(cy)), score
+    return best
+
+
 def adjacent_to(party, boxes, *, near=150.0, far=430.0, tolerance=0.34):
     """Keep the boxes one step from the party, using this frame's own pitch.
 
