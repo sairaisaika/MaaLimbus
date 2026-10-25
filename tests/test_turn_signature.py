@@ -79,3 +79,19 @@ def test_one_fight_yields_a_handful_of_turn_pictures():
             readings.append(tuple(signature))
     assert len(readings) >= 20
     assert len(set(readings)) <= 15, f'{len(set(readings))} pictures for one fight'
+
+
+def test_the_crop_sits_beside_the_turn_caption():
+    """The badge crop is the strip right of the caption, not the row above it.
+
+    `packaged-mirror-20261025-014906/frame-0004.json` prints the `TURN` caption at
+    [20,97,42,22] of 1920x1080; the old box (0.050,0.074,...) started at y=80 and read a
+    flat strip, so 16 archived battle frames of `...-20261024-171103` produced one value
+    before this change and three after.
+    """
+    from maalimbus.battle_vision import TURN_BADGE
+    cx, cy, cw, ch = 20 / 1920, 97 / 1080, 42 / 1920, 22 / 1080
+    x, y, w, h = TURN_BADGE
+    assert x > cx + cw, 'the crop starts right of the caption'
+    assert y >= cy - 0.01, 'and in the caption row, not the row above'
+    assert h <= ch + 0.006 and w <= 0.06

@@ -564,7 +564,12 @@ def battle_hud(records, size):
             'turn_box': turn[0].box, 'diagnostics': diagnostics,
             'scope': 'HUD identity only; no turn submission, coverage or victory claim'}
 
-TURN_BADGE = (0.050, 0.074, 0.014, 0.026)   # the digit inside the TURN badge, 1920x1080
+# Measured on the current layout (`packaged-mirror-20261025-014906/frame-0004.json`: the
+# `TURN` caption's box is [20,97,42,22] of 1920x1080, so the digit sits just to its
+# right, x 70..132, y 97..119).  The old box (0.050,0.074,0.014,0.026) landed one row
+# above that on a flat dark strip, so every battle frame produced the same 64-value
+# vector and "same signature" was true for the whole fight (D214).
+TURN_BADGE = (0.0365, 0.0898, 0.0323, 0.0204)
 TURN_CHANGED = 4.0                          # mean abs difference that means "a new turn"
 
 
