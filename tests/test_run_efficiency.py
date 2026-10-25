@@ -54,17 +54,19 @@ def test_one_timestamp_is_not_a_duration():
     assert run_metrics.efficiency(rows)['seconds'] is None
 
 
-def test_reads_count_every_frame_the_observer_read():
+def test_reads_count_every_frame_that_named_a_page():
     rows = [_row('loop_heartbeat', _stamp(0)),
             _row('map_observed', _stamp(1), scene='MAP', floor=1),
             _row('scene_mismatch', _stamp(2), expected='MAP', scene='RESUME_DIALOG'),
             _row('map_observed', _stamp(3), scene='MAP', floor=1),
             _row('mirror_loop_stopped', _stamp(4), steps=1, stop_path='agent_loop')]
     measured = run_metrics.efficiency(rows)
-    assert measured['reads'] == 3
+    # D191: a scene_mismatch is a guard node probing, not a read the loop spent.
+    assert measured['reads'] == 2
+    assert measured['probes'] == 1
     assert measured['steps'] == 1
     assert measured['heartbeats'] == 1
-    assert measured['reads_per_step'] == 3.0
+    assert measured['reads_per_step'] == 2.0
 
 
 def test_a_heartbeat_is_not_a_step():

@@ -423,25 +423,32 @@ def reads_by_page(directories=None):
         pending = None
         for row in rows:
             event = row.get('event')
-            if event in READ_EVENTS:
+            if event in PAGE_READ_EVENTS:
                 if pending is not None:
                     pending[1] += 1
+                continue
+            if event == 'scene_mismatch':
+                if pending is not None:
+                    pending[2] += 1
                 continue
             if event != 'window_intent':
                 continue
             if pending is not None:
-                groups.setdefault(pending[0], []).append(pending[1])
-            pending = [str(row.get('page') or '?'), 0]
+                groups.setdefault(pending[0], []).append((pending[1], pending[2]))
+            pending = [str(row.get('page') or '?'), 0, 0]
             page = pending[0]
         if pending is not None:
-            groups.setdefault(pending[0], []).append(pending[1])
+            groups.setdefault(pending[0], []).append((pending[1], pending[2]))
     table = {}
     for name, values in groups.items():
         if len(values) < READS_PER_INPUT_FLOOR:
             continue
-        ordered = sorted(values)
-        table[name] = {'inputs': len(values), 'median': ordered[len(ordered) // 2],
-                       'p90': ordered[min(len(ordered) - 1, int(len(ordered) * 0.9))]}
+        reads = sorted(value[0] for value in values)
+        probes = sorted(value[1] for value in values)
+        table[name] = {'inputs': len(values),
+                       'median': reads[len(reads) // 2],
+                       'p90': reads[min(len(reads) - 1, int(len(reads) * 0.9))],
+                       'probes': probes[len(probes) // 2]}
     return table
 
 
@@ -588,6 +595,10 @@ def ladder_effect(directories=None):
 # run that spent its whole window on an unreadable page look like it read nothing
 # (`evidence/runtime/map-live-20261023-203103`: 19 frames, 19 `scene_mismatch`).
 READ_EVENTS = ('map_observed', 'battle_observed', 'scene_mismatch')
+# A read that named a page.  `scene_mismatch` is written by a pipeline guard node whose
+# expected scene was not on screen (D191): it is a probe the pipeline runs by itself, not
+# a read the loop spent, and counting it as one made the entry page look like 108 reads.
+PAGE_READ_EVENTS = ('map_observed', 'battle_observed')
 # Only the two writers that run on a page can time themselves (D68): a `scene_mismatch` is
 # the pipeline's own refusal record, with no action body to measure.
 TIMED_READ_EVENTS = ('map_observed', 'battle_observed')
@@ -642,7 +653,8 @@ def efficiency(rows, directory=None):
     base = summarise(rows, directory)
     stamps = _stamps(rows)
     seconds = (stamps[-1] - stamps[0]).total_seconds() if len(stamps) >= 2 else None
-    reads = sum(1 for row in rows if row.get('event') in READ_EVENTS)
+    reads = sum(1 for row in rows if row.get('event') in PAGE_READ_EVENTS)
+    probes = sum(1 for row in rows if row.get('event') == 'scene_mismatch')
     intents = sum(1 for row in rows if row.get('event') == 'window_intent')
     # A heartbeat is not a step.  `loop_heartbeat` is written before each loop iteration
     # only since 2026-10-23 (it was added for the runs that died with no cause), so an
@@ -670,6 +682,7 @@ def efficiency(rows, directory=None):
     return {
         'seconds': None if seconds is None else round(seconds, 1),
         'reads': reads,
+        'probes': probes,
         'payout': payout,
         'steps': steps,
         'dwell': floor_dwell(rows),
@@ -820,9 +833,10 @@ def metrics(runs):
             'basis': ('median over %d run(s) that sent at least %d input(s); best observed %.2f'
                       % (len(values), READS_PER_INPUT_FLOOR, min(values)) if values
                       else 'no run sent %d inputs' % READS_PER_INPUT_FLOOR),
-            'note': ('a read here is one observer call (READ_EVENTS: map, battle and scene_mismatch, '
-                     'retries included); the read that proves the input plus the read that comes '
-                     'next is the floor, and the best observed run spends 2.00 (D182)')},
+            'note': ('a read here is one observer call that named a page (PAGE_READ_EVENTS: map and '
+                     'battle, retries included); a scene_mismatch is a pipeline guard node probing a scene '
+                     'it expected, not a read the loop spent, and it is reported separately (D191).  '
+                     'The read that proves the input plus the read after it is the floor')},
         'recovery_advanced_rate': {
             'value': round(advanced / recoveries, 3) if recoveries else None,
             'basis': f'{advanced} of {recoveries} recoveries advanced the run',

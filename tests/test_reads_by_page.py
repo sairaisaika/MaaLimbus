@@ -73,12 +73,15 @@ def test_the_floor_and_the_ceiling_are_both_reported(tmp_path):
     assert row['p90'] >= row['median']
 
 
-def test_scene_mismatch_is_a_read_like_the_corpus_says(tmp_path):
+def test_a_guard_probe_is_not_a_read(tmp_path):
     rows = []
     for index in range(6):
         rows.append({'event': 'window_intent', 'utc': _stamp(index + 1), 'page': 'MAP',
                      'reason': 'r%d' % index})
+        rows.append({'event': 'map_observed', 'utc': _stamp(index + 1), 'scene': 'MAP'})
         rows.append({'event': 'scene_mismatch', 'utc': _stamp(index + 1)})
     rows.append(_stop())
     _run(tmp_path, rows)
-    assert m.reads_by_page([tmp_path])['MAP']['median'] == 1
+    row = m.reads_by_page([tmp_path])['MAP']
+    assert row['median'] == 1
+    assert row['probes'] == 1
