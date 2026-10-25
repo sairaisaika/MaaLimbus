@@ -4674,8 +4674,11 @@ class MirrorRunner:
                 # The verdict below is only diagnosable if it names the frame it judged;
                 # `getattr(self, 'frames', None)` read nothing because that attribute lives
                 # on the journal, not on the Runner, so every verdict carried frame=None.
-                state['map_click_frame'] = (record.get('frame')
-                                            or Path(frame_file(directory)).name)
+                # D185: the frame file is not always on disk (the runs that keep
+                # pictures and the runs that do not differ), so a missing name is not
+                # an exception -- the verdict says `None` and still names its step.
+                kept = record.get('frame') or frame_file(directory)
+                state['map_click_frame'] = Path(kept).name if kept else None
             # Bracket the dispatch in a side channel.  A native crash (`access violation
             # reading 0xFFFFFFFFFFFFFFFF`, evidence/runtime/packaged-mirror-20261023-044354)
             # says nothing about which call died, and the maafw log for that run shows the
@@ -4751,8 +4754,8 @@ class MirrorRunner:
             state['map_pending'] = list(plan['target'])
             state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                 box_key(plan['target']))
-            state['map_click_frame'] = (record.get('frame')
-                                        or Path(frame_file(directory)).name)
+            kept = record.get('frame') or frame_file(directory)
+            state['map_click_frame'] = Path(kept).name if kept else None
         entry.update(click_point=None if point is None else list(point), delay_ms=delay)
         # Remember which of the two battle intents went out, so a page that comes back
         # with the same turn can be answered with the other one instead of a repeat.

@@ -34,7 +34,7 @@ class _Script:
         page = self.pages[min(self.reads, len(self.pages) - 1)]
         self.reads += 1
         return {'scene': page, 'image_sha256': 'sha-%d' % self.reads,
-                'size': [1920, 1080], 'ocr': []}
+                'size': [1920, 1080], 'ocr': [], 'frame': None}
 
 
 def _loop(tmp_path, pages):
@@ -166,3 +166,24 @@ def test_the_speed_toggle_is_pressed_once_and_not_every_step(tmp_path):
     toggles = [row for row in _events(tmp_path, 'window_intent')
                if row.get('reason') == 'the_battles_speed_toggle_is_enabled_once_per_battle']
     assert len(toggles) == 1, 'D155: once per battle, not once per read'
+
+
+def test_a_map_input_costs_one_read_after_it(tmp_path, monkeypatch):
+    """D184: the settle loop asks once whether the map moved; the verdict waits.
+
+    The reader is stubbed at `candidates_of` -- the loop is the subject here, not the
+    vision -- so the box a map frame would offer is deterministic.
+    """
+    box = [1002, 447, 40, 40]
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('frame-0001', [box]))
+    loop = _loop(tmp_path, ['MAP'] * 6)
+    before = loop.observer.reads
+    loop.step()
+    intents = _events(tmp_path, 'window_intent')
+    assert [row['reason'] for row in intents] == ['map_node_click_is_the_only_proven_forward_input']
+    settles = loop.observer.reads - before
+    # Three reads, each with a job: the one that names the page, the one that proves the
+    # click left it alone, and the one after the viewport gesture the refusal earns
+    # (D167 bounds that last one separately).  It was four before D184.
+    assert settles == 3, f'the map step reads three times, got {settles}'
+    assert _events(tmp_path, 'map_click_result') == [], 'the verdict waits for the next read'
