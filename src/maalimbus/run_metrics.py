@@ -889,6 +889,32 @@ def metrics(runs):
 CLICK_VERDICTS = ('accepted', 'rejected', 'superseded', 'unjudged')
 
 
+SETTLED_VERDICTS = ('accepted', 'rejected', 'superseded')
+
+
+def settled_clicks(rows):
+    """One entry per map click that has a verdict, not one per row (D198).
+
+    A click is recorded twice: `unjudged` when it goes out, then `accepted`/`rejected` when
+    the next read answers it.  Counting rows therefore counted each click twice and made
+    the accepted share look half of what it is (`packaged-mirror-20261025-011222`: 14 rows,
+    7 clicks, 3 accepted).  A click with no answer yet stays `pending` and is left out of the
+    rate, because an unanswered click is not a refusal.
+    """
+    settled, pending = [], []
+    for row in rows:
+        if row.get('event') != 'map_click_result':
+            continue
+        outcome = row.get('outcome')
+        if outcome == 'unjudged':
+            pending.append(row)
+            continue
+        settled.append(row)
+        if pending:
+            pending.pop()
+    return {'settled': settled, 'pending': pending}
+
+
 def click_kinds(directories=None):
     """Clicks by candidate kind: sent, accepted, rejected, superseded, unjudged."""
     by_kind = {}
