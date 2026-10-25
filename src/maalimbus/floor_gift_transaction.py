@@ -118,6 +118,12 @@ class FloorGiftTransaction:
         retired['abandoned'] = {'scope': d.get('scope'), 'reason': 'the_run_that_owned_this_record_ended'}
         d['history'] = list(d.get('history') or []) + [retired]
         d['pending'] = {}
+        # `prepare` refuses on a foreign scope/page while the record is *unfinished*
+        # (`d['pending'] or not d.get('completed')`).  Clearing `pending` is not enough:
+        # the abandoned record also has to stop claiming to be open, or the very next call
+        # still refuses -- measured 2026-10-25 09:07, where the retire event was written and
+        # the same `floor_gift_previous_transaction_unresolved` followed 2 ms later (D296).
+        d['completed'] = True
         d['retired'] = {'scope': retired['abandoned']['scope'],
                         'reason': retired['abandoned']['reason']}
         write_json(self.path, d)

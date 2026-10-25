@@ -76,3 +76,13 @@ def test_a_record_for_a_page_that_is_gone_is_retired_too(tmp_path):
     book = tx.FloorGiftTransaction(path)
     assert book.retire_stale_run('same-run', 'new-sig') is not None
     assert book.data['pending'] == {}
+
+
+def test_a_retired_record_no_longer_counts_as_open(tmp_path):
+    """retire 之后同一个 prepare 不能再抛（D296）：实机里两者只隔 2 ms。"""
+    path = _ledger(tmp_path)
+    book = tx.FloorGiftTransaction(path)
+    book.retire_stale_run('new-run', 'sig')
+    assert book.data['completed'] is True and book.data['pending'] == {}
+    prepared = book.prepare('new-run', [], _count(), 'frame.png')
+    assert prepared['scope'] == 'new-run'
