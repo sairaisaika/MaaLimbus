@@ -45,6 +45,7 @@ from typing import Protocol, runtime_checkable
 
 import cv2
 
+from .documents import write_document
 from . import session_flow as flows
 from .anchor import ANCHOR_MISSING, reread_allowed
 from . import map_dispatch
@@ -1383,8 +1384,7 @@ def store_frame(directory, record, image=None, *, name=None):
     if image is not None:
         cv2.imwrite(str(directory / (str(name) + '.png')), image)
         record['size'] = record.get('size') or [image.shape[1], image.shape[0]]
-    (directory / (str(name) + '.json')).write_text(
-        json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    write_document(directory / (str(name) + '.json'), record)
     return record
 
 
@@ -6266,8 +6266,7 @@ class MirrorRunner:
             pass
         self._write_ending('stall_watchdog', record)
         try:
-            (Path(self.directory) / 'agent-stall.json').write_text(
-                json.dumps(record, ensure_ascii=False, indent=2), encoding='utf-8')
+            write_document(Path(self.directory) / 'agent-stall.json', record)
         except Exception:  # pragma: no cover - the directory may be gone
             pass
         return record

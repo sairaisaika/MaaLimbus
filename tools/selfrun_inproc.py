@@ -134,6 +134,8 @@ def main():
         selfrun_finish.summary(snapping, summary, result, directory)
     except BaseException as error:  # the run must leave a cause, whatever it was
         result['error'] = str(error)[:300]
+        import traceback as _traceback
+        result['traceback'] = _traceback.format_exc()[-1500:]
         result['passed'] = False
         # The error path writes the same stop row and summary the success path does, so a
         # tool run is readable through `run_metrics.ending` whichever way it ended (D195).

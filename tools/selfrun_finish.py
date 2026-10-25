@@ -10,7 +10,11 @@ is written by the tool in the same shape the agent uses, so `run_metrics.ending`
 paths the same way.
 """
 import json
+import sys
 from pathlib import Path
+
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / 'src')]
+from maalimbus.documents import write_document  # noqa: E402
 
 SNAPSHOT_EVERY = 1
 
@@ -61,9 +65,7 @@ class Snapshotting:
         return self.journal.frame(*args, **kwargs)
 
     def snapshot(self):
-        (self.directory / 'result.json').write_text(
-            json.dumps(self.result, indent=2, ensure_ascii=False, default=str) + '\n',
-            encoding='utf-8')
+        write_document(self.directory / 'result.json', self.result)
 
 
 def summary(journal, summary_result, result, directory):
@@ -79,8 +81,7 @@ def summary(journal, summary_result, result, directory):
                    steps=summary_result.get('steps'), clicks_sent=summary_result.get('clicks_sent'),
                    passed=bool(summary_result.get('passed')), directory=str(directory),
                    stop_path='agent_loop')
-    Path(directory, 'result.json').write_text(
-        json.dumps(result, indent=2, ensure_ascii=False, default=str) + '\n', encoding='utf-8')
+    write_document(Path(directory) / 'result.json', result)
     return result
 
 

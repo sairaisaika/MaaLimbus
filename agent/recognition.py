@@ -1610,8 +1610,10 @@ def loop_store(settings, journal):
 def write_loop_result(directory, result):
     """Write one run's summary next to its evidence and return the path."""
     path = Path(directory) / 'agent-result.json'
-    path.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str),
-                    encoding='utf-8')
+    # The same writer the journal and the frame document use (D196): a run's summary is
+    # evidence too, and a field it cannot represent must not cost the file.
+    from maalimbus.documents import write_document
+    write_document(path, result)
     try:
         print('MaaLimbus '+('进度已验证' if result.get('passed') else '已停止')+
               ': '+str(result.get('user_message') or result.get('reason') or result.get('error') or '原因未记录')+
