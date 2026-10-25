@@ -121,3 +121,14 @@ def test_one_owner_answers_whether_the_agent_starts(monkeypatch):
     verdict = tool.agent_survives_start_up(ROOT / 'dist' / 'MaaLimbus' / 'agent' / 'MaaLimbusAgent.exe')
     assert verdict['survived'] is True
     assert called['agent'].endswith('MaaLimbusAgent.exe')
+
+
+def test_the_failure_class_is_named_from_the_process_own_words():
+    probe = _probe()
+    zmq = {'survived': False, 'exit': 1073741845,
+           'tail': 'failed | Assertion failed: Socket operation on non-socket [10038]'}
+    assert probe.classify(zmq) == 'ipc_socket_unavailable'
+    assert probe.classify({'survived': True, 'exit': None, 'tail': 'ok'}) == 'started'
+    assert probe.classify({'survived': False, 'exit': None, 'tail': 'no such file'}) == 'missing_binary'
+    assert probe.classify({'survived': False, 'exit': 1, 'tail': 'ImportError: x'}) == 'python_startup_error'
+    assert probe.classify({'survived': False, 'exit': 1, 'tail': ''}) == 'unknown_failure'
