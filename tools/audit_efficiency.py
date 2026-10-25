@@ -36,6 +36,14 @@ def main(argv=None):
         print(f'{"":24} basis: {row["basis"]}')
         if row['note']:
             print(f'{"":24} note:  {row["note"]}')
+    by_page = run_metrics.reads_by_page()
+    print()
+    print('reads per input, by the page the input went from (D187, current era only):')
+    if not by_page:
+        print('  not measured: no capable run carries enough inputs on one page')
+    for name, row in sorted(by_page.items(), key=lambda item: -item[1]['median'])[:10]:
+        print('  %-18s median %2d  p90 %2d  over %d input(s)'
+              % (name, row['median'], row['p90'], row['inputs']))
     endings = {}
     for run in runs:
         kind = run['ending']['kind']

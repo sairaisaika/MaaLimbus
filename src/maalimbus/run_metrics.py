@@ -406,6 +406,45 @@ def capability(rows, directory=None):
             'can_write_a_stop': bool(pathed or harness)}
 
 
+def reads_by_page(directories=None):
+    """Where the reads per input go, grouped by the page the input was sent from (D187).
+
+    `reads_per_input` (D182) says how many reads an input costs; this says which pages cost
+    them.  A run is read only when it can say how long a read took or carries a stop path
+    (D181), so a legacy run's shape is not quoted as today's.  Reads are counted to the next
+    input, which is the same window the corpus figure uses.
+    """
+    groups = {}
+    for directory in _archives(directories):
+        rows = _rows_of(directory)
+        if not capability(rows, directory)['can_write_a_stop']:
+            continue
+        page = None
+        pending = None
+        for row in rows:
+            event = row.get('event')
+            if event in READ_EVENTS:
+                if pending is not None:
+                    pending[1] += 1
+                continue
+            if event != 'window_intent':
+                continue
+            if pending is not None:
+                groups.setdefault(pending[0], []).append(pending[1])
+            pending = [str(row.get('page') or '?'), 0]
+            page = pending[0]
+        if pending is not None:
+            groups.setdefault(pending[0], []).append(pending[1])
+    table = {}
+    for name, values in groups.items():
+        if len(values) < READS_PER_INPUT_FLOOR:
+            continue
+        ordered = sorted(values)
+        table[name] = {'inputs': len(values), 'median': ordered[len(ordered) // 2],
+                       'p90': ordered[min(len(ordered) - 1, int(len(ordered) * 0.9))]}
+    return table
+
+
 def silent_rate(runs):
     """A rate over the runs that could have written a stop, never over all of them."""
     capable = [run for run in runs if run.get('capability', {}).get('can_write_a_stop')]
