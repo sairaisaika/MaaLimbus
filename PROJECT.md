@@ -6037,3 +6037,18 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 - 结束原因是自己的预算收尾 `the_budget_could_not_pay_for_another_step`，**不再**是 `the_battle_animation_never_returned_to_the_board`。
 
 同一战斗在 D217 之前的表现是 30 秒判死，D217/D218/D219/D220 之后能跑完整场。诚实边界：`battle_turn_advanced` 本轮为 0（这段战斗主要在演出与结算），所以不能据此声称回合吞吐提高。
+
+## DSH continuation: 地图身份缺一个结构信号（2026-10-25）
+
+三件事本轮已查实，记下来给下一次会话，不再重做：
+
+1. **判据在哪**：`src/maalimbus/map_vision.py::map_header(records, size)` 要求「楼层头 **且** 主题行(pack line)」，缺一即 `None`，页面落 `UNKNOWN`。
+2. **失败是真实且可复现的**：`evidence/runtime/packaged-mirror-20261025-022715/frame-0001.json` 只读到 `'Exploring Floor5' [60,127,338,49] 0.96`，帧内没有任何包线，于是那次 420 秒运行**站在地图上却 0 次点击**。
+3. **文字层无法区分**（两次试验均被既有守卫否掉，已回退）：
+   - 「有楼层数字就当地图」→ `tests/test_map_vision.py::test_pack_line_must_sit_in_its_own_band` 反对；
+   - 「加上右上计数器（如 `1711`）」→ `test_a_panel_whose_pack_line_was_dropped_is_still_a_panel` 反对，实测面板背后**仍显示**同一顶栏。
+   守卫 docstring 已明确：标签足够判**面板**，地图必须带主题行。
+4. **所以需要图像结构信号**：格点网络。`map_vision` 里只有 `MapAsset` 这个 dataclass（`components`/`node_ratio`/`link_ratio`），**没有可调用的 `map_asset(image, size)`**（本轮实测返回不存在），必须先写出来。
+5. **接入点**：图像只在 `agent/recognition.py::observe` 可用；地图身份目前有四个调用点 `agent/recognition.py:301 / :393 / :1277 / :1362`，全部只传 `records, size`。计划是 `map_header(records, size, *, asset=None)`，默认行为不变，只让前两处带上 `asset`。
+
+下一步（按序）：写 `map_asset(image, size)` → 在两帧上打印数值（地图 vs 面板）→ 定阈值 → 新分支只认「floor 存在 + 有格点」→ 跑 `tests/test_map_vision.py`（66 条须全绿）→ 420 秒实机验证 0 点击是否消失。
