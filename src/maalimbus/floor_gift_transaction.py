@@ -89,6 +89,32 @@ class FloorGiftTransaction:
         value = [o.identity() for o in offers]
         return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 
+    def retire_stale_run(self, scope):
+        """Retire a whole record left by another run, so today's page can be prepared (D295).
+
+        `prepare` refuses while the stored record belongs to a different scope and either
+        has a pending half or never completed -- and an unfinished run leaves exactly that
+        behind.  Measured 2026-10-25 (`packaged-mirror-20261025-090324`): a fresh run read
+        `GIFT_PICK` and stopped on `floor_gift_previous_transaction_unresolved` with no
+        pending commit at all, because the previous run's record was simply unfinished.
+        The record is kept in ``history`` with ``abandoned`` set; no input is replayed.
+        """
+        d = self.data or {}
+        if not d or d.get('scope') == scope:
+            return None
+        if d.get('completed') and not d.get('pending'):
+            return None
+        retired = dict(d)
+        retired.pop('history', None)
+        retired['pending'] = {}
+        retired['abandoned'] = {'scope': d.get('scope'), 'reason': 'the_run_that_owned_this_record_ended'}
+        d['history'] = list(d.get('history') or []) + [retired]
+        d['pending'] = {}
+        d['retired'] = {'scope': retired['abandoned']['scope'],
+                        'reason': retired['abandoned']['reason']}
+        write_json(self.path, d)
+        return d['retired']
+
     def retire_stale_commit(self, scope, reason='a_new_run_started_before_the_old_commit_could_be_judged'):
         """Move a commit that can no longer be judged out of the way (D293).
 

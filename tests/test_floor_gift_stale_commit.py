@@ -47,3 +47,22 @@ def test_retiring_is_idempotent_and_never_touches_the_run_that_owes_it(tmp_path)
     assert book.retire_stale_commit('new-run') is None
     same = _ledger(tmp_path, scope='new-run')
     assert tx.FloorGiftTransaction(same).retire_stale_commit('new-run') is None
+
+
+def test_a_run_that_ended_unfinished_does_not_block_the_next_page(tmp_path):
+    path = _ledger(tmp_path, pending=False)
+    book = tx.FloorGiftTransaction(path)
+    retired = book.retire_stale_run('new-run')
+    assert retired and retired['scope'] == 'old-run'
+    assert book.data['pending'] == {} and book.data['completed'] is False
+    assert book.data['history'][-1]['abandoned']['scope'] == 'old-run'
+
+
+def test_a_completed_record_is_not_retired_and_the_owner_is_never_touched(tmp_path):
+    path = _ledger(tmp_path, pending=False)
+    path.write_text(json.dumps({'schema': 1, 'scope': 'old-run', 'offer': 'sig',
+                                'selected': ['A'], 'pending': {}, 'completed': True}),
+                    encoding='utf-8')
+    assert tx.FloorGiftTransaction(path).retire_stale_run('new-run') is None
+    same = _ledger(tmp_path, scope='new-run', pending=False)
+    assert tx.FloorGiftTransaction(same).retire_stale_run('new-run') is None

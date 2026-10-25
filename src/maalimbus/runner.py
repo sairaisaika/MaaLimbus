@@ -4595,6 +4595,13 @@ class MirrorRunner:
                                                    image=_gift_picture(directory, self.observer),
                                                    select_box=self.controls.get('gift_pick.select_button'))
                 floor_offers,gift=_observe_gifts(texts, record.get('size') or (1920,1080), record)
+                # A record left by a run that ended without completing is not this run's
+                # debt: prepare would refuse every new attempt with it (measured
+                # 2026-10-25, `floor_gift_previous_transaction_unresolved` on a fresh
+                # GIFT_PICK page).  Retire it -- no input, evidence kept -- and continue (D295).
+                leased=self.floor_gift_transaction.retire_stale_run(self.run_id)
+                if leased:
+                    self.note('floor_gift_stale_record_retired',input_sent=False,**leased)
                 pending=(self.floor_gift_transaction.data or {}).get('pending')
                 if pending and pending.get('kind')=='pick':
                     self.floor_gift_transaction.recover_pick(self.run_id,floor_offers,gift,
