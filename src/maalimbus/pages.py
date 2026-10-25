@@ -991,6 +991,7 @@ LADDER_VIEW_EVIDENCE = {
     # battle page, none changed what the reader could see.
     ('wait', 'BATTLE_HUD'): 'rarely',
 
+    ('drag_up', 'UNKNOWN'): 'moves_the_view',  # 2 of 3 live polls changed the reader's view
 }
 
 # Rungs that are supposed to move nothing: on a fixed screen the engine is only allowed the

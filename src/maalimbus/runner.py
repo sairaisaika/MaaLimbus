@@ -181,6 +181,7 @@ def _defaults():
         # (4 s) spends that window asleep, while one read costs ~1.2 s.
         'transition_interval': 1.0,
         'transition_seconds': 90.0,
+        'unknown_seconds': 20.0,
         # D59: how many times one step may be retried after a read did not come
         # back.  Bounded, not a loop: after these the run ends with the read's own
         # reason, which is the ending it used to reach on the first failure.
@@ -3290,8 +3291,15 @@ class MirrorRunner:
                 else:
                     state['transition_seen'] = 0
             state['unknown_seen'] += 1
+            # D163: a page nobody can name is bounded by its clock, not only by a count
+            # of rounds.  Measured over the retained archive: 38 of 251 runs hold ten or
+            # more consecutive unreadable reads, the longest 52 -- at 1.4 s a read and a
+            # 4 s poll that is minutes of a run spent asking the same question.
+            state['unknown_since'] = state.get('unknown_since') or time.monotonic()
             turn_waiting=time.monotonic()<state.get('turn_wait_until',0)
-            if state['unknown_seen'] > settings.unknown_rounds and not turn_waiting:
+            spent = time.monotonic() - float(state['unknown_since'])
+            if (state['unknown_seen'] > settings.unknown_rounds
+                    or spent >= float(settings.unknown_seconds)) and not turn_waiting:
                 # A page this reader cannot name is still one view: give it the same
                 # ladder of gestures before calling the run unreadable.  A battle that
                 # is mid-animation and a screen we simply do not know yet look alike
@@ -3300,6 +3308,7 @@ class MirrorRunner:
                 recovered = self._recover(page, state, waiter, {})
                 if recovered is not None:
                     state['unknown_seen'] = 0
+                    state['unknown_since'] = None
                     return recovered
                 stopped = self._record(page, record, frame, candidates, None,
                                        'page_unreadable_after_waiting')
@@ -6371,7 +6380,7 @@ def _fresh_state(settings, store=None):
         pieces = [piece.strip() for piece in part.split(',') if piece.strip()]
         if len(pieces) == 2 and all(piece.isdigit() for piece in pieces):
             map_points.append((int(pieces[0]), int(pieces[1])))
-    return {'step': 0, 'unknown_seen': 0, 'battle_sig': None, 'battle_rounds': 0,
+    return {'step': 0, 'unknown_seen': 0, 'unknown_since': None, 'battle_sig': None, 'battle_rounds': 0,
             'map_progress': MapProgress(), 'floor_now': None, 'map_attempts': 0,
             'recovery_for': None, 'recovery_rung': 0, 'map_zoom_for': None,
             'page_attempts': 0, 'gift_picks': 0, 'initial_picked': 0,
