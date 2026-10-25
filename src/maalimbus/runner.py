@@ -704,7 +704,7 @@ def map_stop_reason(*, tried, attempts):
 
 def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
               radius=MAP_ZOOM_OUT['radius'], factor=MAP_ZOOM_OUT['factor'],
-              seconds=MAP_ZOOM_OUT['seconds'], steps=12):
+              seconds=MAP_ZOOM_OUT['seconds'], steps=12, guard=None):
     """Close two simulated fingers towards each other until the view zooms out.
 
     Nothing is clicked: the emulator sees two touch points (ids 0 and 1) go down at
@@ -718,6 +718,8 @@ def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
     reach = max(1, int(radius))
     target = max(1, int(reach * float(factor)))
     steps = max(1, int(steps))
+    if guard is not None:
+        guard('pinch')
     wait(controller.post_touch_down(cx - reach, cy, 0), timeout=10)
     wait(controller.post_touch_down(cx + reach, cy, 1), timeout=10)
     for index in range(1, steps + 1):
@@ -1097,7 +1099,19 @@ class MaaDevice:
         ``tools/map_zoom.py`` sent when it was calibrated on the live game.
         """
         pinch_out(self.controller, self._wait, centre=centre, radius=radius,
-                  factor=factor, seconds=seconds)
+                  factor=factor, seconds=seconds, guard=self._touch_door)
+
+    def _touch_door(self, what):
+        """The same two refusals every other input door makes (D164).
+
+        A pinch posts two fingers straight to the controller, so without this the
+        gesture was the one input that could be sent to a controller that had
+        already ended or lost its route: the framework answered
+        ``controller not found`` for each touch and the loop counted the gesture
+        as sent.
+        """
+        self._refuse_if_ended(what)
+        self._refuse_binding_lost(what)
 
 
 class LocalDevice:

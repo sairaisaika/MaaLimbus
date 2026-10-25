@@ -50,7 +50,7 @@ def summarise(root):
         if not records:
             runs['empty'] += 1
             continue
-        end = _ending(records)
+        end = _ending(records, os.path.dirname(os.path.abspath(path)))
         if end['kind'] != 'died':
             runs[end['kind']] += 1
             continue

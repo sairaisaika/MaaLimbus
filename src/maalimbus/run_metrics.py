@@ -825,7 +825,7 @@ def portfolio(directories=None):
         if not rows:
             continue
         entry = {'run': directory.name}
-        entry.update(efficiency(rows))
+        entry.update(efficiency(rows, directory))
         runs.append(entry)
         budget = time_budget(rows)
         budgets.append(budget)
