@@ -37,3 +37,15 @@ def test_the_retained_frame_finds_the_flame_above_a_node():
     side = max(max(box[2], box[3]) for box in boxes)
     assert abs(point[0] - 663) <= 0.25 * side
     assert abs(point[1] - 452) <= 0.25 * side
+
+
+def test_the_party_point_is_a_plain_pair_that_truth_tests():
+    """实机教训：返回 numpy 数组时 `if party:` 会抛 ValueError，一局只走了 6 个事件就停。"""
+    image = cv2.imread(str(FRAME))
+    if image is None:
+        pytest.skip('retained frame not available')
+    boxes = [item['box'] for item in map_vision.map_clicks(image)]
+    point = map_vision.party_from_flame(image, boxes)
+    assert isinstance(point, tuple), f'expected a plain pair, got {type(point)}'
+    assert len(point) == 2
+    assert bool(point) is True, 'a found party must be usable in a truth test'

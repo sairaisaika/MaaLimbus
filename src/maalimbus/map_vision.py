@@ -1902,8 +1902,6 @@ def party_from_flame(image, boxes, *, top=0.10, right=0.80, bottom=0.86):
     且高宽比 < 1.2，被排除。
     """
     import cv2
-    import numpy as np
-
     if image is None or not boxes:
         return None
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -1943,7 +1941,9 @@ def party_from_flame(image, boxes, *, top=0.10, right=0.80, bottom=0.86):
             best = (score, centre_x, centre_y)
     if best is None:
         return None
-    return np.array([best[1], best[2]], dtype=np.float64)
+    # 返回普通元组：调用方普遍用 `if party:` 判断，numpy 数组的真值会抛
+    # `ValueError: The truth value of an array ... is ambiguous`（本轮实机 6 事件即崩于此）。
+    return (int(best[1]), int(best[2]))
 
 
 def party_point(image):
