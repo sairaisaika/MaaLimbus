@@ -18,7 +18,9 @@ IDENTIFIER = 'MaaLimbusAgentPreflight'
 SIGNATURES = (
     ('ipc_socket_unavailable', ('Socket operation on non-socket', 'signaler.cpp',
                                 'WinError 1073741845')),
-    ('missing_binary', ('no such file', 'FileNotFoundError')),
+    # the probe's own words first: they are what a missing path actually produces (D175)
+    ('missing_binary', ('the agent is not there', 'no such file', 'FileNotFoundError',
+                        'cannot find the file')),
     ('python_startup_error', ('Failed to execute script', 'ModuleNotFoundError',
                               'ImportError')),
 )
@@ -75,11 +77,15 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     verdict = probe(args.agent, args.seconds)
     verdict['class'] = classify(verdict)
+    # The bundle's own answer is a different question (D174): a passing self-test with a
+    # failing server means "rebuild is not the fix, the machine's sockets are".
+    verdict['self_test'] = self_test(args.agent, seconds=max(args.seconds, 20.0))['class']
     if args.json:
         print(json.dumps(verdict, ensure_ascii=False))
     else:
         print('agent:', verdict['agent'])
         print('survived:', verdict['survived'], 'exit:', verdict['exit'])
+        print('self_test:', verdict['self_test'])
         print('class:', verdict['class'])
         print('tail:', verdict['tail'])
     return 0 if verdict['survived'] else 1

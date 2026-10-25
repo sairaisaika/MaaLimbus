@@ -137,3 +137,12 @@ def test_the_failure_class_is_named_from_the_process_own_words():
 def test_the_self_test_answers_a_different_question_than_the_server(tmp_path):
     probe = _probe()
     assert probe.self_test(tmp_path / 'nope.exe')['class'] == 'missing_binary'
+
+
+def test_the_check_answers_both_questions_in_one_verdict(tmp_path, capsys):
+    probe = _probe()
+    rc = probe.main(['--agent', str(tmp_path / 'nope.exe'), '--json'])
+    payload = __import__('json').loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert rc == 1
+    assert payload['class'] == 'missing_binary'
+    assert payload['self_test'] == 'missing_binary'
