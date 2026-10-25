@@ -531,8 +531,16 @@ def party_point(image, *, board=BOARD):
         x, y = float(fresh[0]), float(fresh[1])
         if left * width <= x <= right * width and top * height <= y <= bottom * height:
             return fresh
+    # 灰度几何兜底（D281）：颜色不参与，只在“某节点上方有一枚竖直细长亮块”时成立。
+    # 真值依据 evidence/runtime/packaged-mirror-20261025-075711/frame-0002.png（火苗 663,452）。
+    try:
+        flame = map_vision.party_from_flame(
+            image, [item['box'] for item in map_vision.map_clicks(image)])
+    except (AttributeError, TypeError, ValueError):
+        flame = None
+    if flame is not None:
+        return flame
     return None
-
 
 def next_untried(candidates, tried):
     """Index of the first map candidate this page has not already been asked about.

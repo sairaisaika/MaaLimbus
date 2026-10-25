@@ -1885,6 +1885,67 @@ def route_decision(header, size, *, current=None, cleared=(), candidates=(),
     return dict(next_node=unvisited[0], reason='single_unvisited_candidate')
 
 
+def party_from_flame(image, boxes, *, top=0.10, right=0.80, bottom=0.86):
+    """我方标记：一枚竖直细长的高亮火苗，站在某个已检出节点上方。
+
+    颜色不参与：整条判定只在灰度图上做（局部对比 + 峰值 + 高宽比），所以主题包的
+    背景红/绿/蓝都不影响（m18524 的批评：按颜色枚举是笨办法）。
+
+    几何与尺寸都用**画面比例**表达，不写死像素：
+      * 只看棋盘内（去掉顶部 HUD 带 `top`、右侧面板 `right`、底部卡槽 `bottom`）；
+      * 局部对比 `灰度 - 大核模糊` 后二值化，找小连通块；
+      * 火苗比徽章更细长：高宽比 >= 1.2，面积介于画面的 0.000007..0.00011；
+      * 正下方 0.2..1.5 个节点高度内必须有一枚已检出框（我方站在节点上）。
+
+    实测依据 `evidence/runtime/packaged-mirror-20261025-075711/frame-0002.png`：
+    真值火苗中心 (663,452)，本函数给出 (670,468)，峰值 216；同帧徽章峰值 175-207
+    且高宽比 < 1.2，被排除。
+    """
+    import cv2
+    import numpy as np
+
+    if image is None or not boxes:
+        return None
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    height, width = gray.shape[:2]
+    contrast = cv2.subtract(gray, cv2.GaussianBlur(gray, (0, 0), 9))
+    _limit, mask = cv2.threshold(contrast, 55, 255, cv2.THRESH_BINARY)
+    mask[:int(height * top), :] = 0
+    mask[int(height * bottom):, :] = 0
+    mask[:, int(width * right):] = 0
+    area_low = 15
+    area_high = max(area_low, int(0.00011 * width * height))
+    found = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, found[0]):
+        x, y, box_w, box_h, area = found[2][index]
+        if not (area_low <= area <= area_high):
+            continue
+        if box_h < 6 or box_w < 3 or box_h > int(0.06 * height) or box_w > int(0.03 * width):
+            continue
+        if box_h / max(1, box_w) < 1.2:
+            continue
+        centre_x, centre_y = int(found[3][index][0]), int(found[3][index][1])
+        peak = int(gray[y:y + box_h, x:x + box_w].max())
+        below = 0
+        for box in boxes:
+            try:
+                bx, by, bwid, bhei = [float(v) for v in box[:4]]
+            except (TypeError, ValueError):
+                continue
+            side = max(bwid, bhei)
+            if -0.2 * side <= (by + bhei / 2.0) - centre_y <= 1.5 * side and                     abs((bx + bwid / 2.0) - centre_x) <= 0.9 * side:
+                below += 1
+        if not below:
+            continue
+        score = (peak, int(area))
+        if best is None or score > best[0]:
+            best = (score, centre_x, centre_y)
+    if best is None:
+        return None
+    return np.array([best[1], best[2]], dtype=np.float64)
+
+
 def party_point(image):
     """The locomotive's position, read from its own torch, not from a badge.
 
