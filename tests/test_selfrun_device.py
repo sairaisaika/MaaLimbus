@@ -132,3 +132,8 @@ def test_the_failure_class_is_named_from_the_process_own_words():
     assert probe.classify({'survived': False, 'exit': None, 'tail': 'no such file'}) == 'missing_binary'
     assert probe.classify({'survived': False, 'exit': 1, 'tail': 'ImportError: x'}) == 'python_startup_error'
     assert probe.classify({'survived': False, 'exit': 1, 'tail': ''}) == 'unknown_failure'
+
+
+def test_the_self_test_answers_a_different_question_than_the_server(tmp_path):
+    probe = _probe()
+    assert probe.self_test(tmp_path / 'nope.exe')['class'] == 'missing_binary'

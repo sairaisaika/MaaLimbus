@@ -7,6 +7,7 @@ probe for it, and an installer check needs the same answer -- so the question is
 here once instead of being answered in each caller (D170).
 """
 from __future__ import annotations
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -86,3 +87,28 @@ def main(argv=None) -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
+
+def self_test(agent, *, seconds: float = 20.0) -> dict:
+    """Ask the bundle to test itself, which it can do without opening a socket.
+
+    Measured on 2026-10-25: `--self-test` printed `{"passed": true, ...}` for a bundle
+    whose server path died in zeromq's signaler, so the two questions are different --
+    "is my bundle complete" and "can I open the agent socket".
+    """
+    path = Path(agent)
+    if not path.exists():
+        return {'passed': False, 'class': 'missing_binary', 'tail': 'the agent is not there'}
+    try:
+        done = subprocess.run([str(path), '--self-test'], cwd=str(path.parent.parent),
+                              capture_output=True, text=True, timeout=seconds)
+    except subprocess.TimeoutExpired:
+        return {'passed': False, 'class': 'self_test_timed_out', 'tail': ''}
+    tail = ((done.stdout or '') + (done.stderr or '')).strip()
+    try:
+        payload = json.loads(tail.splitlines()[-1])
+    except (ValueError, IndexError):
+        payload = {}
+    passed = bool(payload.get('passed'))
+    return {'passed': passed, 'class': 'self_test_passed' if passed else 'self_test_failed',
+            'tail': tail[-200:], 'report': payload}
