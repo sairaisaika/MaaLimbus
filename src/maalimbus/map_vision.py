@@ -2116,7 +2116,7 @@ def glow_point(image):
     return (best[1], best[2])
 
 
-def party_point(image):
+def _party_point_legacy(image):
     """The locomotive's position, read from its own torch, not from a badge.
 
     `player_marker` returns None on the live frames (`evidence/runtime/
@@ -2218,29 +2218,6 @@ STEP_CENTRES = tuple(
     for sy in (1, -1))
 
 
-def adjacent_to(party, boxes, *, steps=None, tolerance=0.34):
-    """Keep the boxes one step from the party, on the lattice the page draws.
-
-    Measured on `evidence/runtime/packaged-mirror-20261022-085428/frame-0008`: with the
-    party at (1052,562) the six badges sat at centre offsets (-381,-106), (-381,+54),
-    (-189,-110) and (-765,-125) — i.e. the neighbours are (384,0), (192,110) and their
-    mirrors, not the (384,320) the older constants assumed.  Every rejected target that
-    run was two steps out, which is why nothing moved; a hand click one step out opened
-    the node's panel.
-    """
-    steps = STEP_CENTRES if steps is None else steps
-    if party is None:
-        return list(boxes)
-    keep = []
-    for box in boxes:
-        x, y, w, h = [float(v) for v in box[:4]]
-        dx, dy = (x + w / 2) - party[0], (y + h / 2) - party[1]
-        for ex, ey in steps:
-            if (abs(dx - ex) <= 384 * tolerance
-                    and abs(dy - ey) <= 220 * tolerance):
-                keep.append(box)
-                break
-    return keep
 
 
 def pitch_of(party, boxes, *, floor=60.0, corroboration=2):
@@ -2366,7 +2343,7 @@ def movement_between(before, after, *, tolerance=VIEW_TOLERANCE):
 # frames read fine).  A reader that returns None on an order it cannot see is the
 # defect that cost three rounds of retracting "the reader is broken", so the second
 # order is tried before giving up.
-_bgr_party_point = party_point
+_bgr_party_point = _party_point_legacy   # the first generation, kept as the colour reader
 
 
 def party_readings(image):
