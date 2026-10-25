@@ -873,10 +873,8 @@ PLANNED_REASONS = {
 # passes.--  The value is `page_must_change`, and `tests/test_plan_proof.py` fails when a
 # new acting plan carries only that and is not declared here.
 PLANS_WITH_ONLY_A_DISMISSAL = {
-    'a_completed_run_spends_one_weekly_bonus_on_its_rewards': 'page_must_change',
     'a_key_saved_slot_is_dead_and_the_shop_sells_the_way_back': 'page_must_change',
     'a_lost_run_opens_its_rewards_only_to_give_them_up': 'page_must_change',
-    'a_run_that_was_not_completed_keeps_the_weekly_bonus': 'page_must_change',
     'claiming_is_the_only_forward_input_on_the_run_summary': 'page_must_change',
     'confirm_grants_the_picked_encounter_reward': 'page_must_change',
     'disable_unauthorized_starlight_conversion': 'page_must_change',
@@ -891,17 +889,14 @@ PLANS_WITH_ONLY_A_DISMISSAL = {
     'the_reward_claim_is_confirmed_and_never_cancelled': 'page_must_change',
     'the_reward_modal_is_claimed_and_never_given_up': 'page_must_change',
     'the_skill_detail_popup_is_dismissed_off_the_board': 'page_must_change',
+    'the_starting_gift_is_picked_from_the_rotation_keyword': 'page_must_change',
+    'the_starting_gift_row_is_taken_from_the_tray': 'page_must_change',
     'the_suspended_exploration_is_left_for_the_entry': 'page_must_change',
     'the_suspended_exploration_is_resumed_from_the_entry': 'page_must_change',
     'the_unexpected_dialog_is_dismissed_with_its_own_close': 'page_must_change',
-    # Reached through `state.get('reason') or '<this word>'` in the window layer; the
-    # `or` fallback (D57) is what made it visible here, and the same plan is an `advance`
-    # plan, so its click is also judged by the frame.
-    'the_starting_gift_is_picked_from_the_rotation_keyword': 'page_must_change',
-    # D64: visible now, always was in the code -- the row pick names its word as a
-    # literal in the window layer instead of handing it over in `initial['reason']`.
-    'the_starting_gift_row_is_taken_from_the_tray': 'page_must_change',
     'the_way_back_to_the_entry_is_confirmed': 'page_must_change',
+    'the_weekly_bonus_question_has_no_confirm_control_to_answer': 'page_must_change',
+    'the_weekly_bonus_question_is_answered_while_it_is_asked': 'page_must_change',
     'the_weekly_reset_notice_is_declined_and_the_run_stays': 'page_must_change',
     'the_wiped_run_is_accepted_and_the_stage_select_comes_back': 'page_must_change',
     'tutorial_book_is_closed_from_its_own_header_arrow': 'page_must_change',
@@ -959,17 +954,27 @@ PLANS_THE_INDEX_CANNOT_NAME = {}
 # without being named.  Naming a page is the fix, and it needs its own evidence: adding a
 # page to `expect` says only that landing there does not disprove the input.
 SUCCESSORS_THE_ARCHIVE_SAW = {
-    # Counts moved on 2026-10-24 after the authorised runs; D58's rule is that a landing
-    # the archive saw is a missing line, so the counts follow the corpus and the rule does
-    # not change.
-    'the_cutscene_is_skipped_to_resume_the_run': {'EVENT_CHECK': 11, 'EVENT_CHECK_READY': 5, 'EVENT_CHECK_RESULT': 8, 'EVENT_CHOICE': 16},
-    'the_event_choice_that_names_its_reward_is_taken': {'EVENT_RESULT': 8, 'EVENT_RESULT_READY': 8},
-    'the_event_result_is_cleared_with_its_own_continue': {'CUTSCENE': 10, 'GIFT_GET': 3},
-    'the_check_outcome_is_tapped_through_until_its_control_lights_up': {'CUTSCENE': 3, 'EVENT_CHECK_READY': 7},
-    'mirror_menu_recognition_owns_the_click_box': {'STAR_GRACES': 4},    # Measured 2026-10-24 (`packaged-mirror-20261024-181536`): a battle the loop started
-    # from the pre-battle page goes through the loader before its HUD.
-    'battle_button_submits_the_team': {'LOADING': 3},
-
+    'mirror_menu_recognition_owns_the_click_box': {
+        'STAR_GRACES': 5,
+    },
+    'the_check_outcome_is_tapped_through_until_its_control_lights_up': {
+        'CUTSCENE': 4,
+        'EVENT_CHECK_READY': 7,
+    },
+    'the_cutscene_is_skipped_to_resume_the_run': {
+        'EVENT_CHECK': 12,
+        'EVENT_CHECK_READY': 6,
+        'EVENT_CHECK_RESULT': 9,
+        'EVENT_CHOICE': 16,
+    },
+    'the_event_choice_that_names_its_reward_is_taken': {
+        'EVENT_RESULT': 8,
+        'EVENT_RESULT_READY': 8,
+    },
+    'the_event_result_is_cleared_with_its_own_continue': {
+        'CUTSCENE': 10,
+        'GIFT_GET': 3,
+    },
 }
 
 # What each rung of `runner.RECOVERY_LADDER` was observed to do to the *view*, per page.
