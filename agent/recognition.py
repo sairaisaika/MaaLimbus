@@ -394,6 +394,46 @@ class LimbusRecognition(CustomRecognition):
             # The floor header plus its pack line is the only map identity anchor;
             # artwork, currency and season icons are never consulted.
             scene='MAP'
+        if scene=='UNKNOWN':
+            # One map variant prints its pack line in a faint small face the full-frame
+            # pass never emits: six consecutive frames of
+            # evidence/runtime/packaged-mirror-20261025-044012 carry the caption but no pack
+            # row at all, so the identity above never fires and every later rule (floor
+            # gate, candidates, walk) is unreachable.  One narrow low-threshold read
+            # recovers 'SunkClom' at 0.551; space-and-case proximity resolves it to the
+            # catalogue's 'Sunk Gloom', which is handed over as an identity rather than
+            # smuggled in as a high-score OCR row.
+            import difflib
+            w,h=size
+            roi=[round(.010*w),round(.160*h),round(.105*w),round(.055*h)]
+            faint=roi_direct(JRecognitionType.OCR,
+                JOCR(roi=roi,only_rec=True,threshold=.1),image)
+            faint_rows=[]
+            if faint is not None:
+                for result in faint.all_results:
+                    if hasattr(result,'text') and result.text.strip():
+                        b=result.box
+                        box=(b.x,b.y,b.w,b.h) if hasattr(b,'x') else tuple(b)
+                        # Maa reports roi reads in the 1280x720 reference space while the
+                        # frame is 1920x1080; unscaled the row misses the pack band.
+                        scaled=(box[0]*w/1280,box[1]*h/720,box[2]*w/1280,box[3]*h/720)
+                        faint_rows.append([result.text,list(box),result.score])
+                        records.append(Text(result.text,scaled,result.score))
+            resolved=None
+            if faint_rows:
+                catalogue=ThemeCatalog(ROOT/'assets/resource/base')
+                squash=lambda text: ''.join(str(text).split()).lower()
+                by_squashed={squash(name): name for name in catalogue.names}
+                hit=difflib.get_close_matches(squash(faint_rows[0][0]),list(by_squashed),
+                                              n=1,cutoff=.82)
+                resolved=by_squashed[hit[0]] if hit else None
+            if resolved is not None:
+                resolved_header=map_header(records,size,pack_name=resolved)
+                if resolved_header is not None:
+                    scene='MAP'
+                    header=resolved_header
+                    map_local.append(dict(floor=resolved_header.floor,pack=resolved,
+                                          faint=True))
         if scene in ('UNKNOWN','TEAM_LIBRARY') and pre_battle_team_page(records,size) is not None:
             # Reached from the node panel's Enter: the pre-battle team/identity page
             # carries its own `Clear Selection` and `Battle!` actions, so the generic

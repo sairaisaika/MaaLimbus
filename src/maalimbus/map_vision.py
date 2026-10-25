@@ -1588,7 +1588,7 @@ def floor_label(records, size):
     return labels[0] if labels else None
 
 
-def map_header(records, size):
+def map_header(records, size, pack_name=None):
     """Return the map header only when floor text and the pack line both parse.
 
     The pack line is required so an unrelated page carrying similar wording cannot
@@ -1618,8 +1618,14 @@ def map_header(records, size):
         if same_line:
             digit = re.match(HEADER_FLOOR_PATTERN, same_line[0].text.strip(), re.I).group(1)
             floor = int(digit) if digit else None
+    # A caller that resolved a faint pack line hands its identity in (`pack_name`): the
+    # row carries the faint pass's low score ('SunkClom' 0.551 on
+    # evidence/runtime/packaged-mirror-20261025-044012/frame-0005), so the noise gate that
+    # keeps fragments out would also keep the real line out.  With a resolved identity the
+    # threshold admits it and `MapHeader.pack` carries the canonical name.
+    floor_score = .5 if pack_name else .8
     pack_candidates = [r for r in records
-                       if r.score >= .8 and r.box[1] > text.box[1]
+                       if r.score >= floor_score and r.box[1] > text.box[1]
                        and PACK_ROI[0] <= (r.box[0] + r.box[2] / 2) / size[0] <= PACK_ROI[2]
                        and PACK_ROI[1] <= (r.box[1] + r.box[3] / 2) / size[1] <= PACK_ROI[3]
                        and not re.match(HEADER_PATTERN, r.text.strip(), re.I)
@@ -1637,7 +1643,8 @@ def map_header(records, size):
     pack = pack_candidates[0] if pack_candidates else None
     if pack is None:
         return None
-    return MapHeader(floor, pack.text.strip(), text, pack)
+    name = (pack_name or pack.text).strip()
+    return MapHeader(floor, name, text, pack)
 
 
 def map_page(records, size):
