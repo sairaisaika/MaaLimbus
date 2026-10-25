@@ -61,3 +61,19 @@ def test_the_live_floor_one_pitch_is_the_measured_192_and_the_boss_is_far():
     assert distance / 192 > 3                        # about 3.7 steps away
     assert centre not in [(box[0] + box[2] / 2, box[1] + box[3] / 2)
                           for box in mv.one_step(party, boxes)]
+
+
+def test_the_badge_box_follows_the_screen_and_not_a_1080p_constant():
+    """D275: a 1280x720 frame must not be read with 190 px boxes."""
+    import cv2
+    from maalimbus import map_vision as mv2
+    frame_720 = ROOT / 'evidence/runtime/lattice-probe/zoomed2.png'
+    if not frame_720.exists():
+        pytest.skip('retained probe frame is not present')
+    image = cv2.imread(str(frame_720))
+    assert image.shape[0] == 720
+    clicks = mv2.map_clicks(image, template=runner.node_badge_template())
+    sides = [item['box'][2] for item in clicks]
+    assert sides, 'the frame still yields readings'
+    assert 127 in sides, 'the badge box is 190 * 720/1080 = 127 on this frame'
+    assert 190 not in sides, 'a 1080p box cannot be right on a 720p frame'

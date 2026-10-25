@@ -1308,7 +1308,12 @@ def relaxed_nodes(image, *, band=(.18, .78), node_side=190, min_side=12, area_fl
     return out
 
 
-def map_clicks(image, *, template=None, node_side=190, player=None):
+def map_clicks(image, *, template=None, node_side=None, player=None):
+    # The badge node's side is a fraction of the screen, not a 1080p constant: the
+    # emulator has served both 1920x1080 and 1280x720 frames in one day, and on the
+    # smaller one a 190 px box swallowed tiles and missed every node (D275).
+    if node_side is None:
+        node_side = max(40, round(BADGE_NODE_SIDE * image.shape[0] / 1080.0))
     """Ordered click boxes for a MAP page: the marked step first, then the nodes.
 
     Live run window-20261006-040751 is why the highlight is consulted first: four
@@ -2216,6 +2221,9 @@ def cyan_step_boxes(image, party, *, near=120.0, far=400.0):
         boxes.append((gap, [x, y, w, h]))
     boxes.sort(key=lambda item: item[0])
     return [box for _gap, box in boxes]
+
+
+BADGE_NODE_SIDE = 190
 
 
 def node_class(boxes, *, share=0.1):
