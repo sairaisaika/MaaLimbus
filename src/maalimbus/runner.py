@@ -1933,6 +1933,34 @@ def party_anchor_source(record):
     return 'read' if record.get('map_party') else 'none'
 
 
+def party_on_a_node(party, boxes, *, share=0.6):
+    """Whether the party reading stands on a node, i.e. is a plausible anchor.
+
+    The board gate alone is not enough: live `packaged-mirror-20261025-075247` read the
+    party at (162, 430) of 1920x1080 -- inside the board fractions, so every gate passed --
+    while the nodes were elsewhere, the adjacency filter then emptied the candidate list
+    and the run ended `no_candidate_node_observed`.  The party never stands between nodes;
+    it stands on one, so a reading with no node within a fraction of a node's own side is
+    not the party and must travel the `carried` / `none` path instead of anchoring geometry.
+
+    ``share`` is the fraction of the box side used as the reach, so the rule is expressed
+    in the reader's own units (the boxes it found) and not in pixels of one screen size.
+    """
+    if not party or not boxes:
+        return False
+    px, py = float(party[0]), float(party[1])
+    for box in boxes:
+        try:
+            x, y, w, h = [float(v) for v in box[:4]]
+        except (TypeError, ValueError):
+            continue
+        cx, cy = x + w / 2.0, y + h / 2.0
+        reach = max(8.0, share * max(w, h))
+        if ((px - cx) ** 2 + (py - cy) ** 2) ** 0.5 <= reach:
+            return True
+    return False
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -1966,6 +1994,11 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # (576,361) outward).  If the party cannot be read the list is left whole, because
     # an unread party must not leave the run with nothing to try.
     party = party_point(image)
+    if party is not None and not party_on_a_node(party, [item['box'] for item in clicks]):
+        # Inside the board is not the same as on a node (D280): the live reading
+        # (162, 430) passed every fraction gate and then emptied the candidate list.
+        record['map_party_rejected'] = [int(v) for v in party]
+        party = None
     # The verdict that follows this click must carry the same party the candidates
     # were filtered against; nothing else records it (see `_map_verdict`).
     # D147: `party_point` can answer with an array, and `if party` on an array is a
