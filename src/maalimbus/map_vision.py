@@ -2883,3 +2883,32 @@ def arrow_target(image, party, boxes, *, step=None, reach=200):
                 'target': None, 'gap': None if best is None else round(best[0], 1)}
     return {'arrow': arrow, 'guess': [round(v, 1) for v in guess],
             'target': [int(v) for v in best[1][:4]], 'gap': round(best[0], 1)}
+
+
+def neighbour_by_line(image, party, boxes, *, reach_ratio=0.25, band=0.45, min_lit=0.02):
+    """The neighbouring tile that a drawn line actually connects the party to.
+
+    Measured on the live 1280x720 frame: one tile is ~320 px, i.e. a quarter of the frame
+    width, and the four tiles around the party all sit at that distance -- so distance cannot
+    order them, and only the line can.  `line_lit` scores each segment; a tile whose segment
+    carries no lit pixels is not offered at all (D329).
+    """
+    width = image.shape[1]
+    reach = width * reach_ratio
+    best = None
+    seen = []
+    for box in boxes:
+        centre = (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
+        distance = ((centre[0] - party[0]) ** 2 + (centre[1] - party[1]) ** 2) ** 0.5
+        if not (reach * (1.0 - band) <= distance <= reach * (1.0 + band)):
+            continue
+        score = line_lit(image, party, centre)
+        seen.append({'box': [int(v) for v in box[:4]], 'score': score, 'distance': round(distance, 1)})
+        if score < min_lit:
+            continue
+        if best is None or score > best[0]:
+            best = (score, box, centre, distance)
+    if best is None:
+        return {'reach': round(reach, 1), 'box': None, 'scored': seen}
+    return {'reach': round(reach, 1), 'box': [int(v) for v in best[1][:4]],
+            'score': best[0], 'distance': round(best[3], 1), 'scored': seen}
