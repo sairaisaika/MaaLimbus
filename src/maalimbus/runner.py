@@ -1800,13 +1800,31 @@ def blind_map_boxes(directory, record):
     # order put a marker two hops away first -- so the run clicked a shop it could not
     # reach and three empty tiles, and never tried the adjacent node.
     party = party_point(image)
+    steps = []
     if party is not None:
+        try:
+            from .map_vision import cyan_step_boxes
+            steps = cyan_step_boxes(image, party)
+        except (ImportError, ValueError):
+            steps = []
         order = {tuple(box): index
                  for index, box in enumerate(rank_by_distance([list(i['box']) for i in clicks], party))}
         clicks.sort(key=lambda item: order[tuple(list(item['box']))])
     else:
         clicks.sort(key=lambda item: _kind_rank(item.get('kind')))
-    return [list(item['box']) for item in clicks]
+    # The outlined step comes first: it is the one the game is offering, and the badge
+    # reader does not see it at all (D240).
+    ranked = [step for step in steps]
+    seen = {tuple(step) for step in ranked}
+    for item in clicks:
+        box = [int(v) for v in item['box']]
+        if tuple(box) in seen:
+            continue
+        if any(abs(box[0] - s0) < 30 and abs(box[1] - s1) < 30 for s0, s1, _w, _h in ranked):
+            continue  # the same node, already listed by its outline
+        ranked.append(box)
+        seen.add(tuple(box))
+    return ranked
 
 
 def rank_by_distance(boxes, party):

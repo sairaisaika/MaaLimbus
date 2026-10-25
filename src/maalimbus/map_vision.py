@@ -2024,3 +2024,38 @@ def selection_bracket(image):
         h = max(left[1] + left[3], right[1] + right[3]) - y
         return (int(x), int(y), int(w), int(h))
     return None
+
+def cyan_step_boxes(image, party, *, near=120.0, far=400.0):
+    """Cyan outlines near the party: the step the game is offering right now.
+
+    `map_clicks(template=node_badge_template())` matches badge glyphs and misses the
+    plain outlined hexagon that marks the reachable step, which is why a floor-5 run
+    clicked a shop two hops away and three empty tiles
+    (evidence/runtime/packaged-mirror-20261025-035558/frame-0019.png: party (861,209),
+    the step at about (1030,220), the shop at about (1229,250)).
+
+    Measured on that frame: the outline's pixels are H 95-96, S ~219, V ~115, they arrive
+    as arcs of 200-450 px (the lower one is 48x23 at (1031,237)), and the horizontal path
+    line is cyan too -- so a blob is a candidate only when it sits in the band between
+    `near` and `far` from the party, which is exactly one step of the lattice.
+    """
+    import cv2
+    import numpy as np
+    if party is None:
+        return []
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, (92, 150, 85), (102, 255, 255))
+    count, _labels, stats, _centres = cv2.connectedComponentsWithStats(mask, 8)
+    boxes = []
+    for index in range(1, count):
+        x, y, w, h, area = (int(v) for v in stats[index][:5])
+        if area < 60 or not (20 <= w <= 110 and 10 <= h <= 110):
+            continue
+        gap = ((x + w / 2 - party[0]) ** 2 + (y + h / 2 - party[1]) ** 2) ** 0.5
+        if not (near <= gap <= far):
+            continue
+        if (y + h / 2) < 0.14 * image.shape[0]:
+            continue  # the header bar is cyan too; a step is never up there
+        boxes.append((gap, [x, y, w, h]))
+    boxes.sort(key=lambda item: item[0])
+    return [box for _gap, box in boxes]
