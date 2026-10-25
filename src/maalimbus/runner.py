@@ -2096,6 +2096,17 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     if image is None:
         return None, None
     party = party_point(image)
+    # `-154351` answered `adjacency {before: 1, after: 1}` and `offered 0` together, and
+    # `party_snap_failed` never fired: the list had already been emptied by the
+    # `fallback_party is None` return, while the step's own anchor read (1091,252) was on
+    # the same frame.  So the two readings disagree and this line says which way: `read`
+    # is this function's own reading, `fallback` is what the caller handed over, and
+    # `size` names the frame it was read from (D319).
+    _read_party = None if party is None else [int(v) for v in party]
+    record['map_party_in_candidates'] = {
+        'read': _read_party,
+        'size': [int(image.shape[1]), int(image.shape[0])],
+        'fallback': None if fallback_party is None else [int(v) for v in fallback_party]}
     # Which picture and which size this process read (D310).  Live `-150912` shows
     # `record_party: None` while the repository, on the same run's archived frame, answers
     # (1091,252) -- the reader itself has been proven right at 720p and 1080p, so the only
