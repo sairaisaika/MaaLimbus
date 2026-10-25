@@ -1625,6 +1625,14 @@ def map_header(records, size):
                        and not re.match(HEADER_PATTERN, r.text.strip(), re.I)
                        and not re.match(HEADER_LABEL_PATTERN, r.text.strip(), re.I)
                        and not re.match(HEADER_FLOOR_PATTERN, r.text.strip(), re.I)]
+    # A pack line is a phrase drawn across the header, so a two-character fragment of a
+    # few dozen pixels is not one: the node panel's noise was accepted as "Su" (26x18,
+    # score .99) and the panel was promoted to MAP (evidence/runtime/
+    # packaged-mirror-20261025-012549/frame-0001.json). Real pack lines measure
+    # 114-118 px wide at 1920 (median 118, "Sunk Gloom" 114), so the candidate must be
+    # at least 5% of the frame wide or a phrase of six characters or more.
+    pack_candidates = [r for r in pack_candidates
+                       if r.box[2] >= .05 * size[0] or len(r.text.strip()) >= 6]
     pack_candidates.sort(key=lambda r: (r.box[1], r.box[0]))
     pack = pack_candidates[0] if pack_candidates else None
     if pack is None:

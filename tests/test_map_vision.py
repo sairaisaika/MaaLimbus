@@ -1394,3 +1394,31 @@ def test_the_party_reader_accepts_the_frameworks_channel_order():
     assert bgr is not None, 'the BGR case must keep working'
     assert rgb == bgr, 'the RGB order the agent passes must give the same point'
     assert rgba == bgr, 'and RGBA when the controller adds alpha'
+
+def _archived(path):
+    import json, pathlib as _p
+    from maalimbus.vision import Text
+    data = json.loads(_p.Path(path).read_text(encoding='utf-8'))
+    records = [Text(r['text'], tuple(r['box']), r['score']) for r in (data.get('ocr') or [])]
+    return records, tuple(data.get('size') or (1920, 1080))
+
+
+def test_a_two_character_fragment_is_not_a_pack_line():
+    """The node panel's noise read as "Su" (26x18, score .99) and the panel became MAP."""
+    import pathlib as _p, pytest
+    path = 'evidence/runtime/packaged-mirror-20261025-012549/frame-0001.json'
+    if not _p.Path(path).exists():
+        pytest.skip('the retained panel frame is not in this checkout')
+    records, size = _archived(path)
+    assert floor_label(records, size) is not None, 'the header is readable there'
+    assert map_header(records, size) is None
+
+
+def test_a_real_pack_line_still_maps():
+    import pathlib as _p, pytest
+    path = 'evidence/runtime/packaged-mirror-20261024-171103/frame-0008.json'
+    if not _p.Path(path).exists():
+        pytest.skip('the retained map frame is not in this checkout')
+    records, size = _archived(path)
+    header = map_header(records, size)
+    assert header is not None and header.pack == 'Sunk Gloom'
