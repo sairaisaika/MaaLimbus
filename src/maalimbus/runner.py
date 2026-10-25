@@ -3238,9 +3238,16 @@ class MirrorRunner:
             return
 
         def measure():
-            image, record = self._frame_and_record()
-            if image is None:
-                return (None, None)
+            # The first look can land before the frame is written (measured 2026-10-25:
+            # every live run reported `view_normalised steps:0` because this returned None
+            # once and normalisation is skipped when the party is unknown).  One bounded
+            # retry is enough; a frame still missing after it is a real "cannot read".
+            for attempt in range(2):
+                image, record = self._frame_and_record()
+                if image is not None:
+                    break
+                if attempt == 0:
+                    time.sleep(SETTLE_READ_SECONDS)
             size = tuple(record.get('size') or (image.shape[1], image.shape[0]))
             width, height = size
             return party_point(image), (width, height)
