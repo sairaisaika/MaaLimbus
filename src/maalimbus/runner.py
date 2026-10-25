@@ -2120,6 +2120,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # to distance (live `-135349`: nine clicks at a node the page never accepted, with
     # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
     clicks = map_clicks(image, template=node_badge_template(), player=party)
+
+    # D331: what the drawn line says, recorded before any decision uses it.  The share of lit
+    # pixels along the segment is the only reading that separates a connected tile from a bare
+    # one on this screen (median grey 4, p90 22), so it is measured here and kept next to the
+    # party the step already records.
+    if party is not None:
+        record.setdefault('map_lattice', {})['line_step'] = map_vision.neighbour_by_line(
+            image, party, [list(item['box']) for item in clicks])
     chrome = header_chrome(record)
     if chrome:
         clicks = [item for item in clicks if not inside_chrome(item['box'], chrome)]
