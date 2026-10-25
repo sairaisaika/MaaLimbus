@@ -2806,3 +2806,80 @@ def tile_centre(image, box, *, lit=25):
     cx = min(max(cx, int(w * 0.25)), int(w * 0.75))
     cy = min(max(cy, int(h * 0.20)), int(h * 0.80))
     return (x + cx, y + cy)
+
+
+def direction_arrow(image, party, *, contrast_cut=16, reach=200):
+    """The arrow the page draws next to the party, as a unit direction.
+
+    Calibrated on the live 1280x720 frame (`build/live-now.png`): the two flat glyph halves
+    appear only at a local-contrast cut of 14-18 -- the HSV gate the reader used was set on
+    1920 frames and lost them entirely at half the resolution (D327).  The pair nearest the
+    party wins, and the vector between its halves is the direction the page is offering.
+    """
+    import cv2
+    import numpy as np
+
+    grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(grey, (9, 9), 0)
+    contrast = cv2.subtract(grey, blur)
+    cv2.threshold(contrast, contrast_cut, 255, cv2.THRESH_BINARY, contrast)
+    count, _lab, stats, cent = cv2.connectedComponentsWithStats(contrast)
+    flats = []
+    for index in range(1, count):
+        x, y, w, h, area = stats[index]
+        if area < 25 or h < 6 or h > 26 or w > 44 or w / float(h) < 1.3:
+            continue
+        flats.append((int(round(cent[index][0])), int(round(cent[index][1]))))
+    best = None
+    for first in range(len(flats)):
+        for second in range(first + 1, len(flats)):
+            dx = abs(flats[first][0] - flats[second][0])
+            dy = abs(flats[first][1] - flats[second][1])
+            if not (10 <= dx <= 46 and dy <= 8):
+                continue
+            mid = ((flats[first][0] + flats[second][0]) / 2.0,
+                   (flats[first][1] + flats[second][1]) / 2.0)
+            gap = ((mid[0] - party[0]) ** 2 + (mid[1] - party[1]) ** 2) ** 0.5
+            if gap > reach:
+                continue
+            if best is None or gap < best[0]:
+                best = (gap, mid, flats[first], flats[second])
+    if best is None:
+        return None
+    gap, mid, first, second = best
+    dx = float(first[0] - second[0])
+    dy = float(first[1] - second[1])
+    norm = (dx * dx + dy * dy) ** 0.5 or 1.0
+    return {'pair': [list(first), list(second)],
+            'mid': [int(round(mid[0])), int(round(mid[1]))],
+            'gap': round(gap, 1),
+            'direction': [round(dx / norm, 3), round(dy / norm, 3)]}
+
+
+def arrow_target(image, party, boxes, *, step=None, reach=200):
+    """The node the drawn arrow points at: party + direction x one step, snapped to a box.
+
+    The direction comes from :func:`direction_arrow`; the step defaults to the frame width
+    divided by 15 (1280 -> 85, 1920 -> 128), which is one tile at the zoom the live frame was
+    captured at.  The result is the box whose centre is nearest to that guess, and only when
+    it is within half a tile -- a guess that lands in empty floor is reported as no target
+    rather than clicked (D328).
+    """
+    width = image.shape[1]
+    span = float(step or max(64.0, width / 15.0))
+    arrow = direction_arrow(image, party)
+    if arrow is None:
+        return None
+    guess = (party[0] + arrow['direction'][0] * span,
+             party[1] + arrow['direction'][1] * span)
+    best = None
+    for box in boxes:
+        centre = (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
+        gap = ((centre[0] - guess[0]) ** 2 + (centre[1] - guess[1]) ** 2) ** 0.5
+        if best is None or gap < best[0]:
+            best = (gap, box, centre)
+    if best is None or best[0] > span / 2.0:
+        return {'arrow': arrow, 'guess': [round(v, 1) for v in guess],
+                'target': None, 'gap': None if best is None else round(best[0], 1)}
+    return {'arrow': arrow, 'guess': [round(v, 1) for v in guess],
+            'target': [int(v) for v in best[1][:4]], 'gap': round(best[0], 1)}

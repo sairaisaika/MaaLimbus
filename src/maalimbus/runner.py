@@ -2311,6 +2311,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # filter ate everything; the two numbers answer that in one line.
     record['map_lattice']['adjacency'] = {'before': len(picked), 'after': len(near),
                                           'dropped': len(picked) - len(near)}
+    # The page draws the step it will accept; that arrow is the only statement of reachability
+    # the screen makes (D328).  It is tried before distance, which measured 0.00 lit pixels on
+    # the box it had chosen.
+    _arrow = map_vision.arrow_target(image, party, near) if (party is not None and near) else None
+    if _arrow is not None:
+        record['map_arrow_target'] = {'guess': _arrow['guess'], 'gap': _arrow['gap'],
+                                      'direction': _arrow['arrow']['direction'],
+                                      'target': _arrow['target']}
     ordered = order_candidates(near, kinds) + bosses
     if not ordered and near:
         # No rest box holds the edge's centre, so the edge itself is the only reading the
