@@ -3297,6 +3297,14 @@ class MirrorRunner:
             width, height = measure()[1] or (1920, 1080)
             device.swipe(width // 2, height // 2,
                          width // 2 + int(dx), height // 2 + int(dy), 350)
+            # Observe *after* the gesture: frames are only written when the loop observes,
+            # so without this the next measure() reads the picture from before the drag and
+            # the displacement is always zero -- which is exactly the self-contradicting
+            # `dragged:1 / steps:0` pair measured on 2026-10-25.
+            try:
+                self._observe(phase='view_drag')
+            except Exception as error:  # a diagnostic may never end a run
+                self.note('view_drag_read_failed', error=type(error).__name__)
 
         try:
             result = normalise_view(measure, zoom, drag)

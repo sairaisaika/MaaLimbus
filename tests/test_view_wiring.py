@@ -34,3 +34,11 @@ def test_the_result_event_names_the_two_paths():
     body = SOURCE[SOURCE.index('def _normalise_view_once'):SOURCE.index('def _frame_and_record')]
     assert "scale_lost_party=bool(result.get('scale_lost_party'))" in body
     assert "zoomed=result.get('zoomed')" in body
+
+
+def test_a_drag_is_followed_by_an_observation():
+    body = SOURCE[SOURCE.index('def _normalise_view_once'):SOURCE.index('def _frame_and_record')]
+    drag_at = body.index('def drag(dx, dy):')
+    swipe_at = body.index('device.swipe(', drag_at)
+    observe_at = body.index("self._observe(phase='view_drag')", swipe_at)
+    assert swipe_at < observe_at, 'the observation must come after the gesture'
