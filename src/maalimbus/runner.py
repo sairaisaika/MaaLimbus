@@ -174,7 +174,14 @@ def _defaults():
         # 12 s, 23% after 20 s and 28% after 40 s -- flat, so waiting is latency and not
         # patience.  A fifth of a second under one read keeps the cadence below the cost
         # of the sample it precedes.
-        'unknown_interval': 1.5,
+        #
+        # D183: but a read is a *read*, and the episode is now clocked (D163), so the pace
+        # decides how many reads one unreadable stretch costs.  Measured over the 142
+        # unknown-page inputs of the current era: median 8 reads per input, p90 27, i.e.
+        # 8 polls of a page that resolves on the game's schedule either way.  At 3 s the
+        # same 20 s clock spends six reads instead of thirteen, and D79's flat curve is
+        # why nothing is lost by asking less often.
+        'unknown_interval': 3.0,
         'battle_phase_interval': 3.0,
         # D110: a transition is a duration, not a number of rounds.  Measured over 190
         # transitions after a submitted turn: median 27 s, p90 54 s.  The page interval

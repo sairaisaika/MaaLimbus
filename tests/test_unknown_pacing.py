@@ -71,10 +71,19 @@ def test_the_unknown_page_is_paced_by_its_own_setting(tmp_path, monkeypatch):
     assert {wait['interval_s'] for wait in waits} == {interval}
 
 
-def test_the_pause_is_shorter_than_the_read_it_precedes(tmp_path, monkeypatch):
-    """A pause longer than the sample it precedes is pure latency."""
+def test_the_pause_trades_reads_against_detection_delay(tmp_path, monkeypatch):
+    """D183: the pace is bounded by the episode clock, not by one read's cost.
+
+    D79 set the pace below the cost of a read (2.07 s then) because a longer pause was
+    thought to be pure latency.  The episode is clocked since D163, so what the pace now
+    decides is how many reads one unreadable stretch costs -- and D68/D70 measured a read
+    at 0.63 s, which is what the old comparison was against.  The contract is that the
+    pace stays well inside the clock, and that the clock can afford a handful of reads.
+    """
     loop, sleeps, _result = _run(tmp_path, monkeypatch)
-    assert runner.settings().unknown_interval < 2.07
+    settings = runner.settings()
+    assert settings.unknown_interval == 3.0
+    assert settings.unknown_interval < settings.unknown_seconds
 
 
 def test_the_wait_says_which_page_came_before_it(tmp_path, monkeypatch):
