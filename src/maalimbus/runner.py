@@ -3221,7 +3221,7 @@ class MirrorRunner:
                       page=page, word=(team or {}).get('saved_team_word'), **verdict)
         return verdict
 
-    def _normalise_view_once(self):
+    def _normalise_view_once(self, record=None):
         """Centre the map once per floor, on measurements, and say whether it worked.
 
         The operator's screenshots (m17926) show the loop's own view -- the party right of
@@ -3238,17 +3238,14 @@ class MirrorRunner:
             return
 
         def measure():
-            # Two readers answer "where is the party": this process's `party_point` and the
-            # one the observation node already wrote into the frame record.  Measured
-            # 2026-10-25: the main process read None on every live frame while the record
-            # carried `[1458,221]`, so the normalisation gave up (`steps:0`) even though a
-            # reading existed.  Either answer is a measurement; no answer still means "do
-            # not drag".
+            # The party can be read two ways: this process's `party_point` on the newest
+            # stored frame, or the `map_party` the observation node already wrote into the
+            # record this step is holding.  Measured 2026-10-25: the main process answered
+            # None on every live frame while the record carried `[1458,221]`, and the
+            # normalisation gave up (`steps:0`) with a reading in hand.  Either answer is a
+            # measurement; having neither still means "do not drag".
             image, name = latest_frame(self.directory)
-            record = {}
             if image is None:
-                # No frame on disk before the loop has observed once: ask for one instead
-                # of re-reading an empty directory.  A failed read may never end a run.
                 try:
                     self._observe(phase='view_normalise')
                 except Exception as error:
@@ -3256,17 +3253,11 @@ class MirrorRunner:
                 image, name = latest_frame(self.directory)
             if image is None:
                 return (None, None)
-            try:
-                record = json.loads((Path(self.directory) / name.replace('.png', '.json'))
-                                    .read_text(encoding='utf-8'))
-            except Exception:
-                record = {}
-            party = party_point(image) or record.get('map_party')
-            size = tuple(record.get('size') or (image.shape[1], image.shape[0]))
-            width, height = size
-            return party_point(image), (width, height)
-
-        wait = getattr(device, '_wait', None) or (lambda job, timeout=10: job)
+            party = party_point(image)
+            if party is None and record:
+                party = record.get('map_party')
+            size = tuple((record or {}).get('size') or (image.shape[1], image.shape[0]))
+            return (party, size)
 
         def zoom():
             pinch_out(controller, wait)
@@ -3561,7 +3552,7 @@ class MirrorRunner:
         # that every node of the floor must be in the frame the reader samples.  It is
         # idempotent (`state['view_normalised']`) and never fatal -- a gesture failure is
         # journalled and the walk continues off-centre.
-        self._normalise_view_once()
+        self._normalise_view_once(record)
         probe_party = None
         if record.get('map_party') is None:
             # A null party now names the reader that came back empty (D294): the next live

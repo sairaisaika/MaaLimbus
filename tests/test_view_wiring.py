@@ -6,7 +6,7 @@ SOURCE = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
 
 
 def test_the_map_branch_normalises_the_view_before_it_asks_for_candidates():
-    call = SOURCE.index('self._normalise_view_once()')
+    call = SOURCE.index('self._normalise_view_once(record)')
     candidates = SOURCE.index('frame, candidates = candidates_of(directory, record')
     assert call < candidates, 'a view normalised after the candidates are read changes nothing'
 
