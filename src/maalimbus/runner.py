@@ -3509,6 +3509,12 @@ class MirrorRunner:
         # null), and an empty candidate list then stops the run for the wrong reason.
         # So the field is a first reading and this is a second; both must fail before
         # the frame is treated as unreadable (D287).
+        # Zooming out and pushing the view to its bottom edge happens once per floor,
+        # before the candidates are asked for: the operator's instruction (m18974) is
+        # that every node of the floor must be in the frame the reader samples.  It is
+        # idempotent (`state['view_normalised']`) and never fatal -- a gesture failure is
+        # journalled and the walk continues off-centre.
+        self._normalise_view_once()
         probe_party = None
         if record.get('map_party') is None:
             probe = party_probe(directory, record)
