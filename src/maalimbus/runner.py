@@ -2121,6 +2121,29 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     record['map_candidate_kinds'] = {box_key(box): item.get('kind')
                                      for box, item in zip(boxes, clicks)
                                      if item.get('kind')}
+    # The game marks the tile the party stands on, and that mark is found by the same scan
+    # that finds the destinations: `lit_node` is a structural reading of "here is where I
+    # am", not a colour guess.  Live `packaged-mirror-20261025-134415` puts it at (500,244)
+    # while the colour pair answers (508,242) -- eight pixels apart -- and
+    # `packaged-mirror-20261025-075711` at (660,500) against the flame's (670,467).  A frame
+    # where the colour readers answer nothing but the tile is marked is a frame whose party
+    # is known, so the mark anchors it, and a reading further than one card away from the
+    # mark is not the party (D296).
+    lit_boxes = [box for box in boxes
+                 if record['map_candidate_kinds'].get(box_key(box)) == 'lit_node']
+    if lit_boxes:
+        lit_box = lit_boxes[0]
+        lit_centre = (int(lit_box[0]) + int(lit_box[2]) // 2,
+                      int(lit_box[1]) + int(lit_box[3]) // 2)
+        if party is None:
+            party = lit_centre
+            record['map_party_source'] = 'lit_node'
+            record['map_party'] = [int(v) for v in party]
+        elif (abs(int(party[0]) - lit_centre[0])
+              + abs(int(party[1]) - lit_centre[1]) <= 60):
+            party = lit_centre
+            record['map_party_source'] = 'lit_node_refined'
+            record['map_party'] = [int(v) for v in party]
     if party is None:
         # No party, no adjacency, no click.  Every frame of
         # `evidence/runtime/packaged-mirror-20261022-090550` read None while the board
