@@ -2318,6 +2318,21 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         # `CLICK_KINDS_WITHOUT_EVIDENCE`.  A kind with no history may not veto a step the
         # page drew: the list is kept as read and the window decides (D321, `-154855`).
         record['map_edge_without_history'] = {'kept': len(near)}
+        # The edge sits on the tile the party is standing on (`-155344`: ring centre
+        # (1083,247) against the party's own (1091,252) -- 9 px apart while one step is
+        # 192), so clicking it clicks the party's own tile and the game refuses.  The step
+        # the edge is about to take is the neighbour one pitch away along its row (D322).
+        if party is not None:
+            one_step = [box for box in rest if box[2] >= 100
+                        and 150 <= max(abs(box[0] + box[2] / 2 - party[0]),
+                                       abs(box[1] + box[3] / 2 - party[1])) <= 240]
+            if one_step:
+                nearest = min(one_step, key=lambda box:
+                              (box[0] + box[2] / 2 - party[0]) ** 2
+                              + (box[1] + box[3] / 2 - party[1]) ** 2)
+                record['map_edge_step'] = {'from_edge': [int(v) for v in near[0]],
+                                           'step': [int(v) for v in nearest]}
+                ordered = [nearest]
         ordered = list(near)
     if edge is not None:
         front = [int(v) for v in edge[:4]]
