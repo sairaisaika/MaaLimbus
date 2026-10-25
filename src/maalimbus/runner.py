@@ -799,15 +799,29 @@ def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
     zoom()
     party, size = measure()
     steps = []
+    # The operator does not want the party centred (m18974: some floors cannot be
+    # centred even fully zoomed out, so a centring loop only stalls): what the view
+    # needs is to be *pushed to the bottom edge*, which makes every node of the floor
+    # visible in the frame the reader samples (m18727/m18974).  Dragging stops when the
+    # party stops moving -- the edge is a measurement, not a number of tries -- and the
+    # loop never insists that it arrived.
+    last = party[1] if party else None
+    dragged = 0
     for _ in range(max(0, int(rounds))):
-        plan = centre_plan(party, size, tolerance=tolerance)
-        if plan is None:
-            return {'centred': True, 'steps': steps}
-        drag(*plan)
-        steps.append(plan)
+        if not party or not size:
+            break
+        drag(0, max(1, int(size[1] / 6)))
         party, size = measure()
-    return {'centred': centre_plan(party, size, tolerance=tolerance) is None,
-            'steps': steps}
+        dragged += 1
+        if not party:
+            break
+        if last is not None and abs(party[1] - last) <= tolerance:
+            break
+        last = party[1]
+        steps.append(party)
+    centred = centre_plan(party, size, tolerance=tolerance) is None if party and size else None
+    return {'zoomed': True, 'dragged': dragged, 'centred': centred,
+            'party': list(party) if party else None, 'steps': steps}
 
 
 def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
