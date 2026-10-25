@@ -86,7 +86,22 @@ class Journal:
     def record(self, event, **details):
         data = {'event': event, 'utc': datetime.now(timezone.utc).isoformat(), **details}
         with (self.directory / 'events.jsonl').open('a', encoding='utf-8') as file:
-            file.write(json.dumps(data, ensure_ascii=False) + '\n')
+            # A journal write is a diagnostic: a field that will not serialise (a cycle,
+            # a framework object) is dropped by name instead of ending a healthy run (D194).
+            try:
+                line = json.dumps(data, ensure_ascii=False)
+            except (TypeError, ValueError):
+                kept, dropped = {}, []
+                for key, value in data.items():
+                    try:
+                        json.dumps(value, ensure_ascii=False)
+                    except (TypeError, ValueError):
+                        dropped.append(key)
+                    else:
+                        kept[key] = value
+                kept['journal_fields_dropped'] = dropped
+                line = json.dumps(kept, ensure_ascii=False, default=str)
+            file.write(line + chr(10))
 
     def frame(self, frame, records, scene, **extra):
         self.index += 1
