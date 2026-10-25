@@ -1897,7 +1897,12 @@ def candidates_of(directory, record, *, header_only=False):
         # `evidence/runtime/packaged-mirror-20261022-090550` read None while the board
         # band stopped short of where the party stood, and the "unread party filters
         # nothing" fallback then let the loop spend six clicks on nodes two steps away.
-        # A frame that cannot say where the party is must say so, not guess.
+        # A frame that cannot say where the party is must say so, not guess -- and it
+        # must say *which* reading failed: live
+        # `evidence/runtime/packaged-mirror-20261025-061838/frame-0001.png` read 8
+        # candidates (6 gold badges) with the party unreadable, and the run died with
+        # `no_candidate_node_observed`, which points at the nodes and not at the party.
+        record['map_candidates_refused'] = {'party': None, 'read': len(clicks)}
         return name, []
     # Which box the loop tries first is a policy, and the reader has already said what
     # each box is.  `map_clicks` claims in its own docstring that the marked step comes
