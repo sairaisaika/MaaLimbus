@@ -3537,7 +3537,12 @@ class MirrorRunner:
                     # that closes on its own, so the ending waits for its own clock.  The
                     # count stays as a floor for the case where the clock never moves (a
                     # paused harness).
-                    if state['map_header_unidentified'] >= 6 or waited >= 20.0:
+                    # A run that already sent an input to a map keeps its action rights:
+                    # this screen is a map on the way, and an ending costs the whole floor.
+                    # Only a run that never acted on a map treats a header-only screen as
+                    # fatal.  The flag is set where the click is recorded, not when the page
+                    # is named -- "identified" and "acted on" are two different states.
+                    if (state['map_header_unidentified'] >= 6 or waited >= 20.0)                             and not state.get('map_acted_once'):
                         self._end_session(MAP_HEADER_UNIDENTIFIED)
                         return self._result(page, None, False, None)
                 else:
@@ -4891,6 +4896,7 @@ class MirrorRunner:
                                       if early else
                                       'a_new_target_replaced_this_one_before_the_page_settled'))
                 state['map_pending'] = list(plan['target'])
+                state['map_acted_once'] = True
                 state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                     box_key(plan['target']))
                 # The verdict below is only diagnosable if it names the frame it judged;
@@ -4974,6 +4980,7 @@ class MirrorRunner:
                           outcome='superseded', frame=state.pop('map_click_frame', None),
                           reason='a_new_target_replaced_this_one_before_the_page_settled')
             state['map_pending'] = list(plan['target'])
+            state['map_acted_once'] = True
             state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                 box_key(plan['target']))
             kept = record.get('frame') or frame_file(directory)

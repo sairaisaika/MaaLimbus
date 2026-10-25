@@ -80,3 +80,9 @@ def test_a_named_map_page_is_not_touched_by_this_rule(tmp_path):
     map_record = _record(scene='MAP', ocr=[HEADER, {'text': 'Sunk Gloom', 'box': [64, 190, 114, 18], 'score': .99}])
     loop, _result, _reads = _run(tmp_path, [map_record])
     assert _events(tmp_path, 'map_header_without_a_pack_line') == []
+
+
+def test_a_run_that_already_clicked_a_map_keeps_its_action_rights(tmp_path):
+    """A header-only screen ends a run that never acted on a map, not one mid-floor."""
+    loop, _result, _reads = _run(tmp_path, [_record()])
+    assert loop.state['session_ended'] == runner.MAP_HEADER_UNIDENTIFIED
