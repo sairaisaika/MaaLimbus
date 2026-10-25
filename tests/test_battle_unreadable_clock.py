@@ -80,5 +80,6 @@ def test_a_frame_without_the_board_captions_is_not_a_battle(tmp_path):
     loop.run(steps=3, interval=0, round_limit=9)
     rows = [json.loads(line) for line in
             events.read_text(encoding='utf-8').splitlines() if line.strip()]
-    assert any(row['event'] == 'battle_frame_without_its_controls' for row in rows)
+    # 事件在后续轮次改名为 battle_frame_unreadable（runner.note 的调用点）；断言跟着实现走。
+    assert any(row['event'] == 'battle_frame_unreadable' for row in rows)
     assert not [row for row in rows if row.get('reason') == runner.BATTLE_UNREADABLE]
