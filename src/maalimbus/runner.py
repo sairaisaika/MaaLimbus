@@ -2640,8 +2640,17 @@ class MirrorRunner:
         says "this is still the same turn".
         """
         signature = (record or {}).get('turn_signature')
+        # A badge crop that never changes is not reading the badge: on
+        # `packaged-mirror-20261025-014906` every battle frame carried the identical
+        # 64-value vector, so "same signature" was true for the whole fight and this
+        # method suppressed the assignment on an unassigned board -- the submit then
+        # did nothing and the run stopped on the battle clock 32 s later.  A signal has
+        # to have distinguished two turns at least once before its "no change" counts.
+        known = self.state.setdefault('turn_signatures', set())
+        if signature:
+            known.add(tuple(signature))
         seen = self.state.get('assign_signature')
-        if not signature or seen is None:
+        if not signature or seen is None or len(known) < 2:
             return False
         return list(seen) == list(signature)
 
