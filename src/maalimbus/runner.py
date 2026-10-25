@@ -2254,6 +2254,16 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
                                        'kept': len(near), 'dropped': len(rest) - len(near)}
             picked = near
     near = adjacent_to(party, picked)
+    if edge is not None and picked and not near:
+        # The page drew this step and the step filter disagrees (D317).  Measured on
+        # `-153919`: 12 candidates, `map_edge_only {kept: 1, dropped: 11}`, and then
+        # `adjacency {before: 1, after: 0}` on all three MAP frames -- the one box the page
+        # pointed at was the one box the distance rule refused.  A drawn edge is the game's
+        # own statement about reachability; the distance rule is our inference, so the
+        # page wins and the disagreement is recorded rather than swallowed.
+        record['map_edge_overrules_adjacency'] = {
+            'edge': [int(v) for v in edge[:4]], 'kept': len(picked)}
+        near = picked
     # How many candidates the *adjacency* step removed, next to how many the page offered
     # (D316).  `-153050` answered `pitch: None, step_fallback: true` and then `candidates: 0`
     # on three MAP frames without saying whether the page had nothing to give or the step
