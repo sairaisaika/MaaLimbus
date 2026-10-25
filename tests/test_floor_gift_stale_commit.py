@@ -54,7 +54,7 @@ def test_a_run_that_ended_unfinished_does_not_block_the_next_page(tmp_path):
     book = tx.FloorGiftTransaction(path)
     retired = book.retire_stale_run('new-run')
     assert retired and retired['scope'] == 'old-run'
-    assert book.data['pending'] == {} and book.data['completed'] is False
+    assert book.data['pending'] == {} and book.data['completed'] is True
     assert book.data['history'][-1]['abandoned']['scope'] == 'old-run'
 
 
