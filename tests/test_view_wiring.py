@@ -22,3 +22,9 @@ def test_the_event_says_what_the_view_did():
     assert "note('view_normalised'" in body
     for key in ('centred', 'steps'):
         assert key in body, key
+
+
+def test_the_normalisation_journals_what_it_could_read():
+    body = SOURCE[SOURCE.index('def _normalise_view_once'):SOURCE.index('def _frame_and_record')]
+    assert "note('map_view_probe'" in body
+    assert 'record_party' in body and 'image_party' in body

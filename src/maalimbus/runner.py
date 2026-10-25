@@ -3232,6 +3232,14 @@ class MirrorRunner:
         state = self.state
         if state.get('view_normalised') or self.settings.observe_only:
             return
+        # Which party readings exist at this instant is a fact worth journalling before the
+        # normalisation decides anything: five live rounds were spent guessing whether the
+        # record, the stored frame or neither carried one (2026-10-25).
+        image_now, _ = latest_frame(self.directory)
+        self.note('map_view_probe', input_sent=False,
+                  keys=sorted((record or {}).keys())[:12],
+                  record_party=(record or {}).get('map_party'),
+                  image_party=party_point(image_now) if image_now is not None else None)
         state['view_normalised'] = True
         device, controller = self.device, getattr(self.device, 'controller', None)
         if controller is None:
