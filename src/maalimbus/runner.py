@@ -3452,10 +3452,23 @@ class MirrorRunner:
                         # from its own first unreadable frame and not from the
                         # first one of the run.
                         key = 'battle_cutscene_since' if cutscene else 'battle_unknown_since'
+                        if cutscene:
+                            # D220: a phase that keeps producing new pictures is not
+                            # stuck.  Measured 2026-10-25 (`packaged-mirror-20261025-021332`):
+                            # 18 cutscene frames with a changing picture, ended by the
+                            # 90 s clock, so the clock was timing a live animation.
+                            shot = record.get('image_sha256')
+                            if shot and state.get('cutscene_shot') != shot:
+                                state['cutscene_shot'] = shot
+                                state['battle_cutscene_since'] = time.monotonic()
+                                state['cutscene_extensions'] = int(state.get('cutscene_extensions', 0)) + 1
                         state.setdefault(key, time.monotonic())
                         stuck = time.monotonic() - float(state[key])
                         if cutscene:
-                            limit = float(getattr(settings, 'cutscene_seconds', 90.0))
+                            base = float(getattr(settings, 'cutscene_seconds', 90.0))
+                            span = float(getattr(settings, 'cutscene_seconds_max', 300.0))
+                            grown = base * (1 + min(int(state.get('cutscene_extensions', 0)), 3))
+                            limit = min(span, grown)
                             ending = CUTSCENE_UNREADABLE
                         else:
                             limit = float(getattr(settings, 'battle_unreadable_seconds', 30.0))
