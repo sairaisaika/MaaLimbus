@@ -3528,12 +3528,21 @@ class MirrorRunner:
                     tuple(record.get('size') or (1920, 1080)))
                 if header is not None:
                     state['map_header_unidentified'] = state.get('map_header_unidentified', 0) + 1
+                    state['map_header_since'] = state.get('map_header_since') or time.monotonic()
+                    waited = time.monotonic() - float(state['map_header_since'])
                     self.note('map_header_without_a_pack_line', floor_text=header.text,
                               page=page, round=state['map_header_unidentified'],
-                              frame=record.get('frame'))
-                    if state['map_header_unidentified'] >= 2:
+                              waited_s=round(waited, 1), frame=record.get('frame'))
+                    # D232: two reads was too eager -- the pack line can be hidden by a panel
+                    # that closes on its own, so the ending waits for its own clock.  The
+                    # count stays as a floor for the case where the clock never moves (a
+                    # paused harness).
+                    if state['map_header_unidentified'] >= 6 or waited >= 20.0:
                         self._end_session(MAP_HEADER_UNIDENTIFIED)
                         return self._result(page, None, False, None)
+                else:
+                    state['map_header_unidentified'] = 0
+                    state['map_header_since'] = None
             state['unknown_seen'] += 1
             # D163: a page nobody can name is bounded by its clock, not only by a count
             # of rounds.  Measured over the retained archive: 38 of 251 runs hold ten or

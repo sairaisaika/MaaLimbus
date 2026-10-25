@@ -64,9 +64,10 @@ def test_a_readable_header_without_a_pack_line_names_the_ending(tmp_path):
     assert result['passed'] is False
     assert loop.state['session_ended'] == runner.MAP_HEADER_UNIDENTIFIED
     notes = _events(tmp_path, 'map_header_without_a_pack_line')
-    assert [row['round'] for row in notes] == [1, 2]
+    assert [row['round'] for row in notes] == [1, 2, 3, 4, 5, 6]
     assert notes[0]['floor_text'] == 'Exploring Floor 5'
-    assert reads <= 4, 'it may retry once, not idle'
+    assert 'waited_s' in notes[0]
+    assert reads <= 8, 'it waits for its clock, it does not idle'
 
 
 def test_a_page_without_a_header_still_uses_the_unknown_budget(tmp_path):
