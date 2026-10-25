@@ -2216,3 +2216,54 @@ def cyan_step_boxes(image, party, *, near=120.0, far=400.0):
         boxes.append((gap, [x, y, w, h]))
     boxes.sort(key=lambda item: item[0])
     return [box for _gap, box in boxes]
+
+
+def node_class(boxes, *, share=0.1):
+    """The boxes that look like nodes, chosen by this frame's own size distribution.
+
+    `map_clicks` emits a badge, a tile and a chevron per node, so a raw list mixes three
+    scales.  The node class is the modal side length (within ``share``), which makes the
+    choice independent of both the pack's spacing and the screen resolution.
+    """
+    usable = [list(box) for box in boxes
+              if box and len(box) >= 4 and box[2] > 0 and box[3] > 0]
+    if not usable:
+        return []
+    sides = sorted(box[2] for box in usable)
+    mode = sides[len(sides) // 2] if len(sides) % 2 else sides[len(sides) // 2]
+    low, high = mode * (1.0 - share), mode * (1.0 + share)
+    return [box for box in usable if low <= box[2] <= high]
+
+
+def step_pitch(boxes, *, share=0.1):
+    """One lattice step, measured on this frame's node class -- never assumed."""
+    nodes = node_class(boxes, share=share)
+    centres = [(box[0] + box[2] / 2.0, box[1] + box[3] / 2.0) for box in nodes]
+    if len(centres) < 3:
+        return None
+    nearest = []
+    for i, (x, y) in enumerate(centres):
+        dists = [((x - x2) ** 2 + (y - y2) ** 2) ** 0.5
+                 for j, (x2, y2) in enumerate(centres) if j != i]
+        nearest.append(min(dists))
+    nearest.sort()
+    pitch = nearest[len(nearest) // 2]
+    return pitch if pitch >= 40 else None
+
+
+def one_step(party, boxes, *, pitch=None, ratio=0.45):
+    """The boxes one step from the party, judged in pitches rather than in pixels."""
+    if not party:
+        return []
+    pitch = pitch or step_pitch(boxes)
+    if not pitch:
+        return []
+    out = []
+    for box in node_class(boxes):
+        cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
+        dist = ((cx - party[0]) ** 2 + (cy - party[1]) ** 2) ** 0.5
+        if dist <= 0:
+            continue
+        if abs(dist / pitch - 1.0) <= ratio:
+            out.append((dist, box))
+    return [box for _, box in sorted(out, key=lambda item: item[0])]
