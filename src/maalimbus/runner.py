@@ -861,6 +861,11 @@ def _is_transition_blocker(name):
     owner, _, key = text.partition('.')
     return owner == 'deployment_transaction' and key in TRANSITION_KEYS
 MAP_HEADER_UNIDENTIFIED = 'the_map_header_was_read_but_the_theme_pack_was_not'
+
+# How many destinations a map that cannot be named may be walked by.  One was not
+# enough: a floor needs several hops and the first blind click often lands on a node
+# that does not move the party (evidence/runtime/packaged-mirror-20261025-034220).
+BLIND_MAP_STEPS = 3
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 # D104: the picture never changed across the whole read budget, so the app (not the
 # page, and not the plan) is what stopped.  Naming it separately is what lets the next
@@ -3184,9 +3189,8 @@ class MirrorRunner:
         # panel is on screen and this run has not clicked a map yet, one click goes
         # out; the settle read judges it like any other, and the page stays UNKNOWN
         # (acting on a page is not identifying it -- `map_header` keeps failing closed).
-        if (not map_dispatch.is_map(page)
-                and not self.state.get('map_acted_once')
-                and _header_was_read(record)):
+        if not map_dispatch.is_map(page) and _header_was_read(record):
+            tried = self.state.setdefault('map_blind_tried', [])
             panel = _panel_on_screen(record)
             boxes = list(candidates or ())
             if panel is None and not boxes:
@@ -3196,15 +3200,25 @@ class MirrorRunner:
                     boxes = blind_map_boxes(self.directory, record)
                 except (OSError, ValueError, RuntimeError):
                     boxes = []
-            if panel is None and boxes:
-                box = list(boxes[0])[:4]
+            if boxes:
+                self.state['map_blind_boxes'] = True
+            fresh = [item for item in boxes if box_key(item) not in tried]
+            if panel is None and fresh and len(tried) < BLIND_MAP_STEPS:
+                box = list(fresh[0])[:4]
                 point = [int(box[0] + box[2] / 2), int(box[1] + box[3] / 2)]
                 self.note('acted_on_a_map_without_a_pack_line', target=box, point=point,
-                          frame=record.get('frame'))
+                          frame=record.get('frame'), tried=len(tried) + 1,
+                          budget=BLIND_MAP_STEPS)
+                tried.append(box_key(box))
                 self.state['map_acted_once'] = True
                 self.state['map_pending'] = box
                 self.device.click(*point)
                 return self._result(page, point, True, None)
+            if panel is None and self.state.get('map_blind_boxes') and not fresh:
+                # Every destination this frame offered was already tried: nothing is
+                # left to learn here, so name the ending instead of idling to the clock.
+                self._end_session(MAP_HEADER_UNIDENTIFIED)
+                return self._result(page, None, False, self.state.get('session_ended'))
         # The participant screen (maalimbus/party_vision.py): a node opens it and
         # nothing leaves it until the party is full.  Read here, before the page
         # switch, so a frame the classifier has no name for is still answered --

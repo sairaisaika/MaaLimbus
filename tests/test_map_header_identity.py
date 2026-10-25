@@ -115,6 +115,30 @@ def test_the_blind_reader_needs_a_frame(tmp_path):
     assert runner.blind_map_boxes(tmp_path, record) == []
 
 
+def test_a_map_may_be_walked_by_its_blind_budget_and_then_it_ends(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, 'blind_map_boxes',
+                        lambda directory, record: [[100, 200, 40, 40], [300, 200, 40, 40]])
+    loop = runner.MirrorRunner(runner.FakeDevice(), journal=_Journal(tmp_path),
+                               settings={'rounds': 1, 'interval': 0, 'steps': 6,
+                                         'stall_seconds': 0, 'progress_seconds': 0},
+                               directory=tmp_path)
+    record = _record()
+    monkeypatch.setattr(runner, 'observe', lambda *a, **k: record)
+    loop.run(steps=6, interval=0, round_limit=5)
+    notes = _events(tmp_path, 'acted_on_a_map_without_a_pack_line')
+    assert [row['tried'] for row in notes] == [1, 2]
+    assert loop.device.clicks[0] != loop.device.clicks[1]
+    # Limit: the ending after a spent budget is not covered here -- the fixture's page
+    # never changes, so the step keeps re-entering the unknown path.  The click order
+    # and the exclusion are what this case pins.
+
+
+def test_a_tried_box_is_not_clicked_twice(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, 'blind_map_boxes', lambda directory, record: [[100, 200, 40, 40]])
+    loop, _summary, _reads = _run(tmp_path, [_record()])
+    assert loop.device.clicks == [(120, 220)]
+
+
 def test_a_run_that_already_clicked_a_map_keeps_its_action_rights(tmp_path):
     """A header-only screen ends a run that never acted on a map, not one mid-floor."""
     loop, _result, _reads = _run(tmp_path, [_record()])
