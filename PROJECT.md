@@ -6063,3 +6063,22 @@ runner 用 `state['battle_assigns']` 计数并在提交/换页时清零。
 4. 失败实据：`evidence/runtime/packaged-mirror-20261025-022715/frame-0001.json` = `'Exploring Floor5' [60,127,338,49] 0.96`,无主题行,该次 420 秒 **0 点击**。
 
 要做的最小改动（不改判据）：`MirrorRunner.step` 的 `UNKNOWN` 分支里，把该帧 OCR 转成 `map_vision.Text` 调 `map_vision.floor_label(records, size)`；返回非空即写事件 `map_header_without_a_pack_line`（带 floor / pack_present=false / page / frame），再由既有阶梯处理。事件名必须同步进 `pages.REFUSALS` 或 `pages.STOP_KINDS`，否则 `audit_hold_gap` 会记成 hold。
+
+## DSH continuation: 地图认不出来时，该“说话”还是该“动手”（2026-10-25）
+
+**现状（可复现）**：`evidence/runtime/packaged-mirror-20261025-024934` 站在地图上，OCR 只有
+`Exploring Floor 5 [60,127,338,49] 0.96`，主题行（`Sunk Gloom` 之类）在这一屏**不存在**（被面板/滚动遮住）。
+`map_header` 的判据要求主题行（fail-closed，D231 之前的设计），所以页面是 `UNKNOWN`；D232 让它
+在两次读后以 `the_map_header_was_read_but_the_theme_pack_was_not` 结束（420 秒空转 → 数秒具名结束）。
+
+**待决策**：这条结束是对的还是过度保守？两条路都不改 fail-closed 的 *身份* 判据：
+
+1. **动手**：头可读时允许本步按 `MAP` 行动（点候选节点），只记 `acted_on_a_map_without_a_pack_line`，
+   不把页面名改成 `MAP`。代价：如果其实是面板，这一击最多是空点（面板的 `Enter` 不在候选框里）。
+2. **说话**：保持现在的具名结束，把决定权交给操作者/下一次运行。
+
+**已量到的分离度**（`tools/audit_page_structure.py`，2026-10-25）：MAP n=69 亮像素 0.001–0.004；
+NODE_PANEL n=3 亮像素 0.006–0.017；间隙 0.003、面板样本仅 3 帧 —— **不足以下阈值**，需要把面板样本涨到 20+。
+
+**下一步**：先跑 3–5 次 90–180 秒实机把面板样本补足；若可分则不碰身份判据、用结构裁决；若不可分则采方案 1，
+并在 `pages` 里登记 `acted_on_a_map_without_a_pack_line` 的语义（行动不等于识别）。
