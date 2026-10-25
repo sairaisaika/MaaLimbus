@@ -3517,6 +3517,15 @@ class MirrorRunner:
         self._normalise_view_once()
         probe_party = None
         if record.get('map_party') is None:
+            # A null party now names the reader that came back empty (D294): the next live
+            # run says whether it was the torch pair, the marker or the ring, instead of
+            # leaving three rounds to guess.
+            try:
+                readings = map_vision.party_readings(cv2.imread(str(frame_file(directory).with_suffix('.png'))))
+            except Exception as error:  # a diagnostic may never end a run
+                readings = {'failed': type(error).__name__}
+            if readings.get('chosen') is None:
+                self.note('map_party_readings', input_sent=False, **readings)
             probe = party_probe(directory, record)
             if probe and probe.get('read'):
                 # `candidates_of` re-reads the frame, so handing the reading over as

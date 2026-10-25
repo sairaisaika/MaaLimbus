@@ -2191,6 +2191,27 @@ def movement_between(before, after, *, tolerance=VIEW_TOLERANCE):
 _bgr_party_point = party_point
 
 
+def party_readings(image):
+    """Each party reader's own answer, so a null party names the reader that failed (D294).
+
+    `party_point` returns one point or None, and "None" has been the whole story for three
+    rounds of live attempts: the loop could not say whether the torch reader, the marker
+    reader or the ring reader was the one that came back empty.  The three are cheap and
+    independent, so a failed read can carry all three answers instead of a shrug.
+    """
+    pair = _bgr_party_point(image)
+    marker = player_marker(image)
+    ring = player_by_ring(image)
+    chosen = party_point(image)
+    if pair is not None:
+        why = 'pair'
+    elif chosen is not None:
+        why = 'two_readers_agreed'
+    else:
+        why = 'none'
+    return {'pair': pair, 'marker': marker, 'ring': ring, 'chosen': chosen, 'why': why}
+
+
 def party_point(image):
     """`party_point` for either channel order; BGR first, RGB(A) as the fallback."""
 
