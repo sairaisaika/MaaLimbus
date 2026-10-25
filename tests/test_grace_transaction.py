@@ -75,3 +75,23 @@ def test_confirmation_requires_complete_transaction_and_no_conversion():
     assert plan_step('STAR_CONFIRM',controls=c,graces={'incomplete':True})['reason']=='incomplete_graces_return_to_selection'
     assert plan_step('STAR_CONFIRM',controls=c,graces={'complete':True,'conversion':'unchecked','cost':430})['action']=='record'
     assert plan_step('STAR_CONFIRM',controls=c,graces={'complete':True,'conversion':'unchecked','cost':0})['action']=='click'
+
+
+def test_a_ledger_that_spent_its_whole_budget_is_rebound_by_the_next_run(tmp_path):
+    # Live evidence/runtime/packaged-mirror-20261025-053423: a new run inherited a ledger
+    # with scope 37fc4d01..., budget 100, spent 100, pending None, and ended on
+    # `Grace transaction scope or configuration mismatch` before reading a frame.  A plan
+    # that spent its whole budget has nothing left to carry, so the next run owns the
+    # ledger; a part-way plan still contradicts a new scope (the test above).
+    p = tmp_path / 'transaction.json'
+    t = GraceTransaction(p)
+    t.begin('run-a', [2, 4, 5], 20, 'entry.png')
+    t.intent(2, 10, 116, 'before.png')
+    t.observe(106, 'after.png')
+    t.intent(4, 10, 96, 'before.png')
+    t.observe(86, 'after.png')
+    assert t.data['spent'] == 20
+    data = GraceTransaction(p).validate('run-b', [2, 4, 5], 20, 86)
+    assert data['scope'] == 'run-b'
+    assert data['spent'] == 0 and data['selected'] == [] and data['available'] is None
+    assert data['scope_rebinds'][0]['was'] == 'run-a'

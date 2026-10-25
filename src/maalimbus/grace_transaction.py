@@ -34,8 +34,45 @@ class GraceTransaction:
 
     def validate(self,scope,requested,budget,available):
         d=self.data
-        if not d or d['scope']!=scope or d['requested']!=list(requested) or d['budget']!=budget:
+        if d and d.get('scope')!=scope:
+            # A ledger left by another run is not a contradiction: its selections belong
+            # to that run.  Measured on evidence/runtime/packaged-mirror-20261025-053423,
+            # where a fresh run inherited scope `37fc4d01...` (budget 100, spent 100) and
+            # ended on `Grace transaction scope or configuration mismatch` before reading
+            # a single frame -- the same family as D98/D134.  Anything actually pending
+            # still refuses: a purchase nobody observed is not a configuration problem.
+            if d.get('pending'):raise ValueError('Unverified grace purchase remains pending')
+            # Only a plan that spent its whole budget is safe to forget: it has nothing
+            # left to carry, and the next run's Graces page starts a new plan.  A ledger
+            # part-way through (spent < budget, selections still live) still contradicts
+            # a new scope -- that is a purchase this run cannot finish.
+            spent=d.get('spent') or 0
+            budget=d.get('budget') or 0
+            if budget<=0 or spent<budget:
+                raise ValueError('Grace transaction scope or configuration mismatch')
+            d.setdefault('scope_rebinds',[]).append(dict(was=d.get('scope'),
+                requested=list(d.get('requested') or ()),budget=d.get('budget'),
+                spent=d.get('spent'),reason='a_previous_run_owned_this_ledger'))
+            d.update(scope=scope,requested=list(requested),budget=budget,selected=[],
+                     spent=0,available=None)
+            write_json(self.path,d)
+        elif not d:
             raise ValueError('Grace transaction scope or configuration mismatch')
+        elif d['requested']!=list(requested) or d['budget']!=budget:
+            # Same scope, different plan: the run's wish list (or its budget) changed
+            # between sessions.  A *finished* plan is stale configuration and the new
+            # plan owns the ledger; anything pending or part-way still refuses, because
+            # those are purchases this configuration cannot finish.
+            if d.get('pending'):raise ValueError('Unverified grace purchase remains pending')
+            spent=d.get('spent') or 0
+            budget_old=d.get('budget') or 0
+            if budget_old>0 and spent<budget_old:
+                raise ValueError('Grace transaction scope or configuration mismatch')
+            d.setdefault('scope_rebinds',[]).append(dict(was=d.get('scope'),
+                requested=list(d.get('requested') or ()),budget=d.get('budget'),
+                spent=spent,reason='the_plan_changed_after_it_was_finished'))
+            d.update(requested=list(requested),budget=budget,selected=[],spent=0,available=None)
+            write_json(self.path,d)
         if d['pending']:raise ValueError('Unverified grace purchase remains pending')
         if d['available'] is not None and available!=d['available']:
             raise ValueError('Grace balance changed outside verified purchases')
