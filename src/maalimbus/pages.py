@@ -1002,7 +1002,8 @@ LADDER_VIEW_EVIDENCE = {
     # battle page, none changed what the reader could see.
     ('wait', 'BATTLE_HUD'): 'rarely',
 
-    ('drag_up', 'UNKNOWN'): 'moves_the_view',  # 2 of 3 live polls changed the reader's view
+    ('drag_up', 'UNKNOWN'): 'rarely',  # 2 of 8 archive spends changed the view; the 2-of-3
+                                        # sample that set this line was one live run (2026-10-25)
 }
 
 # Rungs that are supposed to move nothing: on a fixed screen the engine is only allowed the
