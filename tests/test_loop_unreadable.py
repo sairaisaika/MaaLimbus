@@ -103,7 +103,7 @@ def test_the_map_click_comes_from_the_offered_destination(tmp_path, monkeypatch)
     frame.write_text(json.dumps({'image_sha256': 'sha-1', 'size': [1920, 1080],
                                  'ocr': []}), encoding='utf-8')
     monkeypatch.setattr(runner, 'candidates_of',
-                        lambda directory, record: ('frame-0001', [[1002, 447, 40, 40]]))
+                        lambda directory, record, **kw: ('frame-0001', [[1002, 447, 40, 40]]))
     monkeypatch.setattr(runner, 'adjacent_to', lambda party, boxes, **kw: list(boxes))
     loop = _loop(tmp_path, ['MAP'])
     loop.state['map_party'] = [828, 439]
@@ -175,7 +175,7 @@ def test_a_map_input_costs_one_read_after_it(tmp_path, monkeypatch):
     vision -- so the box a map frame would offer is deterministic.
     """
     box = [1002, 447, 40, 40]
-    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record: ('frame-0001', [box]))
+    monkeypatch.setattr(runner, 'candidates_of', lambda directory, record, **kw: ('frame-0001', [box]))
     loop = _loop(tmp_path, ['MAP'] * 6)
     before = loop.observer.reads
     loop.step()

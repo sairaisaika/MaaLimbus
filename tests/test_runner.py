@@ -752,7 +752,14 @@ def test_a_page_that_already_prints_the_saved_order_goes_straight_to_battle(tmp_
     assert len(device.clicks) == 1, 'the only input is Battle!'
 
 
-def test_a_page_that_prints_another_order_is_cleared_before_the_saved_one(tmp_path):
+def test_a_page_that_prints_another_order_is_deployed_in_that_order(tmp_path):
+    """The page's own 1-12 badges are the order to deploy (D282, operator m18727).
+
+    The old rule cleared the board and re-picked the configured order; the operator's
+    instruction is the opposite -- the team screen barely changes, so read its numbers
+    and deploy that order.  A cleared board also costs twelve clicks the run has
+    already paid for.
+    """
     if not INHERITED_FRAME.exists():
         pytest.skip('retained live pre-battle evidence is not present')
     order = saved_deployment_order()
@@ -761,7 +768,7 @@ def test_a_page_that_prints_another_order_is_cleared_before_the_saved_one(tmp_pa
         shifted[card - 1] = position % 12 + 1
     runner, device, notes = deployment_window(tmp_path, inherited_page(shifted))
     result = runner.run(steps=1, interval=0.0, round_limit=1)
-    assert result['steps'][0]['plan']['reason'] == CLEAR_REASON
+    assert result['steps'][0]['plan']['reason'] == INHERITED_REASON
     assert len(device.clicks) == 1
 
 

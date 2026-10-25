@@ -153,7 +153,7 @@ def test_a_corpus_with_no_payout_says_it_was_not_measured():
 def test_the_figure_has_one_owner_and_a_name_in_the_measure_list():
     assert 'payout_rate' in run_metrics.MEASURES
     assert run_metrics.PAYOUT_EVENTS == ('reward_task_executed', 'reward_task_stopped',
-                                         'reward_task_skipped')
+                                         'reward_task_skipped', 'reward_claimed')
 
 
 def write_config(ledger):

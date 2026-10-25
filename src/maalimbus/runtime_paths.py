@@ -49,3 +49,41 @@ def ledger_path(value, root=ROOT):
             raise ValueError('Unsafe private ledger path')
         return data_directory(root).joinpath(*path.parts[1:])
     return Path(root)/path
+
+
+CONFIG_FILES = ('user-team-profiles.json', 'user-mirror-settings.json', 'user-scores.json')
+
+
+def plan_sync(source, target, names=CONFIG_FILES):
+    """Which user preferences differ between a source and an installed copy.
+
+    The installed tree keeps its own ``config/`` because the agent resolves
+    ``data_directory`` from its own root (``runtime_paths.data_directory``), so a
+    preference edited in the checkout never reaches a packaged run.  This reports
+    the difference without touching either side; ``apply_sync`` is what copies, and
+    it only ever copies files named here -- ledgers and transaction state stay put.
+    """
+    source, target = Path(source), Path(target)
+    rows = []
+    for name in names:
+        here, there = source / name, target / name
+        if not here.exists():
+            rows.append({'name': name, 'action': 'missing', 'detail': str(here)})
+        elif not there.exists():
+            rows.append({'name': name, 'action': 'copied', 'detail': str(there)})
+        elif here.read_bytes() == there.read_bytes():
+            rows.append({'name': name, 'action': 'same', 'detail': str(there)})
+        else:
+            rows.append({'name': name, 'action': 'copied', 'detail': str(there)})
+    return rows
+
+
+def apply_sync(source, target, names=CONFIG_FILES):
+    """Copy the files ``plan_sync`` reports as differing, and nothing else."""
+    source, target = Path(source), Path(target)
+    rows = plan_sync(source, target, names)
+    for row in rows:
+        if row['action'] == 'copied':
+            target.mkdir(parents=True, exist_ok=True)
+            (target / row['name']).write_bytes((source / row['name']).read_bytes())
+    return rows

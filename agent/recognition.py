@@ -1813,8 +1813,15 @@ class MirrorLoopAction(CustomAction):
                 result['run_ledger'] = dict(path=str(store.path), run=run_id,
                                             team=store.team_slot,
                                             rotation=store.data['rotation'])
+            from maalimbus.runtime_paths import data_directory as _data_directory
+            # Which preferences this run actually loaded, so "I changed the config"
+            # and "the run saw it" stop being the same sentence (D282).  The installed
+            # tree resolves its own config/ and never inherits the checkout's.
             journal.record('mirror_loop_start', directory=str(directory), budget=budget,
-                           deadline=deadline, ignored_params=ignored, **settings.as_dict())
+                           deadline=deadline, ignored_params=ignored,
+                           data_directory=str(_data_directory()),
+                           team_profiles=str(getattr(store, 'path', None)),
+                           **settings.as_dict())
             loop = runner.MirrorRunner(device, settings=settings,
                 locale=self.recognition.locale_name,
                 registry=json.loads(runner.REGISTRY.read_text(encoding='utf-8')),

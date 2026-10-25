@@ -4117,6 +4117,24 @@ class MirrorRunner:
                               reason='the_board_is_the_fact_and_the_rotation_is_a_'
                                      'preference_so_this_run_deploys_what_the_screen_shows')
         if page=='PRE_BATTLE_TEAM' and team is not None and team.get('order'):
+            # The order is what the page prints, not what a file says (D282, operator
+            # m18727: the team screen barely changes, so read the 1-12 badges on the
+            # twelve fixed cards).  A badge set that does not read as a permutation
+            # keeps the configured order and is journalled as the reason (D59 style).
+            from .team_order import order_from_badges
+            read_order, read_reason = order_from_badges(team.get('numbers') or ())
+            if read_order is not None:
+                if read_order != list(team['order']):
+                    self.note('deployment_order_from_badges', order=read_order,
+                              configured=list(team['order']),
+                              reason='the_order_on_the_page_is_the_order_to_deploy')
+                team['order'] = list(read_order)
+                state['deployment_order_source'] = 'page'
+            elif team.get('numbers'):
+                self.note('deployment_order_badges_unreadable', reason=read_reason,
+                          configured=list(team['order']))
+                state['deployment_order_source'] = 'config'
+
             if self.deployment_transaction is None:
                 stopped=self._record(page,record,frame,candidates,None,'deployment_transaction_or_counter_missing')
                 return self._result(page,None,False,stopped,done=True)
