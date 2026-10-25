@@ -362,3 +362,18 @@ def test_the_claim_walk_counts_as_a_payout():
     assert run['payout']['events'] == 1
     assert rows[1]['reason'] == 'the_claim_family_was_walked_to_its_end'
     assert 'reward_claimed' in run_metrics.PAYOUT_EVENTS
+
+
+def test_turn_latency_is_the_gap_from_submit_to_the_next_named_page():
+    # D254: the operator's budget is ten seconds from one turn ending to the next starting.
+    t0 = _stamp(0)
+    t1 = _stamp(3)
+    t2 = _stamp(20)
+    rows = [_row('window_intent', t0, reason='start_button_submits_the_assigned_turn'),
+            _row('battle_observed', _stamp(1), scene='UNKNOWN'),
+            _row('battle_observed', t1, scene='BATTLE_HUD'),
+            _row('window_intent', _stamp(19), reason='start_button_submits_the_assigned_turn'),
+            _row('battle_observed', t2, scene='BATTLE_HUD')]
+    got = run_metrics.turn_latency(rows)
+    assert got == {'samples': 2, 'median': 3.0, 'p90': 3.0, 'max': 3.0, 'under_budget': 2}
+    assert run_metrics.TURN_START_SECONDS == 10.0

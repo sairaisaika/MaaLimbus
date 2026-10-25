@@ -97,6 +97,41 @@ ENDING_KINDS = ('stop', 'error', 'died', 'budget', 'no_events')
 HARNESS_FILE = 'harness.json'
 
 
+def turn_latency(rows):
+    """Submit -> next readable page, in seconds; the operator's turn-start budget is 10 s.
+
+    Measured 2026-10-25 over 389 submits in the retained archive: median 12.0 s, p90
+    53.4 s, max 143.9 s, 191 of 389 under 10 s.  The long tail is the game's own skill
+    animations, so this is reported as a distribution (with the count under the budget)
+    rather than as a single average that hides it.
+    """
+    stamps = []
+    for row in rows:
+        when = _stamp(row)
+        if when is not None:
+            stamps.append((when, row))
+    stamps.sort(key=lambda pair: pair[0])
+    gaps = []
+    for index, (when, row) in enumerate(stamps):
+        if row.get('event') != 'window_intent':
+            continue
+        if row.get('reason') != 'start_button_submits_the_assigned_turn':
+            continue
+        for later, other in stamps[index + 1:]:
+            if (other.get('event') in ('map_observed', 'battle_observed')
+                    and other.get('scene') not in (None, 'UNKNOWN')):
+                gaps.append((later - when).total_seconds())
+                break
+    if not gaps:
+        return None
+    gaps.sort()
+    return {'samples': len(gaps),
+            'median': round(gaps[len(gaps) // 2], 1),
+            'p90': round(gaps[int(len(gaps) * 0.9)], 1),
+            'max': round(gaps[-1], 1),
+            'under_budget': sum(1 for gap in gaps if gap < TURN_START_SECONDS)}
+
+
 def ending(rows, directory=None):
     """Which of the five ways this run ended; the five are exhaustive by construction.
 
@@ -609,6 +644,8 @@ TIMED_READ_EVENTS = ('map_observed', 'battle_observed')
 # `reward_task_executed` / `reward_task_stopped` / `reward_task_skipped`, so `payout_rate`
 # can ask the other half instead of guessing at it.
 CLEAR_FLOORS = 5
+#: Operator, 2026-10-25: a turn must start within ten seconds of the last one ending.
+TURN_START_SECONDS = 10.0
 READS_PER_INPUT_FLOOR = 5
 PAYOUT_EVENTS = ('reward_task_executed', 'reward_task_stopped', 'reward_task_skipped',
                  'reward_claimed')  # D251: the loop's own claim walk (RUN_CLAIM family)
@@ -687,6 +724,7 @@ def efficiency(rows, directory=None):
         'reads': reads,
         'probes': probes,
         'payout': payout,
+        'turn_latency': turn_latency(rows),
         'steps': steps,
         'dwell': floor_dwell(rows),
         'floor_pace': floor_pace(rows),
