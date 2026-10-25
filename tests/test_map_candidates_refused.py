@@ -51,3 +51,13 @@ def test_a_readable_party_is_not_marked_as_cached(monkeypatch):
     name, boxes = runner.candidates_of('/', record)
     assert 'map_party_from_cache' not in record
     assert 'map_candidates_refused' not in record
+
+
+def test_the_floor_cache_is_bounded_and_cleared_by_a_new_floor(monkeypatch):
+    """The step hands the reader the last point of THIS floor, never one from another."""
+    from maalimbus import runner as r
+    import inspect
+    body = inspect.getsource(r.MirrorRunner.step)
+    assert 'MAP_PARTY_CACHE_SECONDS' in body
+    assert "self.state.get('map_party_floor') == floor" in body
+    assert 0 < r.MAP_PARTY_CACHE_SECONDS <= 120

@@ -872,6 +872,7 @@ MAP_HEADER_UNIDENTIFIED = 'the_map_header_was_read_but_the_theme_pack_was_not'
 # enough: a floor needs several hops and the first blind click often lands on a node
 # that does not move the party (evidence/runtime/packaged-mirror-20261025-034220).
 BLIND_MAP_STEPS = 3
+MAP_PARTY_CACHE_SECONDS = 60.0
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 # D104: the picture never changed across the whole read budget, so the app (not the
 # page, and not the plan) is what stopped.  Naming it separately is what lets the next
@@ -3255,7 +3256,25 @@ class MirrorRunner:
                 record=self._observe()
                 page=resolve_scene(self.registry,directory,record)
                 if page!='MAP':break
-        frame, candidates = candidates_of(directory, record)
+        # The party does not teleport inside one floor (D266): remember the last point this
+        # floor produced, and hand it back to the reader when a frame cannot read it.
+        cached = self.state.get('map_party_point')
+        floor = record.get('floor') or self.state.get('map_floor')
+        if record.get('floor') is not None:
+            self.state['map_floor'] = record.get('floor')
+        now = time.monotonic()
+        fallback = None
+        if (cached and floor is not None and self.state.get('map_party_floor') == floor
+                and now - float(cached.get('at', 0.0)) <= MAP_PARTY_CACHE_SECONDS):
+            fallback = tuple(cached['point'])
+        frame, candidates = candidates_of(directory, record, fallback_party=fallback)
+        if record.get('map_party_from_cache'):
+            self.note('map_party_from_cache', floor=floor,
+                      age_s=round(now - float(cached.get('at', now)), 1))
+        elif record.get('map_party'):
+            self.state['map_party_point'] = {'point': [int(v) for v in record['map_party']],
+                                             'at': now}
+            self.state['map_party_floor'] = floor
         self.state['map_party'] = record.get('map_party')
         self.state['map_candidate_kinds'] = record.get('map_candidate_kinds')
         if candidates is not None:
