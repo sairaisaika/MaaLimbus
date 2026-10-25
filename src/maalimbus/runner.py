@@ -4875,7 +4875,12 @@ class MirrorRunner:
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
                 map_successor_reads=map_successor_reads+1 if settled_page=='MAP' else 0
-                if map_successor_reads>=2:break  # Proven unchanged map: try another bounded candidate.
+                # D184: one read is enough to know the page kept its name.  The second
+                # read used to prove "not a fading map", but the click's own verdict is
+                # settled by the *next* step's read since D76 (`_resolve_map_click`), so
+                # the in-step second read bought nothing and cost one observer call per
+                # map input -- 115 of them in the 106 current-era runs.
+                if map_successor_reads>=1:break  # The map kept its name: hand the verdict on.
                 continue
             if patient and settled_page=='MAP':
                 from .theme_vision import ThemeCatalog

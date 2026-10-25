@@ -124,3 +124,11 @@ def test_the_party_in_place_verdict_is_provisional_too(tmp_path):
     assert loop._resolve_map_click('NODE_PANEL') == 'accepted'
     rows = _events(tmp_path, 'map_click_result')
     assert rows[0]['outcome'] == 'accepted' and rows[0]['page'] == 'NODE_PANEL'
+
+
+def test_the_map_keeps_its_verdict_for_the_next_read(tmp_path):
+    """D184: one settle read proves the map kept its name; the verdict waits for the
+    next step's read (D76), so the in-step second read bought nothing."""
+    source = (pathlib.Path(runner.__file__).read_text(encoding='utf-8'))
+    assert 'if map_successor_reads>=1:break' in source
+    assert 'if map_successor_reads>=2:break' not in source
