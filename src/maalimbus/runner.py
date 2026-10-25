@@ -3259,6 +3259,8 @@ class MirrorRunner:
             size = tuple((record or {}).get('size') or (image.shape[1], image.shape[0]))
             return (party, size)
 
+        wait = getattr(device, '_wait', None) or (lambda job, timeout=10: job)
+
         def zoom():
             pinch_out(controller, wait)
 
