@@ -475,37 +475,43 @@ BOARD = (0.0, 0.02, 0.80, 0.88)   # the map is drawn inside these frame fraction
 
 
 def party_point(image, *, board=BOARD):
-    """The party dot, or None when the reading is not on the board.
+    """The party dot inside the board, or None when no reading lands on it.
 
-    `player_of` picks the yellow blob with the most flame under it, and the header and
-    the right-hand panel also carry yellow: on
-    `evidence/runtime/packaged-mirror-20261022-063646` frames 0023..0027 read (694,384)
-    and 0028..0032 read (1616,82), a 922 px jump into the HUD.  Anything outside the
-    board is not the party.
+    `player_of` returns its best-scoring reading even when that reading is the HUD: two
+    live frames prove it -- `evidence/runtime/packaged-mirror-20261025-061838/frame-0001.png`
+    (1920x1080) and `evidence/runtime/lattice-probe/zoomed2.png` (1280x720) both answer
+    `player_of` with the top-right panel, at (1616,82) and (1077,54), while the torch is
+    drawn in the middle of the page.  The board gate then refused those points and
+    `candidates_of` refused every candidate with them, which is the 0-click stop of
+    2026-10-25.
+
+    So the readings are walked in score order and the first one **inside the board** is
+    the party; a frame whose every reading is HUD (or that has none) still answers None,
+    because a point outside the board is known to be wrong and inventing one costs clicks.
     """
-    # `map_vision.party_point` is the reading this repo maintains (torch specks, all-pairs
-    # search, scale-free thresholds); this module's own definition used to shadow it, so
-    # every fix made there never ran and the live loop answered None where the离线 reading
-    # of the same PNG answers a point -- evidence/runtime/packaged-mirror-20261023-045452/
-    # frame-0020.png: map_vision (1628,561) vs runner None, and candidates_of 0 vs 5.
+    if image is None:
+        return None
+    height, width = image.shape[:2]
+    left, top, right, bottom = board
+    try:
+        readings = map_vision.player_readings(image, [])
+    except (AttributeError, TypeError, ValueError):
+        readings = []
+    for point in readings:
+        if not point:
+            continue
+        x, y = float(point[0]), float(point[1])
+        if left * width <= x <= right * width and top * height <= y <= bottom * height:
+            return point
     try:
         fresh = map_vision.party_point(image)
     except (AttributeError, TypeError, ValueError):
         fresh = None
     if fresh:
-        return fresh
-    try:
-        point = map_vision.player_of(image, [])
-    except (AttributeError, TypeError, ValueError):
-        return None
-    if not point:
-        return None
-    height, width = image.shape[:2]
-    left, top, right, bottom = board
-    x, y = float(point[0]), float(point[1])
-    if not (left * width <= x <= right * width and top * height <= y <= bottom * height):
-        return None
-    return point
+        x, y = float(fresh[0]), float(fresh[1])
+        if left * width <= x <= right * width and top * height <= y <= bottom * height:
+            return fresh
+    return None
 
 
 def next_untried(candidates, tried):
