@@ -4870,6 +4870,14 @@ class MirrorRunner:
             retry_reading = reread_allowed(
                 plan, attempts=state['page_attempts'],
                 tries=settings.page_tries, observe_only=settings.observe_only)
+            # A blank map read is a *reading* miss like any other: measured on
+            # `evidence/runtime/packaged-mirror-20261025-055444`, where `offered=0` cost one
+            # retry and then ended the run with `no_candidate_node_observed`.  Nothing is
+            # sent while we look again, and `page_tries` bounds it, so a map that stays
+            # blank still ends the run -- after the same bounded look every other miss gets.
+            blank_map = page_vocabulary.is_map(page) and not candidates
+            if blank_map and state['page_attempts'] < settings.page_tries:
+                retry_reading = True
             self.artifacts['steps'].append(entry)
             if retry_reading:
                 state['page_attempts'] += 1
