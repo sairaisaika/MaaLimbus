@@ -1828,7 +1828,20 @@ def candidates_of(directory, record):
     # first; the tie inside a rank keeps the reader's order.
     # D127: rank by what the reader called the box and drop the kinds that have never
     # moved the party.  An empty list is a verdict: the window nudges the view instead.
-    return name, order_candidates(adjacent_to(party, boxes), record['map_candidate_kinds'])
+    ordered = order_candidates(adjacent_to(party, boxes), record['map_candidate_kinds'])
+    # The warm bracket is a *node type*, not the step the game has selected: the operator
+    # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
+    # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
+    # recorded as evidence about the destination and never used to reorder the list: the
+    # ordering answers "which step can I take", and this answers "what is that step".
+    bracket = map_vision.selection_bracket(image)
+    record['map_hard_node'] = None
+    if bracket is not None:
+        for box in ordered:
+            if overlaps(bracket, box):
+                record['map_hard_node'] = [int(v) for v in box]
+                break
+    return name, ordered
 
 
 def check_of(directory, record, *, page=None):
