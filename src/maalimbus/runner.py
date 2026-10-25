@@ -2230,7 +2230,21 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     edge = edge_target(image, party, rest or walkable)
     if edge is not None:
         record['map_edge_target'] = [int(v) for v in edge[:4]]
-    ordered = order_candidates(adjacent_to(party, rest), kinds) + bosses
+    # The page draws the step it will accept, so when that reading lands the list is cut to
+    # the one box it names (D313).  Measured on `-152516`: the party's own tile centre is
+    # (1247,264), and the loop spent 14 clicks on (863,264) -- two steps out -- and
+    # (1458,264) -- adjacent but with no edge drawn to it, every one `rejected`.  A reading
+    # that is empty keeps the old behaviour; nothing is lost when the page says nothing.
+    picked = rest
+    if edge is not None:
+        near = [box for box in rest
+                if abs((box[0] + box[2] / 2) - (edge[0] + edge[2] / 2)) <= edge[2] / 2
+                and abs((box[1] + box[3] / 2) - (edge[1] + edge[3] / 2)) <= edge[3] / 2]
+        if near:
+            record['map_edge_only'] = {'edge': [int(v) for v in edge[:4]],
+                                       'kept': len(near), 'dropped': len(rest) - len(near)}
+            picked = near
+    ordered = order_candidates(adjacent_to(party, picked), kinds) + bosses
     if edge is not None:
         front = [int(v) for v in edge[:4]]
         ordered = [box for box in ordered if [int(v) for v in box[:4]] == front] +                   [box for box in ordered if [int(v) for v in box[:4]] != front]
