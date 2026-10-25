@@ -756,6 +756,30 @@ def centre_plan(party, size, *, tolerance=8):
     return dx, dy
 
 
+def normalise_view(measure, zoom, drag, *, tolerance=8, rounds=4):
+    """Zoom out once, then drag until the party is centred -- on measurements, not counts.
+
+    ``measure()`` returns ``(party, size)`` for the current frame, ``zoom()`` pinches out
+    once and ``drag(dx, dy)`` moves the content by that offset.  The loop ends when
+    ``centre_plan`` has nothing left to ask for or after ``rounds`` drags, and the answer
+    says which happened, because "the view is centred" and "we stopped asking" are
+    different facts (the operator's screenshots showed the second one mistaken for the
+    first).
+    """
+    zoom()
+    party, size = measure()
+    steps = []
+    for _ in range(max(0, int(rounds))):
+        plan = centre_plan(party, size, tolerance=tolerance)
+        if plan is None:
+            return {'centred': True, 'steps': steps}
+        drag(*plan)
+        steps.append(plan)
+        party, size = measure()
+    return {'centred': centre_plan(party, size, tolerance=tolerance) is None,
+            'steps': steps}
+
+
 def pinch_out(controller, wait, *, centre=MAP_ZOOM_OUT['centre'],
               radius=MAP_ZOOM_OUT['radius'], factor=MAP_ZOOM_OUT['factor'],
               seconds=MAP_ZOOM_OUT['seconds'], steps=12, guard=None):
