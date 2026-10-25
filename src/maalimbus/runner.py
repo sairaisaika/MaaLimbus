@@ -860,6 +860,7 @@ def _is_transition_blocker(name):
     text = str(name or '').lower()
     owner, _, key = text.partition('.')
     return owner == 'deployment_transaction' and key in TRANSITION_KEYS
+MAP_HEADER_UNIDENTIFIED = 'the_map_header_was_read_but_the_theme_pack_was_not'
 BINDING_GONE_AFTER_A_TORN_TASK = 'the_controller_binding_was_released_when_the_task_was_torn_down'
 # D104: the picture never changed across the whole read budget, so the app (not the
 # page, and not the plan) is what stopped.  Naming it separately is what lets the next
@@ -3514,6 +3515,25 @@ class MirrorRunner:
                                             transition=True)
                 else:
                     state['transition_seen'] = 0
+            # D232: a page whose floor header IS readable but whose theme pack line is
+            # not cannot be identified by this reader at all -- the worst retained run
+            # spent 420 s and 0 clicks on exactly that screen (evidence/runtime/
+            # packaged-mirror-20261025-022715).  Name it after one retry instead of
+            # letting the unknown clock idle a whole budget away.
+            if record and record.get('ocr'):
+                from .map_vision import floor_label as _floor_label
+                header = _floor_label(
+                    [Text(r.get('text', ''), tuple(r.get('box') or ()), r.get('score', 0.0))
+                     for r in record['ocr']],
+                    tuple(record.get('size') or (1920, 1080)))
+                if header is not None:
+                    state['map_header_unidentified'] = state.get('map_header_unidentified', 0) + 1
+                    self.note('map_header_without_a_pack_line', floor_text=header.text,
+                              page=page, round=state['map_header_unidentified'],
+                              frame=record.get('frame'))
+                    if state['map_header_unidentified'] >= 2:
+                        self._end_session(MAP_HEADER_UNIDENTIFIED)
+                        return self._result(page, None, False, None)
             state['unknown_seen'] += 1
             # D163: a page nobody can name is bounded by its clock, not only by a count
             # of rounds.  Measured over the retained archive: 38 of 251 runs hold ten or

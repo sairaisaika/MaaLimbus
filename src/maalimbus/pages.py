@@ -823,6 +823,7 @@ STOP_KINDS = {
     # is a state the run itself produced, not the screen's fault.
     'ValueError': 'bad_saved_state',
     'the_budget_could_not_pay_for_another_step': 'refused_by_policy',
+    'the_map_header_was_read_but_the_theme_pack_was_not': 'unreadable_text',
     # A deployment input went out and the page never confirmed it: the transaction is
     # unfinished, so the loop stops rather than guess (D116).
     'Unverified deployment input remains pending': 'refused_by_policy',
