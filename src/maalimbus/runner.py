@@ -3904,6 +3904,16 @@ class MirrorRunner:
             return {'page': state.get('last_named_page'), 'stopped': STILL_FRAME_REASON,
                     'reason': STILL_FRAME_REASON}
         page = resolve_scene(self.registry, directory, record)
+        # 同一张图不会既是地图又不是地图：实测 `-143700` 的页面序列在 MAP 与 UNKNOWN
+        # 之间来回跳，一层就这么耗掉半小时。这里只沿用上一帧的页面名，且只在字节完全
+        # 相同、上一帧确实是 MAP 时（D354，判定在 maalimbus.page_carry）。
+        from .page_carry import carry_page as _carry_page
+        _carried = _carry_page(page, state.get('last_named_page'),
+                               record.get('image_sha256'), state.get('frame_sha'))
+        if _carried is not page:
+            self.note('page_carried', page=_carried, read=page,
+                      reason='the_frame_is_the_one_that_was_read_as_a_map')
+            page = _carried
         # A frame that differs from the last one is the game doing something, not a
         # deadlock.  Measured on evidence/runtime/packaged-mirror-20261025-055035: eleven
         # frames were read as battle cutscenes and paused the transaction counter, but the
