@@ -3412,6 +3412,27 @@ class MirrorRunner:
             self.state['map_acted_once'] = True
         self.note('map_click_result', **fields)
 
+    def _map_click_allowed(self, point):
+        """A map click outside one step is not sent.
+
+        The game only accepts a step to a neighbouring tile, so a click 1.5-2.5 steps away
+        cannot be refused and then retried usefully: it is a lost input and a lost read.
+        Measured `-142243`: 10 of 21 clicks were outside one step, from paths that never ask
+        the candidate list (retry, blind branch, pending reuse) -- so the rule lives at the
+        door as well as in the filter.
+        """
+        party = (self.state or {}).get('map_party')
+        reach = ((self.state or {}).get('map_step_reach') or {}).get('reach')
+        if not party or not reach:
+            return True
+        dx = abs(int(point[0]) - int(party[0]))
+        dy = abs(int(point[1]) - int(party[1]))
+        if dx <= reach and dy <= reach:
+            return True
+        self.note('map_click_out_of_step', point=[int(point[0]), int(point[1])],
+                  party=[int(party[0]), int(party[1])], reach=int(reach))
+        return False
+
     def _resolve_map_click(self, page):
         """Settle the click the last step could not judge.
 
@@ -3963,6 +3984,14 @@ class MirrorRunner:
                           size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party)
+        # The one-step rule is enforced at every map click, so the numbers it needs travel
+        # with the step: the reach the candidate list measured and the party it measured it
+        # from.  Without this the door would always open (D352).
+        _reach = record.get('map_step_reach')
+        if _reach:
+            self.state['map_step_reach'] = _reach
+        if record.get('map_party') is not None:
+            self.state['map_party'] = list(record['map_party'])
 
         # A record field is not a log line (D310 shipped one and no wire): `party_snap_failed`
         # and `map_party_in_candidates` were written onto the record and never appeared in the
@@ -4103,7 +4132,8 @@ class MirrorRunner:
                 tried.append(box_key(box))
                 self.state['map_acted_once'] = True
                 self.state['map_pending'] = box
-                self.device.click(*point)
+                if self._map_click_allowed(point):
+                    self.device.click(*point)
                 return self._result(page, point, True, None)
             if panel is None and self.state.get('map_blind_boxes') and not fresh:
                 # Every destination this frame offered was already tried: nothing is
@@ -5955,7 +5985,8 @@ class MirrorRunner:
                 except OSError:
                     pass
             _bracket('begin')
-            self.device.click(*point)
+            if self._map_click_allowed(point):
+                self.device.click(*point)
             _bracket('end')
         if page_vocabulary.is_battle_hud(page) and point is not None:
             # D103: the skill-detail overlay is opened by clicking a skill card and
@@ -7013,7 +7044,7 @@ class MirrorRunner:
         self.artifacts['clicks_sent']+=1;self.state['step']+=1
         # Attempt counts and intent are durable before Maa receives any input.
         if end is not None:self.device.swipe(*point,*end,delay)
-        else:self.device.click(*point)
+        elif self._map_click_allowed(point):self.device.click(*point)
         time.sleep(delay/1000)
         after=record;page='UNKNOWN'
         for attempt in range(max(1,self.settings.rounds)):
