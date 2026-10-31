@@ -2727,7 +2727,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # 车头图标 + 2(A-P)：游戏自己画出来的“下一站”，比任何推断出来的 kind 都硬（D377）。
     # 一格约等于 0.10 帧宽（实测 190/1920），用它合成一个框放到候选最前面。
     if party is not None and ordered:
-        _previous_party = (self.state or {}).get('last_party')
+        _previous_party = previous_party
         _side = None
         if record.get('map_candidates'):
             try:
@@ -4264,6 +4264,14 @@ class MirrorRunner:
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party,
                                           previous_party=self.state.get('last_party'))
+        _side_hint = None
+        try:
+            _sides = [int(box[2]) for box in (candidates or ()) if len(box) >= 4 and int(box[2]) > 100]
+            if _sides:
+                _sides.sort()
+                _side_hint = _sides[len(_sides) // 2]
+        except (TypeError, ValueError, IndexError):
+            _side_hint = None
         # Every frame re-votes on which node to take, and the vote legitimately alternates
         # between two mechanisms (edge said [1345,94] on every frame of `-191823`, while the
         # intent target flipped to [768,169] every other frame -- 578 px, three tiles).  A
@@ -4331,6 +4339,22 @@ class MirrorRunner:
                     # target left nothing and the loop answered "no destination" three times.
                     self.note('map_refused_all_fell_back', dropped=dropped,
                               reason='refusing_the_last_candidate_would_refuse_every_input')
+        # A click can only take the party one tile: `-194702` alternated between a target 1.1
+        # tiles away and one 2.0 tiles away, and the far one can never be walked to, so half
+        # the intents were dead on arrival (D427).  Measured with the frame's own box side as
+        # the ruler, never a constant.
+        if candidates and record.get('map_party') and isinstance(_side_hint, int) and _side_hint > 0:
+            _party = record['map_party']
+            def _reachable_ish(box):
+                bx = box['box'] if isinstance(box, dict) else box
+                cx, cy = bx[0] + bx[2] / 2.0, bx[1] + bx[3] / 2.0
+                dist = ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
+                return 0.55 * _side_hint <= dist <= 1.75 * _side_hint
+            _kept = [box for box in candidates if _reachable_ish(box)]
+            if _kept and len(_kept) != len(candidates):
+                self.note('map_candidates_too_far', dropped=len(candidates) - len(_kept),
+                          left=len(_kept), side=_side_hint)
+                candidates = _kept
         # The commitment has to be re-applied after every filter that may drop it: the
         # refused-target memory above is exactly a list of tiles this party already failed
         # on, so a committed target that was refused once vanished here and the plan went
