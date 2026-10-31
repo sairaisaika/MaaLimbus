@@ -2181,6 +2181,22 @@ def _same_board(record, board):
     return _board_key(record.get('map_candidates') or []) == board
 
 
+def train_distance_ok(point, party, side, *, low=0.9, high=2.6):
+    """Is this extrapolation where its own formula says it must be? (D413)
+
+    ``train_next_point`` answers ``party + 2 * (head - party)``: the *direction* is read off
+    the head marker and the *distance* is fixed at twice that.  So the result belongs one to
+    two steps away, whatever the zoom, the theme or the resolution -- that is algebra, not a
+    tuned constant.  Live `-181512` answered (293,796) for a party at (863,456): 910 px,
+    nearly five steps, which means the thing it called a head marker was not one.  The
+    formula stays as it is; this check rejects the *input*.
+    """
+    if point is None or party is None or not side:
+        return True
+    distance = abs(float(point[0]) - float(party[0])) + abs(float(point[1]) - float(party[1]))
+    return float(low) * side <= distance <= float(high) * side
+
+
 def _promote_lead(ordered, record):
     """Put the mechanism the step table prefers first (D404/D409).
 
@@ -2681,6 +2697,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 _next = tuple(_carried['point'])
         if _next is not None:
             _side = int(round(0.10 * image.shape[1]))
+            if not train_distance_ok(_next, party, _side):
+                record['map_train_rejected'] = {
+                    'point': [int(_next[0]), int(_next[1])],
+                    'party': [int(party[0]), int(party[1])],
+                    'distance': int(abs(_next[0] - party[0]) + abs(_next[1] - party[1])),
+                    'step': _side}
+                _next = None
+        if _next is not None:
             _train_box = [int(_next[0] - _side // 2), int(_next[1] - _side // 2), _side, _side]
             record['map_train_next'] = {'point': [int(_next[0]), int(_next[1])],
                                         'party': [int(party[0]), int(party[1])],
