@@ -485,7 +485,7 @@ class LimbusRecognition(CustomRecognition):
             from maalimbus.deployment_availability_native import read_availability
             local.extend(read_availability(roi_direct,image,records,
                 [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)]))
-        hud = battle_hud(records, size)
+        hud = battle_hud(records, size) if (records and size) else None
         # live `packaged-mirror-20261031-125442/frame-0007.png`: Resume 之后进到一场还在打的
         # 战斗，敌人详情页把整个 HUD 盖住 —— 34 条 OCR 里没有 WAVE/TURN/START。详情页自己
         # 就是战斗证据（D339），而它唯一的控件是左上角的返回键；这里只记位置，不规划输入。
