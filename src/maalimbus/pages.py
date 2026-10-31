@@ -257,7 +257,9 @@ INLINE_RUNNER = {
     'GIFT_SEARCH': 1,
     'HEAL_SINNERS': 2,
     'INITIAL_GIFTS': 4,
-    'MAP': 29,
+    'MAP': 31,  # 29 -> 31 in 1261714: the bounded retry for a map click that moved
+                 # nothing asks the page twice more on purpose; the ratchet is meant to be
+                 # edited on purpose, and this is that edit.
     'PRE_BATTLE': 1,
     'PRE_BATTLE_TEAM': 6,
     'RESUME_DIALOG': 1,

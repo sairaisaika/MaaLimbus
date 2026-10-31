@@ -111,8 +111,13 @@ def test_the_runner_does_not_accumulate_new_page_specific_checks():
     produced page-by-page patching, so it must replace an existing one or edit
     this table on purpose.
     """
-    overrun = pages.inline_overrun(_inline_counts())
-    assert overrun == [], f'inline page dispatch grew for: {overrun}'
+    counts = _inline_counts()
+    overrun = pages.inline_overrun(counts)
+    # 失败时把实际数字打出来：这条红过一次“只报名字、不给数”的亏（D374）。
+    assert overrun == [], (
+        f'inline page dispatch grew for: {overrun}; '
+        f'type={type(counts).__name__} '
+        f'({", ".join(f"{name}={counts.get(name)}/{pages.INLINE_RUNNER.get(name)}" for name in overrun)})')
 
 
 def test_the_ratchet_counts_more_than_the_one_spelling_it_replaced():
