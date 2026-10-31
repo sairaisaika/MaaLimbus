@@ -3896,7 +3896,7 @@ class MirrorRunner:
                   ('map_party_in_candidates', 'party_snap_failed', 'map_click_shift',
                    'map_edge_only', 'map_edge_step', 'map_edge_without_history',
                    'map_edge_overrules_adjacency', 'party_snapped',
-                   'map_party_rejected')
+                   'map_party_rejected', 'map_click_size')
                   if record.get(name) is not None}
         if _debug:
             self.note('map_candidates_debug', **_debug)
