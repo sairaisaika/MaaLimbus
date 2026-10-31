@@ -2305,6 +2305,22 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # `chevron_target` was answered None for its whole life and the ranking fell back
     # to distance (live `-135349`: nine clicks at a node the page never accepted, with
     # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
+    # A party cannot move more than a step between two frames, and that is a kinematic
+    # limit rather than a geometric one: live `-182829` frame 2 read (489,326) on blank
+    # screen while the flame was still at (860,210) -- 530 px, 2.8 steps -- and every
+    # candidate was then filtered against that point (D415/D416).  The previous centre is
+    # the better answer when the new reading is impossible; without one there is nothing to
+    # compare against and the reading stands.
+    _previous_party = record.get('party_node')
+    if party is not None and _previous_party is not None:
+        _jump_limit = 0.12 * image.shape[1]
+        _jump = abs(float(party[0]) - float(_previous_party[0])) + abs(
+            float(party[1]) - float(_previous_party[1]))
+        if _jump > _jump_limit:
+            record['party_jumped'] = {'read': [int(v) for v in party],
+                                      'previous': [int(v) for v in _previous_party],
+                                      'jump': int(_jump), 'limit': int(_jump_limit)}
+            party = (float(_previous_party[0]), float(_previous_party[1]))
     clicks = map_clicks(image, template=node_badge_template(), player=party)
     record['map_filter_funnel'] = {'raw': len(clicks)}   # D410: 真漏斗，每一层记一次
     # A reading has to be on the board the game drew, and the board is exactly the boxes
