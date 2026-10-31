@@ -2086,6 +2086,24 @@ def flame_point(image):
 GLOW_BAND = (0.10, 0.84)
 
 
+def pick_party_fallback(glow, flame, *, limit=200):
+    """Which last-resort reading to trust when only the shape readers answered.
+
+    Both are shape readers, and on one frame they disagree wildly: live
+    `-141246/frame-0001` puts `flame_point` at (862,541), which is where the party really
+    stands, and `glow_point` at (576,687), which is a node's glow on the other side of
+    the board.  A disagreement larger than one lattice step (192 at 1080p) means one of
+    them is not the party, and the flame is the one the game draws at the party's feet.
+    """
+    if flame is None:
+        return glow
+    if glow is None:
+        return flame
+    if abs(int(flame[0]) - int(glow[0])) > limit or abs(int(flame[1]) - int(glow[1])) > limit:
+        return flame
+    return glow
+
+
 def glow_point(image):
     """The party's own selection glow, as a shape rather than a colour rule.
 
@@ -2542,7 +2560,7 @@ def party_point(image):
         # Neither colour nor the flame answered: the tile's own glow is the last reading
         # with a shape behind it (D293/D294), and `packaged-mirror-20261025-134415` shows the
         # flame hidden behind the tile icon while the glow is measured at (508,242).
-        return glow_point(image)
+        return pick_party_fallback(glow_point(image), flame_point(image))
     height, width = image.shape[:2]
     x, y = int(marker[0]), int(marker[1])
     if not (0 <= x < int(.95 * width)) or not (int(.10 * height) <= y < int(.86 * height)):
