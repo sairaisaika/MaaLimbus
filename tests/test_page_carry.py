@@ -39,3 +39,26 @@ def test_a_named_page_is_not_reread():
 def test_observe_only_never_rereads():
     from maalimbus.page_carry import unknown_needs_reread
     assert unknown_needs_reread('UNKNOWN', observe_only=True) is False
+
+
+def test_several_node_boxes_are_a_map_even_without_text():
+    from maalimbus.page_carry import map_by_structure
+    boxes = [[100 + 200 * i, 200, 190, 190] for i in range(6)]
+    assert map_by_structure(boxes) is True
+
+
+def test_one_box_is_not_a_map():
+    from maalimbus.page_carry import map_by_structure
+    assert map_by_structure([[100, 200, 190, 190]]) is False
+
+
+def test_badges_and_buttons_are_not_nodes():
+    from maalimbus.page_carry import map_by_structure
+    # 界面页上的小控件（40×40 徽章、180×80 按钮）不该被当成节点框
+    boxes = [[10, 10, 40, 40], [20, 20, 40, 40], [30, 30, 180, 80], [40, 40, 40, 40]]
+    assert map_by_structure(boxes) is False
+
+
+def test_the_structure_floor_sits_between_ui_and_map():
+    from maalimbus.page_carry import MAP_STRUCTURE_FLOOR
+    assert 1 < MAP_STRUCTURE_FLOOR < 6   # 界面页 0–1 个，地图页最少 6 个（实测）

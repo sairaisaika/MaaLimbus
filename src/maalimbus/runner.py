@@ -3917,6 +3917,19 @@ class MirrorRunner:
                 if not page_vocabulary.is_unreadable(second):
                     self.note('unknown_reread_recovered', was=page, now=second)
                     record, page = again, second
+        if page_vocabulary.is_unreadable(page):
+            # 文字读不出时还有结构：地图页上同时躺着好几个六边形节点框（D361）。
+            from .page_carry import map_by_structure
+            from .map_vision import map_clicks
+            try:
+                image = cv2.imread(str(frame_file(directory)))
+            except Exception:
+                image = None
+            if image is not None:
+                boxes = [item['box'] for item in map_clicks(image)]
+                if map_by_structure(boxes):
+                    self.note('page_recovered_by_structure', boxes=len(boxes))
+                    page = 'MAP'
         # 同一张图不会既是地图又不是地图：实测 `-143700` 的页面序列在 MAP 与 UNKNOWN
         # 之间来回跳，一层就这么耗掉半小时。这里只沿用上一帧的页面名，且只在字节完全
         # 相同、上一帧确实是 MAP 时（D354，判定在 maalimbus.page_carry）。
