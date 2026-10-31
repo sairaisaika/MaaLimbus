@@ -2102,6 +2102,10 @@ def node_sized_boxes(clicks, *, width, floor_share=0.05):
     return kept, info
 
 
+DECORATION_KINDS = ('lattice_step', 'badge_mark', 'node_away_from_player',
+                    'neutral_outline_candidate', 'relaxed_node')
+
+
 def guess_candidates(image, clicks, *, kinds=None):
     """The nodes a frame marks even when the party cannot be read.
 
@@ -2178,6 +2182,12 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # to distance (live `-135349`: nine clicks at a node the page never accepted, with
     # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
     clicks = map_clicks(image, template=node_badge_template(), player=party)
+    # 节点上画着装饰，装饰也是框：实跑 `-135856` 的 22 次点击里绝大多数 target 是
+    # `lattice_step`（装饰），距离我方 297-485 px（1.5-2.5 格），点了页面不动。
+    # 只保留“节点语义”的读法，装饰留给 `guess_candidates` 之外的分析。
+    _real = [item for item in clicks if item.get('kind') not in DECORATION_KINDS]
+    if _real:
+        clicks = _real
 
     # D331: what the drawn line says, recorded before any decision uses it.  The share of lit
     # pixels along the segment is the only reading that separates a connected tile from a bare
