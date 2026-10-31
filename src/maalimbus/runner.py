@@ -3373,6 +3373,13 @@ class MirrorRunner:
         # spend it once at the step tail.
         if fields.get('outcome') == 'rejected':
             self.state['map_refused_since_progress'] = True
+        # A run that was accepted once on a map has action rights on this screen, and
+        # `map_acted_once` is what the header-without-a-pack-line ending reads.  It used
+        # to be set only by the blind-map branch, so live `-135034` was accepted three
+        # times and then ended 20 s later on a frame whose pack line the OCR missed --
+        # "never acted" was false, but nothing had written it down.
+        if fields.get('outcome') == 'accepted':
+            self.state['map_acted_once'] = True
         self.note('map_click_result', **fields)
 
     def _resolve_map_click(self, page):
