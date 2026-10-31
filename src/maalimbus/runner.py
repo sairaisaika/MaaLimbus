@@ -2079,6 +2079,26 @@ def party_anchor_source(record):
     return 'read' if record.get('map_party') else 'none'
 
 
+
+def _far_apart(first, second, *, share=1.0):
+    """Are two map targets a different decision, or the same tile re-estimated?
+
+    D337 replaced a reused pending target whenever its box key differed, because a
+    reuse had once sent a click three tiles from the intent.  `-191421` showed the
+    other half of that rule: the planner alternated between two neighbours 160 px
+    apart, so every frame "replaced" the last one and no click ever settled.  A
+    replacement now has to move at least one tile (``share=1.0`` of the smaller box's
+    side) to be treated as a different decision.
+    """
+    first, second = list(first or ()), list(second or ())
+    if len(first) >= 4 and len(second) >= 4:
+        side = min(first[2], first[3], second[2], second[3])
+        dx = (first[0] + first[2] / 2.0) - (second[0] + second[2] / 2.0)
+        dy = (first[1] + first[3] / 2.0) - (second[1] + second[3] / 2.0)
+        return (dx * dx + dy * dy) ** 0.5 >= side * share
+    return box_key(first) != box_key(second)
+
+
 def party_on_a_node(party, boxes, *, share=1.2):
     """Whether the party reading stands on a node, i.e. is a plausible anchor.
 
@@ -6209,7 +6229,7 @@ class MirrorRunner:
                     self._resolve_map_click(page)
                 reused_target, reused = pending_target(
                     state, plan, tries=self.settings.map_tries)
-                if reused and box_key(reused_target) != box_key(plan['target']):
+                if reused and _far_apart(reused_target, plan['target'], share=1.0):
                     # A pending click may hold the loop back, but it may not rewrite a
                     # different decision: measured on `-163457`, the intent [578,142] went out
                     # as [1153,143] -- 575 px, three tiles, (D337).
