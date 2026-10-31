@@ -7337,3 +7337,19 @@ intents:  [1342,467] [1344,100] [768,175] [768,175] [1343,98] [1343,98] [1344,16
 3. 两者不同帧 → 外推点偏到**背后那一格** → 点它当然不动（或判 superseded）。
 
 **下一步**：外推必须与 party 同一帧（外推前重新读一次 party，或把 party 的帧号一起带进外推）。
+
+### D426 修好了 self bug，移动了一格（2026-10-31）
+
+第一次实跑直接 `NameError: name 'self' is not defined` —— 我把 `self.state` 写进了模块级函数
+`candidates_of`（它没有 `self`）。改成用它的参数 `previous_party`，并补了测试断言
+`_previous_party = previous_party`。
+
+重跑 `-194702`（150 s，176 事件）：
+
+```
+我方位置：(1055,19x) ×8 → (1631,188)      ← 移动了一格
+outcomes: superseded 5 / unjudged 1 / rejected 1
+```
+
+所以 D426 起了作用（不再点回原格，且真的走了一格），但**走完一格后又卡住**。
+下一轮看它卡在哪：仍是 superseded 占多数，说明"移动之后新目标的选取"仍有问题。
