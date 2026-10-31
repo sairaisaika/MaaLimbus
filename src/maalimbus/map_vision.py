@@ -2777,6 +2777,23 @@ def line_lit(image, start, end, *, sample=160, skip=0.18, lit=90):
     return round(sum(1 for value in core if value > lit) / float(len(core)), 3)
 
 
+NODE_CENTRE_LIFT = 0.18
+"""How far above a node box's own centre the hexagon sits, as a share of its height.
+
+Measured on `evidence/runtime/packaged-mirror-20261031-135856/frame-0001.png`: the box
+`(576,169,190,190)` has its centre on the badge at (671,264), the lit-edge centroid at
+(670,254) and the hexagon the game accepts is around (671,230) -- two independent
+readings, both above the centre, and the same 34 px D326 saw on a different frame.  The
+share keeps it resolution independent instead of hard-coding 34 pixels.
+"""
+
+
+def node_point(box):
+    """The point inside a node box that the game treats as the node."""
+    x, y, w, h = [int(v) for v in box[:4]]
+    return (x + w // 2, int(round(y + h // 2 - NODE_CENTRE_LIFT * h)))
+
+
 def tile_centre(image, box, *, lit=25):
     """The point inside a node box that the game accepts as that tile.
 
