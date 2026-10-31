@@ -281,6 +281,8 @@ INLINE_RUNNER = {
     'TUTORIAL': 3,
     'UNKNOWN': 8,
     'UNKNOWN_DIALOG': 4,
+    # D379: step 里“预览面板 → 交出它自己的 Enter”是一次新的页面分派
+    'NODE_PREVIEW': 1,
 }
 
 #: The same count for ``window.py``: **34 sites**, the chain ``window.plan_step``

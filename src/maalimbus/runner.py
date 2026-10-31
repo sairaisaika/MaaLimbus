@@ -74,7 +74,7 @@ from .shop_vision import (SHELF_PRICE_FAINT_FLOOR, SHELF_PRICE_FLOOR, shelf_toke
 from .shop_settings import CARRY_CAP_COINS
 from .team_vision import (CARD_COUNT, assignment_numbers, card_states, participants,
                             selected_saved_team, saved_team_header)
-from .vision import Text, inset_box
+from .vision import Text, inset_box, node_preview
 from . import click_trace
 from .window import (ANY, CLICK, NODE, SWIPE, WAIT_PAGES, plan_step, resolve_overlay,
                      step_result)
@@ -5809,7 +5809,8 @@ class MirrorRunner:
                          search={'mode': settings.gift_search},
                          shop=shop,
                          bonus={'spend': state['run_settled_itself']},
-                         page_detail=record.get('battle_detail'))
+                         page_detail=record.get('battle_detail'),
+                         preview=record.get('node_preview'))
         if page=='UNKNOWN_DIALOG' and self.floor_gift_transaction is not None:
             from .floor_gift_transaction import refusal_confirm_target
             d=self.floor_gift_transaction.data;p=d.get('pending') if d else None
@@ -6265,6 +6266,14 @@ class MirrorRunner:
                 continue
             unreadable_rounds=0
             settled_page = resolve_scene(self.registry, directory, settled)
+            if settled_page == 'NODE_PREVIEW':
+                # 预览面板只差一下 Enter（D379）：这里把面板自己的 Enter 交出去，
+                # 让 window 的分支去点它；拿不到就留空，由 window 按名字拒绝。
+                _ocr = settled.get('ocr') or []
+                _records = [Text(str(item.get('text', '')), tuple(item.get('box') or (0, 0, 0, 0)),
+                                 float(item.get('score') or 0.0)) for item in _ocr]
+                _size = tuple(settled.get('size') or (1920, 1080))
+                record['node_preview'] = node_preview(_records, _size)
             if page=='MAP' and settled_page in ('MAP','UNKNOWN'):
                 # A fading map or hover animation is not an opened node.
                 map_successor_reads=map_successor_reads+1 if settled_page=='MAP' else 0
