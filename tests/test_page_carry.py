@@ -23,3 +23,19 @@ def test_only_a_map_is_carried():
 def test_missing_hashes_carry_nothing():
     assert carry_page('UNKNOWN', 'MAP', None, 'abc') == 'UNKNOWN'
     assert carry_page('UNKNOWN', 'MAP', 'abc', None) == 'UNKNOWN'
+
+
+def test_an_unreadable_page_is_reread_once():
+    from maalimbus.page_carry import unknown_needs_reread
+    assert unknown_needs_reread('UNKNOWN') is True
+
+
+def test_a_named_page_is_not_reread():
+    from maalimbus.page_carry import unknown_needs_reread
+    for page in ('MAP', 'SHOP', 'BATTLE_HUD'):
+        assert unknown_needs_reread(page) is False
+
+
+def test_observe_only_never_rereads():
+    from maalimbus.page_carry import unknown_needs_reread
+    assert unknown_needs_reread('UNKNOWN', observe_only=True) is False

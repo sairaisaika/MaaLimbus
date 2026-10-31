@@ -3904,6 +3904,19 @@ class MirrorRunner:
             return {'page': state.get('last_named_page'), 'stopped': STILL_FRAME_REASON,
                     'reason': STILL_FRAME_REASON}
         page = resolve_scene(self.registry, directory, record)
+        # 读不出名字时立刻再读一次（D360）。实测 `-150529` 的序列是“相邻两帧一好一坏”：
+        # 等 6 s 再读，等于把一次误判拖成一整轮等待；多读一次的代价是 0.6 s。
+        from .page_carry import unknown_needs_reread
+        if unknown_needs_reread(page, observe_only=settings.observe_only):
+            try:
+                again = self._observe(phase='reread_unknown')
+            except Exception:
+                again = None
+            if again is not None:
+                second = resolve_scene(self.registry, directory, again)
+                if not page_vocabulary.is_unreadable(second):
+                    self.note('unknown_reread_recovered', was=page, now=second)
+                    record, page = again, second
         # 同一张图不会既是地图又不是地图：实测 `-143700` 的页面序列在 MAP 与 UNKNOWN
         # 之间来回跳，一层就这么耗掉半小时。这里只沿用上一帧的页面名，且只在字节完全
         # 相同、上一帧确实是 MAP 时（D354，判定在 maalimbus.page_carry）。

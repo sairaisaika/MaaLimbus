@@ -23,3 +23,12 @@ def carry_page(page, last_named, frame_sha, last_sha, *, carry_from=CARRY_FROM):
     if not frame_sha or not last_sha or frame_sha != last_sha:
         return page
     return last_named
+
+
+def unknown_needs_reread(page, *, observe_only=False):
+    """读不出名字时要不要立刻再读一次（D360）。
+
+    实测 `-150529`：页面在 MAP 与 UNKNOWN 之间来回跳，而每一次都是一次独立的观察，
+    所以“多读一次”比“等 6 s 再读”便宜得多。只读模式（`--observe-only`）不许再发观察。
+    """
+    return page == 'UNKNOWN' and not observe_only
