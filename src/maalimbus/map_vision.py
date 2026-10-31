@@ -2842,6 +2842,13 @@ def train_next_point(image, party, *, reach=(0.05, 0.22), lift=0.09):
     """
     if image is None or party is None or getattr(image, 'ndim', 0) != 3:
         return None
+    # 先问箭头：箭头画在“我方与下一格之间”，所以 P + 2(A - P) 落在下一格上
+    # （`-181831/frame-0002`：P=(860,248)、箭头 (953,255) → (1046,262)，目视下一格 ≈1100，
+    # 偏 54 px；同一帧用车头图标给出 (1252,248)，偏到红 Boss 上 152 px）。D327 之前
+    # 箭头读数被 720p 判据挡住，所以旧注释里“V 形偏 170 px”是**读不到时**的比较，不是它更差。
+    for _arrow in chevron_glyph_pairs(image) or ():
+        return (int(round(party[0] + 2 * (_arrow[0] - party[0]))),
+                int(round(party[1] + 2 * (_arrow[1] - party[1]))))
     import cv2
     import numpy as np
     height, width = image.shape[:2]

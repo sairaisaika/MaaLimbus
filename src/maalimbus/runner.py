@@ -2181,7 +2181,7 @@ def _same_board(record, board):
     return _board_key(record.get('map_candidates') or []) == board
 
 
-def train_distance_ok(point, party, side, *, low=0.9, high=2.6):
+def train_distance_ok(point, party, side, *, low=0.8, high=1.6):
     """Is this extrapolation where its own formula says it must be? (D413)
 
     ``train_next_point`` answers ``party + 2 * (head - party)``: the *direction* is read off
@@ -2195,6 +2195,11 @@ def train_distance_ok(point, party, side, *, low=0.9, high=2.6):
         return True
     distance = abs(float(point[0]) - float(party[0])) + abs(float(point[1]) - float(party[1]))
     return float(low) * side <= distance <= float(high) * side
+
+
+def train_distance_bounds(side):
+    """The window `train_next_point` must land in, given this frame's step (D414)."""
+    return 0.8 * float(side), 1.6 * float(side)
 
 
 def _promote_lead(ordered, record):
@@ -2697,7 +2702,8 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 _next = tuple(_carried['point'])
         if _next is not None:
             _side = int(round(0.10 * image.shape[1]))
-            if not train_distance_ok(_next, party, _side):
+            _low, _high = train_distance_bounds(_side)
+            if not train_distance_ok(_next, party, _side, low=0.8, high=1.6):
                 record['map_train_rejected'] = {
                     'point': [int(_next[0]), int(_next[1])],
                     'party': [int(party[0]), int(party[1])],
