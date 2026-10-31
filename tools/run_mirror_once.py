@@ -14,11 +14,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'src'))
 BINARY = ROOT / 'build' / 'mxu-probe-271' / 'maafw'
 RECORD = ROOT / 'build' / 'last-run.json'
 
@@ -135,6 +137,15 @@ def main(argv=None) -> int:
                           encoding='utf-8')
     except Exception:
         pass
+    # 每跑一次都会写几百张帧、留一次 agent 备份；预算 2 GiB（D355），收尾自动收回。
+    try:
+        from maalimbus.workspace import prune as _prune
+        _out = _prune(ROOT)
+        if _out['freed']:
+            print('工作区：收回 %.2f GiB（现在 %.2f GiB）'
+                  % (_out['freed'] / 2**30, _out['after'] / 2**30))
+    except Exception as error:
+        print('工作区清理跳过（不阻断）：%s' % error)
     return code
 
 
