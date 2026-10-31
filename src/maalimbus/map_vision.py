@@ -3139,7 +3139,14 @@ def lock_party_to_node(party, boxes, *, previous=None, tol=0.8):
     reach = side() * tol
     if previous is not None and party is not None:
         distance = abs(float(party[0]) - float(previous[0])) + abs(float(party[1]) - float(previous[1]))
-        if distance <= reach:
+        # A remembered centre is only worth keeping while *this frame* still has a node
+        # under it.  Without that check one wrong centre is locked in forever: every later
+        # frame reads a party near it, so the lock answers the same wrong point and the
+        # step is chosen two tiles away (live `-180255`: lock (860,248), board centre
+        # (1439,189), 580 px apart, eight clicks that could not move the party).
+        still_on_a_node = any(abs(float(previous[0]) - c[0]) + abs(float(previous[1]) - c[1]) <= reach
+                              for c in centres())
+        if distance <= reach and still_on_a_node:
             return (int(previous[0]), int(previous[1])), tuple(previous)
     if party is None and previous is not None:
         return (int(previous[0]), int(previous[1])), tuple(previous)
@@ -3156,7 +3163,10 @@ def lock_party_to_node(party, boxes, *, previous=None, tol=0.8):
         crossing = nearest_lattice_point(party, rows)
         if crossing is not None:
             return crossing, tuple(float(v) for v in crossing)
-        return party, previous
+        # Nothing under this point: report it as *unconfirmed* rather than handing the old
+        # centre back.  Returning `previous` here is what let one wrong lock survive every
+        # later frame (live `-180255`: lock (860,248) while the board centre was (1439,189)).
+        return party, None
     return (int(best[1][0]), int(best[1][1])), tuple(best[1])
 
 
