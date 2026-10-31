@@ -3084,7 +3084,9 @@ def lattice_box(boxes, *, pad=0.5):
     the grey decoration above the lattice; the fraction band (0.10-0.90 h) let it through
     because the decoration lives inside it too.  The boxes do not lie.
     """
-    rows = [box for box in boxes or () if box and len(box) >= 4]
+    rows = [(item.get('box') if isinstance(item, dict) else item)
+            for item in (boxes or ())]
+    rows = [box for box in rows if box and len(box) >= 4]
     if not rows:
         return None
     left = min(float(box[0]) for box in rows)
@@ -3121,7 +3123,9 @@ def lock_party_to_node(party, boxes, *, previous=None, tol=0.8):
     with its nearest box centre at (837,330) -- 143 px on a 192 px side, i.e. 0.75 -- so the
     0.6 reach refused every frame and `party_node` stayed None (D395).
     """
-    rows = [box for box in boxes or () if box and len(box) >= 4]
+    rows = [(item.get('box') if isinstance(item, dict) else item)
+            for item in (boxes or ())]
+    rows = [box for box in rows if box and len(box) >= 4]
     if not rows:
         return party, previous
 

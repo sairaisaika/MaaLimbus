@@ -2235,8 +2235,11 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # every frame (D393).
     _nearest_px = None
     if party is not None and clicks:
-        _nearest_px = min(int(abs(party[0] - (box[0] + box[2] / 2.0))
-                             + abs(party[1] - (box[1] + box[3] / 2.0))) for box in clicks)
+        def _centre(item):
+            box = item.get('box') if isinstance(item, dict) else item
+            return (box[0] + box[2] / 2.0, box[1] + box[3] / 2.0)
+        _nearest_px = min(int(abs(party[0] - _centre(item)[0])
+                             + abs(party[1] - _centre(item)[1])) for item in clicks)
     party, _confirmed = map_vision.lock_party_to_node(
         party, clicks, previous=record.get('party_node'))
     record['party_node'] = list(_confirmed) if _confirmed else None
