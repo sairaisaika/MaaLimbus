@@ -7238,3 +7238,32 @@ if pending and pending.get('name') and pending.get('price'):      # ← 门控
 
 下一步：给"替换"加一个距离门——**新目标与旧目标相距小于半格时不算替换**，继续等原点击
 的结果；只有真的换了格子才 supersede。
+
+### 复用生效了，但目标是真的在换格（2026-10-31，D423 实跑）
+
+`-191823`（150 s，188 事件）：
+
+```
+map_click_reuses_its_pending_target   1      ← D423 生效了一次
+map_pending_target_replaced           3      ← 仍被拒三次
+map_click_did_not_move_the_run         3
+map_click_result: superseded 7 / unjudged 1 / rejected 1
+map_candidates_debug 的 lead：edge × 9
+```
+
+三点结论：
+
+1. **D423 起作用了**（复用了 1 次），所以距离门本身是对的；
+2. 剩下 3 次"替换"被拒，说明目标**真的跳了一格以上**——不是抖动，是另一个格子；
+3. 主导机制是 **`edge`（页面画出来的边）**，它每帧指向不同的边。
+
+下一步要修的是 **`edge_target` 的稳定性**，层级又高了一层：
+
+```
+判据层（superseded_click，半格）      ← D422
+决策层（pending 复用，一格）           ← D423
+感知层（edge_target 每帧不同）         ← 待修
+```
+
+同一根因（"目标不稳定"）第三次出现，每次都在不同层。这说明它不是三个 bug，而是
+**一条链上三个环节各自缺少"上次是什么"的记忆**。
