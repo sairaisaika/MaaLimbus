@@ -771,7 +771,7 @@ def ladder_for(action, ladder):
     return tuple(ladder)
 
 
-def superseded_click(pending, target):
+def superseded_click(pending, target, *, share=0.5):
     """Was a planned map click replaced before its page settled?
 
     The live run of 2026-10-22 planned three node clicks inside one page settle and
@@ -782,6 +782,16 @@ def superseded_click(pending, target):
     """
     if not pending:
         return False
+    if len(pending) >= 4 and len(target) >= 4:
+        side = min(pending[2], pending[3], target[2], target[3])
+        dx = (pending[0] + pending[2] / 2.0) - (target[0] + target[2] / 2.0)
+        dy = (pending[1] + pending[3] / 2.0) - (target[1] + target[3] / 2.0)
+        if (dx * dx + dy * dy) ** 0.5 < side * share:
+            # The target is recomputed every frame (car head, lattice, adjacency), so a
+            # few pixels of drift is the same tile, not a replacement: `-190841` had six
+            # clicks superseded by their own next estimate (D422).  A replacement has to
+            # move at least half a tile to be a different decision.
+            return False
     return list(pending) != list(target)
 
 
