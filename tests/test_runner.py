@@ -1667,3 +1667,10 @@ def test_a_map_click_that_lands_on_another_page_is_progress(tmp_path, monkeypatc
     body = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
     assert "reason='the_map_moved_the_run_to_another_page'" in body
     assert "map_successor_elsewhere" in body
+
+
+def test_an_unjudged_map_click_still_buys_the_action_right():
+    """点击发出去就算行动过：否则 header-only 的屏幕一亮就结束整个 run（D364）。"""
+    body = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
+    assert "'accepted', 'unjudged', 'superseded'" in body
+    assert "outcome') == 'accepted':" not in body

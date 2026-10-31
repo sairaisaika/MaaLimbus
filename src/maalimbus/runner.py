@@ -3416,7 +3416,10 @@ class MirrorRunner:
         # to be set only by the blind-map branch, so live `-135034` was accepted three
         # times and then ended 20 s later on a frame whose pack line the OCR missed --
         # "never acted" was false, but nothing had written it down.
-        if fields.get('outcome') == 'accepted':
+        if fields.get('outcome') in ('accepted', 'unjudged', 'superseded'):
+            # D364: 一次地图点击只要**发出去**且没被游戏明确拒绝，就算在这张地图上行动过。
+            # 之前只认 `accepted`，而实跑的点击大量是 `unjudged`（发出去了、结果没判），
+            # 于是“从没行动过”被写成了事实，header-only 的屏幕一亮就结束整个 run。
             self.state['map_acted_once'] = True
         self.note('map_click_result', **fields)
 
