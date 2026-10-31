@@ -6763,3 +6763,20 @@ carry 自动失效。
 修法（下轮做）：把 lead 重排整段移到 `map_train_next` 写入之后、`map_click_centre` 之前。这一步不能
 用“删除+插到某行”的粗暴脚本——它会把夹在中间的 train 块一起搬走；必须按函数边界切分并保留原有
 缩进与注释。
+
+### 顺序 bug 的修法要换：行号搬移不可靠（2026-10-31，D409 补）
+
+两次尝试把 lead 重排段搬到 `map_train_next` 之后都失败，原因已查明：
+
+- 我用 `s.index('    # One owner for "who goes first"')` 到 `s.index('    # 空候选也要能返回')` 做切片，
+  而这两点之间**夹着整个 train 块**（`train_next_point` → `map_train_next` 写入，约 130 行）。于是
+  “搬走”等于把 train 块一起搬走，插回去后相对顺序没变。
+
+顺带纠正一个误判：`grep -c step_preference(record)` 给出 2，第二处是 `def step_preference(record):`
+（8327），不是第二处调用。
+
+**下轮的正确修法**：把 2545 起的 lead 重排抽成独立函数（`_step_lead(ordered, record, image)`），
+在 train 块之后与 `map_click_centre` 之前调用一次。不依赖任何行号，也不依赖注释文本作边界。
+
+> 教训：*用文本锚点做结构修改，锚点之间会夹着别的东西*。改结构就用函数边界；只有改一行时才用
+> 文本匹配。
