@@ -597,4 +597,7 @@ def classify(records, locale, size):
     # 耗尽预算——每一次“点了没动”其实都是“选中了却没按 Enter”（用户 2026-10-31）。
     if node_preview(records, size) is not None:
         return 'NODE_PREVIEW'
+    # 地图上点一格只会打开节点预览面板（名字 + 右下 Enter），点 Enter 才真的进去。
+    if node_preview(records, size) is not None:
+        return 'NODE_PREVIEW'
     return 'UNKNOWN'

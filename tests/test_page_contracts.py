@@ -24,7 +24,7 @@ SOURCE = pathlib.Path(window.__file__).read_text(encoding='utf-8')
 #: clicked on BATTLE_RESULT (it advances without input), so naming the refusal
 #: keeps the missing-control diagnostic instead of falling through to the generic
 #: observe-only answer.
-NAMED_REFUSAL_ON_A_WAIT_PAGE = {'BATTLE_RESULT', 'LOADING'}  # D120: the loader
+NAMED_REFUSAL_ON_A_WAIT_PAGE = {'BATTLE_RESULT', 'LOADING'}  # D379: NODE_PREVIEW 是 plan 页，有自己的 branch，不算 wait 页
 # refuses by name too, and its refusal is a wait-only action.
 
 #: Names the chain chooses at runtime and no reader can resolve statically.

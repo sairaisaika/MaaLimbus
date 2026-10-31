@@ -136,7 +136,8 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_a
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
-              shop=None, battle_assignment='win_rate', battle_previous=None, page_detail=None):
+              shop=None, battle_assignment='win_rate', battle_previous=None, page_detail=None,
+              preview=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -152,7 +153,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_a
                       battle_assignment=battle_assignment,
                       battle_previous=battle_previous,
                       battle_assigns=battle_assigns,
-                      battle_pairs=battle_pairs, page_detail=page_detail)
+                      battle_pairs=battle_pairs, page_detail=page_detail, preview=preview)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -611,7 +612,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
                shop=None, battle_assignment='win_rate', battle_previous=None,
-               battle_assigns=0, battle_pairs=0, page_detail=None):
+               battle_assigns=0, battle_pairs=0, page_detail=None, preview=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -831,6 +832,14 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                      reason='the_event_choice_that_names_its_reward_is_taken',
                      detail={'option_count': len(candidates),
                              'option_index': candidate_index})
+    if page == 'NODE_PREVIEW':
+        # 地图上点一格只会打开这个面板：名字 + 右下 Enter。点 Enter 才是“真的进去”，
+        # 点左边箭头是回退。以前它被判成 UNKNOWN，循环在它上面耗尽预算，而每一次
+        # “点了没动”其实都是“选中了却没按 Enter”（用户 2026-10-31，D379）。
+        if preview and preview.get('enter'):
+            return _plan(page, CLICK, target=preview['enter'],
+                         reason='the_preview_is_confirmed_with_its_own_enter')
+        return _refuse(page, 'the_preview_panel_has_no_enter_to_press')
     if page == 'DUNGEON_PROGRESS':
         # The dungeon's pause panel parks the game and states its progress. It is
         # never a step: the only input that belongs here is its own Continue, and

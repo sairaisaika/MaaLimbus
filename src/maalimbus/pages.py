@@ -70,7 +70,8 @@ PAGES = {
     'MIRROR_ENTRY': ('vision', 'runner'),
     'NODE_PANEL': ('agent', 'plan'),
     # 预览面板：只差一下 Enter（D379）
-    'NODE_PREVIEW': ('vision', 'wait'),
+    'NODE_PREVIEW': ('vision', 'plan'),
+    # 预览面板：只差一下 Enter（D379）
     'PASS_LEVEL_UP': ('vision', 'plan'),
     'PRE_BATTLE_TEAM': ('agent', 'plan'),
     'RESOURCE_DIALOG': ('vision', 'runner'),
@@ -288,7 +289,7 @@ INLINE_RUNNER = {
 #: module later -- the move is allowed, it just has to show up in a diff instead of
 #: in a stop.  The baseline was 61 until D47 moved the 27 single-shape branches into
 #: ``window.STEP_ROWS``; a ratchet that may only be raised is a counter, not a bound.
-INLINE_WINDOW = 35  # D120: the loader page's own branch is the 35th
+INLINE_WINDOW = 36  # D120 的 loader 是第 35 个；D379 的预览面板确认是第 36 个
 
 
 
@@ -544,6 +545,9 @@ DISPATCH_FACTS = {
                  'refusals': ('tutorial_last_page_has_no_forward_control', 'tutorial_next_button_not_anchored')},
     'UNKNOWN_DIALOG': {'actions': ('CLICK',), 'expects': ('*',), 'refusals': ('unknown_dialog_close_not_anchored',)},
     'WINDOW_RESET': {'actions': ('CLICK',), 'expects': ('*',), 'refusals': ('weekly_reset_cancel_not_anchored',)},
+    'NODE_PREVIEW': {'actions': ('CLICK',),
+                    'expects': (),
+                    'refusals': ('the_preview_panel_has_no_enter_to_press',)},
 }
 
 #: How many times a pre-battle page may be asked to show the saved team this run
