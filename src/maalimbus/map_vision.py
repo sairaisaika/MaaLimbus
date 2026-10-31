@@ -2436,7 +2436,11 @@ def _on_the_board(point, image):
         y = float(point[1])
     except Exception:
         return True
-    return 0.25 * height <= y <= 0.88 * height
+    # 上界从 0.25h 放到 0.12h：地图画布本身从 y≈0.10h 起，我方站在地图最上面那一排
+    # 时 y≈0.19h（`-154323/frame-0001` 火苗在 (863,214)，而 0.25h=270 把它判成 chrome，
+    # 于是 party_point 退回读错的 glow_point (575,335)，下游每次都点错格子）。
+    # HUD 仍在 0.09h 以上，所以下界留在 0.10h（D376）。
+    return 0.10 * height <= y <= 0.88 * height
 
 
 def _flame_corroborated(image, marker, ring):
