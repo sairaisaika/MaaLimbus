@@ -2556,10 +2556,24 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                     and abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy) <= _tol)
 
         _hit = [box for box in ordered if _same(box)]
+        _distances = [int(abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx)
+                          + abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy))
+                      for box in ordered]
+        # Record the miss as loudly as the hit: three rounds went into guessing why lead
+        # stayed None while the list it searched was never printed (D407).
+        record['map_step_lead'] = {
+            'source': _source,
+            'lead': [int(v) for v in _lead[:4]],
+            'ordered': len(ordered),
+            'hit': bool(_hit),
+            'nearest_px': min(_distances) if _distances else None,
+            'centres': [[int(float(box[0]) + float(box[2]) / 2.0),
+                         int(float(box[1]) + float(box[3]) / 2.0)]
+                        for box in ordered[:6]],
+        }
         if _hit:
             ordered = _hit[:1] + [box for box in ordered if box is not _hit[0]]
-            record['map_step_lead'] = {'source': _source,
-                                       'box': [int(v) for v in _hit[0][:4]]}
+            record['map_step_lead']['box'] = [int(v) for v in _hit[0][:4]]
     # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
