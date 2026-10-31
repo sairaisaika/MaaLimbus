@@ -2169,6 +2169,18 @@ def guess_candidates(image, clicks, *, kinds=None):
     return [box for _, box in rows]
 
 
+def _board_key(boxes):
+    """A fingerprint of the board's own boxes, so a carried answer cannot outlive a change."""
+    return sorted(tuple(int(v) for v in (item.get('box') if isinstance(item, dict) else item)[:4])
+                  for item in (boxes or ()))
+
+
+def _same_board(record, board):
+    if board is None:
+        return False
+    return _board_key(record.get('map_candidates') or []) == board
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                   previous_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
@@ -2604,6 +2616,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # 一格约等于 0.10 帧宽（实测 190/1920），用它合成一个框放到候选最前面。
     if party is not None and ordered:
         _next = map_vision.train_next_point(image, party)
+        if _next is None:
+            # The head marker is drawn small and is sometimes occluded for a frame or two
+            # while the board is still the same board; dropping the extrapolation for those
+            # frames lets `edge_target` win alternately, which is what made one step
+            # alternate between two different tiles (live `-171940`, D402).
+            _carried = record.get('map_train_carried')
+            if _carried and _same_board(record, _carried.get('board')):
+                _next = tuple(_carried['point'])
         if _next is not None:
             _side = int(round(0.10 * image.shape[1]))
             _train_box = [int(_next[0] - _side // 2), int(_next[1] - _side // 2), _side, _side]
@@ -2612,6 +2632,8 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                                         'box': _train_box}
             ordered = [_train_box] + [box for box in ordered if box != _train_box]
             record.setdefault('map_candidate_kinds', {})[box_key(_train_box)] = 'train_next'
+            record['map_train_carried'] = {'point': [int(_next[0]), int(_next[1])],
+                                           'board': _board_key(clicks)}
     # 空候选也要能返回：`ordered[0]` 在没有候选时是 IndexError，实跑 `-153805` 就是
     # 这么整条 run 崩掉的（D370）。没有候选是正常状态，不是异常。
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
