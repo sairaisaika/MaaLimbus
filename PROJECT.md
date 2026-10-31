@@ -7117,3 +7117,33 @@ SHOP_PURCHASE the_dialogs_own_cancel_answers_a_question_this_project_did_not_res
 1. 让 `SHOP_PURCHASE` 在“计划自己要买”时允许确认 —— 绕过事务，风险是重复消费；
 2. **让 `SHOP` 的购买计划在点击前先 reserve**（写预留 + 记账），对话框到达时就有据可依 ——
    这与 D51 定下的“一笔交易的两个半步”一致，且能在离线用账本验证。
+
+### 纠正：预留**是**有的，匹配不上才是问题（2026-10-31，D417 修订）
+
+上一轮说“SHOP 发起购买时没有 reserve”，读了代码后**撤回**：
+
+```python
+if plan['reason'] in ('buying_the_gift_the_gift_plan_asked_for',
+                      'spending_the_coins_this_visit_would_carry_out_on_the_shelf'):
+    target = shop_tx.reserve_purchase(self.run_id, visit, plan['detail'], shop['currency'],
+                                      frame_file(directory), reserve_coins=...,
+                                      decision_context={...})
+```
+
+`reserve_purchase` 就在点击商品卡片那一步被调用。**所以预留是写了的。**
+
+而 `SHOP_PURCHASE` 到达时给出的原因是
+`the_dialogs_own_cancel_answers_a_question_this_project_did_not_reserve` —— 也就是
+**“对话框问的问题，不是我预留的那一个”**。同一段代码在此时还有：
+
+```python
+shop_tx.retire_pending(self.run_id, shop_tx.data['current_visit'], plan['detail']['why'])
+```
+
+**把预留退掉**。于是下一轮：`SHOP` 再 reserve → 对话框再判“不匹配” → 再 retire → 再买 … 闭环。
+
+所以真因是**匹配失败**（预留的 `offer` 与对话框的 `offer` 对不上），而 `retire_pending` 让失败
+无法跨轮累积，正好把这个 bug 变成了稳定复现的循环。
+
+下一轮：把 `reserve_purchase` 写入的 `offer`（name/price/currency）与 `SHOP_PURCHASE` 判匹配时
+用的 `offer` 一起打印，看差在哪一项——**不再猜是“没写”还是“写错”**。
