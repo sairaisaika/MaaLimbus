@@ -6288,6 +6288,10 @@ class MirrorRunner:
                               reason=('the_loop_replaced_this_click_before_it_could_settle'
                                       if early else
                                       'a_new_target_replaced_this_one_before_the_page_settled'))
+                    # A superseded click is a finished commitment: keeping it would hold the
+                    # next frame against a target this one already gave up on, which is how
+                    # `-193539` still alternated [1343,98] / [768,169] after D424c (D425).
+                    state.pop('map_committed', None)
                 state['map_pending'] = list(plan['target'])
                 # The decision that just went out is the commitment the next frames hold
                 # to (D424).  It is cleared by the same retry budget that bounds the
