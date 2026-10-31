@@ -4323,6 +4323,17 @@ class MirrorRunner:
                     # target left nothing and the loop answered "no destination" three times.
                     self.note('map_refused_all_fell_back', dropped=dropped,
                               reason='refusing_the_last_candidate_would_refuse_every_input')
+        # The commitment has to be re-applied after every filter that may drop it: the
+        # refused-target memory above is exactly a list of tiles this party already failed
+        # on, so a committed target that was refused once vanished here and the plan went
+        # back to the new vote (D424's first live run: `map_commitment_held` fired five
+        # times, yet `window_intent` still carried the planned target).
+        committed = self.state.get('map_committed')
+        if committed and candidates and box_key(candidates[0]) != box_key(committed):
+            self.note('map_commitment_restored', committed=[int(v) for v in committed],
+                      planned=[int(v) for v in candidates[0]])
+            candidates = [committed] + [box for box in candidates
+                                        if box_key(box) != box_key(committed)]
         # The source says where the anchor *came from*, not whether a probe also answered.
         # The old rule (`'probe' if probe_party is not None else ...`) labelled every step
         # `probe` as soon as the D286 probe answered -- which it almost always does -- so the
