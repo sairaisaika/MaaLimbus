@@ -2540,6 +2540,13 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     for box in boss_boxes:
         if box not in ordered:
             ordered.append(box)
+    # One owner for "who goes first" (D404): the three mechanisms only record their answer,
+    # this table decides which one leads, and everything else keeps the order it had.
+    _source, _lead = step_preference(record)
+    if _lead is not None and _lead in [[int(v) for v in box[:4]] for box in ordered]:
+        ordered = [_lead] + [box for box in ordered
+                             if [int(v) for v in box[:4]] != _lead]
+        record['map_step_lead'] = {'source': _source, 'box': _lead}
     # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
@@ -8276,3 +8283,32 @@ def _panel_on_screen(record):
                                      tuple(record.get('size') or (1920, 1080)))
     except (TypeError, ValueError, AttributeError):
         return None
+
+
+STEP_PRIORITY = ('train_next', 'edge', 'line', 'adjacent')
+
+
+def step_preference(record):
+    """Who goes first, as one table instead of three `if`s racing (D404).
+
+    `train_next` (the head marker extrapolation), `edge_target` (the arrow the game draws)
+    and `line_lit` (the bright line to a neighbour) each used to reorder the list on their
+    own, so whichever ran later that frame won and the target alternated between two tiles
+    (live `-172640`: 8 superseded, one step never settled).  The priority is now data:
+    read every mechanism's answer from the record, keep the first one that is present, and
+    let the caller append the rest unchanged.
+    """
+    answers = {}
+    train = record.get('map_train_next') or {}
+    if train.get('box'):
+        answers['train_next'] = [int(v) for v in train['box']]
+    edge = record.get('map_edge_only') or {}
+    if edge.get('edge'):
+        answers['edge'] = [int(v) for v in edge['edge']]
+    step = record.get('map_edge_step') or {}
+    if step.get('step'):
+        answers['line'] = [int(v) for v in step['step']]
+    for name in STEP_PRIORITY:
+        if name in answers:
+            return name, answers[name]
+    return None, None
