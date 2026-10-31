@@ -213,3 +213,42 @@ def test_the_kind_survives_a_click_the_loop_replaced(tmp_path):
     loop._map_verdict(target=[678, 353, 40, 40], page='MAP', outcome='rejected',
                       reason='a_new_target_replaced_this_one_before_the_page_settled')
     assert seen[0][1]['kind'] == 'bright_lit_icon'
+
+
+# 真实 1080 帧（`tests/fixtures/frames/map-20261031-154323`）取代上面三条合成 fixture：
+# 断言"这一帧真的能被读出候选，且记下的 kind 与框对得上"，而不是写死坐标。
+_FIXTURE = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'frames' / 'map-20261031-154323'
+
+
+def _real_frame():
+    import json as _json
+    if not (_FIXTURE / 'frame-0001.png').is_file():
+        pytest.skip('真实地图帧 fixture 不在仓库里')
+    record = _json.loads((_FIXTURE / 'frame-0001.json').read_text(encoding='utf-8'))
+    return _FIXTURE, record
+
+
+def test_a_real_map_frame_offers_at_least_one_candidate():
+    directory, record = _real_frame()
+    _, boxes = runner.candidates_of(directory, dict(record))
+    assert boxes, '一张真实地图帧应该至少给出一个候选格'
+    for box in boxes:
+        assert len(box) == 4 and all(isinstance(v, (int, float)) for v in box)
+
+
+def test_the_kinds_recorded_line_up_with_the_boxes_offered():
+    directory, record = _real_frame()
+    # `candidates_of` 会自己写 record，这里拿它写的记录来对账
+    fresh = dict(record)
+    _, boxes = runner.candidates_of(directory, fresh)
+    recorded = fresh.get('map_candidate_kinds') or {}
+    assert boxes, recorded
+    for box in boxes:
+        assert runner.box_key(box) in recorded, (runner.box_key(box), recorded)
+
+
+def test_the_offered_box_has_the_size_of_a_node_on_a_1080_frame():
+    directory, record = _real_frame()
+    _, boxes = runner.candidates_of(directory, dict(record))
+    side = max(box[2] for box in boxes)
+    assert 120 <= side <= 240, side
