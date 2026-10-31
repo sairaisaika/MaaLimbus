@@ -951,9 +951,9 @@ def marker_boxes(image, *, minimum=MARKER_MIN_BRIGHTNESS, saturation=MARKER_MAX_
 
 
 CHEVRON_SATURATION_MAX = 70
-CHEVRON_VALUE_BAND = (100, 170)
-CHEVRON_SIDE = ((14, 40), (6, 24))          # glyph width, height in 1080p pixels
-CHEVRON_GAP = (16, 48)                       # centre-to-centre of the two glyphs
+CHEVRON_VALUE_BAND = (100, 240)
+CHEVRON_SIDE = ((10, 40), (8, 40))          # glyph width, height in 1080p pixels
+CHEVRON_GAP = (16, 60)                       # centre-to-centre of the two glyphs
 
 
 def chevron_glyph_pairs(image):
