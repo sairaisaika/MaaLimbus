@@ -7179,3 +7179,40 @@ if page == 'SHOP_PURCHASE':
 
 下一轮：用正确的 `Text` 对象调 `native_purchase_dialog`，把 `title`/`confirm`/`cancel` 三个读数
 连同命中的正则一起打印，看是哪一条没命中。
+
+### Confirm 读得出，但被 pending 门控挡住（2026-10-31，D417 再收窄）
+
+用正确的 `Text` 对象调 `native_purchase_dialog`（`-183752/frame-0004`），三个读数都在：
+
+```
+title   : 'Purchase E.G.O Gifts' (674,236,292,34) 0.999
+purchase: 'Purchase'             (1094,706,126,34) 0.999   ← 就是确认按钮
+cancel  : 'X Cancel'             (710,702,156,42) 0.912
+```
+
+**所以对话框本身认得出来**，按钮文字是 `Purchase` 而不是 `Confirm`，这也解释了为什么字段叫 `purchase`。
+
+而 `runner.py:5290-5301` 的组装是这样：
+
+```python
+pending = shop_tx.data.get('pending') if shop_tx is not None else None
+if pending and pending.get('name') and pending.get('price'):      # ← 门控
+    answer = purchase_dialog_answer(texts, pending['name'], pending['price'], ...)
+    if answer is None:
+        shop['confirm'] = matching_purchase_question(...)
+    elif answer[0] == 'purchase':
+        shop['confirm'] = answer[1]
+    else:
+        …（落到 cancel）
+```
+
+**只有 `pending` 同时有 `name` 和 `price` 时才会算 `confirm`。** 否则 `shop['confirm']` 根本不设，
+`window` 那边就只能看到 `cancel`。
+
+链条到此为止可以确定两层：
+
+1. 感知层没问题（`native_purchase_dialog` 三个读数齐全）；
+2. 门控层（`pending.name` / `pending.price`）是下一个要量的事实。
+
+下一轮：把 `-183752` 里 `SHOP_PURCHASE` 时刻的 `shop_tx.data['pending']` 打印出来
+（`name` / `price` / `coins` / `visit` / `kind`），一眼就能看出是 name 缺、price 缺，还是 pending 为空。
