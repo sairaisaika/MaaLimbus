@@ -2236,6 +2236,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     party, _confirmed = map_vision.lock_party_to_node(
         party, clicks, previous=record.get('party_node'))
     record['party_node'] = list(_confirmed) if _confirmed else None
+    record['map_seen_node'] = True
     # 节点上画着装饰，装饰也是框：实跑 `-135856` 的 22 次点击里绝大多数 target 是
     # `lattice_step`（装饰），距离我方 297-485 px（1.5-2.5 格），点了页面不动。
     # 只保留“节点语义”的读法，装饰留给 `guess_candidates` 之外的分析。
@@ -4126,6 +4127,12 @@ class MirrorRunner:
                   if record.get(name) is not None}
         if _debug:
             self.note('map_candidates_debug', **_debug)
+        # A field whose value is legitimately None never reaches `_debug` (the dict filters
+        # on `is not None`), so "party_node is absent" reads exactly like "locking never
+        # ran".  This line always fires once per map step, so absence means absence (D397).
+        if record.get('map_seen_node') is not None or record.get('party_node') is not None:
+            self.note('map_party_node', node=record.get('party_node'),
+                      seen=record.get('map_seen_node'))
         # The record knows which picture and which size this process read; that fact has to
         # reach the journal explicitly, because a field written into `record` is only
         # serialised by a `note(...)` that names it (D310 shipped the field and no wire).
