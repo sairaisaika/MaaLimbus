@@ -2548,6 +2548,15 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         _sizes = [int(box[2]) for box in ordered if int(box[2]) >= 96]
         _step = _sizes[0] if _sizes else int(round(0.10 * image.shape[1]))
         _reach = int(round(1.25 * _step))
+        # 同一格上的候选不是“下一步”：实跑 `-155429` 点的 (671,264) 距我方 (575,335) 只有
+        # 119 px（一格 190），也就是脚下那格的徽章，点下去不动；手动成功那一下在右下一格。
+        # 先把不足 0.8 格的候选剔掉，再谈相邻与可达（D373）。
+        _stand = int(round(0.8 * _step))
+        _off_my_tile = [b for b in ordered
+                        if max(abs(int(b[0] + b[2] // 2) - int(party[0])),
+                               abs(int(b[1] + b[3] // 2) - int(party[1]))) >= _stand]
+        if _off_my_tile:
+            ordered = _off_my_tile
         _near = []
         for _box in ordered:
             _cx = int(_box[0] + _box[2] // 2)
