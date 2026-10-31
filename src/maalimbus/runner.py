@@ -2569,8 +2569,11 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
             _cx, _cy = map_vision.node_point(_b)
             _b = [_cx - _b[2] // 2, _cy - _b[3] // 2, _b[2], _b[3]]
         _centred.append(_b)
-    record['map_click_centre'] = {'box': [int(v) for v in ordered[0][:4]],
-                                  'centre': list(map_vision.tile_centre(image, ordered[0][:4]))}
+    # 空候选也要能返回：`ordered[0]` 在没有候选时是 IndexError，实跑 `-153805` 就是
+    # 这么整条 run 崩掉的（D370）。没有候选是正常状态，不是异常。
+    record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
+                                   'centre': list(map_vision.tile_centre(image, ordered[0][:4]))}
+                                  if ordered else None)
     ordered = _centred
     return name, ordered
 
