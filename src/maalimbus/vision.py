@@ -117,6 +117,31 @@ def loading_screen(records, size):
                      size, 0.85))
 
 
+NODE_PREVIEW_ENTER = (.78, .60, .99, .88)
+NODE_PREVIEW_HEADER = (.02, .04, .34, .22)
+
+
+def node_preview(records, size):
+    """The panel a map click opens: the next tile's name plus its own `Enter`.
+
+    Clicking a tile on the map does not move the party -- it opens this panel (user,
+    2026-10-31: "不点 Enter 直接点左边就会回退").  The panel has no `Exploring Floor`
+    header, so the reader used to call it UNKNOWN, the loop spent its budget retrying on
+    it, and every "the click did nothing" observation was really "we selected the tile and
+    never pressed Enter".
+
+    Returns `{'enter': box}` when the Enter is the panel's own, else None.  A page that
+    still shows the map header is the map, not a preview -- that guard is what keeps the
+    map itself (whose UNKNOWN frames also read `Exploring Floor`) out of this branch.
+    """
+    enter = find(records, r'^Enter$', NODE_PREVIEW_ENTER, size, .8)
+    if not enter:
+        return None
+    if find(records, r'^Exploring', NODE_PREVIEW_HEADER, size, .6):
+        return None
+    return {'enter': enter[0]}
+
+
 def classify(records, locale, size):
     if loading_screen(records, size):
         return 'LOADING'
