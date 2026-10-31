@@ -3103,3 +3103,46 @@ def inside_lattice(point, boxes, *, pad=0.5):
         return True
     left, top, right, bottom = area
     return left <= float(point[0]) <= right and top <= float(point[1]) <= bottom
+
+
+def lock_party_to_node(party, boxes, *, previous=None, tol=0.6):
+    """Snap the party onto the node it stands on and keep it there (D393).
+
+    The party reading drifts between frames (`-165929`: (1059,407) -> (845,491) ->
+    (863,540) on a board whose 17 boxes never moved), so every downstream choice that asks
+    "nearest node" gets a different answer each time.  The party stands *on* a node, and a
+    node does not move, so the reading is only needed once: snap it to the nearest box
+    centre within `tol` box sides, and reuse that centre later.
+
+    `previous` is the centre already confirmed.  Returns `(point, confirmed)`: `confirmed`
+    is the node centre this frame stands on (or the previous one), `point` is what the rest
+    of the loop should use.
+    """
+    rows = [box for box in boxes or () if box and len(box) >= 4]
+    if not rows:
+        return party, previous
+
+    def centres():
+        return [(float(box[0]) + float(box[2]) / 2.0, float(box[1]) + float(box[3]) / 2.0)
+                for box in rows]
+
+    def side():
+        return max(float(box[2]) for box in rows)
+
+    reach = side() * tol
+    if previous is not None and party is not None:
+        distance = abs(float(party[0]) - float(previous[0])) + abs(float(party[1]) - float(previous[1]))
+        if distance <= reach:
+            return (int(previous[0]), int(previous[1])), tuple(previous)
+    if party is None and previous is not None:
+        return (int(previous[0]), int(previous[1])), tuple(previous)
+    if party is None:
+        return None, previous
+    best = None
+    for centre in centres():
+        distance = abs(float(party[0]) - centre[0]) + abs(float(party[1]) - centre[1])
+        if best is None or distance < best[0]:
+            best = (distance, centre)
+    if best is None or best[0] > reach:
+        return party, previous
+    return (int(best[1][0]), int(best[1][1])), tuple(best[1])

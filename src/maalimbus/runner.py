@@ -2229,6 +2229,13 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                                            'boxes': len(clicks)}
         party = None
         clicks = map_clicks(image, template=node_badge_template(), player=None)
+    # The party stands on a node and the node does not move, so the reading is only needed
+    # once: snap it to that node's centre and keep the centre until the loop actually
+    # walks.  Without this the board's 17 fixed boxes get a different "nearest" answer
+    # every frame (D393).
+    party, _confirmed = map_vision.lock_party_to_node(
+        party, clicks, previous=record.get('party_node'))
+    record['party_node'] = list(_confirmed) if _confirmed else None
     # 节点上画着装饰，装饰也是框：实跑 `-135856` 的 22 次点击里绝大多数 target 是
     # `lattice_step`（装饰），距离我方 297-485 px（1.5-2.5 格），点了页面不动。
     # 只保留“节点语义”的读法，装饰留给 `guess_candidates` 之外的分析。
