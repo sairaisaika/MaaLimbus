@@ -592,4 +592,9 @@ def classify(records, locale, size):
     from .battle_vision import battle_hud
     if battle_hud(records, size) is not None:
         return 'BATTLE_HUD'
+    # 地图上点一格只会打开节点预览面板（名字 + 右下 Enter），点 Enter 才真的进去。
+    # 这个面板没有 Exploring Floor header，以前一路被判成 UNKNOWN，循环在它上面
+    # 耗尽预算——每一次“点了没动”其实都是“选中了却没按 Enter”（用户 2026-10-31）。
+    if node_preview(records, size) is not None:
+        return 'NODE_PREVIEW'
     return 'UNKNOWN'

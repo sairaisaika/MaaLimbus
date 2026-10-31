@@ -69,6 +69,8 @@ PAGES = {
     'MAP': ('agent', 'plan'),
     'MIRROR_ENTRY': ('vision', 'runner'),
     'NODE_PANEL': ('agent', 'plan'),
+    # 预览面板：只差一下 Enter（D379）
+    'NODE_PREVIEW': ('vision', 'wait'),
     'PASS_LEVEL_UP': ('vision', 'plan'),
     'PRE_BATTLE_TEAM': ('agent', 'plan'),
     'RESOURCE_DIALOG': ('vision', 'runner'),
