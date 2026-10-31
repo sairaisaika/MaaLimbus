@@ -6576,3 +6576,25 @@ header 时才敢这么判；认出来就点 Enter，不再重试点击。
 
 处理方式照 D357：先在自己的轮次里显式 `skip` + 写理由，或者用真实帧重写；不要混进
 功能改动里一起看，否则会像这次一样把“既有红”误判成“我弄红的”，白回滚一次。
+
+### 车头外推到不了候选，因为 `party_on_a_node` 先把我方否掉了（2026-10-31，D380 前置）
+
+在这个 fixture 上追 `map_train_next` 为什么恒 None，链条是这样断的：
+
+| 步骤 | 读到/做了 | 结果 |
+|---|---|---|
+| `map_vision.party_point(image)` | `(863, 296)` | 正确（D376 修完后就是它） |
+| `party_on_a_node(party, boxes)` | 我方与最近 `gold_badge_node` 中心 `(671,264)` 差 **192 px** ≈ 一格 | 判“不在节点上” |
+| 于是 `party = None` | 代码在 2333 行的 `if party is None:` | 走 `guess_candidates` 分支 |
+| `return name, _guess` | `kinds = {'576,169,190,190': 'guessed_badge'}` | **早退，车头块（2578 行）永不执行** |
+
+所以两件事同时成立：
+
+1. 实跑里 `map_candidates_refused = {'party': None, 'read': 1, 'guessed': 1}` 是**我们自己的
+   锚点校验把好读数否掉的痕迹**，不是“页面没给我方”；
+2. `map_train_next` 恒 None 不是公式错，是**它前面已经 return 了**——这也是为什么单独调
+   `train_next_point(img, (860,209))` 明明能算出 `(1252,287)`。
+
+下轮：`party_on_a_node` 的判据要从“我方必须落在某个框里”改成“我方与最近格心的距离 ≤ 一格
+× 容差（用本帧实测 `step_pitch`）”，并把这条判据的单帧反例（差 192 px 应算“站在相邻格间”的
+合法读数）写成测试。
