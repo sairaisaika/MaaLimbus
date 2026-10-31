@@ -2169,7 +2169,8 @@ def guess_candidates(image, clicks, *, kinds=None):
     return [box for _, box in rows]
 
 
-def candidates_of(directory, record, *, header_only=False, fallback_party=None):
+def candidates_of(directory, record, *, header_only=False, fallback_party=None,
+                  previous_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
     Which nodes the run may step to depends on the paths drawn under the dots, and
@@ -2192,7 +2193,9 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     image, name = frame_for(directory, record)
     if image is None:
         return None, None
-    party = party_point(image)
+    party, _party_source = map_vision.party_tracked(image, previous_party)
+    if _party_source == 'tracked':
+        record['map_party_source'] = 'tracked'
     # `-154351` answered `adjacency {before: 1, after: 1}` and `offered 0` together, and
     # `party_snap_failed` never fired: the list had already been emptied by the
     # `fallback_party is None` return, while the step's own anchor read (1091,252) was on
@@ -4082,7 +4085,10 @@ class MirrorRunner:
                 self.note('map_party_from_probe', point=list(probe['point']),
                           size=probe.get('size'), channels=probe.get('channels'))
         frame, candidates = candidates_of(directory, record,
-                                          fallback_party=fallback or probe_party)
+                                          fallback_party=fallback or probe_party,
+                                          previous_party=self.state.get('last_party'))
+        if record.get('map_party'):
+            self.state['last_party'] = [int(v) for v in record['map_party']]
         # The one-step rule is enforced at every map click, so the numbers it needs travel
         # with the step: the reach the candidate list measured and the party it measured it
         # from.  Without this the door would always open (D352).
