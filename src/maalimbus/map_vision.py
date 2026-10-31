@@ -3105,7 +3105,7 @@ def inside_lattice(point, boxes, *, pad=0.5):
     return left <= float(point[0]) <= right and top <= float(point[1]) <= bottom
 
 
-def lock_party_to_node(party, boxes, *, previous=None, tol=0.6):
+def lock_party_to_node(party, boxes, *, previous=None, tol=0.8):
     """Snap the party onto the node it stands on and keep it there (D393).
 
     The party reading drifts between frames (`-165929`: (1059,407) -> (845,491) ->
@@ -3117,6 +3117,9 @@ def lock_party_to_node(party, boxes, *, previous=None, tol=0.6):
     `previous` is the centre already confirmed.  Returns `(point, confirmed)`: `confirmed`
     is the node centre this frame stands on (or the previous one), `point` is what the rest
     of the loop should use.
+    `tol` is 0.8 box sides, not 0.6: live `-170142/frame-0002` read the party at (860,210)
+    with its nearest box centre at (837,330) -- 143 px on a 192 px side, i.e. 0.75 -- so the
+    0.6 reach refused every frame and `party_node` stayed None (D395).
     """
     rows = [box for box in boxes or () if box and len(box) >= 4]
     if not rows:
