@@ -6392,3 +6392,39 @@ tests/test_config_provenance.py` → 109 passed；编队/部署相关 22 个套�
 - 实现侧只有三处改动：`note()` 对 journal 防御性读取、`reason_provenance.DECIDED_NAMES`（按构造已决的名字不计失败）、`RETIRED_KEYS`。
 
 **下轮起点**：`pytest --durations=20` 列出慢测试并治理（目标：全量回到 5 分钟内），然后回到主线（节点中心模板库、我方=站在节点上、五层稳定）。
+
+## DSH continuation: 桌面端打不开落在启动层，不在识别层（2026-10-31）
+
+2026-10-31 01:51 现场：双击 `dist/MaaLimbus/MaaLimbus.exe` 打不开，MuMu 里的 LimbusCompany 同时停在
+`Downloading 1.21 GB of data` 的标题画面。两件事一开始被当成一个，实际是两层：GUI 是启动层，1.21 GB 是游戏侧。
+
+**桌面端（启动层）**
+
+- `dist/MaaLimbus/MaaLimbus.exe` 的真实身份是 **MXU 2.7.1**（misteo 的通用 UI，`ProductName=mxu`），
+  `Get-AuthenticodeSignature` = `NotSigned`。
+- 现象：进程起得来，主窗口标题却是 `Open File - Security Warning`（Name/From 都指向该 exe 自身），
+  点 `Run` 后对话框消失又在下一秒重现；实测连点 15 次仍是同一个框 —— **它启动后会用 shell 再打开一次自己**。
+- 排除过的：Zone.Identifier（`dir /r` 无）、两处自动更新开关（`config/user-launch.json`、
+  `dist/MaaLimbus/config/mxu-MaaLimbus.json` 的 `software_auto_update`）、更新状态/重试记录
+  （`user-update-state.json`、`user-update-check-result.json`）、`interface.json` 版本号、
+  CreateProcess / `cmd start` / `launcher/MaaLimbusLauncher.exe` 三种入口、计划任务提升权限（非管理员被拒）、
+  Smart App Control（`VerifiedAndReputablePolicyState=0`）、HVCI（0）、exe 关联（`"%1" %*`）、
+  桌面/开始菜单快捷方式（**不存在**）。
+- 另一个壳 `D:\scripts\maaend\MaaEnd.exe` = MXU 2.8.0，同样未签名；起进程后**不写日志、不建窗口**，
+  日志停在 01:17:38，说明它连 Tauri 初始化都没走到。
+- 结论：**不在识别层，不在配置层**；下一步只能是换壳（官方 MXU 加载 `interface.json`）或由爸爸指出原来的入口。
+
+**游戏侧（阻塞五层）**
+
+- MuMu `127.0.0.1:16416` 在线、前台 `com.ProjectMoon.LimbusCompany`，画面停在标题 + 1.21 GB 下载确认框。
+- 300 s 实机自跑 `evidence/runtime/packaged-mirror-20261031-022015`：154 事件、`floors []`、
+  `stop: page_unreadable_after_waiting` —— 不是识别退化，是**游戏没进镜牢**。
+- 这 1.21 GB 是实质消费，按委托不擅自点，等爸爸授权。
+
+**工具（本轮唯一提交）**
+
+- `tools/diagnose_desktop_launch.py`（`2c4c22f`）：六项只读检查（exe 版本与签名、残留进程、确认框、
+  更新开关、WebView2、MuMu 前台页面），阻断项 exit 1，探针失败收敛成 `probe_failed` 不抛异常；
+  `tests/test_diagnose_desktop_launch.py` 钉住行数、状态词表、探针失败、退出码与真实 checkout 实跑。
+- 教训：**"打不开"先跑诊断，不要从页面识别开始猜**；未签名壳 + 自我重启会把确认框变成循环，
+  循环的特征是"点完立刻重现"，与 UAC 的一次性提示可区分。
