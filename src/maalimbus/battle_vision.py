@@ -492,6 +492,22 @@ def hud_controls(records, size):
     return seen
 
 
+def detail_back_box(size, *, x0=0.030, x1=0.077, y0=0.023, y1=0.094):
+    """详情页左上角那个返回按钮的框，按画面比例给，不按像素给。
+
+    live `packaged-mirror-20261031-125442/frame-0007.png`（1920×1080）：返回箭头占
+    (60..145, 25..100)，换成比例就是 0.031..0.076 / 0.023..0.093。详情页没有文字锚点，
+    唯一稳定的东西是它自己的返回键在这个位置 —— 所以这里给的是**布局比例**，
+    画面尺寸变了框跟着变。
+    """
+    width, height = size
+    left, top = int(round(x0 * width)), int(round(y0 * height))
+    right, bottom = int(round(x1 * width)), int(round(y1 * height))
+    if right <= left or bottom <= top:
+        return None
+    return (left, top, right - left, bottom - top)
+
+
 def battle_hud(records, size):
     """Identify the combat HUD from its own WAVE/TURN captions.
 

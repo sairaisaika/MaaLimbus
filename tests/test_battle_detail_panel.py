@@ -55,3 +55,32 @@ def test_both_titles_far_from_their_band_are_not_enough():
     rows = [Text(text='Resistances', box=(480, 100, 120, 24), score=0.99),
             Text(text='Fatal', box=(744, 140, 60, 32), score=0.99)]
     assert battle_hud(rows, (1920, 1080)) is None
+
+
+def test_the_back_box_is_a_share_of_the_picture_not_a_pixel():
+    from maalimbus.battle_vision import detail_back_box
+    for size in ((1920, 1080), (1280, 720)):
+        left, top, width, height = detail_back_box(size)
+        assert 0.02 * size[0] <= left <= 0.05 * size[0]
+        assert 0.015 * size[1] <= top <= 0.05 * size[1]
+        assert width > 0 and height > 0
+    a = detail_back_box((1920, 1080))
+    b = detail_back_box((1280, 720))
+    assert abs(a[0] / 1920 - b[0] / 1280) < 0.01
+
+
+def test_the_detail_page_is_closed_by_its_own_back_button():
+    from maalimbus import window
+    back = (58, 25, 90, 78)
+    plan = window.plan_step('BATTLE_HUD', page_detail={'back': back})
+    assert plan['action'] == 'click'
+    assert tuple(plan['target']) == back
+    assert plan['reason'] == 'the_detail_page_is_closed_by_its_own_back_button'
+    # 关面板不是提交：它不叫 start，也不要求任何指派
+    assert 'start' not in plan['reason']
+
+
+def test_without_a_detail_page_the_board_still_refuses():
+    from maalimbus import window
+    plan = window.plan_step('BATTLE_HUD')
+    assert plan.get('reason') == 'battle_has_no_proven_control'

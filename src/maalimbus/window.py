@@ -136,7 +136,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_a
               candidates=None, candidate_index=0, nodes=None, arrows=None, team=None,
               reward=None, gift=None, cards=None, graces=None, initial=None,
               search=None, check=None, defeat=None, bonus=None, difficulty=None,
-              shop=None, battle_assignment='win_rate', battle_previous=None):
+              shop=None, battle_assignment='win_rate', battle_previous=None, page_detail=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     A plan that would land on a control in :data:`FORBIDDEN_CONTROLS` is refused
@@ -152,7 +152,7 @@ def plan_step(page, *, controls=None, start_box=None, auto_assign=None, battle_a
                       battle_assignment=battle_assignment,
                       battle_previous=battle_previous,
                       battle_assigns=battle_assigns,
-                      battle_pairs=battle_pairs)
+                      battle_pairs=battle_pairs, page_detail=page_detail)
     forbidden = {tuple(box) for name, box in controls.items()
                  if name in FORBIDDEN_CONTROLS and not (
                      page=='STAR_CONFIRM' and name=='star_confirm.cancel_button'
@@ -611,7 +611,7 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
                reward=None, gift=None, cards=None, graces=None, initial=None,
                search=None, check=None, defeat=None, bonus=None, difficulty=None,
                shop=None, battle_assignment='win_rate', battle_previous=None,
-               battle_assigns=0, battle_pairs=0):
+               battle_assigns=0, battle_pairs=0, page_detail=None):
     """Return the one input (or the refusal) allowed on ``page``.
 
     ``controls`` maps anchor names such as ``node_panel.enter_button`` to pixel
@@ -1256,6 +1256,16 @@ def _plan_step(page, *, controls=None, start_box=None, auto_assign=None,
         return _plan(page, CLICK, target=box, expect=(ANY,), advance=True,
                      reason='confirm_grants_the_picked_encounter_reward')
     if page in ('BATTLE_HUD', 'BATTLE_PLANNING'):
+        if page_detail and page_detail.get('back'):
+            # live `packaged-mirror-20261031-125442/frame-0007.png`: Resume 之后进到一场
+            # 还在打的战斗，敌人详情页把整个 HUD 盖住 —— 34 条 OCR 里没有 WAVE/TURN/START
+            # 任何一个词，于是这一页既不是可读的战斗板，也不是 UNKNOWN。
+            # 详情页没有文字锚点，唯一稳定的控件是它自己的返回键（左上角，比例由
+            # `battle_vision.detail_back_box` 给）；点它不会选中、不会提交、不花任何东西。
+            return _plan(page, CLICK, target=page_detail['back'],
+                         expect=('BATTLE_HUD', 'BATTLE_PLANNING', 'BATTLE_RESULT', 'UNKNOWN'),
+                         reason='the_detail_page_is_closed_by_its_own_back_button',
+                         settle_rounds=1)
         if battle_assignment not in ('win_rate','damage','observe'):
             return _refuse(page,'unknown_battle_assignment_mode')
         if battle_assignment=='observe':

@@ -211,6 +211,7 @@ class LimbusRecognition(CustomRecognition):
         self.input_validator = None
         self.star_pending = None
         self.last_timing = None
+        self.last_battle_detail = None
 
     def theme_catalog(self):
         if self.themes is None:
@@ -484,7 +485,13 @@ class LimbusRecognition(CustomRecognition):
             from maalimbus.deployment_availability_native import read_availability
             local.extend(read_availability(roi_direct,image,records,
                 [self.controls.get('pre_battle.card_%02d' % i) for i in range(1,CARD_COUNT+1)]))
-        if scene=='UNKNOWN' and battle_hud(records,size) is not None:
+        hud = battle_hud(records, size)
+        # live `packaged-mirror-20261031-125442/frame-0007.png`: Resume 之后进到一场还在打的
+        # 战斗，敌人详情页把整个 HUD 盖住 —— 34 条 OCR 里没有 WAVE/TURN/START。详情页自己
+        # 就是战斗证据（D339），而它唯一的控件是左上角的返回键；这里只记位置，不规划输入。
+        self.last_battle_detail = ({'back': detail_back_box(size)}
+                                   if hud and hud.get('detail_panel') else None)
+        if scene=='UNKNOWN' and hud is not None:
             # The combat HUD's own WAVE/TURN captions; a battle is never inferred
             # from artwork, and this identifies the page only.
             scene='BATTLE_HUD'
@@ -1451,6 +1458,8 @@ class BattleObservation(CustomAction):
         buttons=auto_assign_buttons(records,size)
         begin=start_button(records,size,image)
         self.recognition.journal.record('battle_observed',frame=frame,scene=scene,
+            **({'battle_detail': self.recognition.last_battle_detail}
+               if getattr(self.recognition, 'last_battle_detail', None) else {}),
             seconds=round(time.monotonic()-started,2),
             turn_signature=turn_signature(image) if hud is not None else None,
             **self.recognition.timing_fields(),

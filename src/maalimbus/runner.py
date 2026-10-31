@@ -5571,7 +5571,8 @@ class MirrorRunner:
                          graces=graces, initial=initial, check=check, defeat=defeat,
                          search={'mode': settings.gift_search},
                          shop=shop,
-                         bonus={'spend': state['run_settled_itself']})
+                         bonus={'spend': state['run_settled_itself']},
+                         page_detail=record.get('battle_detail'))
         if page=='UNKNOWN_DIALOG' and self.floor_gift_transaction is not None:
             from .floor_gift_transaction import refusal_confirm_target
             d=self.floor_gift_transaction.data;p=d.get('pending') if d else None
