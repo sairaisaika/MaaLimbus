@@ -353,3 +353,17 @@ def test_a_shop_frame_is_scaled_to_its_own_resolution():
         assert scaled.click[2:] == (w // 2, h // 2)
         assert abs(scaled.click[0] - x // 2) <= 2 and abs(scaled.click[1] - y // 2) <= 2
     assert isinstance(half[0], Offer)
+
+
+def test_an_unreadable_balance_is_not_a_refusal():
+    """A dialog that prints no balances cannot say the price was wrong (D420)."""
+    from maalimbus import shop_vision
+    from maalimbus.vision import Text
+    rows = [
+        Text('Purchase E.G.O Gifts', (674, 236, 292, 34), 0.999),
+        Text('Nixie Divergence', (560, 560, 200, 30), 0.95),
+        Text('X Cancel', (710, 702, 156, 42), 0.912),
+        Text('Purchase', (1094, 706, 126, 34), 0.999),
+    ]
+    answer = shop_vision.purchase_dialog_answer(rows, 'Nixie Divergence', 145, (1920, 1080))
+    assert answer is not None and answer[0] == 'purchase'

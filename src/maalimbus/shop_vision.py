@@ -463,6 +463,10 @@ def purchase_dialog_answer(records, name, price, size=None, threshold=.9, coins=
     spent = (balances is not None and balances[1] >= 0
              and balances[0] - balances[1] == price
              and (coins is None or abs(balances[0] - coins) <= coin_drift))
-    if named and spent:
+    # A dialog that does not print the two balances is not a dialog that spent the
+    # wrong price: -185805 named the reserved gift and still answered Cancel ten
+    # times because ``purchase_balances`` returned None (D420).  Unreadable is not
+    # unspent -- only a reading that *shows* a different price may refuse.
+    if named and (spent or balances is None):
         return 'purchase', list(dialog['purchase'].box)
     return 'cancel', cancel
