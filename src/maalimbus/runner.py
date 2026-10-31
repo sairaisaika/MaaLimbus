@@ -2499,11 +2499,31 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # A uniform shift was a local observation dressed as a rule: the top row needed -34px and
     # the bottom row needed 0 on the same frame (D326).  Each full-size box now reports the
     # lit-edge centroid inside itself, and the click point follows that measurement.
+    # 只能走一格：实测 `-141847` 的 party (861,562) 与目标 (671,230) 相距 368 px ≈ 1.9 格，
+    # 点它当然不动。格距取本帧节点框边长（190），没有大框时退到 0.10*width。
+    if party is not None and ordered:
+        _sizes = [int(box[2]) for box in ordered if int(box[2]) >= 96]
+        _step = _sizes[0] if _sizes else int(round(0.10 * image.shape[1]))
+        _reach = int(round(1.25 * _step))
+        _near = []
+        for _box in ordered:
+            _cx = int(_box[0] + _box[2] // 2)
+            _cy = int(_box[1] + _box[3] // 2) - int(round(0.18 * _box[3]))
+            if abs(_cx - int(party[0])) <= _reach and abs(_cy - int(party[1])) <= _reach:
+                _near.append(_box)
+        record['map_step_reach'] = {'step': _step, 'reach': _reach,
+                                    'before': len(ordered), 'after': len(_near)}
+        if _near:
+            ordered = _near
     _centred = []
     for _box in ordered:
         _b = [int(v) for v in _box[:4]]
         if _b[2] >= 100 and _b[3] >= 100:
-            _cx, _cy = map_vision.tile_centre(image, _b)
+            # The hexagon, not the box centre and not the lit-edge centroid: measured on
+            # `-135856/frame-0001` the box centre is (671,264) on the badge, the centroid
+            # (670,254), and the hexagon about (671,230) -- live `-140934` clicked the
+            # centroid and was refused every time (D345).
+            _cx, _cy = map_vision.node_point(_b)
             _b = [_cx - _b[2] // 2, _cy - _b[3] // 2, _b[2], _b[3]]
         _centred.append(_b)
     record['map_click_centre'] = {'box': [int(v) for v in ordered[0][:4]],
