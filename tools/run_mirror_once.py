@@ -94,12 +94,36 @@ def run(seconds: float, observe_only: bool, address: str | None, log: pathlib.Pa
     return (0 if result.get('passed') else 1), result, directory
 
 
+def agent_is_stale(head_time, agent_time, *, slack=0.0):
+    """Is the frozen agent older than the commit it is being asked to prove?
+
+    Recognition runs inside `dist/MaaLimbus/agent`, not in `src/`, so a run started after
+    editing `src/` proves the *old* copy unless it was refrozen.  Five rounds of live
+    measurements were read as "the fix did nothing" for exactly this reason, so the check
+    is a gate and not a comment.
+    """
+    if head_time is None or agent_time is None:
+        return False
+    return float(agent_time) + float(slack) < float(head_time)
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='跑一次镜牢')
     parser.add_argument('--seconds', type=float, default=600.0)
     parser.add_argument('--observe-only', action='store_true')
     parser.add_argument('--address', default=None)
+    parser.add_argument('--allow-stale', action='store_true')
     args = parser.parse_args(argv)
+    try:
+        import subprocess as _sp
+        _head = float(_sp.check_output(['git', 'log', '-1', '--format=%ct'],
+                                       cwd=str(ROOT)).strip() or 0)
+        _agent = os.path.getmtime(ROOT / 'dist' / 'MaaLimbus' / 'agent')
+        if agent_is_stale(_head, _agent) and not args.allow_stale:
+            print('agent 副本比 HEAD 旧：识别跑在冻结副本里，这一跑证明的是旧代码。')
+            print('先 python build/refreeze_agent.py，或加 --allow-stale 明确接受。')
+            return 2
+    except Exception as error:
+        print('agent 陈旧检查失败（不阻断）：%s' % error)
     log = ROOT / 'build' / 'run-once.log'
     log.parent.mkdir(parents=True, exist_ok=True)
     code, result, directory = run(args.seconds, args.observe_only, args.address, log)
