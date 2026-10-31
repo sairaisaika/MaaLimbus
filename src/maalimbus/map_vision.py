@@ -3030,3 +3030,42 @@ def neighbour_by_line(image, party, boxes, *, reach_ratio=0.10, band=0.55, min_s
         return {'reach': round(reach, 1), 'box': None, 'scored': seen}
     return {'reach': round(reach, 1), 'box': [int(v) for v in best[1][:4]],
             'score': best[0], 'distance': round(best[3], 1), 'scored': seen}
+
+
+def party_tracked(image, previous=None, *, limit=384):
+    """The party reading that is *continuous* with the previous frame (D386).
+
+    Every shape reader is a local rule, and on a frame where the flame is half occluded
+    they disagree by hundreds of pixels (`-164228`: glow (766,335) is empty board, flame
+    (1439,189) is the party, and frame-0001 read flame=None).  Picking "the one nearest the
+    screen centre" is what made the threshold fix worse.  The party does not teleport
+    inside one floor, so when we know where it was, the reading closest to that point and
+    within `limit` is the answer -- a constraint from outside the picture.
+
+    Returns `(point, source)`; `source` is 'tracked' when the previous point decided.
+    """
+    import maalimbus.map_vision as _self
+    readers = []
+    for name in ('party_point', '_bgr_party_point', 'glow_point', 'flame_point', 'player_marker'):
+        function = getattr(_self, name, None)
+        if function is None:
+            continue
+        try:
+            point = function(image)
+        except Exception:
+            continue
+        if point is None or len(point) < 2:
+            continue
+        readers.append((name, (int(point[0]), int(point[1]))))
+    primary = next((point for name, point in readers if name == 'party_point'), None)
+    if previous is None or not readers:
+        return primary, 'primary'
+    px, py = int(previous[0]), int(previous[1])
+    best = None
+    for name, point in readers:
+        distance = abs(point[0] - px) + abs(point[1] - py)
+        if best is None or distance < best[0]:
+            best = (distance, name, point)
+    if best is None or best[0] > limit:
+        return primary, 'primary'
+    return best[2], 'tracked'
