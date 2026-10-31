@@ -7147,3 +7147,35 @@ shop_tx.retire_pending(self.run_id, shop_tx.data['current_visit'], plan['detail'
 
 下一轮：把 `reserve_purchase` 写入的 `offer`（name/price/currency）与 `SHOP_PURCHASE` 判匹配时
 用的 `offer` 一起打印，看差在哪一项——**不再猜是“没写”还是“写错”**。
+
+### 真因：对话框的 Confirm 没被读出来（2026-10-31，D417 定案）
+
+`window.plan_step` 的商店分支逻辑是**先 confirm、后 cancel**：
+
+```python
+confirm = (shop or {}).get('confirm')
+if confirm:
+    return _plan(page, CLICK, target=confirm,
+                 reason='confirming_the_purchase_the_shop_asked_about')
+if page == 'SHOP_PURCHASE':
+    cancel = (shop or {}).get('cancel')
+    if cancel:
+        return _plan(page, CLICK, target=cancel,
+                     reason='the_dialogs_own_cancel_answers_a_question_this_project_did_not_reserve')
+```
+
+而 `-183752` 里每次都走到 **cancel 分支**（reason 就是那句 `did_not_reserve`）。
+
+**所以 `shop['confirm']` 是空的**——对话框的 Confirm 按钮没被读出来，于是计划只能用 Cancel 回答。
+
+这条把前面两轮的两种猜测都否掉了：
+
+- ❌ “没有 reserve” —— reserve 是有的（6097 行）；
+- ❌ “offer 匹配不上” —— 匹配逻辑根本没被问到，因为 `confirm` 一开始就是 None。
+
+**真因是感知**：`shop_vision.native_purchase_dialog` 在这张对话框上没有给出 `confirm`。
+而 `CONFIRM_ROI = (0.50, 0.58, 0.70, 0.80)`、`CANCEL_ROI = (0.31, 0.58, 0.50, 0.80)` 是**比例**的
+（这点是对的，不涉及分辨率），所以要查的是**判定标题/按钮的那几条正则**在这张 1920×1080 帧上是否命中。
+
+下一轮：用正确的 `Text` 对象调 `native_purchase_dialog`，把 `title`/`confirm`/`cancel` 三个读数
+连同命中的正则一起打印，看是哪一条没命中。
