@@ -512,6 +512,19 @@ class ShopTransaction:
                 data['pending'] = None
                 self._save(data)
                 return True
+        if coins is None and shelf:
+            # The counter this frame does not print cannot prove a deduction, and it
+            # cannot deny one either: `-190450` confirmed the question and then died on
+            # this very check because the dialog never shows a balance.  Keep the
+            # pending intent and answer "not verified yet", so the next frame can try
+            # again instead of ending a run over an unreadable counter (D421).
+            data = copy.deepcopy(self.data)
+            data.setdefault('unverified_attempts', []).append(dict(
+                name=pending['name'], price=pending['price'], visit=visit,
+                reason='the_currency_counter_is_unreadable_on_this_frame',
+                successor=proof))
+            self._save(data)
+            return False
         if coins != pending['coins'] - pending['price'] or not shelf:
             raise ValueError('Exact shop purchase currency delta not proven')
         baseline = _baseline(pending) or pending['shelf']
