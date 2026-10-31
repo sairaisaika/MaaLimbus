@@ -2233,9 +2233,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # once: snap it to that node's centre and keep the centre until the loop actually
     # walks.  Without this the board's 17 fixed boxes get a different "nearest" answer
     # every frame (D393).
+    _nearest_px = None
+    if party is not None and clicks:
+        _nearest_px = min(int(abs(party[0] - (box[0] + box[2] / 2.0))
+                             + abs(party[1] - (box[1] + box[3] / 2.0))) for box in clicks)
     party, _confirmed = map_vision.lock_party_to_node(
         party, clicks, previous=record.get('party_node'))
     record['party_node'] = list(_confirmed) if _confirmed else None
+    record['party_nearest_px'] = _nearest_px
     record['map_seen_node'] = True
     # 节点上画着装饰，装饰也是框：实跑 `-135856` 的 22 次点击里绝大多数 target 是
     # `lattice_step`（装饰），距离我方 297-485 px（1.5-2.5 格），点了页面不动。
@@ -4132,6 +4137,7 @@ class MirrorRunner:
         # ran".  This line always fires once per map step, so absence means absence (D397).
         if record.get('map_seen_node') is not None or record.get('party_node') is not None:
             self.note('map_party_node', node=record.get('party_node'),
+                      read=record.get('map_party'), nearest_px=record.get('party_nearest_px'),
                       seen=record.get('map_seen_node'))
         # The record knows which picture and which size this process read; that fact has to
         # reach the journal explicitly, because a field written into `record` is only
