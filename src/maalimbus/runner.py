@@ -2571,6 +2571,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # (671,264) 落在六边形里，而 D345 的 `node_point` (671,230) 落在上方的徽章上。
     # 所以这里**不再平移框**；落点是 `map_clicks` 给的 `point`，框只负责几何（D372）。
     _centred = [[int(v) for v in _box[:4]] for _box in ordered]
+    ordered = _centred
     # 车头图标 + 2(A-P)：游戏自己画出来的“下一站”，比任何推断出来的 kind 都硬（D377）。
     # 一格约等于 0.10 帧宽（实测 190/1920），用它合成一个框放到候选最前面。
     if party is not None and ordered:
@@ -2588,7 +2589,6 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
                                    'centre': list(map_vision.tile_centre(image, ordered[0][:4]))}
                                   if ordered else None)
-    ordered = _centred
     return name, ordered
 
 
