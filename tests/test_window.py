@@ -10,6 +10,17 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+def _archived_json(relative):
+    """读归档帧；D355 把 evidence 压到 2 GiB 之后这些帧可能不在了。
+
+    缺帧就用 pytest.skip 说明白，不要 FileNotFoundError 冒充“回归”（D357 的同一类债）。
+    """
+    path = ROOT / 'evidence' / relative
+    if not path.is_file():
+        pytest.skip(f'归档帧不在仓库里：{relative}')
+    return json.loads(path.read_text('utf-8'))
+
 sys.path.insert(0, str(ROOT / 'src'))
 
 from maalimbus.vision import Text, classify  # noqa: E402
@@ -665,7 +676,7 @@ def test_the_wiped_run_is_waited_into_its_dialog_and_the_battle_expects_it():
     from maalimbus.vision import classify
     from maalimbus.window import plan_step
     frame = json.loads(
-        (ROOT / 'evidence/runtime/window-20261007-195545/frame-0222.json').read_text('utf-8'))
+        _archived_json('runtime/window-20261007-195545/frame-0222.json'))
     words = json.loads((ROOT / 'assets/resource/en/locale.json').read_text('utf-8'))
     tokens = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
     assert classify(tokens, words, tuple(frame['size'])) == 'DEFEAT'
@@ -1197,8 +1208,7 @@ def test_the_left_over_gift_warning_cancels_and_never_trades_the_gifts():
 def test_the_gift_warning_is_named_from_a_live_frame():
     locale = json.loads((Path(__file__).resolve().parents[1]
                          / 'assets/resource/en/locale.json').read_text())
-    frame = json.loads((Path(__file__).resolve().parents[1]
-                        / 'evidence/runtime/window-20261006-052152/frame-0003.json').read_text())
+    frame = _archived_json('runtime/window-20261006-052152/frame-0003.json')
     records = [Text(t['text'], tuple(t['box']), t['score']) for t in frame['ocr']]
     assert classify(records, locale, tuple(frame['size'])) == 'GIFT_WARNING'
 
