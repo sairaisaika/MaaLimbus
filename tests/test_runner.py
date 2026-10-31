@@ -49,6 +49,25 @@ CLAIM_REASON = 'claiming_is_the_only_forward_input_on_the_run_summary'
 UNREADABLE_FRAME = ROOT / 'evidence/runtime/window-20261006-025801/frame-0002.json'
 
 
+FIXTURES = ROOT / 'tests' / 'fixtures' / 'frames'
+
+
+def _fixture_for(png):
+    """同一帧的仓库副本（`tests/fixtures/frames/<run>/<name>`），没有就 None。
+
+    测试输入不该住在运行产物目录里（D355 会清、D357 会跳）。帧还在 evidence 里就用它，
+    不在了就找仓库里的同名 fixture——攒够之后这些用例就能重新真跑。
+    """
+    png = Path(png)
+    if png.is_file():
+        return png
+    if not FIXTURES.is_dir():
+        return None
+    # 同名不同画面是最坏的错：fixture 必须按**运行目录 + 帧名**原样对上，不能只按文件名。
+    candidate = FIXTURES / png.parent.name / png.name
+    return candidate if candidate.is_file() else None
+
+
 def archived(path):
     """The frame's image, read the way a device would hand it over.
 
@@ -57,6 +76,7 @@ def archived(path):
     尚未偿还的债，而不是把 ``assert`` 删掉了事。
     """
     png = Path(path).with_suffix('.png')
+    png = _fixture_for(png) or png
     if not png.is_file():
         pytest.skip('归档帧已按工作区预算清除：%s（关键帧应搬进 tests/fixtures，未还的债）'
                     % png.relative_to(ROOT))
@@ -72,7 +92,7 @@ def archived_record(path):
     和 ``archived()`` 同一条债：帧住在运行产物目录里，会被工作区预算清掉（D355）。
     文件不在就跳过并说明，不把读取删掉了事。
     """
-    path = Path(path)
+    path = _fixture_for(Path(path)) or Path(path)
     if not path.is_file():
         pytest.skip('归档帧已按工作区预算清除：%s（关键帧应搬进 tests/fixtures，未还的债）'
                     % path.relative_to(ROOT))
