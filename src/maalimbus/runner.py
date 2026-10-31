@@ -2543,10 +2543,23 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # One owner for "who goes first" (D404): the three mechanisms only record their answer,
     # this table decides which one leads, and everything else keeps the order it had.
     _source, _lead = step_preference(record)
-    if _lead is not None and _lead in [[int(v) for v in box[:4]] for box in ordered]:
-        ordered = [_lead] + [box for box in ordered
-                             if [int(v) for v in box[:4]] != _lead]
-        record['map_step_lead'] = {'source': _source, 'box': _lead}
+    if _lead is not None:
+        # `train_next` synthesises its box from the extrapolated point (side = 0.10 width),
+        # so it never equals a detected box to the pixel: match by centre, not by corners
+        # (live `-172710` had lead None on every frame while train_next was present).
+        _lead_cx = float(_lead[0]) + float(_lead[2]) / 2.0
+        _lead_cy = float(_lead[1]) + float(_lead[3]) / 2.0
+        _tol = max(float(_lead[2]), 190.0) / 2.0
+
+        def _same(box):
+            return (abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx) <= _tol
+                    and abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy) <= _tol)
+
+        _hit = [box for box in ordered if _same(box)]
+        if _hit:
+            ordered = _hit[:1] + [box for box in ordered if box is not _hit[0]]
+            record['map_step_lead'] = {'source': _source,
+                                       'box': [int(v) for v in _hit[0][:4]]}
     # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
