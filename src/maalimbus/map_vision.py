@@ -3032,7 +3032,7 @@ def neighbour_by_line(image, party, boxes, *, reach_ratio=0.10, band=0.55, min_s
             'score': best[0], 'distance': round(best[3], 1), 'scored': seen}
 
 
-def party_tracked(image, previous=None, *, limit=384):
+def party_tracked(image, previous=None, *, limit=230):
     """The party reading that is *continuous* with the previous frame (D386).
 
     Every shape reader is a local rule, and on a frame where the flame is half occluded
@@ -3041,6 +3041,10 @@ def party_tracked(image, previous=None, *, limit=384):
     screen centre" is what made the threshold fix worse.  The party does not teleport
     inside one floor, so when we know where it was, the reading closest to that point and
     within `limit` is the answer -- a constraint from outside the picture.
+
+    `limit` is 1.2 steps (230 at 1080p), not two: live `-165929` drifted
+    (1059,407) -> (845,491) -> (863,540), and a 298 px jump inside one frame is not the
+    party moving, it is a different reading being picked up (D392).
 
     Returns `(point, source)`; `source` is 'tracked' when the previous point decided.
     """
