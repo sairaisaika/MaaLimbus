@@ -32,7 +32,7 @@ from maalimbus.runtime_paths import ROOT, data_directory, ledger_path
 from maalimbus.theme_vision import ThemeCatalog, theme_page, pack_candidates, recommend_pack
 from maalimbus.deployment import deployment_page,observe_deployment,next_sinner,target_box,badge_rois,DeploymentDraft
 from maalimbus.storage import KEYWORDS, SINNERS
-from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button,turn_signature
+from maalimbus.battle_vision import BattleCatalog,planning_anchors,preview_labels,battle_hud,detail_back_box,auto_assign_plan,auto_assign_buttons,begin_turn_plan,start_button,turn_signature
 from maalimbus import star_vision
 from maalimbus import initial_gifts
 from maalimbus.grace_vision import AVAILABLE_LABEL, AVAILABLE_PATTERN
