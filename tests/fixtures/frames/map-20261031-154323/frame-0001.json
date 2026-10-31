@@ -1,259 +1,263 @@
 {
-  "scene": "MAP",
-  "size": [
-    1920,
-    1080
-  ],
-  "utc": "2026-10-31T19:43:28.584797+00:00",
-  "image_sha256": "2527ab19718395666d3bb0f8fb7aedcad6fda8d73dd174058fee9188b2114b92",
-  "ocr": [
-    {
-      "text": "ExploringFloor1",
-      "score": 0.957011,
-      "box": [
-        58,
-        129,
-        330,
-        47
-      ]
-    },
-    {
-      "text": "To be Crushed",
-      "score": 0.975625,
-      "box": [
-        64,
-        190,
-        138,
-        22
-      ]
-    },
-    {
-      "text": "T",
-      "score": 0.274676,
-      "box": [
-        114,
-        41,
-        20,
-        22
-      ]
-    },
-    {
-      "text": "O",
-      "score": 0.347212,
-      "box": [
-        274,
-        206,
-        28,
-        30
-      ]
-    },
-    {
-      "text": "257",
-      "score": 0.916482,
-      "box": [
-        280,
-        1022,
-        30,
-        26
-      ]
-    },
-    {
-      "text": "USOR",
-      "score": 0.859292,
-      "box": [
-        284,
-        323,
-        68,
-        28
-      ]
-    },
-    {
-      "text": "253",
-      "score": 0.998838,
-      "box": [
-        396,
-        1024,
-        32,
-        24
-      ]
-    },
-    {
-      "text": "2",
-      "score": 0.743185,
-      "box": [
-        440,
-        222,
-        70,
-        59
-      ]
-    },
-    {
-      "text": "O",
-      "score": 0.209064,
-      "box": [
-        456,
-        357,
-        44,
-        53
-      ]
-    },
-    {
-      "text": "5",
-      "score": 0.960588,
-      "box": [
-        460,
-        1024,
-        16,
-        18
-      ]
-    },
-    {
-      "text": "5",
-      "score": 0.747133,
-      "box": [
-        558,
-        1014,
-        46,
-        44
-      ]
-    },
-    {
-      "text": "<",
-      "score": 0.1898,
-      "box": [
-        658,
-        206,
-        26,
-        30
-      ]
-    },
-    {
-      "text": "茗516動11米22@13",
-      "score": 0.772725,
-      "box": [
-        726,
-        35,
-        550,
-        46
-      ]
-    },
-    {
-      "text": "265",
-      "score": 0.99922,
-      "box": [
-        742,
-        1018,
-        40,
-        32
-      ]
-    },
-    {
-      "text": "321",
-      "score": 0.994293,
-      "box": [
-        972,
-        1018,
-        42,
-        32
-      ]
-    },
-    {
-      "text": "236",
-      "score": 0.999643,
-      "box": [
-        1090,
-        1026,
-        34,
-        22
-      ]
-    },
-    {
-      "text": "269",
-      "score": 0.999823,
-      "box": [
-        1208,
-        1026,
-        34,
-        22
-      ]
-    },
-    {
-      "text": "+",
-      "score": 0.118933,
-      "box": [
-        1250,
-        204,
-        28,
-        28
-      ]
-    },
-    {
-      "text": "(45",
-      "score": 0.81934,
-      "box": [
-        1256,
-        1018,
-        38,
-        36
-      ]
-    },
-    {
-      "text": "1836",
-      "score": 0.999859,
-      "box": [
-        1446,
-        37,
-        144,
-        62
-      ]
-    },
-    {
-      "text": "45",
-      "score": 0.994995,
-      "box": [
-        1608,
-        1022,
-        30,
-        30
-      ]
-    },
-    {
-      "text": "656",
-      "score": 0.997346,
-      "box": [
-        1656,
-        43,
-        70,
-        50
-      ]
-    },
-    {
-      "text": "Q",
-      "score": 0.536648,
-      "box": [
-        1824,
-        131,
-        44,
-        31
-      ]
-    }
-  ],
-  "local_ocr": [],
-  "reward_cost": null,
-  "reward_cost_provenance": [],
-  "neural_sinners": {
-    "status": "shadow",
-    "model_sha256": "859b8546292fc32007a22ac1723dded382bbb77a25d34246369d78200ebc1a59",
-    "boxes": [],
-    "policy_file": "neural-learning.local.json",
-    "roi_mode": "verified_card_edges",
-    "verified_rois": [],
-    "native_inference_executed": false,
-    "model_trained": true,
-    "native_quality_passed": false,
-    "training_eligible": false,
-    "production_enabled": false,
-    "input_authorized": false
+ "scene": "MAP",
+ "size": [
+  1920,
+  1080
+ ],
+ "utc": "2026-10-31T19:43:28.584797+00:00",
+ "image_sha256": "2527ab19718395666d3bb0f8fb7aedcad6fda8d73dd174058fee9188b2114b92",
+ "ocr": [
+  {
+   "text": "ExploringFloor1",
+   "score": 0.957011,
+   "box": [
+    58,
+    129,
+    330,
+    47
+   ]
   },
-  "overlay_dismissal": null
+  {
+   "text": "To be Crushed",
+   "score": 0.975625,
+   "box": [
+    64,
+    190,
+    138,
+    22
+   ]
+  },
+  {
+   "text": "T",
+   "score": 0.274676,
+   "box": [
+    114,
+    41,
+    20,
+    22
+   ]
+  },
+  {
+   "text": "O",
+   "score": 0.347212,
+   "box": [
+    274,
+    206,
+    28,
+    30
+   ]
+  },
+  {
+   "text": "257",
+   "score": 0.916482,
+   "box": [
+    280,
+    1022,
+    30,
+    26
+   ]
+  },
+  {
+   "text": "USOR",
+   "score": 0.859292,
+   "box": [
+    284,
+    323,
+    68,
+    28
+   ]
+  },
+  {
+   "text": "253",
+   "score": 0.998838,
+   "box": [
+    396,
+    1024,
+    32,
+    24
+   ]
+  },
+  {
+   "text": "2",
+   "score": 0.743185,
+   "box": [
+    440,
+    222,
+    70,
+    59
+   ]
+  },
+  {
+   "text": "O",
+   "score": 0.209064,
+   "box": [
+    456,
+    357,
+    44,
+    53
+   ]
+  },
+  {
+   "text": "5",
+   "score": 0.960588,
+   "box": [
+    460,
+    1024,
+    16,
+    18
+   ]
+  },
+  {
+   "text": "5",
+   "score": 0.747133,
+   "box": [
+    558,
+    1014,
+    46,
+    44
+   ]
+  },
+  {
+   "text": "<",
+   "score": 0.1898,
+   "box": [
+    658,
+    206,
+    26,
+    30
+   ]
+  },
+  {
+   "text": "茗516動11米22@13",
+   "score": 0.772725,
+   "box": [
+    726,
+    35,
+    550,
+    46
+   ]
+  },
+  {
+   "text": "265",
+   "score": 0.99922,
+   "box": [
+    742,
+    1018,
+    40,
+    32
+   ]
+  },
+  {
+   "text": "321",
+   "score": 0.994293,
+   "box": [
+    972,
+    1018,
+    42,
+    32
+   ]
+  },
+  {
+   "text": "236",
+   "score": 0.999643,
+   "box": [
+    1090,
+    1026,
+    34,
+    22
+   ]
+  },
+  {
+   "text": "269",
+   "score": 0.999823,
+   "box": [
+    1208,
+    1026,
+    34,
+    22
+   ]
+  },
+  {
+   "text": "+",
+   "score": 0.118933,
+   "box": [
+    1250,
+    204,
+    28,
+    28
+   ]
+  },
+  {
+   "text": "(45",
+   "score": 0.81934,
+   "box": [
+    1256,
+    1018,
+    38,
+    36
+   ]
+  },
+  {
+   "text": "1836",
+   "score": 0.999859,
+   "box": [
+    1446,
+    37,
+    144,
+    62
+   ]
+  },
+  {
+   "text": "45",
+   "score": 0.994995,
+   "box": [
+    1608,
+    1022,
+    30,
+    30
+   ]
+  },
+  {
+   "text": "656",
+   "score": 0.997346,
+   "box": [
+    1656,
+    43,
+    70,
+    50
+   ]
+  },
+  {
+   "text": "Q",
+   "score": 0.536648,
+   "box": [
+    1824,
+    131,
+    44,
+    31
+   ]
+  }
+ ],
+ "local_ocr": [],
+ "reward_cost": null,
+ "reward_cost_provenance": [],
+ "neural_sinners": {
+  "status": "shadow",
+  "model_sha256": "859b8546292fc32007a22ac1723dded382bbb77a25d34246369d78200ebc1a59",
+  "boxes": [],
+  "policy_file": "neural-learning.local.json",
+  "roi_mode": "verified_card_edges",
+  "verified_rois": [],
+  "native_inference_executed": false,
+  "model_trained": true,
+  "native_quality_passed": false,
+  "training_eligible": false,
+  "production_enabled": false,
+  "input_authorized": false
+ },
+ "overlay_dismissal": null,
+ "map_party": [
+  575,
+  335
+ ]
 }

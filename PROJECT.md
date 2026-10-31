@@ -6466,3 +6466,31 @@ tests/test_config_provenance.py` → 109 passed；编队/部署相关 22 个套�
 
 下一刀（D372）：把 `gold_badge_node` 的框改成徽章**下方**的格子几何（或让 `lattice_step`
 在同一格上优先），并用这两张实验帧做正反例——判据是“点下去之后页面变了”。
+
+### 候选池只有 1 个的原因（2026-10-31，D375 前置）
+
+在 fixture 帧 `-154323/frame-0001` 上把 `candidates_of` 的中间量全打出来：
+
+```
+map_party        (575,335)          # 从 events 补进 fixture 之后
+map_lattice      line_step: {reach 192, box null,
+                             scored: [(576,169,190,190) score 0.031 distance 194.6]}
+map_candidate_kinds  {"576,169,190,190": "guessed_badge"}
+offered          [[576,169,190,190]]     # 只有 1 个
+```
+
+`map_clicks` 在这一帧检出 `gold_badge_node` ×1 与 `lattice_step` ×4，但
+`CLICK_KINDS_WITHOUT_EVIDENCE = ('lit_ring', 'lattice_step')` 会把后者丢掉——依据是历史统计
+（`lit_ring 0/6`、`lattice_step 0/3`：点过、没一次移动）。
+
+于是：**候选池里只剩徽章**，而手动成功那一下（设备 700,365 = 1080 (1050,548)）并不在徽章上。
+
+两条互斥的可能，下轮必须先分开：
+
+1. `lattice_step` 的点确实无效（历史 3/3 不动），那手动成功点落在的是**框上部的相邻格**，
+   需要新的“格子外推”；
+2. 历史那 3 次点的是 `lattice_step` 的**框中心**，而中心不在格子上——和徽章是同一个错，
+   应当改成用格距外推、按 `step_pitch` 生成格子中心。
+
+判据：在同一帧上把 `(960,521,190,190)` 的**框中心 (1055,616)** 与**框上部 (1055,548)** 各裁一张
+放大图，看哪个落在六边形里。图出来之前不改代码。
