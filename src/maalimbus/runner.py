@@ -4351,7 +4351,11 @@ class MirrorRunner:
                 dist = ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
                 return 0.55 * _side_hint <= dist <= 1.75 * _side_hint
             _kept = [box for box in candidates if _reachable_ish(box)]
-            if _kept and len(_kept) != len(candidates):
+            if len(_kept) != len(candidates):
+                # An empty list must also replace the old one: keeping the unfiltered list
+                # whenever every candidate was too far is how a 4.1-tile target still got
+                # clicked on `-195204` (dropped=1 left=1 repeated while the click went 770 px
+                # away).  Nothing reachable is a real answer -- the recovery ladder owns it.
                 self.note('map_candidates_too_far', dropped=len(candidates) - len(_kept),
                           left=len(_kept), side=_side_hint)
                 candidates = _kept

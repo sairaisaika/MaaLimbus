@@ -15,3 +15,9 @@ def test_the_side_comes_from_the_candidates_not_a_constant():
     source = SOURCE.read_text(encoding='utf-8')
     assert '_side_hint = _sides[len(_sides) // 2]' in source
     assert 'int(box[2]) > 100' in source
+
+
+def test_an_empty_result_replaces_the_unfiltered_list():
+    source = SOURCE.read_text(encoding='utf-8')
+    assert "if len(_kept) != len(candidates):" in source
+    assert "if _kept and len(_kept) != len(candidates):" not in source
