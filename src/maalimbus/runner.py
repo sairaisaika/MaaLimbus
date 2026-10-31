@@ -5972,8 +5972,12 @@ class MirrorRunner:
                 self.note('theme_pack_recommendation',chosen=theme_choice,ranking=ranking,required='hard')
             self.journal.record('difficulty_gate', difficulty=difficulty,
                                 frame=frame, required='hard', verified_clear=False)
-        if page == 'MAP' and candidates:
+        if page == 'MAP' and candidates and not self.state.get('map_committed'):
             # Breadth over the nodes this page offers, not depth on the first one.
+            # Skipped while a click is committed: `next_untried` exists to try a *different*
+            # node after one was refused, which is exactly what it did to a click that had
+            # not been answered yet (`-193047`: intents alternated [978,158] / [770,164]
+            # 208 px apart, six superseded) (D424c).
             tried = state.setdefault('map_tried', [])
             if len(tried) >= len(candidates):
                 tried.clear()
