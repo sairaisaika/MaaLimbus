@@ -2574,6 +2574,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
         if _hit:
             ordered = _hit[:1] + [box for box in ordered if box is not _hit[0]]
             record['map_step_lead']['box'] = [int(v) for v in _hit[0][:4]]
+        else:
+            # The arrow is the game's own "next step is this way", and the adjacency filter
+            # is our inference: when they disagree the game wins, so the lead is appended
+            # even if `ordered` never contained it (live `-173218`: ordered 1, lead 352 px
+            # away).  `added` keeps "it was already there" apart from "we put it there".
+            ordered = [_lead] + [box for box in ordered]
+            record['map_step_lead']['added'] = True
+            record['map_step_lead']['box'] = [int(v) for v in _lead[:4]]
     # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
