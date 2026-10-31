@@ -2727,7 +2727,15 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # 车头图标 + 2(A-P)：游戏自己画出来的“下一站”，比任何推断出来的 kind 都硬（D377）。
     # 一格约等于 0.10 帧宽（实测 190/1920），用它合成一个框放到候选最前面。
     if party is not None and ordered:
-        _next = map_vision.train_next_point(image, party)
+        _previous_party = (self.state or {}).get('last_party')
+        _side = None
+        if record.get('map_candidates'):
+            try:
+                _side = min(int(box[2]) for box in record['map_candidates'] if len(box) >= 4)
+            except (TypeError, ValueError):
+                _side = None
+        _next = map_vision.train_next_point(image, party, previous=_previous_party,
+                                            side=_side)
         if _next is None:
             # The head marker is drawn small and is sometimes occluded for a frame or two
             # while the board is still the same board; dropping the extrapolation for those

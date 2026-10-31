@@ -2829,7 +2829,8 @@ def node_point(box):
     return (x + w // 2, int(round(y + h // 2 - NODE_CENTRE_LIFT * h)))
 
 
-def train_next_point(image, party, *, reach=(0.05, 0.22), lift=0.09):
+def train_next_point(image, party, *, reach=(0.05, 0.22), lift=0.09, previous=None,
+                     side=None):
     """下一格 = P + 2(A - P)，A 是车头图标（不是灰色 V 形箭头）。
 
     用户提的方案，在 `-154323/frame-0001` 上验算：P=(860,209)、车头图标 A≈(1056,248)、
@@ -2846,9 +2847,23 @@ def train_next_point(image, party, *, reach=(0.05, 0.22), lift=0.09):
     # （`-181831/frame-0002`：P=(860,248)、箭头 (953,255) → (1046,262)，目视下一格 ≈1100，
     # 偏 54 px；同一帧用车头图标给出 (1252,248)，偏到红 Boss 上 152 px）。D327 之前
     # 箭头读数被 720p 判据挡住，所以旧注释里“V 形偏 170 px”是**读不到时**的比较，不是它更差。
+    # An extrapolated tile may not be the tile the party just left: after a move the
+    # party reading can lag one frame behind the car head, and P + 2(A - P) then lands
+    # back where the party came from (`-194005`: party (1630,189), target (1439,189)).
+    # `previous` is where the party stood last frame, so a point within half a tile of it
+    # is a step backwards, not the next step (D426).
+    def _backwards(point):
+        if previous is None or side is None:
+            return False
+        dx = point[0] - float(previous[0])
+        dy = point[1] - float(previous[1])
+        return (dx * dx + dy * dy) ** 0.5 < float(side) * 0.5
+
     for _arrow in chevron_glyph_pairs(image) or ():
-        return (int(round(party[0] + 2 * (_arrow[0] - party[0]))),
-                int(round(party[1] + 2 * (_arrow[1] - party[1]))))
+        point = (int(round(party[0] + 2 * (_arrow[0] - party[0]))),
+                 int(round(party[1] + 2 * (_arrow[1] - party[1]))))
+        if not _backwards(point):
+            return point
     import cv2
     import numpy as np
     height, width = image.shape[:2]
