@@ -1434,7 +1434,11 @@ def map_clicks(image, *, template=None, node_side=None, player=None):
             if ((x + side // 2 - box_x - box_w // 2) ** 2
                     + (y + side // 2 - box_y - box_h // 2) ** 2 <= 50 * 50):
                 return
-        clicks.append(dict(box=(x, y, side, side), kind=kind, point=(point[0], point[1])))
+        # The click point is the hexagon, not the box centre the badge sits on (D345):
+        # every candidate reports `node_point(box)` so a click lands where the game
+        # accepts one, and the box keeps its own geometry for matching.
+        clicks.append(dict(box=(x, y, side, side), kind=kind,
+                           point=node_point((x, y, side, side))))
 
     highlighted = []
     chevrons = []

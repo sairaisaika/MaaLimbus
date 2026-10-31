@@ -1144,7 +1144,9 @@ def test_the_live_floor_one_offers_the_five_gold_badged_nodes():
     clicks = map_clicks(image)
     nodes = [item for item in clicks if item['kind'] == 'gold_badge_node']
     assert len(nodes) == 5, clicks
-    expected = {(863, 448), (1055, 447), (1247, 447), (1247, 608), (1055, 767)}
+    # D345: the click point is the hexagon, 0.18 of the box above its centre, so every
+    # one of these is the old reading minus 34 px on this 190 px box.
+    expected = {(863, 414), (1055, 413), (1247, 413), (1247, 574), (1055, 733)}
     found = {(item['point'][0], item['point'][1]) for item in nodes}
     assert found == expected, found
     # The page's only other candidates were the player's own icon, a path chevron and
