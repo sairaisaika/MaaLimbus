@@ -6558,6 +6558,14 @@ class MirrorRunner:
                 time.sleep(settings.interval)
                 return self._result(page, plan.get('target'), True, None, waiting=True)
             if not retryable:
+                # 数字先落地，再谈改条件（D367）：停止原因在两个分支之间摆动时，
+                # 只看 reason 分不清是“预算用尽”还是“压根没进重试”。
+                self.note('map_run_ending', reason=entry.get('reason'), page=page,
+                          settled_page=settled_page, map_attempts=state['map_attempts'],
+                          map_tries=max(1, settings.map_tries),
+                          had_target=plan.get('target') is not None,
+                          plan_reason=plan.get('reason'),
+                          page_tries=max(1, settings.page_tries))
                 recovered = self._recover(page, state, entry, plan)
                 if recovered is not None:
                     return recovered
