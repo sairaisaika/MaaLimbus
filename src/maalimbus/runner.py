@@ -2072,6 +2072,36 @@ def party_on_a_node(party, boxes, *, share=0.6):
     return False
 
 
+def node_sized_boxes(clicks, *, width, floor_share=0.05):
+    """A click must land on a node, and a node is a big box.
+
+    Live `packaged-mirror-20261031-131917` clicked 42 times and was accepted 3: every
+    target was a 40x40 box (`neutral_outline_candidate`, `lit_ring`), i.e. the ornament
+    drawn on a node rather than the node.  The node itself is `0.10 * width` across
+    (190 px at 1920).  So: keep only boxes at node scale, and when a frame offers
+    nothing but small boxes, grow those to node size around their own centre instead
+    of clicking the ornament.
+    """
+    sizes = [int(item['box'][2]) for item in clicks]
+    widest = max(sizes) if sizes else 0
+    min_side = max(48, int(round(float(floor_share) * float(width))))
+    kept = [item for item in clicks if int(item['box'][2]) >= min_side]
+    expanded = 0
+    info = {'min_side': min_side, 'widest': widest, 'kept': len(kept), 'expanded': 0}
+    if not kept and clicks:
+        side = widest if widest >= min_side else max(min_side, int(round(0.10 * float(width))))
+        for item in clicks:
+            x, y, w, h = [int(v) for v in item['box']]
+            cx, cy = x + w // 2, y + h // 2
+            point = item.get('point') or (cx, cy)
+            kept.append(dict(item, box=[cx - side // 2, cy - side // 2, side, side],
+                             point=(int(point[0]), int(point[1]))))
+            expanded += 1
+        info['expanded'] = expanded
+    info['kept'] = len(kept)
+    return kept, info
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -2182,6 +2212,8 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # array with more than one element is ambiguous" one event after its first read.
     record['map_party'] = [int(v) for v in party] if party is not None else None
     record['map_party_source'] = 'read' if party is not None else 'none'
+    clicks, _size = node_sized_boxes(clicks, width=image.shape[1])
+    record['map_click_size'] = dict(_size)
     boxes = [list(item['box']) for item in clicks]
     # The kind the reader gave a box never reached the journal, so a verdict could say
     # which box was refused but not what the reader thought it was -- and `map_clicks`
