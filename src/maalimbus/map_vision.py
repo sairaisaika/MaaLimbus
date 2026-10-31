@@ -3069,3 +3069,33 @@ def party_tracked(image, previous=None, *, limit=384):
     if best is None or best[0] > limit:
         return primary, 'primary'
     return best[2], 'tracked'
+
+
+def lattice_box(boxes, *, pad=0.5):
+    """The lattice's bounding box, grown by half a step on each side (D390).
+
+    A party reading has to be *on the board the game drew*, and the board is exactly the
+    set of boxes `map_clicks` found -- not a fraction of the screen.  Measured
+    `-165116`: the flame sits at (862,552) while `glow_point` answered (860,209), which is
+    the grey decoration above the lattice; the fraction band (0.10-0.90 h) let it through
+    because the decoration lives inside it too.  The boxes do not lie.
+    """
+    rows = [box for box in boxes or () if box and len(box) >= 4]
+    if not rows:
+        return None
+    left = min(float(box[0]) for box in rows)
+    top = min(float(box[1]) for box in rows)
+    right = max(float(box[0]) + float(box[2]) for box in rows)
+    bottom = max(float(box[1]) + float(box[3]) for box in rows)
+    span = max(float(box[2]) for box in rows) if pad else 0.0
+    grow = span * pad
+    return (left - grow, top - grow, right + grow, bottom + grow)
+
+
+def inside_lattice(point, boxes, *, pad=0.5):
+    """Is this point on the drawn lattice?"""
+    area = lattice_box(boxes, pad=pad)
+    if area is None or point is None:
+        return True
+    left, top, right, bottom = area
+    return left <= float(point[0]) <= right and top <= float(point[1]) <= bottom

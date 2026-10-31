@@ -2220,6 +2220,15 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # to distance (live `-135349`: nine clicks at a node the page never accepted, with
     # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
     clicks = map_clicks(image, template=node_badge_template(), player=party)
+    # A reading has to be on the board the game drew, and the board is exactly the boxes
+    # `map_clicks` found -- not a fraction of the screen.  Live `-165116` read the flame at
+    # (862,552) while `glow_point` answered (860,209): the grey decoration above the
+    # lattice, inside the old 0.10-0.90 h band.  The boxes do not lie (D390).
+    if party is not None and not map_vision.inside_lattice(party, clicks):
+        record['party_outside_lattice'] = {'party': [int(party[0]), int(party[1])],
+                                           'boxes': len(clicks)}
+        party = None
+        clicks = map_clicks(image, template=node_badge_template(), player=None)
     # 节点上画着装饰，装饰也是框：实跑 `-135856` 的 22 次点击里绝大多数 target 是
     # `lattice_step`（装饰），距离我方 297-485 px（1.5-2.5 格），点了页面不动。
     # 只保留“节点语义”的读法，装饰留给 `guess_candidates` 之外的分析。
