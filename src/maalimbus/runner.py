@@ -4256,6 +4256,17 @@ class MirrorRunner:
         frame, candidates = candidates_of(directory, record,
                                           fallback_party=fallback or probe_party,
                                           previous_party=self.state.get('last_party'))
+        # Every frame re-votes on which node to take, and the vote legitimately alternates
+        # between two mechanisms (edge said [1345,94] on every frame of `-191823`, while the
+        # intent target flipped to [768,169] every other frame -- 578 px, three tiles).  A
+        # click that has already gone out is a decision, so it holds until it is answered or
+        # the retry budget runs out, instead of being re-decided on each frame (D424).
+        committed = self.state.get('map_committed')
+        if committed and candidates and box_key(candidates[0]) != box_key(committed):
+            self.note('map_commitment_held', committed=[int(v) for v in committed],
+                      planned=[int(v) for v in candidates[0]])
+            candidates = [committed] + [box for box in candidates
+                                        if box_key(box) != box_key(committed)]
         if record.get('map_party'):
             self.state['last_party'] = [int(v) for v in record['map_party']]
         # The one-step rule is enforced at every map click, so the numbers it needs travel
@@ -6263,6 +6274,10 @@ class MirrorRunner:
                                       if early else
                                       'a_new_target_replaced_this_one_before_the_page_settled'))
                 state['map_pending'] = list(plan['target'])
+                # The decision that just went out is the commitment the next frames hold
+                # to (D424).  It is cleared by the same retry budget that bounds the
+                # pending click, so a target that never works still ends the map walk.
+                state['map_committed'] = list(plan['target'])
                 state['map_acted_once'] = True
                 state['map_pending_kind'] = (self.state.get('map_candidate_kinds') or {}).get(
                     box_key(plan['target']))
