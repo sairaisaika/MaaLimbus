@@ -3151,5 +3151,54 @@ def lock_party_to_node(party, boxes, *, previous=None, tol=0.8):
         if best is None or distance < best[0]:
             best = (distance, centre)
     if best is None or best[0] > reach:
+        # The party's own tile is usually the one the detector cannot see, so falling back
+        # to "nearest crossing of the grid the boxes imply" is the structural answer.
+        crossing = nearest_lattice_point(party, rows)
+        if crossing is not None:
+            return crossing, tuple(float(v) for v in crossing)
         return party, previous
     return (int(best[1][0]), int(best[1][1])), tuple(best[1])
+
+
+def lattice_points(boxes):
+    """Every grid crossing the detected boxes imply, as (x, y) pairs (D400).
+
+    The party's own tile is often *not* detected -- the flame covers the very mark the
+    detector looks for -- so snapping to a detected box centre cannot work: live `-171205`
+    read `nearest_px` 244/168, i.e. more than one step from any box.  The lattice, however,
+    is a regular grid: the boxes give the columns and rows, and every crossing is a place a
+    tile can be.  A party reading then snaps to the crossing nearest to it.
+    """
+    rows = [(item.get('box') if isinstance(item, dict) else item) for item in (boxes or ())]
+    rows = [box for box in rows if box and len(box) >= 4]
+    if not rows:
+        return []
+    xs = sorted({float(box[0]) + float(box[2]) / 2.0 for box in rows})
+    ys = sorted({float(box[1]) + float(box[3]) / 2.0 for box in rows})
+    side = max(float(box[2]) for box in rows)
+    # A column/row is only a real lattice line if another box shares it; a single stray box
+    # would otherwise invent a whole row of "tiles" nobody can walk to.
+    def lines(values):
+        kept = []
+        for value in values:
+            if kept and abs(value - kept[-1]) <= side * 0.4:
+                continue
+            kept.append(value)
+        return kept
+    return [(x, y) for x in lines(xs) for y in lines(ys)]
+
+
+def nearest_lattice_point(point, boxes, *, tol=1.2):
+    """The lattice crossing nearest to `point`, or None if it is more than `tol` steps away."""
+    if point is None:
+        return None
+    points = lattice_points(boxes)
+    if not points:
+        return None
+    best = min(points, key=lambda p: abs(p[0] - point[0]) + abs(p[1] - point[1]))
+    distance = abs(best[0] - point[0]) + abs(best[1] - point[1])
+    rows = [(item.get('box') if isinstance(item, dict) else item) for item in (boxes or ())]
+    side = max(float(box[2]) for box in rows if box and len(box) >= 4) if rows else 190.0
+    if distance > side * tol:
+        return None
+    return (int(best[0]), int(best[1]))
