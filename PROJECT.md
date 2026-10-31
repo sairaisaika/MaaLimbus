@@ -6563,3 +6563,16 @@ offered          [[576,169,190,190]]     # 只有 1 个
 header 时才敢这么判；认出来就点 Enter，不再重试点击。
 
 用户另给的两条策略输入记在这里：箭头三方向 = 三选一；走图策略“有多少走多少”。
+
+### 两处 `test_window` 红是既有债，不是预览面板引入（2026-10-31）
+
+给 `classify` 接 `NODE_PREVIEW` 后，`test_window.py` 有 2 条红：
+
+- `test_the_gift_warning_is_named_from_a_live_frame`
+- `test_the_wiped_run_is_waited_into_its_dialog_and_the_battle_expects_it`
+
+把 `classify` 里那段钩子**整段移除**、只保留 `vision.node_preview` 之后，这两条**仍然红**——
+所以它们与本轮改动无关，是既有的测试债（同一类：依赖归档帧/旧行为）。
+
+处理方式照 D357：先在自己的轮次里显式 `skip` + 写理由，或者用真实帧重写；不要混进
+功能改动里一起看，否则会像这次一样把“既有红”误判成“我弄红的”，白回滚一次。
