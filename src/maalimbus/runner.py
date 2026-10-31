@@ -5300,14 +5300,26 @@ class MirrorRunner:
                 self.note('shop_pending_at_dialog',
                           present=pending is not None,
                           keys=sorted(pending) if isinstance(pending, dict) else None,
-                          name=bool(pending and pending.get('name')),
-                          price=bool(pending and pending.get('price')),
+                          has_name=bool(pending and pending.get('name')),
+                          has_price=bool(pending and pending.get('price')),
                           visit=shop_tx.data.get('current_visit') if shop_tx is not None else None)
                 if pending and pending.get('name') and pending.get('price'):
                     answer=purchase_dialog_answer(texts,pending['name'],pending['price'],record['size'],
                                                   coins=pending.get('coins'))
                     if answer is None:
                         shop['confirm']=matching_purchase_question(texts,pending['name'],pending['price'],record['size'],coins=pending.get('coins'))
+                        if shop['confirm'] is None:
+                            # The generic "Purchase E.G.O Gifts?" question prints no item
+                            # name and no price, so a matcher that looks for both finds
+                            # nothing and the loop cancels a purchase it had reserved
+                            # (-185214: ten rounds of buy -> this dialog -> cancel). The
+                            # dialog's own Purchase control is still the answer (D419).
+                            dialog=native_purchase_dialog(texts,record['size'])
+                            if dialog and dialog.get('purchase') is not None:
+                                shop['confirm']=dialog['purchase']
+                                self.note('shop_generic_dialog_confirm',
+                                          text=getattr(dialog['purchase'],'text',None),
+                                          box=list(getattr(dialog['purchase'],'box',()) or ()))
                     elif answer[0]=='purchase':
                         shop['confirm']=answer[1]
                     else:
