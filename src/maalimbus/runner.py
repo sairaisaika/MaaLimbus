@@ -6543,6 +6543,20 @@ class MirrorRunner:
             # retry: with `map_tries: 1` the retry arm is unreachable, so counting inside
             # it left `map_attempts` at 0 forever and the ladder was the only consumer.
             state['map_attempts'] += 1
+            # 地图上点了一格、页面**没动**：这不是“去了别的页”，而是一次没被接受的输入。
+            # 之前它落到 `done=True`，run 当场收场——第一层就是这么一次次结束的（D366）。
+            # 有界重试，预算仍是 `map_tries`。
+            stuck_on_map = (entry.get('reason') == 'unexpected_successor'
+                            and page == 'MAP'
+                            and plan.get('action') == CLICK)
+            if stuck_on_map and state['map_attempts'] + 1 < max(1, settings.map_tries):
+                state['map_attempts'] += 1
+                entry['handled_retry'] = True
+                entry['stopped'] = 'the_map_click_did_not_move_the_run'
+                self.note('map_click_did_not_move_the_run', target=list(plan.get('target') or []),
+                          attempt=state['map_attempts'], tries=settings.map_tries)
+                time.sleep(settings.interval)
+                return self._result(page, plan.get('target'), True, None, waiting=True)
             if not retryable:
                 recovered = self._recover(page, state, entry, plan)
                 if recovered is not None:
@@ -7473,7 +7487,17 @@ class MirrorRunner:
         device = getattr(self, 'device', None)
         if hasattr(device, 'end_session'):
             device.end_session(reason)
-        self.note('mirror_session_ended', reason=str(reason), **detail)
+        # 谁结束的这条 run：同一个 reason 可能从几个分支写出来，而日志里只看得到
+        # reason 本身。实跑 `-152305` 就是“header 缺 pack 行”这个 reason，可对应的
+        # `map_header_without_a_pack_line` 却是 0 次——没有调用点就无法判断是哪一处。
+        import sys as _sys
+        caller = ''
+        try:
+            frame = _sys._getframe(1)
+            caller = '%s:%d' % (pathlib.Path(frame.f_code.co_filename).name, frame.f_lineno)
+        except Exception:
+            caller = 'unknown'
+        self.note('mirror_session_ended', reason=str(reason), caller=caller, **detail)
         return True
 
     def _retire_foreign_pending(self):

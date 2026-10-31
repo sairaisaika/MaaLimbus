@@ -1674,3 +1674,10 @@ def test_an_unjudged_map_click_still_buys_the_action_right():
     body = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
     assert "'accepted', 'unjudged', 'superseded'" in body
     assert "outcome') == 'accepted':" not in body
+
+
+def test_a_map_click_that_moves_nothing_is_retried_not_fatal():
+    """地图点了没动 = 没被接受的输入；有界重试，不当场结束（D366）。"""
+    body = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
+    assert "map_click_did_not_move_the_run" in body
+    assert "and plan.get('action') == CLICK)" in body
