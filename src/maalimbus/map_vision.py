@@ -2820,6 +2820,49 @@ def node_point(box):
     return (x + w // 2, int(round(y + h // 2 - NODE_CENTRE_LIFT * h)))
 
 
+def train_next_point(image, party, *, reach=(0.05, 0.22), lift=0.09):
+    """下一格 = P + 2(A - P)，A 是车头图标（不是灰色 V 形箭头）。
+
+    用户提的方案，在 `-154323/frame-0001` 上验算：P=(860,209)、车头图标 A≈(1056,248)、
+    `P+2(A-P)`≈(1252,287)，目视下一格 (1247,255)，误差 32 px（不到半格 95）。
+
+    取车头图标而不是 V 形箭头是验算得到的：V 形在 (965,251)，用它算出 (1070,293)，偏 170 px；
+    V 形只是方向示意，车头图标才是下一站。
+
+    找不到就返回 None —— 这一层只回答“下一格在哪”，不猜。
+    """
+    if image is None or party is None or getattr(image, 'ndim', 0) != 3:
+        return None
+    import cv2
+    import numpy as np
+    height, width = image.shape[:2]
+    left = int(party[0] + reach[0] * width)
+    right = int(min(width, party[0] + reach[1] * width))
+    top = int(max(0, party[1] - lift * height))
+    bottom = int(min(height, party[1] + lift * height))
+    if right - left < 40 or bottom - top < 30:
+        return None
+    band = image[top:bottom, left:right]
+    grey = cv2.cvtColor(band, cv2.COLOR_BGR2GRAY)
+    mask = (grey >= 110).astype(np.uint8) * 255
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8))
+    count, _labels, stats, cents = cv2.connectedComponentsWithStats(mask, 8)
+    best = None
+    for index in range(1, count):
+        x, y, box_w, box_h, area = stats[index]
+        if not (40 <= box_w <= 70 and 22 <= box_h <= 45):
+            continue
+        if area / float(max(1, box_w * box_h)) < 0.5:
+            continue
+        centre = (int(left + cents[index][0]), int(top + cents[index][1]))
+        if best is None or centre[0] < best[0]:
+            best = centre
+    if best is None:
+        return None
+    return (int(party[0] + 2 * (best[0] - party[0])),
+            int(party[1] + 2 * (best[1] - party[1])))
+
+
 def tile_centre(image, box, *, lit=25):
     """The point inside a node box that the game accepts as that tile.
 
