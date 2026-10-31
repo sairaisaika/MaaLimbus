@@ -6748,3 +6748,18 @@ carry 自动失效。
 
 下轮：把 `candidates_of` 的优先级写成一张显式表（train_next > edge > line > adjacent），并且
 只有当高优先级的答案**与当前棋盘一致**时才允许它覆盖，否则沿用上一帧的答案。
+
+### 顺序错误第二次：lead 表在 train_next 写入之前就被读了（2026-10-31，D409）
+
+`step_preference` 的调用在 **2545**，而 `map_train_next` 直到 **2672** 才写进 record —— 所以那张表
+读到的永远是“车头外推不存在”，`map_step_lead` 自然一行都没有。这解释了为什么：
+
+- 离线同一帧 `train_next_point` 明明给出 (1252,287)；
+- 实跑里 `map_step_lead` 0 行、target 由 adjacent_to 的第 4 条给出。
+
+和 D378 的 `ordered = _centred` 是同一类：**代码顺序**把刚算好的东西又盖掉/读早了。第一次是“覆盖”，
+这一次是“读太早”。共同点：两段逻辑都正确，只有它们的**相对顺序**错。
+
+修法（下轮做）：把 lead 重排整段移到 `map_train_next` 写入之后、`map_click_centre` 之前。这一步不能
+用“删除+插到某行”的粗暴脚本——它会把夹在中间的 train 块一起搬走；必须按函数边界切分并保留原有
+缩进与注释。
