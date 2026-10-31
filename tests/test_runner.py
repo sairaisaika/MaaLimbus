@@ -1660,3 +1660,10 @@ def test_a_click_with_an_empty_binding_is_carried_before_it_gives_up():
     assert controller.bindings == 0
     assert [entry for entry, _ in tasker.posted] == ['MirrorPointClick']
     assert tasker.posted[0][1]['MirrorPointClick']['target'] == [963, 593, 1, 1]
+
+
+def test_a_map_click_that_lands_on_another_page_is_progress(tmp_path, monkeypatch):
+    """地图点完到了商店/礼物页：那是前进，不是 `unexpected_successor`（D363）。"""
+    body = (ROOT / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
+    assert "reason='the_map_moved_the_run_to_another_page'" in body
+    assert "map_successor_elsewhere" in body

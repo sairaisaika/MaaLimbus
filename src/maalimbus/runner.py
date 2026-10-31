@@ -6488,6 +6488,12 @@ class MirrorRunner:
                                                         not in (None, before_sha))))
                 if page=='MAP' and late_page=='UNKNOWN':
                     entry.update(passed=False,reason='map_successor_unidentified_after_wait')
+                elif page=='MAP':
+                    # 点完之后到了**另一页**（商店、礼物、事件…）：那是前进，不是失败（D363）。
+                    # 之前的判定把它当 `unexpected_successor` 直接收场，正是“路径失败就停”
+                    # 最典型的一种：地图上唯一合法输入把运行带到了下一页，而循环说“不像我猜的”。
+                    entry.update(passed=True,reason='the_map_moved_the_run_to_another_page')
+                    self.note('map_successor_elsewhere', from_page=page, to=late_page)
         self.artifacts['steps'].append(entry)
         if settings.stop_page and (entry.get('page_after') or page) == settings.stop_page:
             # The caller asked to hand control back the moment this page shows, so
