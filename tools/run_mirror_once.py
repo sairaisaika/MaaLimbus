@@ -137,6 +137,17 @@ def main(argv=None) -> int:
                           encoding='utf-8')
     except Exception:
         pass
+    # 每次跑完先把关键帧攒进仓库（D358）：测试输入不能只住在会被清理的运行目录里。
+    try:
+        from collect_fixtures import collect as _collect
+        _dir = directory or (result or {}).get('directory')
+        _taken = _collect(_dir) if _dir else {}
+        if not _dir:
+            print('fixture：这次没有运行目录，跳过')
+        if _taken:
+            print('fixture：攒了 %d 帧（%s）' % (len(_taken), ', '.join(sorted(_taken))))
+    except Exception as error:
+        print('fixture 采集跳过（不阻断）：%s' % error)
     # 每跑一次都会写几百张帧、留一次 agent 备份；预算 2 GiB（D355），收尾自动收回。
     try:
         from maalimbus.workspace import prune as _prune
