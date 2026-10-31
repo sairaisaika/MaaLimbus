@@ -2558,17 +2558,10 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
                                     'before': len(ordered), 'after': len(_near)}
         if _near:
             ordered = _near
-    _centred = []
-    for _box in ordered:
-        _b = [int(v) for v in _box[:4]]
-        if _b[2] >= 100 and _b[3] >= 100:
-            # The hexagon, not the box centre and not the lit-edge centroid: measured on
-            # `-135856/frame-0001` the box centre is (671,264) on the badge, the centroid
-            # (670,254), and the hexagon about (671,230) -- live `-140934` clicked the
-            # centroid and was refused every time (D345).
-            _cx, _cy = map_vision.node_point(_b)
-            _b = [_cx - _b[2] // 2, _cy - _b[3] // 2, _b[2], _b[3]]
-        _centred.append(_b)
+    # 框中心本来就是六边形中心：在 `-154323/frame-0001` 上并排看了两个点——框中心
+    # (671,264) 落在六边形里，而 D345 的 `node_point` (671,230) 落在上方的徽章上。
+    # 所以这里**不再平移框**；落点是 `map_clicks` 给的 `point`，框只负责几何（D372）。
+    _centred = [[int(v) for v in _box[:4]] for _box in ordered]
     # 空候选也要能返回：`ordered[0]` 在没有候选时是 IndexError，实跑 `-153805` 就是
     # 这么整条 run 崩掉的（D370）。没有候选是正常状态，不是异常。
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
