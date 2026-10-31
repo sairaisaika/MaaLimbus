@@ -5292,6 +5292,17 @@ class MirrorRunner:
                                           purchase_dialog_answer)
                 texts=[Text(t['text'],tuple(t['box']),t['score']) for t in record['ocr']]
                 pending=shop_tx.data.get('pending') if shop_tx is not None else None
+                # The gate below decides whether this frame can answer the dialog at
+                # all, and its three conditions live in two different objects (the
+                # ledger's pending record and this frame's OCR). Write which one was
+                # missing, so a cancelled purchase says why instead of looking like a
+                # shop that refused to buy (D418).
+                self.note('shop_pending_at_dialog',
+                          present=pending is not None,
+                          keys=sorted(pending) if isinstance(pending, dict) else None,
+                          name=bool(pending and pending.get('name')),
+                          price=bool(pending and pending.get('price')),
+                          visit=shop_tx.data.get('current_visit') if shop_tx is not None else None)
                 if pending and pending.get('name') and pending.get('price'):
                     answer=purchase_dialog_answer(texts,pending['name'],pending['price'],record['size'],
                                                   coins=pending.get('coins'))
