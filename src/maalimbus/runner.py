@@ -2102,6 +2102,34 @@ def node_sized_boxes(clicks, *, width, floor_share=0.05):
     return kept, info
 
 
+def guess_candidates(image, clicks, *, kinds=None):
+    """The nodes a frame marks even when the party cannot be read.
+
+    A gold badge sits on a node the game will accept one step later.  Without a party the
+    loop used to answer "no candidates" and stop, which is right for a *click* and wrong
+    for a *read*: live `packaged-mirror-20261031-133626` offered six of them on every MAP
+    frame for ten minutes and walked nowhere.  So the badges become candidates, nearest to
+    the frame's centre first, and the caller records that they were guessed.
+    """
+    wanted = {'gold_badge_node', 'lit_ring', 'lit_node', 'chevron_target',
+              'highlighted_node', 'cyan_node'}
+    height, width = image.shape[:2]
+    centre = (width / 2.0, height / 2.0)
+    rows = []
+    for item in clicks or ():
+        kind = item.get('kind')
+        if kinds is not None:
+            kind = kinds.get(kind, kind)
+        if kind not in wanted:
+            continue
+        box = [int(v) for v in item['box'][:4]]
+        if box[2] < 96 or box[3] < 96:
+            continue
+        rows.append((abs(box[0] + box[2] / 2 - centre[0]) + abs(box[1] + box[3] / 2 - centre[1]), box))
+    rows.sort(key=lambda pair: pair[0])
+    return [box for _, box in rows]
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
@@ -2262,7 +2290,17 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
         # candidates (6 gold badges) with the party unreadable, and the run died with
         # `no_candidate_node_observed`, which points at the nodes and not at the party.
         if fallback_party is None:
-            record['map_candidates_refused'] = {'party': None, 'read': len(clicks)}
+            # ... but a frame with a gold badge on it is a frame that says where a walkable
+            # node is, and refusing every candidate there is how `-133626` spent 600 s on
+            # the first floor: 27 frames offered 6 gold badges each and answered 0
+            # candidates.  The badge is the game's own mark for a node reached with one
+            # step, so it is a guess with evidence, and the guess is journalled as such.
+            _guess = guess_candidates(image, clicks)
+            record['map_candidates_refused'] = {'party': None, 'read': len(clicks),
+                                                'guessed': len(_guess)}
+            if _guess:
+                record['map_candidate_kinds'] = {box_key(b): 'guessed_badge' for b in _guess}
+                return name, _guess
             return name, []
         # The party does not teleport inside one floor, so a frame that cannot read it is
         # not a frame without a party: the last point the same floor produced is the best
