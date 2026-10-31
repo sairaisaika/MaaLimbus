@@ -6821,3 +6821,26 @@ carry 自动失效。
 
 所以上一轮"过滤链太狠"的判断不成立。真正的现象是：候选有 2–4 个、目标已由车头外推给出且 `hit=True`，
 但点完页面变成 `unexpected_successor` ——**问题从"选哪个"移到了"点完到哪"**。
+
+### “意外后继”的真因：地图计划的 expect 里没有 MAP（2026-10-31，D411）
+
+实跑 `-180255` 的事件对账：**11 次地图点击里，8 次的下一帧仍是 `MAP`，1 次 `UNKNOWN`**。
+
+`window.plan_step` 的地图分支给出的 `expect` 是：
+`NODE_PANEL, PRE_BATTLE_TEAM, DEPLOYMENT, SHOP, SHOP_LEAVE, CUTSCENE, EVENT_CHOICE, EVENT_CHECK,
+EVENT_CHECK_RESULT, EVENT_CHECK_READY, EVENT_RESULT, EVENT_RESULT_READY, GIFT_PICK, GIFT_GET,
+REWARD_CARD, EGO_GIFT_POPUP, WINDOW_RESET, UNKNOWN` —— **没有 `MAP`**。
+
+而 `step_result` 只有两个通过条件（`successor_ok` 或 `advance + 帧变化`），没有“同页”分支。
+于是“点了但页面没动”被记成 **`unexpected_successor`**，而 `mirror_run_ending` 的收场规则
+把它当失败，八次之后整条 run 结束。
+
+**这不是意外后继，是无效点击**——游戏已经有一个诚实的名字给这种情况
+（`the_page_stayed_on_the_map_after_the_click`，在 settle 循环的 `unjudged` 里用过）。
+
+尝试的修法（已回滚）：给地图 plan 加 `stayed_reason`，`step_result` 在同页时用它。
+它动了 4 条既有契约（`test_map_clicks_the_planned_candidate_and_expects_the_panel`、
+`test_successor_outside_the_expected_set_is_recorded_as_a_failure`、
+`test_a_map_that_refuses_every_click_offers_its_own_resume_control` 等），
+说明这不是加一个字段，而是**改一个契约**：需要连同“点不动之后做什么”一起改，
+否则只是把失败改名。下一轮从“改契约”的角度做，不在 `step_result` 里塞特例。
