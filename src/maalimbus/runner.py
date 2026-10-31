@@ -2181,6 +2181,59 @@ def _same_board(record, board):
     return _board_key(record.get('map_candidates') or []) == board
 
 
+def _promote_lead(ordered, record):
+    """Put the mechanism the step table prefers first (D404/D409).
+
+    Called after every mechanism has recorded its answer — the table cannot be
+    consulted before the train extrapolation exists, which is what made one step
+    alternate between two tiles.
+    """
+    # One owner for "who goes first" (D404): the three mechanisms only record their answer,
+    # this table decides which one leads, and everything else keeps the order it had.
+    _source, _lead = step_preference(record)
+    if _lead is not None:
+        # `train_next` synthesises its box from the extrapolated point (side = 0.10 width),
+        # so it never equals a detected box to the pixel: match by centre, not by corners
+        # (live `-172710` had lead None on every frame while train_next was present).
+        _lead_cx = float(_lead[0]) + float(_lead[2]) / 2.0
+        _lead_cy = float(_lead[1]) + float(_lead[3]) / 2.0
+        _tol = max(float(_lead[2]), 190.0) / 2.0
+
+        def _same(box):
+            return (abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx) <= _tol
+                    and abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy) <= _tol)
+
+        _hit = [box for box in ordered if _same(box)]
+        _distances = [int(abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx)
+                          + abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy))
+                      for box in ordered]
+        # Record the miss as loudly as the hit: three rounds went into guessing why lead
+        # stayed None while the list it searched was never printed (D407).
+        record['map_step_lead'] = {
+            'source': _source,
+            'lead': [int(v) for v in _lead[:4]],
+            'ordered': len(ordered),
+            'hit': bool(_hit),
+            'nearest_px': min(_distances) if _distances else None,
+            'centres': [[int(float(box[0]) + float(box[2]) / 2.0),
+                         int(float(box[1]) + float(box[3]) / 2.0)]
+                        for box in ordered[:6]],
+        }
+        if _hit:
+            ordered = _hit[:1] + [box for box in ordered if box is not _hit[0]]
+            record['map_step_lead']['box'] = [int(v) for v in _hit[0][:4]]
+        else:
+            # The arrow is the game's own "next step is this way", and the adjacency filter
+            # is our inference: when they disagree the game wins, so the lead is appended
+            # even if `ordered` never contained it (live `-173218`: ordered 1, lead 352 px
+            # away).  `added` keeps "it was already there" apart from "we put it there".
+            ordered = [_lead] + [box for box in ordered]
+            record['map_step_lead']['added'] = True
+            record['map_step_lead']['box'] = [int(v) for v in _lead[:4]]
+    # The warm bracket is a *node type*, not the step the game has selected: the operator
+    return ordered
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                   previous_party=None):
     """Ordered click boxes for a MAP page, the step the game marks first.
@@ -2540,49 +2593,6 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     for box in boss_boxes:
         if box not in ordered:
             ordered.append(box)
-    # One owner for "who goes first" (D404): the three mechanisms only record their answer,
-    # this table decides which one leads, and everything else keeps the order it had.
-    _source, _lead = step_preference(record)
-    if _lead is not None:
-        # `train_next` synthesises its box from the extrapolated point (side = 0.10 width),
-        # so it never equals a detected box to the pixel: match by centre, not by corners
-        # (live `-172710` had lead None on every frame while train_next was present).
-        _lead_cx = float(_lead[0]) + float(_lead[2]) / 2.0
-        _lead_cy = float(_lead[1]) + float(_lead[3]) / 2.0
-        _tol = max(float(_lead[2]), 190.0) / 2.0
-
-        def _same(box):
-            return (abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx) <= _tol
-                    and abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy) <= _tol)
-
-        _hit = [box for box in ordered if _same(box)]
-        _distances = [int(abs(float(box[0]) + float(box[2]) / 2.0 - _lead_cx)
-                          + abs(float(box[1]) + float(box[3]) / 2.0 - _lead_cy))
-                      for box in ordered]
-        # Record the miss as loudly as the hit: three rounds went into guessing why lead
-        # stayed None while the list it searched was never printed (D407).
-        record['map_step_lead'] = {
-            'source': _source,
-            'lead': [int(v) for v in _lead[:4]],
-            'ordered': len(ordered),
-            'hit': bool(_hit),
-            'nearest_px': min(_distances) if _distances else None,
-            'centres': [[int(float(box[0]) + float(box[2]) / 2.0),
-                         int(float(box[1]) + float(box[3]) / 2.0)]
-                        for box in ordered[:6]],
-        }
-        if _hit:
-            ordered = _hit[:1] + [box for box in ordered if box is not _hit[0]]
-            record['map_step_lead']['box'] = [int(v) for v in _hit[0][:4]]
-        else:
-            # The arrow is the game's own "next step is this way", and the adjacency filter
-            # is our inference: when they disagree the game wins, so the lead is appended
-            # even if `ordered` never contained it (live `-173218`: ordered 1, lead 352 px
-            # away).  `added` keeps "it was already there" apart from "we put it there".
-            ordered = [_lead] + [box for box in ordered]
-            record['map_step_lead']['added'] = True
-            record['map_step_lead']['box'] = [int(v) for v in _lead[:4]]
-    # The warm bracket is a *node type*, not the step the game has selected: the operator
     # corrected D205 on 2026-10-25 ("这种高亮框一般代表困难的集中战斗关卡，对应的奖励也会高")
     # -- it marks a hard focused battle whose reward sits a tier or two higher.  So it is
     # recorded as evidence about the destination and never used to reorder the list: the
@@ -2678,6 +2688,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                                            'board': _board_key(clicks)}
     # 空候选也要能返回：`ordered[0]` 在没有候选时是 IndexError，实跑 `-153805` 就是
     # 这么整条 run 崩掉的（D370）。没有候选是正常状态，不是异常。
+    ordered = _promote_lead(ordered, record)
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
                                    'centre': list(map_vision.tile_centre(image, ordered[0][:4]))}
                                   if ordered else None)
