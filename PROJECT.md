@@ -6844,3 +6844,44 @@ REWARD_CARD, EGO_GIFT_POPUP, WINDOW_RESET, UNKNOWN` —— **没有 `MAP`**。
 `test_a_map_that_refuses_every_click_offers_its_own_resume_control` 等），
 说明这不是加一个字段，而是**改一个契约**：需要连同“点不动之后做什么”一起改，
 否则只是把失败改名。下一轮从“改契约”的角度做，不在 `step_result` 里塞特例。
+
+### 八次重试是真重试，问题在“目标在两格外”（2026-10-31，D411 续）
+
+上一轮以为“点不动被判意外后继就收场”，读了代码后纠正：**重试早就存在**（D366）：
+
+```python
+stuck_on_map = (entry.get('reason') == 'unexpected_successor' and page == 'MAP'
+                and plan.get('action') == CLICK)
+if stuck_on_map and state['map_attempts'] + 1 < max(1, settings.map_tries):   # 默认 8
+```
+
+所以 `-180255` 的 8 次 MAP 后收场，**不是判错，是 `map_tries` 用尽**——系统老老实实重试了八次，
+八次都没推动。
+
+把它们摆在一起看就清楚了（同一份 `map_candidates_debug`）：
+
+| 量 | 值 |
+|---|---|
+| `map_party` | **(860, 248)** |
+| 目标框 `map_step_lead.box` | `[1153, 188, 192, 192]` → 中心 **(1249, 284)** |
+| 两者距离 | 425 px |
+| 一格（`step_reach.step`） | 190 px |
+
+**目标在两格之外。** 点它必然不动——游戏只接受相邻的一步。
+
+而同一帧的格阵外推（D400）给的是 **(1439,189)**，与 `map_party` 差 **580 px**。
+也就是说：**格阵已经算对了，但 `lock_party_to_node` 把结果换回了错的读数**。
+
+这条链现在完整：
+
+```
+格阵外推 (1439,189) 正确
+   ↓ lock_party_to_node 却返回 (860,248)
+party 错 580 px
+   ↓ adjacent_to / _off_my_tile 用错的 party 算“一步之内”
+选中两格外的目标
+   ↓ 点击
+八次都点不动（游戏只接受相邻）→ map_tries 用尽 → 收场
+```
+
+下一轮只做一件事：查 `lock_party_to_node` 为什么在格阵外推有值时不采用它。
