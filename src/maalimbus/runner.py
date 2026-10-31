@@ -1105,6 +1105,8 @@ class MaaDevice:
         self.rebinds = 0
         self.pipeline_inputs = 0
         self.last_input_error = None
+        self.frame_size = None
+        self._screen = None
         self.wait = wait
         self.deadline = deadline
         # None means "the configured default"; 0 means "ask the controller for nothing".
@@ -1127,7 +1129,37 @@ class MaaDevice:
     def screencap(self):
         """Post a screencap, wait it out and return the cached BGR frame."""
         self._wait(self.controller.post_screencap())
-        return self.controller.cached_image
+        image = self.controller.cached_image
+        try:
+            height, width = image.shape[:2]
+            self.frame_size = (int(width), int(height))
+        except Exception:
+            pass
+        return image
+
+    def screen_size(self):
+        """设备真实分辨率；探测不到就 ``None``（那就不要缩放，D369）。"""
+        if self._screen is not None:
+            return self._screen
+        address = getattr(self.controller, 'address', None)
+        if not address:
+            return None
+        try:
+            import re as _re
+            import subprocess as _sp
+            done = _sp.run(['adb', '-s', str(address), 'shell', 'wm', 'size'],
+                           capture_output=True, text=True, timeout=10)
+            found = _re.search(r'(\d+)x(\d+)', done.stdout or '')
+            if found:
+                self._screen = (int(found.group(1)), int(found.group(2)))
+        except Exception:
+            self._screen = None
+        return self._screen
+
+    def _to_screen(self, x, y):
+        """识别帧坐标 → controller 坐标（D369）。不知道尺寸就不动。"""
+        from .click_space import scale_point
+        return scale_point([x, y], getattr(self, 'frame_size', None), self.screen_size())
 
     def end_session(self, reason):
         """Name why this device may never post input again.
@@ -1246,15 +1278,18 @@ class MaaDevice:
     def click(self, x, y):
         self._refuse_if_ended('click')
         self._refuse_binding_lost('click')
-        self._send('click', lambda: self.controller.post_click(int(x), int(y)),
-                   ('click', int(x), int(y)))
+        sx, sy = self._to_screen(x, y)
+        self._send('click', lambda: self.controller.post_click(int(sx), int(sy)),
+                   ('click', int(sx), int(sy)))
 
     def swipe(self, x1, y1, x2, y2, duration_ms):
         self._refuse_if_ended('swipe')
         self._refuse_binding_lost('swipe')
+        a = self._to_screen(x1, y1)
+        b = self._to_screen(x2, y2)
         self._send('swipe', lambda: self.controller.post_swipe(
-            int(x1), int(y1), int(x2), int(y2), int(duration_ms)),
-            ('swipe', int(x1), int(y1), int(x2), int(y2), int(duration_ms)), timeout=15)
+            int(a[0]), int(a[1]), int(b[0]), int(b[1]), int(duration_ms)),
+            ('swipe', int(a[0]), int(a[1]), int(b[0]), int(b[1]), int(duration_ms)), timeout=15)
 
     def key(self, code):
         self._refuse_if_ended('key')
