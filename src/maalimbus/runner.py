@@ -2285,6 +2285,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # to distance (live `-135349`: nine clicks at a node the page never accepted, with
     # an arrow one tile away).  The party is read for the adjacency filter anyway (D299).
     clicks = map_clicks(image, template=node_badge_template(), player=party)
+    record['map_filter_funnel'] = {'raw': len(clicks)}   # D410: 真漏斗，每一层记一次
     # A reading has to be on the board the game drew, and the board is exactly the boxes
     # `map_clicks` found -- not a fraction of the screen.  Live `-165116` read the flame at
     # (862,552) while `glow_point` answered (860,209): the grey decoration above the
@@ -2316,6 +2317,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     _real = [item for item in clicks if item.get('kind') not in DECORATION_KINDS]
     if _real:
         clicks = _real
+    record['map_filter_funnel']['after_decoration'] = len(clicks)
 
     # D331: what the drawn line says, recorded before any decision uses it.  The share of lit
     # pixels along the segment is the only reading that separates a connected tile from a bare
@@ -2489,6 +2491,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     # (1247,264), and the loop spent 14 clicks on (863,264) -- two steps out -- and
     # (1458,264) -- adjacent but with no edge drawn to it, every one `rejected`.  A reading
     # that is empty keeps the old behaviour; nothing is lost when the page says nothing.
+    record['map_filter_funnel']['before_pick'] = len(rest or walkable)
     picked = rest
     if edge is not None:
         near = [box for box in rest
