@@ -4155,13 +4155,14 @@ class MirrorRunner:
         # A record field is not a log line (D310 shipped one and no wire): `party_snap_failed`
         # and `map_party_in_candidates` were written onto the record and never appeared in the
         # journal, so an earlier round read "the key never appeared" as "the branch never ran".
-        _debug = {name: record[name] for name in
-                  ('map_party_in_candidates', 'party_snap_failed', 'map_click_shift',
-                   'map_edge_only', 'map_edge_step', 'map_edge_without_history',
-                   'map_edge_overrules_adjacency', 'party_snapped',
-                   'map_party_rejected', 'map_click_size', 'map_step_reach',
-                   'map_train_next', 'party_node', 'party_outside_lattice')
-                  if record.get(name) is not None}
+        # `_debug` used to be a hand-written list, and every field I forgot to add read
+        # afterwards like "that branch never ran" (D310, D396, D397, D404 -- four times).
+        # It now collects every `map_*` field by prefix and only skips the ones too large
+        # to be useful in a journal line.
+        _BULKY = ('map_candidates', 'map_candidate_kinds', 'map_step_line')
+        _debug = {name: value for name, value in record.items()
+                  if name.startswith('map_') and name not in _BULKY
+                  and value is not None}
         if _debug:
             self.note('map_candidates_debug', **_debug)
         # A field whose value is legitimately None never reaches `_debug` (the dict filters
