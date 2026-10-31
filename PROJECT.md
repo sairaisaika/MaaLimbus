@@ -6799,3 +6799,25 @@ carry 自动失效。
 
 下一步：把 `candidates_of` 的漏斗按阶段打出来（raw → kind 过滤后 → 相邻过滤后），
 先看是哪一层吃掉的，再决定动哪一层——**不再猜**。
+
+### D409 抽函数验证生效；「9→2」的真值是 9→5→4（2026-10-31，D410）
+
+实跑 `-180255`（150 s，192 事件，floor 1，停 `unexpected_successor`）读 `map_candidates_debug`：
+
+| 帧 | raw | after_decoration | before_pick | lead.source | hit | nearest_px |
+|---|---|---|---|---|---|---|
+| 1 | 18 | 9 | 5 | `edge` | **False** | 718 |
+| 2 | 8 | 4 | 3 | **`train_next`** | **True** | **0** |
+| 3 | 9 | 5 | 4 | `train_next` | True | 0 |
+| 6 | 8 | 4 | 2 | `train_next` | True | 0 |
+
+两件事：
+
+1. **`_promote_lead` 抽函数生效**（`919a63b`）：`source` 从恒 `edge` 变成 `train_next`，`hit=True`、`nearest_px=0`，
+   也就是车头外推的点**第一次真的进了候选首位**——这是 D409 的直接验证。
+2. **「只检出 2 个框」是我读错了字段**：`before_pick` 是 4（不是 2），`lattice.boxes` 那个 2 是
+   `len(rest or walkable)`，更靠下游。真实漏斗是 **raw 9 → 去装饰 5 → 进选择 4**，装饰吃 4 个，
+   其余各吃 1 个——**没有哪一层"吃掉了一半"**。
+
+所以上一轮"过滤链太狠"的判断不成立。真正的现象是：候选有 2–4 个、目标已由车头外推给出且 `hit=True`，
+但点完页面变成 `unexpected_successor` ——**问题从"选哪个"移到了"点完到哪"**。
