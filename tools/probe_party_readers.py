@@ -1,61 +1,89 @@
-"""把一帧上的四个“我方读数”并排打印，看谁在抢答。
+"""把“我方”的每个读数并列出来，并标出它是否落在某个已检出的格框上。
 
-存在的理由：`party_point` 是四档读数的仲裁结果，而某一档在两个相邻帧之间会换答案
-（实跑 `-141847/frame-0001` 火苗 (864,543) 答得出，`frame-0003` 起火苗为 None、只剩
-格子辉光 (575,335)）。并排看四个读数，才知道换的是哪一档、换得对不对。
+用来回答“该信谁”这个问题：`glow_point`、`flame_point`、`player_marker` 各自能给出一个点，
+但它们在不同帧里互相矛盾（实测 `-164228`：glow (766,335) 稳定，flame 在 frame-0002/0003
+跳到 (1439,189) 的右侧装饰上）。判据不该在几个读数之间投票，而该看**谁落在游戏自己画的
+格子框里**。
+
+用法：
+    python tools/probe_party_readers.py                 # 最近一次 run 的前 5 帧
+    python tools/probe_party_readers.py --frames 10
+    python tools/probe_party_readers.py --run evidence/runtime/packaged-mirror-xxx
 """
 from __future__ import annotations
 
 import argparse
-import json
 import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 
-import cv2  # noqa: E402
-
-from maalimbus import map_vision as mv  # noqa: E402
+READERS = ('_bgr_party_point', 'glow_point', 'flame_point', 'player_marker')
 
 
-def readings(image):
-    """Every reader's own answer for this frame, in the order party_point consults them."""
-    return {
-        'party_point': mv.party_point(image),
-        'flame_point': mv.flame_point(image),
-        'glow_point': mv.glow_point(image),
-        'player_marker': mv.player_marker(image),
-    }
+def latest_run(root=ROOT / 'evidence/runtime'):
+    runs = sorted((p for p in root.glob('packaged-mirror-*') if p.is_dir()),
+                  key=lambda p: p.stat().st_mtime)
+    return runs[-1] if runs else None
 
 
-def survey(directory, *, limit=8):
-    rows = []
-    for path in sorted(pathlib.Path(directory).glob('frame-*.png'))[:limit]:
-        image = cv2.imread(str(path))
-        if image is None:
+def describe(image, boxes):
+    """每个读数 + 是否落在某个格框内。"""
+    import maalimbus.map_vision as vision
+
+    def inside(point):
+        if point is None:
+            return None
+        px, py = point
+        for box in boxes:
+            x, y, w, h = [float(v) for v in box[:4]]
+            if x <= px <= x + w and y <= py <= y + h:
+                return [int(x), int(y)]
+        return None
+
+    rows = {}
+    for name in READERS:
+        function = getattr(vision, name, None)
+        if function is None:
             continue
-        rows.append({'frame': path.stem, 'readings': readings(image)})
+        try:
+            point = function(image)
+        except Exception as error:  # 只读探针，不抛
+            rows[name] = {'point': None, 'error': type(error).__name__}
+            continue
+        rows[name] = {'point': None if point is None else [int(point[0]), int(point[1])],
+                      'inside': inside(point)}
     return rows
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='四个我方读数并排')
-    parser.add_argument('directory')
-    parser.add_argument('--limit', type=int, default=8)
-    parser.add_argument('--json', action='store_true')
+    import cv2
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run', type=pathlib.Path, default=None)
+    parser.add_argument('--frames', type=int, default=5)
     args = parser.parse_args(argv)
-    rows = survey(args.directory, limit=args.limit)
-    if args.json:
-        print(json.dumps(rows, ensure_ascii=False, indent=2))
-        return 0
-    for row in rows:
-        values = row['readings']
-        print('%s  party=%s  flame=%s  glow=%s  marker=%s' % (
-            row['frame'], values['party_point'], values['flame_point'],
-            values['glow_point'], values['player_marker']))
+    run = args.run or latest_run()
+    if run is None or not run.is_dir():
+        print('no run directory to look at')
+        return 2
+    import maalimbus.map_vision as vision
+    seen = 0
+    for png in sorted(run.glob('frame-*.png')):
+        image = cv2.imread(str(png))
+        if image is None:
+            continue
+        boxes = [item['box'] if isinstance(item, dict) else item
+                 for item in (vision.map_clicks(image) or [])]
+        print(png.name, 'boxes', len(boxes))
+        for name, row in describe(image, boxes).items():
+            print('   %-16s %-14s inside=%s' % (name, row.get('point'), row.get('inside')))
+        seen += 1
+        if seen >= args.frames:
+            break
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())
