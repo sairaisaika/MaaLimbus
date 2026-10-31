@@ -2079,7 +2079,7 @@ def party_anchor_source(record):
     return 'read' if record.get('map_party') else 'none'
 
 
-def party_on_a_node(party, boxes, *, share=0.6):
+def party_on_a_node(party, boxes, *, share=1.2):
     """Whether the party reading stands on a node, i.e. is a plausible anchor.
 
     The board gate alone is not enough: live `packaged-mirror-20261025-075247` read the
