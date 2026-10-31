@@ -2571,6 +2571,18 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # (671,264) 落在六边形里，而 D345 的 `node_point` (671,230) 落在上方的徽章上。
     # 所以这里**不再平移框**；落点是 `map_clicks` 给的 `point`，框只负责几何（D372）。
     _centred = [[int(v) for v in _box[:4]] for _box in ordered]
+    # 车头图标 + 2(A-P)：游戏自己画出来的“下一站”，比任何推断出来的 kind 都硬（D377）。
+    # 一格约等于 0.10 帧宽（实测 190/1920），用它合成一个框放到候选最前面。
+    if party is not None and ordered:
+        _next = map_vision.train_next_point(image, party)
+        if _next is not None:
+            _side = int(round(0.10 * image.shape[1]))
+            _train_box = [int(_next[0] - _side // 2), int(_next[1] - _side // 2), _side, _side]
+            record['map_train_next'] = {'point': [int(_next[0]), int(_next[1])],
+                                        'party': [int(party[0]), int(party[1])],
+                                        'box': _train_box}
+            ordered = [_train_box] + [box for box in ordered if box != _train_box]
+            record.setdefault('map_candidate_kinds', {})[box_key(_train_box)] = 'train_next'
     # 空候选也要能返回：`ordered[0]` 在没有候选时是 IndexError，实跑 `-153805` 就是
     # 这么整条 run 崩掉的（D370）。没有候选是正常状态，不是异常。
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
