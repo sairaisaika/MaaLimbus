@@ -2501,6 +2501,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None):
     # lit-edge centroid inside itself, and the click point follows that measurement.
     # 只能走一格：实测 `-141847` 的 party (861,562) 与目标 (671,230) 相距 368 px ≈ 1.9 格，
     # 点它当然不动。格距取本帧节点框边长（190），没有大框时退到 0.10*width。
+    # The reach is a property of the frame, not of a successful party reading: a step whose
+    # party was missed still knows how big a node is here, and the click door needs that
+    # number on every map step (measured `-143247`: 3 refusals, and every debug row without
+    # `step_reach` because this line sat inside the party branch).
+    _sizes_any = [int(box[2]) for box in ordered if int(box[2]) >= 96]
+    _step_any = _sizes_any[0] if _sizes_any else int(round(0.10 * image.shape[1]))
+    record['map_step_reach'] = {'step': _step_any, 'reach': int(round(1.25 * _step_any)),
+                                'before': len(ordered), 'after': len(ordered)}
     if party is not None and ordered:
         _sizes = [int(box[2]) for box in ordered if int(box[2]) >= 96]
         _step = _sizes[0] if _sizes else int(round(0.10 * image.shape[1]))
@@ -4000,7 +4008,7 @@ class MirrorRunner:
                   ('map_party_in_candidates', 'party_snap_failed', 'map_click_shift',
                    'map_edge_only', 'map_edge_step', 'map_edge_without_history',
                    'map_edge_overrules_adjacency', 'party_snapped',
-                   'map_party_rejected', 'map_click_size')
+                   'map_party_rejected', 'map_click_size', 'map_step_reach')
                   if record.get(name) is not None}
         if _debug:
             self.note('map_candidates_debug', **_debug)
