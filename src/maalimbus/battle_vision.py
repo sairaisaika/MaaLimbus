@@ -511,6 +511,18 @@ def battle_hud(records, size):
     # two captions live in neighbouring bands of the same corner, and no other page
     # puts a turn counter with a wave counter there, so neither form promotes a
     # different page.
+    # 战斗中打开敌人详情时，面板会盖住左上角的 WAVE/TURN，整帧只剩面板自己的文字：
+    # live `packaged-mirror-20261031-125442/frame-0007.json` 的 34 条 OCR 里没有
+    # WAVE/TURN/START/Win/Rate/Damage，只有 `Status`、`Resistances`、`Ineff.`、`Fatal`
+    # 与敌人名，页面因此被判成 UNKNOWN，Resume 之后的 18 次读全部落空并超时结束。
+    # 面板的三段抗性标题只在战斗中绘制，所以它们自己就是战斗的证据。
+    if (find(records, r'^Resistances$', (.20, .72, .40, .82), size, .9)
+            and find(records, r'^Fatal$', (.33, .72, .46, .82), size, .9)):
+        return dict(wave=None, turn=None, wave_box=None, turn_box=None,
+                    diagnostics=['Resistances'], detail_panel=True,
+                    scope='battle identity from the enemy detail panel; the HUD captions are '
+                          'covered by it, so no wave/turn is claimed and no input is planned '
+                          'from this record alone')
     wave = find(records, r'^[WN]AVE$', (.0, .02, .06, .08), size, .85)
     if not wave:
         # The value itself can lose its leading digit to the red backdrop: live
