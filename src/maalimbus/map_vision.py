@@ -2585,6 +2585,15 @@ def party_point(image):
                         and abs(int(centre[1]) - int(ring[1])) <= 48):
                     return (int(ring[0]), int(ring[1]))
         return None
+    # The two colour readers can point at the same ring from different distances, and a
+    # reading that is 87 px below the flame is a reading of the wrong thing: live
+    # `-163341` alternated (860,209) / (863,296) frame by frame, and the train extrapolation
+    # (P + 2(A - P)) then landed 96 px off.  The flame is the party's own marker and cheap to
+    # read, so use it as the tie-breaker: when both exist and disagree by more than half a
+    # step, trust the flame (D382).
+    flame = flame_point(image) if image is not None else None
+    if flame is not None and (abs(int(flame[0]) - int(x)) > 96 or abs(int(flame[1]) - int(y)) > 96):
+        return (int(flame[0]), int(flame[1]))
     return x, y
 
 def selection_bracket(image):
