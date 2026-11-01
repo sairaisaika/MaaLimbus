@@ -1703,9 +1703,9 @@ def map_clicks(image, *, template=None, node_side=None, player=None):
     # neither applies.  The chevron sits between them: the game draws it (so it beats a guess)
     # but it names a direction, not a node that will open.
     KIND_WEIGHT = {'path_node': 0, 'cyan_node': 0, 'highlighted_node': 0,
-                   'gold_badge_node': 1,
+                   'lit_ring': 1,
                    'chevron_target': 2,
-                   'lit_ring': 3,
+                   'gold_badge_node': 3,
                    'bright_lit_icon': 4, 'lit_icon': 4,
                    'lit_node': 5,
                    'neutral_outline_candidate': 6, 'relaxed_node': 6,
