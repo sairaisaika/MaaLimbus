@@ -2784,7 +2784,11 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
         # The plain path: no extrapolation, no commitment, no next_untried.  Read the
         # tiles the page draws and keep the ones one step from the party (D429).
         _party = record.get('map_party') or fallback_party
-        _boxes = [box for box in (record.get('map_candidates') or ()) if len(box) >= 4]
+        # `record['map_candidates']` is written by the guided path only; reading it here
+        # meant the plain path always saw zero boxes (`-201850`: party read, boxes 0 while
+        # the same frame gives ten offline).  The plain path reads the tiles itself (D432).
+        _boxes = [list(item['box'][:4]) if isinstance(item, dict) else list(item)[:4]
+                  for item in (clicks or ()) if len(item.get('box') if isinstance(item, dict) else item) >= 4]
         _sides = sorted(int(box[2]) for box in _boxes if int(box[2]) > 100)
         _side = _sides[len(_sides) // 2] if _sides else None
         # A silent branch is indistinguishable from a branch that never ran: print the
