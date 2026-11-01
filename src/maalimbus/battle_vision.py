@@ -190,7 +190,7 @@ def dial_beside_caption(records, size, image):
                         crop[:, :, 2].astype(int))
     mask = ((red > 150) & (green > 90) & (blue < 110)).astype(np.uint8)
     count, _, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
-    best = None
+    pieces = []
     for index in range(1, count):
         bx, by, bwidth, bheight, area = stats[index]
         if area < 1200:
@@ -200,9 +200,21 @@ def dial_beside_caption(records, size, image):
             continue
         if not (label[1] - 40 <= centre_y <= label[1] + label[3] + 90):
             continue
-        if best is None or area > best[0]:
-            best = (int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight))
-    return None if best is None else tuple(best[1:])
+        pieces.append((int(area), int(bx + x0), int(by + y0), int(bwidth), int(bheight)))
+    if not pieces:
+        return None
+    # A dial's hub splits its warm ring into pieces, and the biggest piece is only the
+    # top half: frame `-210431` gave (1340,796,88,79) for a dial that reaches y≈940, so
+    # every press landed 44 px above its centre.  Return the union of the pieces that
+    # share the biggest one's column instead -- the box is the control, not a fragment.
+    biggest = max(pieces)
+    biggest_mid = biggest[1] + biggest[3] / 2
+    keep = [p for p in pieces if abs((p[1] + p[3] / 2) - biggest_mid) <= biggest[3]]
+    left = min(p[1] for p in keep)
+    top = min(p[2] for p in keep)
+    right = max(p[1] + p[3] for p in keep)
+    bottom = max(p[2] + p[4] for p in keep)
+    return (left, top, right - left, bottom - top)
 
 
 def start_button(records, size, image=None):
