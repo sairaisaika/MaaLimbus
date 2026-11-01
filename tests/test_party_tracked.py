@@ -66,4 +66,4 @@ def test_every_reader_out_of_reach_carries_the_last_point(monkeypatch):
     _stub(monkeypatch, party_point=(60, 60), flame_point=None,
           glow_point=(3000, 3000), player_marker=(20, 900))
     point, source = vision.party_tracked(object(), (900, 900), limit=50)
-    assert point == (900, 900) and source == 'tracked'
+    assert point == (900, 900) and source == 'carried'
