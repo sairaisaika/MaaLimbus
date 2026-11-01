@@ -2793,7 +2793,7 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 dist = ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
                 return 0.55 * _side <= dist <= 1.75 * _side
             _kept = [box for box in boxes if _near(box)]
-            if not _kept and boxes:
+            if not _kept:
                 # Every box the page drew sits too far from where the party reads: on
                 # `-200234` that was two boxes with the party at (1236,256), and the run
                 # stopped with "no destination" while the page clearly offered nodes.  The
@@ -2802,7 +2802,8 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 def _dist(box):
                     cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
                     return ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
-                _kept = [min(boxes, key=_dist)]
+                _pool = boxes or _boxes
+                _kept = [min(_pool, key=_dist)] if _pool else []
                 self.note('map_candidates_farthest_fallback', kept=[list(v) for v in _kept],
                           nearest_px=round(_dist(_kept[0])))
             # The page draws the direction it will take (m23156).  A tile one step away on
