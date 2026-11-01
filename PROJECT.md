@@ -7398,3 +7398,20 @@ outcomes: superseded 4 / unjudged 1 / rejected 1
 
 这样"能不能往下走"由最稳的那条路负责，聪明的那些留在开关后面，不再挡路。
 （代码改动下一轮落地：`candidates_of(mode='box')` 早返回 + runner 传参。）
+
+### box 模式首跑：superseded 消失，候选供给不足（2026-10-31，D429 落地）
+
+`-200234`（150 s，95 事件）：
+
+```
+我方：(1055,189) → (1236,256)          ← 走了一步
+outcomes: unjudged 1 / rejected 1      ← superseded 0（本轮之前每局 4–6 次）
+停止原因：no_candidate_node_observed   ← 候选空了
+```
+
+**这是第一次 superseded 归零。** 那套"外推→承诺→替换"的循环不再自己作废自己的点击。
+
+新问题很干净：**有一帧 `map_clicks` 没有给出一格内的框**，于是一次点击都没发就停了。
+
+下一轮只查一件事：`map_candidates_empty` 里写下的 scene / size / ocr 数——是页面真的没画节点，
+还是 `map_clicks` 在那个页面状态下读不到。

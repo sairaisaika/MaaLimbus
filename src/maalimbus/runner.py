@@ -2276,7 +2276,7 @@ def _promote_lead(ordered, record):
 
 
 def candidates_of(directory, record, *, header_only=False, fallback_party=None,
-                  previous_party=None):
+                  previous_party=None, mode='box'):
     """Ordered click boxes for a MAP page, the step the game marks first.
 
     Which nodes the run may step to depends on the paths drawn under the dots, and
@@ -2769,6 +2769,22 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
     record['map_click_centre'] = ({'box': [int(v) for v in ordered[0][:4]],
                                    'centre': list(map_vision.tile_centre(image, ordered[0][:4]))}
                                   if ordered else None)
+    if mode == 'box':
+        # The plain path: no extrapolation, no commitment, no next_untried.  Read the
+        # tiles the page draws and keep the ones one step from the party (D429).
+        _party = record.get('map_party') or fallback_party
+        _boxes = [box for box in (record.get('map_candidates') or ()) if len(box) >= 4]
+        _sides = sorted(int(box[2]) for box in _boxes if int(box[2]) > 100)
+        _side = _sides[len(_sides) // 2] if _sides else None
+        if _party and _side:
+            def _near(box):
+                cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
+                dist = ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
+                return 0.55 * _side <= dist <= 1.75 * _side
+            _kept = [box for box in boxes if _near(box)]
+            if len(_kept) != len(boxes):
+                boxes = _kept
+        ordered = [box for box in boxes if box in ordered] or boxes
     return name, ordered
 
 
