@@ -62,7 +62,11 @@ def normalise_header_text(text):
     return re.sub(r'\s+', ' ', out).strip()
 
 HEADER_ROI = (.0, .06, .30, .22)
-PACK_ROI = (.0, .14, .30, .28)
+# The pack line sits under the floor header, but OCR sometimes merges it into one tall
+# block whose centre lands just past the old bottom edge: `-202139/frame-0001` read
+# 'To be Crushed' as a single 303x88 box centred at y=0.281, one thousandth outside
+# PACK_ROI[3]=.28, and the map page was called UNKNOWN for it (D433).
+PACK_ROI = (.0, .14, .30, .32)
 
 #: the crescent emblem every map node hangs under its hexagon, kept in 1280-space so
 #: callers can scale it to the frame (assets/resource/base/image/map/node_badge.png).
