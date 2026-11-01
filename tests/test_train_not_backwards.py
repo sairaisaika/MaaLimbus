@@ -16,4 +16,4 @@ def test_the_runner_hands_the_previous_party_over():
     runner = (pathlib.Path(__file__).resolve().parents[1]
               / 'src' / 'maalimbus' / 'runner.py').read_text(encoding='utf-8')
     assert 'previous=_previous_party' in runner
-    assert "self.state or {}).get('last_party')" in runner
+    assert '_previous_party = previous_party' in runner

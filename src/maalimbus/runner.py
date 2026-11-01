@@ -2782,6 +2782,18 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 dist = ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
                 return 0.55 * _side <= dist <= 1.75 * _side
             _kept = [box for box in boxes if _near(box)]
+            if not _kept and boxes:
+                # Every box the page drew sits too far from where the party reads: on
+                # `-200234` that was two boxes with the party at (1236,256), and the run
+                # stopped with "no destination" while the page clearly offered nodes.  The
+                # nearest box is still the best guess the plain path has; a wrong nearest
+                # box at least produces a verdict (D430).
+                def _dist(box):
+                    cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
+                    return ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
+                _kept = [min(boxes, key=_dist)]
+                self.note('map_candidates_farthest_fallback', kept=[list(v) for v in _kept],
+                          nearest_px=round(_dist(_kept[0])))
             if len(_kept) != len(boxes):
                 boxes = _kept
         ordered = [box for box in boxes if box in ordered] or boxes
