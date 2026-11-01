@@ -6140,7 +6140,7 @@ class MirrorRunner:
             # `turn_submitted` in the observation row was a hard-coded False the agent never
             # filled in (removed in this change); the turn the page shows this frame is the
             # honest reading, so the runner records it whenever it moves (D439).
-            turn_now = (record.get('battle_hud') or {}).get('turn')
+            turn_now = record.get('turn')
             if turn_now is not None and turn_now != state.get('last_turn'):
                 state['last_turn'] = turn_now
                 self.note('battle_turn_changed', turn=turn_now, page=page,
