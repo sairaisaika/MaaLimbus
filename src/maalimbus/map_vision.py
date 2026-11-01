@@ -3088,6 +3088,13 @@ def party_tracked(image, previous=None, *, limit=230):
             continue
         readers.append((name, (int(point[0]), int(point[1]))))
     primary = next((point for name, point in readers if name == 'party_point'), None)
+    flame = next((point for name, point in readers if name == 'flame_point'), None)
+    if flame is not None:
+        # The flame is the one mark the page puts over the party itself; continuity is a
+        # constraint for readers that cannot say whose ring they found (D434).  On
+        # `-194005/frame-0016` the tracked reading sat on the boss tile 162 px away while
+        # the flame was on the party's own tile.
+        return flame, 'flame'
     if previous is None or not readers:
         return primary, 'primary'
     px, py = int(previous[0]), int(previous[1])
