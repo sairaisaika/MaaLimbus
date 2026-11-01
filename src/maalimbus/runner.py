@@ -6136,6 +6136,15 @@ class MirrorRunner:
             self.note('map_candidates_empty',scene=record.get('scene'),
                       size=record.get('size'),ocr=len(record.get('ocr') or []),
                       reason='the_map_reader_offered_no_destination')
+        if page_vocabulary.is_battle_hud(page):
+            # `turn_submitted` in the observation row was a hard-coded False the agent never
+            # filled in (removed in this change); the turn the page shows this frame is the
+            # honest reading, so the runner records it whenever it moves (D439).
+            turn_now = (record.get('battle_hud') or {}).get('turn')
+            if turn_now is not None and turn_now != state.get('last_turn'):
+                state['last_turn'] = turn_now
+                self.note('battle_turn_changed', turn=turn_now, page=page,
+                          reason='the_turn_badge_this_frame_is_not_the_one_we_last_read')
         repeat_assignment = (page_vocabulary.is_battle_hud(page)
                              and self._assign_already_sent(record)
                              and state.get('battle_previous') == 'assign')

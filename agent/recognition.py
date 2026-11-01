@@ -1000,7 +1000,7 @@ class LimbusRecognition(CustomRecognition):
             self.journal.record('battle_auto_assign_intent',frame=frame,scene=scene,
                                 wave=plan['wave'],turn=plan['turn'],box=box,
                                 damage_box=plan['damage'],delay_ms=delay,
-                                turn_submitted=False,verified_clear=False)
+                                verified_clear=False)
         elif 'token' in params:
             matches = find(records, self.locale[params['token']], params['roi'],
                            (argv.image.shape[1], argv.image.shape[0]))
@@ -1386,8 +1386,7 @@ class BattlePlanObservation(CustomAction):
         changed=hashlib.sha256(image.tobytes()).hexdigest()!=self.recognition.battle_before
         self.recognition.journal.record('battle_plan_observed',frame=frame,scene=scene,
             frame_changed=changed,labels=preview_labels(records,(image.shape[1],image.shape[0])),
-            plan_verified=False,clash_coverage_verified=False,turn_submitted=False,
-            victory_verified=False,verified_clear=False,
+            plan_verified=False,clash_coverage_verified=False,            victory_verified=False,verified_clear=False,
             reason='fresh_frame_only_clash_assignment_EGO_survival_and_turn_submission_pending')
         return True
 
@@ -1469,7 +1468,7 @@ class BattleObservation(CustomAction):
             auto_assign_buttons=None if buttons is None else
                 {'win_rate':list(buttons['win_rate']),'damage':list(buttons['damage'])},
             start_box=None if begin is None else list(begin),
-            turn_submitted=False,verified_clear=False,
+            verified_clear=False,
             scope='page identity, HUD counters and battle controls; no input')
         return hud is not None
 
