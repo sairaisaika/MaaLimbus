@@ -2811,8 +2811,8 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                     return ((cx - _party[0]) ** 2 + (cy - _party[1]) ** 2) ** 0.5
                 _pool = boxes or _boxes
                 _kept = [min(_pool, key=_dist)] if _pool else []
-                self.note('map_candidates_farthest_fallback', kept=[list(v) for v in _kept],
-                          nearest_px=round(_dist(_kept[0])))
+                record['map_candidates_farthest_fallback'] = {
+                    'kept': [list(v) for v in _kept], 'nearest_px': round(_dist(_kept[0]))}
             # The page draws the direction it will take (m23156).  A tile one step away on
             # the other side of the party is not a destination the game will accept -- on
             # `-200642` the only one-step tile was behind the party and every click on it came
@@ -2822,8 +2822,9 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
             if _axis and _kept:
                 _on = [box for box in _kept if _on_axis(box, _party, _axis)]
                 if _on and len(_on) != len(_kept):
-                    self.note('map_candidates_off_axis', dropped=len(_kept) - len(_on),
-                              left=len(_on), axis=[round(_axis[0], 2), round(_axis[1], 2)])
+                    record['map_candidates_off_axis'] = {
+                        'dropped': len(_kept) - len(_on), 'left': len(_on),
+                        'axis': [round(_axis[0], 2), round(_axis[1], 2)]}
                     _kept = _on
             if len(_kept) != len(boxes):
                 boxes = _kept
