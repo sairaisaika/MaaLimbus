@@ -2787,6 +2787,9 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
         _boxes = [box for box in (record.get('map_candidates') or ()) if len(box) >= 4]
         _sides = sorted(int(box[2]) for box in _boxes if int(box[2]) > 100)
         _side = _sides[len(_sides) // 2] if _sides else None
+        # A silent branch is indistinguishable from a branch that never ran: print the
+        # inputs once per box-mode step so the next run can say which (D432).
+        self.note('map_box_path', party=bool(_party), side=_side, boxes=len(_boxes))
         if _party and _side:
             def _near(box):
                 cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
