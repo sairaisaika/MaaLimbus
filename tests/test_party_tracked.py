@@ -59,3 +59,11 @@ def test_continuity_still_decides_when_no_flame_is_read(monkeypatch):
     monkeypatch.setattr(mv, 'player_marker', lambda image: (1249, 259))
     point, source = mv.party_tracked(object(), previous=(1249, 259))
     assert point == (1249, 259) and source == 'tracked'
+
+
+def test_every_reader_out_of_reach_carries_the_last_point(monkeypatch):
+    """D437: nothing near last frame means every reader guessed; carry the point."""
+    _stub(monkeypatch, party_point=(60, 60), flame_point=None,
+          glow_point=(3000, 3000), player_marker=(20, 900))
+    point, source = vision.party_tracked(object(), (900, 900), limit=50)
+    assert point == (900, 900) and source == 'tracked'

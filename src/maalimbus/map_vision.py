@@ -3104,7 +3104,11 @@ def party_tracked(image, previous=None, *, limit=230):
         if best is None or distance < best[0]:
             best = (distance, name, point)
     if best is None or best[0] > limit:
-        return primary, 'primary'
+        # The party does not teleport (D392), so a frame where *every* reader is more than
+        # a step away from last frame's point is a frame where they all guessed.  Carrying
+        # last frame's answer is the honest reading; `-205007` jumped y 191 -> 305 -> 540
+        # -> 760 inside one run by falling back to the primary reader here.
+        return (px, py), 'carried'
     return best[2], 'tracked'
 
 
