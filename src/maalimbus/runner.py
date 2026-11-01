@@ -2275,6 +2275,17 @@ def _promote_lead(ordered, record):
     return ordered
 
 
+def _on_axis(box, party, axis, *, share=0.5):
+    """Whether ``box`` sits inside the cone the page's arrow points into."""
+    cx, cy = box[0] + box[2] / 2.0, box[1] + box[3] / 2.0
+    dx, dy = cx - party[0], cy - party[1]
+    length = (dx * dx + dy * dy) ** 0.5
+    if length < 1e-6:
+        return True
+    cos = (dx * axis[0] + dy * axis[1]) / (length * ((axis[0] ** 2 + axis[1] ** 2) ** 0.5))
+    return cos >= share
+
+
 def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                   previous_party=None, mode='box'):
     """Ordered click boxes for a MAP page, the step the game marks first.
@@ -2794,6 +2805,18 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 _kept = [min(boxes, key=_dist)]
                 self.note('map_candidates_farthest_fallback', kept=[list(v) for v in _kept],
                           nearest_px=round(_dist(_kept[0])))
+            # The page draws the direction it will take (m23156).  A tile one step away on
+            # the other side of the party is not a destination the game will accept -- on
+            # `-200642` the only one-step tile was behind the party and every click on it came
+            # back unjudged or rejected.  Keep the tiles on the drawn axis when the page
+            # draws one; a page that draws no arrow keeps every tile (D431).
+            _axis = map_vision.direction_arrow(image, _party)
+            if _axis and _kept:
+                _on = [box for box in _kept if _on_axis(box, _party, _axis)]
+                if _on and len(_on) != len(_kept):
+                    self.note('map_candidates_off_axis', dropped=len(_kept) - len(_on),
+                              left=len(_on), axis=[round(_axis[0], 2), round(_axis[1], 2)])
+                    _kept = _on
             if len(_kept) != len(boxes):
                 boxes = _kept
         ordered = [box for box in boxes if box in ordered] or boxes
