@@ -6350,7 +6350,15 @@ class MirrorRunner:
         else:
             box = inset_box(tuple(plan['target']), .3)
             x, y, w, h = box
-            point = (random.randint(x, x + max(1, w)), random.randint(y, y + max(1, h)))
+            # A click lands near the box's centre, not anywhere inside it (D438).  The
+            # battle's START dial accepts only its middle: frame `-205402` kept
+            # `turn_submitted: false` across eight inputs with points drawn from the whole
+            # 86x79 box, while one adb tap on the centre advanced the turn (diff 10.14).
+            _jx = max(1, int(round(w * 0.15)))
+            _jy = max(1, int(round(h * 0.15)))
+            _cx, _cy = x + w // 2, y + h // 2
+            point = (random.randint(_cx - _jx, _cx + _jx),
+                     random.randint(_cy - _jy, _cy + _jy))
             self.note('window_intent', page=page, target=list(plan['target']),
                       reason=plan['reason'], point=list(point), delay_ms=delay)
             if plan.get('reason') == 'the_saved_team_is_selected_on_the_board':
