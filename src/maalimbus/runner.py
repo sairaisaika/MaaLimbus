@@ -2143,6 +2143,25 @@ def node_sized_boxes(clicks, *, width, floor_share=0.05):
     kept = [item for item in clicks if int(item['box'][2]) >= min_side]
     expanded = 0
     info = {'min_side': min_side, 'widest': widest, 'kept': len(kept), 'expanded': 0}
+    # A small box the page itself draws is the next step, not an ornament (D436).  Live
+    # A/B on one frame: a 40x40 `lit_ring` at the tile centre opened the node preview
+    # (frame diff 11.16) while the 190px gold badge did nothing (0.13).  Dropping the
+    # ring for being small is what left the loop with only the badge to press.
+    page_drawn = ('lit_ring', 'chevron_target', 'highlighted_node', 'cyan_node', 'path_node')
+    grown_from_small = []
+    side = max(min_side, int(round(0.10 * float(width))))
+    for item in clicks:
+        if int(item['box'][2]) >= min_side or item.get('kind') not in page_drawn:
+            continue
+        x, y, w, h = [int(v) for v in item['box']]
+        cx, cy = x + w // 2, y + h // 2
+        point = item.get('point') or (cx, cy)
+        grown_from_small.append(dict(item, box=[cx - side // 2, cy - side // 2, side, side],
+                                     point=(int(point[0]), int(point[1])),
+                                     grown_from='small'))
+    if grown_from_small:
+        kept = kept + grown_from_small
+        info['grown_from_small'] = len(grown_from_small)
     if not kept and clicks:
         side = widest if widest >= min_side else max(min_side, int(round(0.10 * float(width))))
         for item in clicks:
@@ -2812,13 +2831,14 @@ def candidates_of(directory, record, *, header_only=False, fallback_party=None,
                 _pool = boxes or _boxes
                 _kept = [min(_pool, key=_dist)] if _pool else []
                 record['map_candidates_farthest_fallback'] = {
-                    'kept': [list(v) for v in _kept], 'nearest_px': round(_dist(_kept[0]))}
+                    'kept': [list(v) for v in _kept]}
             # The page draws the direction it will take (m23156).  A tile one step away on
             # the other side of the party is not a destination the game will accept -- on
             # `-200642` the only one-step tile was behind the party and every click on it came
             # back unjudged or rejected.  Keep the tiles on the drawn axis when the page
             # draws one; a page that draws no arrow keeps every tile (D431).
-            _axis = map_vision.direction_arrow(image, _party)
+            _arrow = map_vision.direction_arrow(image, _party)
+            _axis = _arrow.get('direction') if isinstance(_arrow, dict) else _arrow
             if _axis and _kept:
                 _on = [box for box in _kept if _on_axis(box, _party, _axis)]
                 if _on and len(_on) != len(_kept):
@@ -3978,6 +3998,11 @@ class MirrorRunner:
 
         try:
             result = normalise_view(measure, zoom, drag)
+        except Exception as error:  # noqa: BLE001 - record the stack before it leaves
+            import traceback as _traceback
+            self.note('loop_unhandled', kind=type(error).__name__,
+                      stack=_traceback.format_exc().splitlines()[-8:])
+            raise
         except (RuntimeError, OSError) as error:
             self.note('view_normalisation_failed', error=str(error)[:200])
             return
@@ -7232,6 +7257,11 @@ class MirrorRunner:
         try:
             return self._walk(steps=steps, interval=interval,
                               round_limit=round_limit, deadline=deadline)
+        except Exception as error:  # noqa: BLE001 - record the stack before it leaves
+            import traceback as _traceback
+            self.note('loop_unhandled', kind=type(error).__name__,
+                      stack=_traceback.format_exc().splitlines()[-8:])
+            raise
         finally:
             self._retire_watches()
 
